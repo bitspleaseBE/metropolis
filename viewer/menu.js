@@ -54,7 +54,7 @@ export function createMenu(hooks) {
   root.hidden = true;
   root.innerHTML = `
     <div class="cm-poster" aria-hidden="true">
-      <img class="cm-bg" src="./menu/poster-antwerp.jpg" alt="" />
+      <img class="cm-bg" data-src="./menu/poster-antwerp.jpg" alt="" />
       <div class="cm-scrim"></div>
     </div>
     <div class="cm-home">
@@ -251,7 +251,7 @@ export function createMenu(hooks) {
     const fig = document.createElement("figure");
     fig.className = "cm-card";
     fig.dataset.id = p.id;
-    fig.innerHTML = `<img src="./menu/portrait-${p.id}-full.png" alt="${p.name}" /><figcaption>${p.name}</figcaption>`;
+    fig.innerHTML = `<img data-src="./menu/portrait-${p.id}-full.png" alt="${p.name}" /><figcaption>${p.name}</figcaption>`;
     stage.append(fig);
   }
 
@@ -259,11 +259,24 @@ export function createMenu(hooks) {
   let view = "home"; // home | maps | cast
   let navIndex = 0;
   let castIndex = Math.max(0, PLAYERS.findIndex((p) => p.id === getStoredPlayerId()));
+  // Poster and portraits stay unloaded until the city file has finished, so they
+  // don't sit on the same connection as the 56 MB streets download.
+  let artReady = false;
 
   function refreshPortrait() {
     const p = playerById(getStoredPlayerId());
-    portrait.src = `./menu/portrait-${p.id}.png`;
+    portrait.dataset.src = `./menu/portrait-${p.id}.png`;
     portrait.alt = p.name;
+    if (artReady) portrait.src = portrait.dataset.src;
+  }
+
+  function loadArt() {
+    if (artReady) return;
+    artReady = true;
+    for (const img of root.querySelectorAll("img[data-src]")) {
+      if (!img.getAttribute("src")) img.src = img.dataset.src;
+    }
+    refreshPortrait();
   }
 
   function setNavSelected() {
@@ -310,6 +323,7 @@ export function createMenu(hooks) {
   }
 
   function show() {
+    loadArt();
     open = true;
     root.hidden = false;
     document.body.classList.add("menu-open");
@@ -493,5 +507,6 @@ export function createMenu(hooks) {
       if (el) el.textContent = text;
     },
     refreshPortrait,
+    loadArt,
   };
 }
