@@ -20,6 +20,19 @@ const CSS = `
   overflow: hidden; opacity: 0; transition: opacity .6s; }
 #hud-health.on { opacity: 1; }
 #hud-health i { display: block; height: 100%; width: 100%; background: #e04a3a; transition: width .25s; }
+#hud-wanted { display: flex; justify-content: flex-end; gap: 5px; margin-top: 8px; min-height: 22px; }
+#hud-wanted img { width: 22px; height: 22px; filter: drop-shadow(0 1px 1px #000); }
+#hud-ammo { position: fixed; right: 28px; bottom: 28px; z-index: 600; pointer-events: none;
+  font: 800 1.6rem/1 "Helvetica Neue", Arial, sans-serif; color: #fff;
+  text-shadow: 0 0 2px #000, 0 1px 2px #000; }
+#weapon-wheel { position: fixed; inset: 0; z-index: 680; display: none; pointer-events: none; }
+#weapon-wheel.on { display: flex; align-items: center; justify-content: center; }
+#weapon-wheel .ring { width: 240px; height: 240px; border-radius: 50%; background: rgba(8,10,14,0.78);
+  border: 2px solid rgba(255,255,255,0.35); display: flex; align-items: center; justify-content: space-around; padding: 28px; }
+#weapon-wheel .slot { width: 78px; text-align: center; color: #fff; font: 700 0.9rem/1.3 "Helvetica Neue", Arial, sans-serif;
+  text-shadow: 0 1px 2px #000; opacity: 0.55; }
+#weapon-wheel .slot.on { opacity: 1; color: #ffd800; }
+#weapon-wheel .slot.lock { opacity: 0.28; }
 #hud-feed { position: fixed; left: 22px; bottom: 196px; width: 248px; z-index: 600; pointer-events: none;
   display: flex; flex-direction: column-reverse; gap: 6px; }
 .hud-note { background: rgba(10,12,16,0.78); color: #f2f2f2; font: 500 0.86rem/1.35 "Helvetica Neue", Arial, sans-serif;
@@ -93,7 +106,7 @@ const HELP = {
   keyboard: [
     [{ kbd: "W A S D" }, "walk · steer when riding"],
     [{ kbd: "Shift" }, "sprint · ", { kbd: "Space" }, "jump"],
-    [{ kbd: "Click" }, "punch · ", { kbd: "Right-click" }, "kick"],
+    [{ kbd: "Click" }, "punch · ", { kbd: "Right-click" }, "kick · ", { kbd: "Tab" }, "weapons"],
     [{ kbd: "E" }, "scooter · tram · bus · Velo"],
     [{ kbd: "N" }, "fast-forward to night / day"],
     [{ kbd: "V" }, "map view · ", { kbd: "M" }, "radar"],
@@ -167,6 +180,11 @@ export function createHud(opts = {}) {
   const wallet = el("div", "hud-wallet", "", tr);
   const healthBar = el("div", "hud-health", "", tr);
   const healthFill = el("i", "", "", healthBar);
+  const wantedEl = el("div", "hud-wanted", "", tr);
+  const ammoEl = el("div", "hud-ammo", "hud-font");
+  const wheel = el("div", "weapon-wheel");
+  wheel.innerHTML = '<div class="ring"></div>';
+  const wheelRing = wheel.querySelector(".ring");
   const feed = el("div", "hud-feed");
   const speed = el("div", "hud-speed", "hud-font");
   speed.innerHTML = '<span class="v">0</span><span class="u">KM/H</span><div class="bar"><i></i></div><div class="sub"></div>';
@@ -350,12 +368,42 @@ export function createHud(opts = {}) {
     healthBar.classList.toggle("on", h < 100);
   }
 
+  function setWanted(level, src) {
+    const n = Math.max(0, Math.min(4, level | 0));
+    const key = `${n}|${src || ""}`;
+    if (wantedEl.dataset.key === key) return;
+    wantedEl.dataset.key = key;
+    wantedEl.replaceChildren();
+    if (!src || n <= 0) return;
+    for (let i = 0; i < n; i++) {
+      const img = document.createElement("img");
+      img.alt = "";
+      img.src = src;
+      wantedEl.appendChild(img);
+    }
+  }
+
+  function setWeapon(info) {
+    if (!info) return;
+    wheel.classList.toggle("on", !!info.open);
+    wheelRing.replaceChildren();
+    for (const slot of info.slots || []) {
+      const d = document.createElement("div");
+      d.className = `slot${slot.id === info.weapon ? " on" : ""}${slot.locked ? " lock" : ""}`;
+      d.textContent = slot.label;
+      wheelRing.appendChild(d);
+    }
+    ammoEl.textContent = info.hasPistol && info.weapon === "pistol" ? String(info.ammo) : "";
+  }
+
   return {
     update,
     notify,
     spend,
     earn,
     setHealth,
+    setWanted,
+    setWeapon,
     showHelp,
     setHelpKind,
     offerController,

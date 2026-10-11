@@ -215,8 +215,40 @@ export function createPlayerCrash(THREE, camera, opts = {}) {
     flashEl.style.opacity = "0";
   }
 
+  function hurt(amount) {
+    if (dead || c) return 0;
+    const dmg = Math.max(0, Number(amount) || 0);
+    if (dmg <= 0) return 0;
+    health = Math.max(0, health - dmg);
+    sinceHit = 0;
+    flash = 1;
+    if (health > 0) return dmg;
+    dead = true;
+    health = 0;
+    deathReported = false;
+    euler.setFromQuaternion(camera.quaternion);
+    c = {
+      phase: "lie",
+      t: 0,
+      yaw: euler.y,
+      pitch: 0.08,
+      roll: 1.1,
+      side: 1,
+      vx: 0,
+      vz: 0,
+      vy: 0,
+      y: LIE_EYE,
+      shake: 0.35,
+      lie: DEAD_LIE_S,
+      dmg,
+      killed: true,
+    };
+    return dmg;
+  }
+
   return {
     start,
+    hurt,
     update,
     stopHorizontal,
     respawn,

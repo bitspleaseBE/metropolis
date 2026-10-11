@@ -949,5 +949,15 @@ export function createPlayerAvatar(THREE, scene) {
     pedalPhase() {
       return pedal;
     },
+    /** True while a Mixamo jab, cross, or kick is playing. */
+    get striking() {
+      return !!melee;
+    },
+    get bones() {
+      return armBones;
+    },
+    get legs() {
+      return bodyBones;
+    },
   };
 }

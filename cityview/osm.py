@@ -24,6 +24,7 @@ from cityview.directions import (
 from cityview.geo import project
 from cityview.landmarks import attach_landmark, landmark_nodes, load_manifest
 from cityview.parking import parse_road_parking
+from cityview.road_surface import carriageway_material
 from cityview.shop_brands import normalize_shop_brand
 from cityview.streetscape import (
     annotate_layout,
@@ -1080,6 +1081,7 @@ def layout_from_osm(
                 "kind": tags.get("highway", "residential"),
                 # Street name: lets the builder group OSM ways into one street.
                 "name": tags.get("name") or "",
+                "surface": carriageway_material(tags),
             }
             limit = parse_maxspeed_kmh(tags)
             if limit is not None:

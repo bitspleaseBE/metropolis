@@ -701,6 +701,70 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     return hits;
   }
 
+  /**
+   * A punch or a kick in front of the player. `dx/dz` is the facing direction.
+   * Returns the people who took the blow, with `dead` once health is gone.
+   */
+  function strike(x, z, dx, dz, range, damage, single = false) {
+    const len = Math.hypot(dx, dz) || 1;
+    const ux = dx / len;
+    const uz = dz / len;
+    const found = [];
+    for (const g of groups) {
+      for (const m of g.members) {
+        if (m.down?.dead) continue;
+        const p = m.mesh.position;
+        const px = p.x - x;
+        const pz = p.z - z;
+        const along = px * ux + pz * uz;
+        if (along < 0.2 || along > range) continue;
+        const side = Math.abs(px * uz - pz * ux);
+        if (side > (single ? 0.45 : 0.75)) continue;
+        found.push({ m, along, p });
+      }
+    }
+    if (single) found.sort((a, b) => a.along - b.along);
+    const take = single ? found.slice(0, 1) : found;
+    const out = [];
+    for (const { m, p } of take) {
+        const age = m.mesh.userData.person?.template.person.age;
+        m.health ??= 100 * (FRAILTY[age] || 1);
+        m.health -= damage;
+        const dead = m.health <= 0;
+        const getUp = m.mesh.userData.person?.getUp;
+        if (getUp) {
+          const w0 = m.recover ? getUp.getEffectiveWeight() : 0;
+          m.recover = 0;
+          getUp.reset().play();
+          getUp.paused = true;
+          getUp.setEffectiveWeight(w0);
+        }
+        m.down = {
+          rigged: !!getUp,
+          dead,
+          deadFor: 0,
+          t: 0,
+          w0: getUp ? getUp.getEffectiveWeight() : 0,
+          yaw0: m.mesh.rotation.y,
+          throwYaw: Math.atan2(ux, uz),
+          vx: ux * 1.4,
+          vz: uz * 1.4,
+          vy: dead ? 0.4 : 0.15,
+          y: 0,
+          angle: 0,
+          spin: 2.2,
+          lie: dead ? Infinity : 2.4 + Math.random() * 1.6,
+          getUp: 0,
+          yaw: m.mesh.rotation.y,
+          axis: _axis.crossVectors(UP, new THREE.Vector3(ux, 0, uz)).clone(),
+        };
+        m.offX = p.x - (m.routeX ?? p.x);
+        m.offZ = p.z - (m.routeZ ?? p.z);
+        out.push({ x: p.x, z: p.z, dead });
+    }
+    return out;
+  }
+
   function updateDown(m, dt) {
     const f = m.down;
     const p = m.mesh.position;
@@ -927,6 +991,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     people: pool,
     routes: walkRoutes,
     hitTest,
+    strike,
     roadPeople,
     setBlocker(fn) {
       blocked = typeof fn === "function" ? fn : () => false;

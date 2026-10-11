@@ -68,7 +68,7 @@ FACADE_PHOTO_MAT = None  # shared atlas material, set in build()
 # orthophoto (yard median ~RGB 78/94/103 -> de-blued ~86/97/92; park median ~88/105/106), far
 # darker than the old pale gravel / lime grass. Linear Base-Color multipliers measured with
 # scripts/topdown_probe.html + scripts/compare_roofs.py so the top-down render lands on those.
-GROUND_TINT = (0.061, 0.079, 0.074)
+GROUND_TINT = (0.82, 0.80, 0.74)
 PARK_TINT = (0.42, 0.36, 0.46)
 ROOF_AERIAL = surface_kit.load_roof_aerial()  # per-building roof family + tint measured from the orthophoto
 SURFACES_DIR = Path(_REPO_ROOT) / "assets" / surface_kit.TEXTURES_DIRNAME  # procedural roofs / paving / grass
@@ -285,6 +285,18 @@ def link(obj: bpy.types.Object) -> bpy.types.Object:
     return obj
 
 
+def _tag_pbr(mat) -> None:
+    """Flag shiny materials so the viewer keeps MeshStandardMaterial.
+
+    glTF only carries metallic-roughness, so the viewer downgrades everything
+    else to Lambert after load. Keep this name test in sync with keepCityPbr()
+    in viewer/index.html.
+    """
+    n = mat.name.lower()
+    if "glass" in n or "water" in n or "gold" in n or n.startswith("car_"):
+        mat["cityview_shader"] = "pbr"
+
+
 def principled(name: str, color, rough: float = 0.85, metallic: float = 0.0):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -298,6 +310,7 @@ def principled(name: str, color, rough: float = 0.85, metallic: float = 0.0):
     if "Metallic" in bsdf.inputs:
         bsdf.inputs["Metallic"].default_value = metallic
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    _tag_pbr(mat)
     return mat
 
 
@@ -368,6 +381,7 @@ def textured(
     else:
         links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    _tag_pbr(mat)
     return mat
 
 
@@ -1715,6 +1729,7 @@ def photo_material_cropped(name: str, image_path: Path, crop: list[float], rough
     links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
     links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    _tag_pbr(mat)
     return mat
 
 
@@ -2773,7 +2788,12 @@ def add_supermarket_fascia(
 FAR_FACADE_M = 360.0  # beyond this: photo elevations only, no chimneys / roof plant
 
 
-def add_building(bldg: dict, mats: dict, spawn_xy: tuple[float, float] | None = None) -> None:
+def add_building(
+    bldg: dict,
+    mats: dict,
+    spawn_xy: tuple[float, float] | None = None,
+    standin: bool = False,
+) -> None:
     style_name = style_key_for(bldg)
     type_id = bldg.get("building_type") or bldg.get("style") or "eclectic"
     window_kind = None
@@ -2786,9 +2806,10 @@ def add_building(bldg: dict, mats: dict, spawn_xy: tuple[float, float] | None = 
     if len(ring) < 3:
         return
     bid = bldg.get("id", 0)
-    name = f"bldg_{bid}"
+    # Stand-ins stay in the city GLB under lmbase_<id> until the detailed GLB swaps in.
+    name = f"lmbase_{bid}" if standin else f"bldg_{bid}"
     holes = bldg.get("holes") or None
-    if (bldg.get("landmark") or {}).get("custom") and mats.get("landmark"):
+    if not standin and (bldg.get("landmark") or {}).get("custom") and mats.get("landmark"):
         # Hand-modelled landmark: full detail at any distance, no facade photo / atlas.
         kit = landmark_models.build_landmark(bldg)
         if kit is not None:
@@ -2955,7 +2976,9 @@ def add_building(bldg: dict, mats: dict, spawn_xy: tuple[float, float] | None = 
     seed_id = int(bid) if str(bid).lstrip("-").isdigit() else 1
     # LOD: chimneys and plant also crown the "simple" ring (skyline from the orbit view);
     # corbels, pots, vents and aerials are near-spawn only.
-    if far or holes:
+    # Stand-in chimneys land in the shared rooftop batch, which cannot be hidden
+    # when the detailed GLB replaces this one building.
+    if standin or far or holes:
         pass
     elif eff_shape != "flat" and seed_id % 2 == 0:
         ROOFTOP_STATS["chimneys"] += add_chimneys(
@@ -4071,7 +4094,8 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
 
     water_mat = principled("water", (0.18, 0.32, 0.42, 1.0), 0.12)
     park_mat = surface_mat("grass", "park", (0.28, 0.48, 0.26, 1.0), 0.92, tint=PARK_TINT)
-    road_mat = surface_mat("asphalt", "asphalt", (0.08, 0.08, 0.09, 1.0), 0.96)
+    road_mat = surface_mat("asphalt", "asphalt", (0.32, 0.32, 0.34, 1.0), 0.92)
+    cobble_mat = surface_mat("sett", "cobble", (0.45, 0.43, 0.40, 1.0), 0.88)
     sidewalk_mat = surface_mat("sidewalk", "sidewalk", (0.55, 0.54, 0.50, 1.0), 0.95)
     curb_mat = surface_mat("curb", "curb", (0.42, 0.41, 0.38, 1.0), 0.9)
     # Doorsteps: the same granite, a touch bluer and darker (arduin) so they read against the plinth.
@@ -4127,8 +4151,8 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
         principled("shutter_blue", (0.22, 0.28, 0.38, 1.0), 0.72),
     ]
     wear_mats = [
-        principled("asphalt_wear_a", (0.05, 0.05, 0.055, 1.0), 0.98),
-        principled("asphalt_wear_b", (0.10, 0.09, 0.08, 1.0), 0.97),
+        principled("asphalt_wear_a", (0.20, 0.20, 0.21, 1.0), 0.98),
+        principled("asphalt_wear_b", (0.28, 0.26, 0.24, 1.0), 0.97),
     ]
     dash_mat = principled("road_dash", (0.82, 0.78, 0.55, 1.0), 0.9)
     path_mat = principled("park_path", (0.48, 0.42, 0.32, 1.0), 0.95)
@@ -4279,13 +4303,14 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     courtyard_stats = courtyards_blender.add_courtyards(layout, courtyard_mats, courtyard_tiles)
     print(f"Courtyard surfaces (OSM car parks, playgrounds, pitches, sites, pools, woods): {courtyard_stats}")
     for i, road in enumerate(layout.get("roads") or []):
+        stone = road.get("surface") == "cobble"
         add_road(
             f"road_{road.get('id', i)}",
             road["points"],
             float(road["width"]),
-            road_mat,
+            cobble_mat if stone else road_mat,
             z=Z_ROAD,
-            uv_tile_m=surface_kit.surface_tile_m("asphalt"),
+            uv_tile_m=surface_kit.surface_tile_m("sett" if stone else "asphalt"),
         )
 
     tram_n, stop_n = add_transit_layer(layout, spawn_xy)
@@ -4321,12 +4346,17 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     clutter_stats = clutter_blender.add_clutter(layout, RAILS, clutter_mats)
     print(f"Street clutter (OSM-mapped bins, hoops, bollards, hydrants, ...): {clutter_stats}")
     if velo_blender is not None:
+        # Linear form of sRGB #E10613. The exporter writes this socket straight into
+        # baseColorFactor and the viewer applies the sRGB curve, so a hex-like
+        # (0.88, 0.02, 0.07) lifts the green and blue and turns the docks pink.
+        velo_red = (0.75294, 0.00182, 0.00651, 1.0)
         velo_mats = {
             "metal": principled("velo_dock_metal", (0.08, 0.08, 0.09, 1.0), 0.45),
-            "frame": principled("velo_frame_red", (0.72, 0.06, 0.12, 1.0), 0.55),
+            "frame": principled("velo_frame_red", velo_red, 0.38),
+            "silver": principled("velo_silver", (0.75, 0.76, 0.78, 1.0), 0.32, metallic=0.85),
             "mudguard": principled("velo_mudguard", (0.94, 0.93, 0.90, 1.0), 0.7),
             "tire": principled("velo_tire", (0.08, 0.08, 0.08, 1.0), 0.95),
-            "signal_red": principled("velo_accent_red", (0.78, 0.05, 0.1, 1.0), 0.5),
+            "signal_red": principled("velo_accent_red", velo_red, 0.38),
         }
         velo_stats = velo_blender.add_velo_stations(layout, RAILS, velo_mats)
         print(f"Velo docks (GBFS stations): {velo_stats}")
@@ -4390,13 +4420,25 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     ROOF_STATS.clear()
     ROOF_STATS.update({"measured": 0, "fallback": 0})
     for bldg in layout.get("buildings") or []:
+        if not _wants_stream(bldg):
+            add_building(bldg, mats, spawn_xy=spawn_xy)
+            continue
+        # Ordinary building stays in the city so the plot is never a hole or a
+        # blank plinth. The detailed mesh is peeled into landmarks/<id>.glb.
+        add_building(bldg, mats, spawn_xy=spawn_xy, standin=True)
         before = set(bpy.data.objects)
-        add_building(bldg, mats, spawn_xy=spawn_xy)
-        if _wants_stream(bldg):
-            fresh = _fresh_objects(before)
-            if fresh:
-                STREAMED[str(bldg["id"])] = fresh
-                add_landmark_hold(bldg.get("id"), bldg.get("ring") or [], bldg.get("holes") or [], mats)
+        lm = bldg.get("landmark") or {}
+        detailed = False
+        if lm.get("custom") and mats.get("landmark"):
+            kit = landmark_models.build_landmark(bldg)
+            if kit is not None:
+                add_kit_mesh(f"bldg_{bldg['id']}_landmark", kit, mats["landmark"])
+                detailed = True
+        if not detailed:
+            add_building(bldg, mats, spawn_xy=spawn_xy, standin=False)
+        fresh = _fresh_objects(before)
+        if fresh:
+            STREAMED[str(bldg["id"])] = fresh
     for node in layout.get("landmark_nodes") or []:
         before = set(bpy.data.objects)
         kit = landmark_models.build_node_landmark(node)
@@ -4426,7 +4468,8 @@ def peel_streamed_landmarks(output_dir: Path) -> None:
     """Write each one-off landmark to its own GLB, then drop it from the city scene.
 
     The .blend is already saved, so street-level renders still see the detailed mesh.
-    A lmhold_* plinth stays in the city GLB.
+    Buildings keep an lmbase_<id> stand-in in the city GLB. Point landmarks keep
+    a small lmhold_<id> pad.
     """
     dest = output_dir / "landmarks"
     dest.mkdir(parents=True, exist_ok=True)
@@ -4447,6 +4490,7 @@ def peel_streamed_landmarks(output_dir: Path) -> None:
             export_texcoords=True,
             export_normals=True,
             export_materials="EXPORT",
+            export_extras=True,  # material cityview_shader → glTF extras
             export_yup=True,
             export_cameras=False,
         )
@@ -4466,6 +4510,7 @@ def export_outputs(output_dir: Path, name: str, do_render: bool) -> None:
         export_texcoords=True,
         export_normals=True,
         export_materials="EXPORT",
+        export_extras=True,  # material cityview_shader → glTF extras
         export_image_format="JPEG",  # photo textures stay JPEG inside the GLB
         export_jpeg_quality=85,
         export_cameras=True,

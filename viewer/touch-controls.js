@@ -122,6 +122,7 @@ export function createTouchControls(opts) {
     onInteract,
     onPunch,
     onKick,
+    onAttack,
     onToggleMode,
     onToggleNight,
     onToggleHelp,
@@ -158,6 +159,7 @@ export function createTouchControls(opts) {
         <button type="button" class="tc-btn tc-jump" data-hold="space">Jump</button>
         <button type="button" class="tc-btn" data-act="punch">Punch</button>
         <button type="button" class="tc-btn" data-act="kick">Kick</button>
+        <button type="button" class="tc-btn" data-act="attack">Hit</button>
         <button type="button" class="tc-btn tc-interact big" data-act="interact">Go</button>
       </div>
     </div>
@@ -292,6 +294,7 @@ export function createTouchControls(opts) {
       if (act === "interact") onInteract?.();
       else if (act === "punch") onPunch?.();
       else if (act === "kick") onKick?.();
+      else if (act === "attack") onAttack?.();
       else if (act === "mode") onToggleMode?.();
       else if (act === "night") onToggleNight?.();
       else if (act === "help") onToggleHelp?.();

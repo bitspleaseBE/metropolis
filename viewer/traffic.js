@@ -1795,6 +1795,33 @@ export async function createTraffic(scene, THREE, opts = {}) {
       .catch((err) => console.warn("[cityview] extra car models failed", err));
   }
 
+  const redLatch = new Set();
+  /** True once, as the player crosses a stop line that is not green. */
+  function playerRanRed(x, z, yaw) {
+    if (!Number.isFinite(x) || !Number.isFinite(yaw)) return false;
+    const tx = -Math.sin(yaw);
+    const tz = -Math.cos(yaw);
+    let hit = false;
+    for (let s = 0; s < signals.length; s++) {
+      const sig = signals[s];
+      const dx = sig.stop.x - x;
+      const dz = sig.stop.z - z;
+      const ahead = dx * tx + dz * tz;
+      const side = Math.abs(dx * tz - dz * tx);
+      const approach = tx * sig.tan.x + tz * sig.tan.z;
+      const near = ahead > -2.2 && ahead < 2.6 && side < 4.2 && approach > 0.4;
+      if (near && !signalIsGreen(sig, simTime, cycleSec)) {
+        if (!redLatch.has(s)) {
+          redLatch.add(s);
+          hit = true;
+        }
+      } else if (ahead > 10 || ahead < -8) {
+        redLatch.delete(s);
+      }
+    }
+    return hit;
+  }
+
   return {
     update,
     dispose,
@@ -1806,6 +1833,7 @@ export async function createTraffic(scene, THREE, opts = {}) {
     setCamera,
     setNight,
     pedMayCross,
+    playerRanRed,
     cars,
     paths,
     count: cars.length,
