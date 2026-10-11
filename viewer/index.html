@@ -1022,6 +1022,9 @@
       import { createTouchControls, wantsTouchControls } from "./touch-controls.js";
       import { LOAD_M, createLandmarkStream } from "./landmark-stream.js";
       import { applyPavementFrontage } from "./pavement-frontage.js";
+      import { applyStreetSurfaces } from "./street-surfaces.js";
+      import { wallLightAnchors } from "./wall-lights.js";
+      import { fetchJsonCached } from "./json-cache.js";
 
       const status = document.getElementById("status");
       const hint = document.getElementById("hint");
@@ -1049,7 +1052,7 @@
       // Zenith → horizon stops for day, dusk (horizon glow) and night; blended by paintSky().
       const SKY_DAY = ["#4aa0ff", "#6eb6ff", "#a8d4ff", "#d8e8f4"];
       const SKY_DUSK = ["#2b3a6e", "#7a5a8c", "#e8935c", "#ffc98a"];
-      const SKY_NIGHT = ["#03060f", "#08101f", "#101c34", "#1d2c46"];
+      const SKY_NIGHT = ["#14243f", "#2a3d5c", "#5a5e68", "#8d7356"];
       const _c0 = new THREE.Color();
       const _c1 = new THREE.Color();
       function skyStop(i, t) {
@@ -1139,10 +1142,10 @@
       const SUN_DUSK = new THREE.Color(0xff9a52);
       const MOON_COL = new THREE.Color(0x8fa6d8);
       const HEMI_SKY_DAY = new THREE.Color(0xb8d8ff);
-      const HEMI_SKY_NIGHT = new THREE.Color(0x3a4f86);
+      const HEMI_SKY_NIGHT = new THREE.Color(0x8aa4c8);
       const HEMI_GND_DAY = new THREE.Color(0xb8a48a);
-      const HEMI_GND_NIGHT = new THREE.Color(0x1a1c26);
-      const FOG_NIGHT = new THREE.Color(0x0d1527);
+      const HEMI_GND_NIGHT = new THREE.Color(0x4a4036);
+      const FOG_NIGHT = new THREE.Color(0x2c3a4a);
       const FOG_DUSK = new THREE.Color(0xd9a07c);
       const CLEAR_DAY = new THREE.Color(SKY);
       const SUN_DAY_POS = new THREE.Vector3(220, 320, -160);
@@ -1190,13 +1193,13 @@
       const vegMats = []; // { mat, day: Color }
       const VEG_NIGHT = new THREE.Color(0x0a120c);
       const TRUNK_NIGHT = new THREE.Color(0x0c0908);
-      const lampHeads = []; // world positions of street-lamp heads
-      const LAMP_LIGHTS = 4;
-      const LAMP_INTENSITY = 38;
+      const lampHeads = []; // world positions of street-lamp heads and second-floor fills
+      const LAMP_LIGHTS = 6;
+      const LAMP_INTENSITY = 30;
       const lampLights = [];
       let lampGlow = 0;
       for (let i = 0; i < LAMP_LIGHTS; i++) {
-        const l = new THREE.PointLight(0xffc27a, 0, 24, 1.6);
+        const l = new THREE.PointLight(0xffc27a, 0, 40, 1.35);
         l.visible = false;
         l.userData.on = 0; // 1 when this light is parked on a lamp near the walker
         scene.add(l);
@@ -1264,18 +1267,19 @@
         _tmpCol.set(FOG_COLOR).lerp(FOG_DUSK, dusk * 0.6).lerp(FOG_NIGHT, smooth(0.3, 0.9, t));
         scene.fog.color.copy(_tmpCol);
         renderer.setClearColor(_tmpCol, 1);
-        scene.fog.density = baseFogDensity * (1 + 0.5 * night);
+        scene.fog.density = baseFogDensity * (1 + 0.22 * night);
 
-        renderer.toneMappingExposure = 1.18 - 0.1 * night;
-        scene.environmentIntensity = 1 - 0.86 * smooth(0.05, 0.8, t);
+        renderer.toneMappingExposure = 1.18 - 0.02 * night;
+        scene.environmentIntensity = 1 - 0.5 * smooth(0.05, 0.8, t);
 
+        // Hemisphere is the non-directional fill: sky from above, warm ground bounce.
         hemi.color.copy(HEMI_SKY_DAY).lerp(HEMI_SKY_NIGHT, night);
         hemi.groundColor.copy(HEMI_GND_DAY).lerp(HEMI_GND_NIGHT, night);
-        hemi.intensity = 0.85 - 0.62 * night;
+        hemi.intensity = 0.85 - 0.22 * night;
 
         // One directional light plays the sun by day and the moon by night.
         sun.color.copy(SUN_COL).lerp(SUN_DUSK, dusk).lerp(MOON_COL, smooth(0.5, 0.9, t));
-        sun.intensity = 1.35 * dayAmt + 0.3 * smooth(0.5, 1.0, t);
+        sun.intensity = 1.35 * dayAmt + 0.45 * smooth(0.5, 1.0, t);
         sun.position.lerpVectors(sunArcPos, MOON_POS, smooth(0.2, 0.8, t));
         sunMesh.position.copy(sun.position).normalize().multiplyScalar(900);
         sunHaze.position.copy(sunMesh.position);
@@ -1283,7 +1287,7 @@
         sunMesh.scale.setScalar(1 - 0.45 * smooth(0.4, 0.9, t));
         sunHaze.material.color.set(0xffe8b0).lerp(_tmpCol.set(0x8fa6d8), smooth(0.4, 0.9, t));
         sunHaze.material.opacity = 0.18 + 0.1 * dusk;
-        fill.intensity = 0.35 - 0.2 * night;
+        fill.intensity = 0.35 - 0.05 * night;
 
         // Façade windows + lamp heads glow; cars and trams follow.
         const glow = smooth(0.4, 0.9, t);
@@ -2551,6 +2555,15 @@
           }
           const shading = downgradeCityMaterials(cityRoot);
           console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
+          try {
+            const surfaceUrl = (typeof window.districtUrl === "function" && window.districtUrl("road-surfaces.json"))
+              || "./road-surfaces.json";
+            const surfaces = await fetch(surfaceUrl).then((r) => (r.ok ? r.json() : {}));
+            const streets = applyStreetSurfaces(cityRoot, THREE, surfaces);
+            console.info(`[metropolis] streets: asphalt lifted ${streets.lifted ? "yes" : "no"}, ${streets.cobble} cobble`);
+          } catch (err) {
+            console.warn("[metropolis] street surfaces skipped", err);
+          }
           // Cheap: disable expensive features for FPS; freeze static transforms.
           // Coplanar street layers: bias is monotone with the Blender height stack
           // (Z_GROUND < Z_PARK < Z_ROAD < markings < sidewalk < curb < tram bed < rails
@@ -2632,6 +2645,24 @@
               lampHeads.push(new THREE.Vector3().setFromMatrixPosition(obj.matrixWorld));
             }
           });
+          try {
+            const [roadsRes, bldRes] = await Promise.all([
+              fetchJsonCached("./roads.json"),
+              fetchJsonCached("./buildings.json"),
+            ]);
+            const roadsDoc = roadsRes.ok ? await roadsRes.json() : null;
+            const bldDoc = bldRes.ok ? await bldRes.json() : null;
+            const poles = lampHeads.length;
+            const extra = wallLightAnchors({
+              lamps: lampHeads,
+              roads: (roadsDoc && roadsDoc.roads) || [],
+              buildings: (bldDoc && bldDoc.buildings) || [],
+            });
+            for (const p of extra) lampHeads.push(new THREE.Vector3(p.x, p.y, p.z));
+            console.info(`[metropolis] lights: ${poles} street lamps, ${extra.length} second-floor fills`);
+          } catch (err) {
+            console.warn("[metropolis] wall lights skipped", err);
+          }
           // Wrap kerbside cars + bolt-on lamps before merge so they stay discrete.
           // Per-car paint before merge — otherwise every parked car keeps the shared grey `car_paint`.
           paintParkedCars(cityRoot);
