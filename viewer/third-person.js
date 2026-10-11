@@ -12,8 +12,12 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
   const chest = new THREE.Vector3();
   const probe = new THREE.Vector3();
 
+  // Tuned to OpenWorldPlay Züri (zurich.openworldplay.com): boom sits higher than the
+  // chest probe so the body stays in the lower-middle of the frame under the crosshair.
   const DIST = 4.4;
   const SIDE = 0.3;
+  const CHEST_Y = 1.45; // pull-in / occlusion probe (Züri M.y + 1.45)
+  const BOOM_Y = 1.65; // upright boom height (Züri n.y + 1.65 when standing)
   const FOV_WALK = 58;
   const FOV_TIGHT = 48;
   const PITCH_MIN = -0.5;
@@ -42,14 +46,14 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
   }
 
   /** Desired boom position behind the player (world). */
-  function desiredPosition(playerPos, yEye = 1.45) {
+  function desiredPosition(playerPos, boomY = BOOM_Y) {
     const yaw = lookYaw.value;
     const pitch = lookPitch.value;
     const o = DIST;
     const a = SIDE;
     desired.set(
       playerPos.x + Math.sin(yaw) * o + Math.cos(yaw) * a,
-      Math.max(0.45, yEye + Math.sin(pitch) * o),
+      Math.max(0.45, boomY + Math.sin(pitch) * o),
       playerPos.z + Math.cos(yaw) * o - Math.sin(yaw) * a,
     );
     return desired;
@@ -93,8 +97,10 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
     // Player root stores eye height (~1.7 on ground). Lift the boom with jumps.
     const eye = 1.7;
     const lift = Number.isFinite(playerPos.y) ? Math.max(0, playerPos.y - eye) : 0;
-    chest.set(playerPos.x, 1.45 + lift, playerPos.z);
-    desiredPosition(playerPos, chest.y);
+    chest.set(playerPos.x, CHEST_Y + lift, playerPos.z);
+    // Boom height is Züri's 1.65 m, not the 1.45 m chest probe — using chest for both
+    // put the body too high relative to the center crosshair.
+    desiredPosition(playerPos, BOOM_Y + lift);
     clearBoom(chest, desired);
 
     if (!snapped) {
