@@ -13,7 +13,10 @@ Riders: Remy, Amy, James, Michelle. Sidewalk pedestrians use the Rocketbox peopl
 
 ## Playable cast (`players/`)
 
-Pieter, Mo and Jacob (never used as pedestrians), each with `_Walking`, `_Riding` and `_Scooter` GLBs:
+Pieter, Mo and Jacob (never used as pedestrians). On-foot and Velo motion is Mixamo
+(`assets/mixamo/`, retargeted by `scripts/bake_player_locomotion.py` into
+`players/clips/{id}_moves.glb`: idle, walk, jog, run, jump, jab, cross, kick, pedal).
+`_Walking` is the mesh; `_Scooter` is still the standing scooter pose.
 Pieter (`Male_Adult_07`) and Mo (`Male_Adult_04`) are Rocketbox avatars baked via
 `scripts/rocketbox_to_player_glb.py` + `scripts/style_player_textures.py`.
 Jacob is the `Hasidic_Father` Rocketbox pedestrian (black coat, wide hat, beard) exported into

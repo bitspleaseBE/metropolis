@@ -60,10 +60,16 @@ export function playerById(id) {
   return PLAYERS.find((p) => p.id === id) || PLAYERS[0];
 }
 
-/** Walk mesh only. Ride and scooter clips load the first time that character uses them. */
+/** Walk mesh plus the Mixamo moves clip, so the first step is not the old Rocketbox walk. */
 export function preloadPlayer(id = getStoredPlayerId()) {
-  return load(`${id}_Walking.glb`);
+  return Promise.all([
+    load(`${id}_Walking.glb`),
+    load(`clips/${id}_moves.glb`).catch(() => null),
+  ]);
 }
+
+/** Native metres/second of each Mixamo loop, so playback matches the feet. */
+const CLIP_SPEED = { idle: 0, walk: 1.5, jog: 1.9, run: 5.43, ride: 4.2 };
 
 /**
  * Third-person player avatar: walk / ride / scooter clips, with grip IK on wheels.
@@ -77,6 +83,12 @@ export function createPlayerAvatar(THREE, scene) {
   let mixer = null;
   let actions = { walk: null, ride: null, scooter: null };
   let current = null;
+  let mocap = false;
+  let speeds = { ...CLIP_SPEED };
+  let melee = null;
+  let meleeQueue = null;
+  let jumpLatch = false;
+  let pedal = 0;
   let playerId = getStoredPlayerId();
   let facing = 0;
   let ready = Promise.resolve();
@@ -467,6 +479,46 @@ export function createPlayerAvatar(THREE, scene) {
   }
 
   /**
+   * Feet on the Velo cranks. Phase 0 is the left pedal forward; increasing
+   * angle pushes that pedal down. Matches the crank in viewer/velo.js.
+   */
+  function polishVeloLegs(yaw) {
+    if (!bodyBones) return;
+    const dur = actions.ride?.getClip()?.duration || 1;
+    const t = actions.ride ? actions.ride.time : 0;
+    pedal = ((t % dur) + dur) % dur / dur;
+    const ang = pedal * Math.PI * 2;
+    const bx = root.position.x - Math.sin(yaw) * 0.15;
+    const bz = root.position.z - Math.cos(yaw) * 0.15;
+    const SCALE = 1.55;
+    const R = 0.11;
+    const ankle = 0.09 / SCALE;
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+    const feet = [
+      ["lThigh", "lCalf", "lFoot", -0.055, 0],
+      ["rThigh", "rCalf", "rFoot", 0.055, Math.PI],
+    ];
+    for (const [thighK, calfK, footK, lat, extra] of feet) {
+      const a = ang + extra;
+      const lx = lat * SCALE;
+      const ly = (0.2 - R * Math.sin(a) + ankle) * SCALE;
+      const lz = (0.02 - R * Math.cos(a)) * SCALE;
+      _gripL.set(bx + c * lx + s * lz, ly, bz - s * lx + c * lz);
+      const thigh = bodyBones[thighK];
+      if (!thigh) continue;
+      thigh.updateWorldMatrix(true, false);
+      _legHip.setFromMatrixPosition(thigh.matrixWorld);
+      _legPole.set(
+        _legHip.x - Math.sin(yaw) * 0.4,
+        _legHip.y + 0.2,
+        _legHip.z - Math.cos(yaw) * 0.4,
+      );
+      solveLeg(thigh, bodyBones[calfK], bodyBones[footK], _gripL, _legPole);
+    }
+  }
+
+  /**
    * NPC scooter clips plant one foot toward the stem and one toward the tail,
    * soles on the deck. The player clip only guesses a crouch, so the legs
    * trail off the board. Solve them onto the same stance.
@@ -564,6 +616,10 @@ export function createPlayerAvatar(THREE, scene) {
     mixer = null;
     actions = { walk: null, ride: null, scooter: null };
     current = null;
+    mocap = false;
+    melee = null;
+    meleeQueue = null;
+    jumpLatch = false;
 
     visual = cloneSkeleton(walkGltf.scene);
     // Drop stray Rocketbox helpers (e.g. Icosphere) that break bounds / grounding.
@@ -628,15 +684,67 @@ export function createPlayerAvatar(THREE, scene) {
     }
 
     mixer = new THREE.AnimationMixer(visual);
-    const walkClipRaw =
-      walkGltf.animations.find((c) => /walk/i.test(c.name)) || walkGltf.animations[0];
-    const walkClip = walkClipRaw ? sanitizeClip(walkClipRaw) : null;
-    if (walkClip) {
-      actions.walk = mixer.clipAction(walkClip);
-      actions.walk.enabled = true;
-      actions.walk.setEffectiveWeight(1);
-      actions.walk.play();
-      current = "walk";
+    mixer.addEventListener("finished", (e) => {
+      if (!melee || e.action !== actions[melee]) return;
+      const next = meleeQueue;
+      melee = null;
+      meleeQueue = null;
+      current = null;
+      if (next && actions[next]) {
+        melee = next;
+        setAction(next, 0.05, true, true);
+      }
+    });
+
+    let moves = null;
+    try {
+      moves = await load(`clips/${id}_moves.glb`);
+    } catch {
+      moves = null;
+    }
+    if (gen !== buildGen) return;
+    try {
+      const res = await fetch(new URL("clips/locomotion.json", base));
+      if (res.ok) speeds = { ...CLIP_SPEED, ...(await res.json()) };
+    } catch {
+      /* baked defaults */
+    }
+    if (gen !== buildGen) return;
+
+    const byName = new Map((moves?.animations || []).map((c) => [c.name, sanitizeClip(c)]));
+    const add = (key, clipName, loop) => {
+      const clip = byName.get(clipName);
+      if (!clip) return;
+      const action = mixer.clipAction(clip);
+      action.enabled = true;
+      action.setEffectiveWeight(0);
+      action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+      action.clampWhenFinished = !loop;
+      actions[key] = action;
+    };
+    add("idle", "Idle", true);
+    add("walk", "Walk", true);
+    add("jog", "Jog", true);
+    add("run", "Run", true);
+    add("jump", "Jump", false);
+    add("punch", "Punch", false);
+    add("cross", "Cross", false);
+    add("kick", "Kick", false);
+    add("ride", "Riding", true);
+    mocap = !!(actions.idle && actions.walk && actions.jog && actions.run);
+
+    if (!actions.walk) {
+      const walkClipRaw =
+        walkGltf.animations.find((c) => /walk/i.test(c.name)) || walkGltf.animations[0];
+      const walkClip = walkClipRaw ? sanitizeClip(walkClipRaw) : null;
+      if (walkClip) actions.walk = mixer.clipAction(walkClip);
+    }
+    const start = actions.idle || actions.walk;
+    if (start) {
+      start.enabled = true;
+      start.setEffectiveWeight(1);
+      start.play();
+      current = actions.idle ? "idle" : "walk";
     }
 
     root.add(visual);
@@ -646,16 +754,49 @@ export function createPlayerAvatar(THREE, scene) {
     clipLoads = { ride: null, scooter: null };
   }
 
-  function setAction(name) {
-    if (name === current) return;
+  function setAction(name, fade = 0.16, once = false, force = false) {
+    if (name === current && !force) return;
     const next = actions[name];
     const prev = current ? actions[current] : null;
     if (!next) return;
-    next.reset().fadeIn(0.2).play();
-    if (prev && prev !== next) prev.fadeOut(0.2);
+    next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity);
+    next.clampWhenFinished = !!once;
+    // Clips are parked at weight 0 so they don't all blend on load. fadeIn
+    // multiplies that weight, so a parked clip fades from 0 to 0 and the body
+    // snaps back to the bind pose (arms out, legs straight) once idle fades out.
+    next.reset();
+    next.setEffectiveWeight(1);
+    next.fadeIn(fade).play();
+    if (prev && prev !== next) prev.fadeOut(fade);
     current = name;
     // The ride crossfade can leave a spun head. Don't treat the next pose as a glitch.
     headReady = false;
+  }
+
+  function strike(kind) {
+    if (!mocap || !visual) return;
+    if (current === "ride" || current === "scooter" || jumpLatch) return;
+    const want = kind === "kick" ? "kick" : "punch";
+    if (!actions[want] && !(want === "punch" && actions.cross)) return;
+    if (melee) {
+      const act = actions[melee];
+      const dur = act?.getClip()?.duration || 1;
+      if (kind === "punch" && act && act.time > dur * 0.42) {
+        meleeQueue = melee === "punch" && actions.cross ? "cross" : "punch";
+      }
+      return;
+    }
+    meleeQueue = null;
+    melee = actions[want] ? want : "cross";
+    setAction(melee, 0.07, true, true);
+  }
+
+  function gaitFor(speed) {
+    const s = Math.abs(speed);
+    if (s < 0.28) return "idle";
+    if (s < 2.4) return "walk";
+    if (s < 5.2) return "jog";
+    return "run";
   }
 
   function start() {
@@ -705,34 +846,71 @@ export function createPlayerAvatar(THREE, scene) {
       facing += dy * (1 - Math.exp(-20 * dt));
       root.rotation.y = facing;
 
-      if (kind === "velo") {
-        if (actions.ride) setAction("ride");
-        else ensureClip("ride");
-      } else if (kind === "scooter") {
-        if (actions.scooter) setAction("scooter");
-        else ensureClip("scooter");
-      } else setAction("walk");
-
       // Pavement is 0.12 m. A few centimetres of sidewalk must not freeze the stride;
       // only a hop clear of the kerb counts as airborne.
       const airborne = kind === "walk" && root.position.y > 0.2;
-      if (airborne) airBlend = Math.min(1, airBlend + dt * 9);
-      else airBlend = Math.max(0, airBlend - dt * 6);
+      const onFoot = kind !== "velo" && kind !== "scooter";
+      if (!onFoot) {
+        melee = null;
+        meleeQueue = null;
+        jumpLatch = false;
+      }
 
-      if (actions.walk && current === "walk") {
-        // Hold the stride in the air; the tuck below is the hop, not a slowed walk cycle.
-        const scale = Math.max(0.05, Math.min(3.2, Math.abs(moveSpeed) / 1.7));
-        actions.walk.setEffectiveTimeScale(airborne ? 0 : Math.abs(moveSpeed) < 0.08 ? 0 : scale);
-      } else if (actions.ride && current === "ride") {
-        actions.ride.setEffectiveTimeScale(Math.max(0.2, Math.min(1.8, Math.abs(moveSpeed) / 4)));
+      if (kind === "velo") {
+        if (actions.ride) setAction("ride", 0.2);
+        else ensureClip("ride");
+      } else if (kind === "scooter") {
+        if (actions.scooter) setAction("scooter", 0.2);
+        else ensureClip("scooter");
+      } else if (melee && actions[melee]) {
+        setAction(melee, 0.07, true);
+        actions[melee].setEffectiveTimeScale(1);
+      } else if (airborne && actions.jump) {
+        if (!jumpLatch) {
+          jumpLatch = true;
+          setAction("jump", 0.05, true, true);
+        }
+        // The Mixamo hop is ~2.2s; the fence-clear is closer to 1.2s.
+        actions.jump.setEffectiveTimeScale(1.75);
+      } else if (mocap) {
+        if (jumpLatch) {
+          jumpLatch = false;
+          current = null;
+        }
+        const gait = gaitFor(moveSpeed);
+        const name = actions[gait] ? gait : "walk";
+        setAction(name, 0.18);
+        const action = actions[name];
+        if (action) {
+          const native = speeds[name] || 0;
+          if (name === "idle" || native < 0.2) action.setEffectiveTimeScale(1);
+          else {
+            const rate = Math.abs(moveSpeed) / native;
+            action.setEffectiveTimeScale(Math.max(0.7, Math.min(2.1, rate)));
+          }
+        }
+      } else {
+        setAction("walk");
+        if (airborne) airBlend = Math.min(1, airBlend + dt * 9);
+        else airBlend = Math.max(0, airBlend - dt * 6);
+        if (actions.walk && current === "walk") {
+          const scale = Math.max(0.05, Math.min(3.2, Math.abs(moveSpeed) / 1.7));
+          actions.walk.setEffectiveTimeScale(airborne ? 0 : Math.abs(moveSpeed) < 0.08 ? 0 : scale);
+        }
+      }
+
+      if (actions.ride && current === "ride") {
+        const native = speeds.ride || 4.2;
+        actions.ride.setEffectiveTimeScale(Math.max(0.15, Math.min(2.2, Math.abs(moveSpeed) / native)));
       } else if (actions.scooter && current === "scooter") {
         actions.scooter.setEffectiveTimeScale(Math.max(0.2, Math.min(1.8, Math.abs(moveSpeed) / 3.5)));
       }
 
-      if (mixer) mixer.update(airborne ? 0 : dt);
+      if (mixer) mixer.update(dt);
       // Walk clips re-assert the tiny FBX armature scale after mixer.update.
       normalizeImportScale(visual);
-      if (current === "walk" && actions.walk) {
+      const gaitNow = current === "idle" || current === "walk" || current === "jog" || current === "run";
+      if (!mocap && current === "walk" && actions.walk) {
         pinWalkPelvis();
         const dur = actions.walk.getClip()?.duration || 1;
         const phase = (actions.walk.time / dur) * Math.PI * 2;
@@ -743,6 +921,8 @@ export function createPlayerAvatar(THREE, scene) {
         else if (!airborne) restoreAirPose();
         applyWalkHead();
         stabilizeHead();
+      } else if (mocap && gaitNow && onFoot) {
+        pinWalkPelvis();
       } else if (kind === "velo" || kind === "scooter") {
         visual.position.x = 0;
         // Scooter mesh sits 0.18 m ahead of the root. Shift onto the deck so both
@@ -756,12 +936,22 @@ export function createPlayerAvatar(THREE, scene) {
         // Scooter legs are solved onto the deck; the baked crouch leaves them trailing.
         root.updateMatrixWorld(true);
         if (kind === "scooter") polishScooterLegs(deck);
+        if (kind === "velo") polishVeloLegs(targetYaw);
         polishRideGrips(kind, targetYaw);
       }
       root.visible = true;
     },
     setVisible(v) {
       root.visible = !!v;
+    },
+    strike,
+    /** 0–1 through the pedal revolution, for the Velo crank. */
+    pedalPhase() {
+      return pedal;
+    },
+    /** True while a Mixamo jab, cross, or kick is playing. */
+    get striking() {
+      return !!melee;
     },
     get bones() {
       return armBones;

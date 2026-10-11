@@ -10,18 +10,29 @@
 const cache = new Map();
 
 /** Literal-URL fetchers: the request target is never derived from caller input. */
-function rawFetch(key) {
-  switch (key) {
-    case "./roads.json":
-      return fetch("./roads.json");
-    case "./buildings.json":
-      return fetch("./buildings.json");
-    default:
-      return null;
+function resolveDistrictPath(name) {
+  if (typeof window !== "undefined" && typeof window.districtUrl === "function") {
+    return window.districtUrl(name);
   }
+  return "./" + name;
 }
-const KNOWN = new Set(["./roads.json", "./buildings.json"]);
-const resolveUrl = (url) => (KNOWN.has(String(url)) ? String(url) : null);
+
+function rawFetch(key) {
+  // Accept legacy "./roads.json" or district-resolved paths.
+  const bare = String(key).replace(/^\.\//, "").split("/").pop();
+  if (bare === "roads.json" || bare === "buildings.json") {
+    return fetch(key.startsWith("./districts/") ? key : resolveDistrictPath(bare));
+  }
+  return null;
+}
+const resolveUrl = (url) => {
+  const s = String(url);
+  const bare = s.replace(/^\.\//, "").split("/").pop();
+  if (bare === "roads.json" || bare === "buildings.json") {
+    return s.startsWith("./districts/") ? s : resolveDistrictPath(bare);
+  }
+  return null;
+};
 
 export function fetchJsonCached(url) {
   const key = resolveUrl(url);

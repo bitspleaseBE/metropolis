@@ -94,13 +94,20 @@ export function createLandmarkStream({ scene, loader, cityRoot, catalog }) {
     return st;
   }
 
+  function resolveUrl(file) {
+    if (typeof window !== "undefined" && typeof window.districtUrl === "function") {
+      return window.districtUrl(file);
+    }
+    return file.startsWith("./") ? file : "./" + file;
+  }
+
   async function loadOne(item) {
     const st = entry(item.id);
     if (st.group || st.loading || st.failed) return;
     const gen = st.gen;
     st.loading = true;
     try {
-      const gltf = await loader.loadAsync(item.file);
+      const gltf = await loader.loadAsync(resolveUrl(item.file));
       if (st.gen !== gen) {
         disposeObject(gltf.scene);
         st.loading = false;
@@ -108,6 +115,10 @@ export function createLandmarkStream({ scene, loader, cityRoot, catalog }) {
       }
       const group = gltf.scene;
       group.name = `stream_${item.id}`;
+      // Old landmark GLBs are baked from z = 0. Match a runtime pavement lift.
+      if (typeof window !== "undefined" && window.__buildingLift) {
+        group.position.y += window.__buildingLift;
+      }
       group.traverse((obj) => {
         if (obj.isMesh) {
           obj.castShadow = false;
