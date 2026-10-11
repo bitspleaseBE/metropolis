@@ -100,8 +100,14 @@ export function createPlayerAvatar(THREE, scene) {
   };
   const _headPrev = new THREE.Quaternion();
   const _headBind = new THREE.Quaternion();
+  const _qClip = new THREE.Quaternion();
+  const _qKeyA = new THREE.Quaternion();
+  const _qKeyB = new THREE.Quaternion();
   let headReady = false;
   let headBindReady = false;
+  /** Walk head keys ~180° off the bind (Pieter). Crossfading them spins the neck. */
+  let headOffBind = false;
+  let headTrack = null;
 
   // Grip targets match viewer/scooters.js + viewer/velo.js (bike scale 1.55).
   const GRIP = {
@@ -196,6 +202,14 @@ export function createPlayerAvatar(THREE, scene) {
       _headBind.copy(bodyBones.head.quaternion);
       headBindReady = true;
     }
+    const clip = actions.walk?.getClip();
+    headTrack =
+      clip?.tracks?.find((t) => /head\.quaternion$/i.test(t.name)) || null;
+    headOffBind = false;
+    if (headTrack && headBindReady) {
+      _qClip.fromArray(headTrack.values, 0);
+      headOffBind = Math.abs(_qClip.dot(_headBind)) < 0.5;
+    }
   }
 
   /**
@@ -252,21 +266,47 @@ export function createPlayerAvatar(THREE, scene) {
     flex("spine", 0.22 * k);
   }
 
+  /** Unblended quaternion from a clip track. The mixer blend is wrong for Pieter. */
+  function sampleTrackQuat(track, time, out) {
+    const times = track.times;
+    const values = track.values;
+    const n = times.length;
+    if (!n) return;
+    const end = times[n - 1];
+    let t = time;
+    if (end > 0) {
+      t = t % end;
+      if (t < 0) t += end;
+    }
+    let lo = 0;
+    let hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (times[mid] <= t) lo = mid + 1;
+      else hi = mid;
+    }
+    const i1 = Math.min(lo, n - 1);
+    const i0 = Math.max(0, i1 - 1);
+    const span = times[i1] - times[i0];
+    const u = span > 1e-6 ? Math.min(1, Math.max(0, (t - times[i0]) / span)) : 0;
+    _qKeyA.fromArray(values, i0 * 4);
+    _qKeyB.fromArray(values, i1 * 4);
+    out.copy(_qKeyA).slerp(_qKeyB, u);
+  }
+
   /**
-   * Reject a one-frame head flip. Walk clips turn the head a degree or two per
-   * key; a sudden yaw (bad loop, hemisphere flip) is what reads as a snap back.
+   * Pieter's walk keys sit ~180° off the head bind. Fading that track against
+   * the bind (mounting or leaving a scooter) spins the head and the snap
+   * guard then freezes the bad pose. Write the clip sample directly instead.
    */
-  /**
-   * Pieter's walk keys sit ~180° off the head bind, so the face turns into the
-   * neck opening. Put that delta back on the bind. Clips already near the bind
-   * (Mo, Jacob) are left alone, and a frozen mixer is not applied twice.
-   */
-  function seatHeadOnBind() {
+  function applyWalkHead() {
     const head = bodyBones?.head;
-    if (!head || !headBindReady) return;
-    const dot = Math.abs(THREE.MathUtils.clamp(head.quaternion.dot(_headBind), -1, 1));
-    if (dot > 0.5) return;
-    head.quaternion.premultiply(_headBind);
+    if (!head || !headTrack) return;
+    const dur = actions.walk.getClip()?.duration || headTrack.times[headTrack.times.length - 1] || 1;
+    const t = dur > 0 ? ((actions.walk.time % dur) + dur) % dur : 0;
+    sampleTrackQuat(headTrack, t, _qClip);
+    if (headOffBind && headBindReady) head.quaternion.copy(_headBind).multiply(_qClip);
+    else head.quaternion.copy(_qClip);
   }
 
   function stabilizeHead() {
@@ -489,6 +529,8 @@ export function createPlayerAvatar(THREE, scene) {
     next.reset().fadeIn(0.2).play();
     if (prev && prev !== next) prev.fadeOut(0.2);
     current = name;
+    // The ride crossfade can leave a spun head. Don't treat the next pose as a glitch.
+    headReady = false;
   }
 
   function start() {
@@ -569,11 +611,15 @@ export function createPlayerAvatar(THREE, scene) {
         const tuck = airBlend * airBlend * (3 - 2 * airBlend);
         if (tuck > 1e-3 && airPoseSaved) polishAirPose(tuck);
         else if (!airborne) restoreAirPose();
-        seatHeadOnBind();
+        applyWalkHead();
         stabilizeHead();
       } else if (kind === "velo" || kind === "scooter") {
         visual.position.x = 0;
         visual.position.z = 0;
+        // Walk's head track is still fading out. Hold the bind so that blend can't stick.
+        if (headOffBind && headBindReady && bodyBones?.head) {
+          bodyBones.head.quaternion.copy(_headBind);
+        }
         // Ride clips don't put Rocketbox/Mixamo wrists on the bars — IK does.
         visual.updateMatrixWorld(true);
         polishRideGrips(kind, targetYaw);
