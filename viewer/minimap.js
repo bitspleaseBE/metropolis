@@ -32,6 +32,7 @@ export function createMinimap(THREE, opts = {}) {
   canvas.style.pointerEvents = "auto";
   canvas.style.background = "rgba(0,0,0,0.35)";
   canvas.style.cursor = "pointer";
+  canvas.className = "hud-map";
   document.body.appendChild(canvas);
 
   /** 0 = day palette, 1 = night — synced from applyTimeOfDay. */
@@ -39,6 +40,7 @@ export function createMinimap(THREE, opts = {}) {
 
   // Street name label resting above the mini map
   const streetLabel = document.createElement("div");
+  streetLabel.className = "hud-street";
   streetLabel.setAttribute("aria-live", "polite");
   // GTA-style area caption: big outlined street name bottom-right, district underneath.
   streetLabel.style.cssText = [

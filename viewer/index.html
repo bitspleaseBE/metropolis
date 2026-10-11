@@ -1015,6 +1015,7 @@
       import { createWanted } from "./wanted.js";
       import { createCombat } from "./combat.js";
       import { createPolice } from "./police.js";
+      import { playWasted, playBusted } from "./wasted.js";
       import { createMinimap } from "./minimap.js";
       import { createStreetLocator } from "./street-locate.js";
       import { createOutdoorsGuard } from "./outdoors.js";
@@ -1786,24 +1787,47 @@
         const speed = fastestOverlap(pos, 0.36);
         if (speed >= HIT_SPEED) hitByVehicle(speed);
       }
+      function placeAtSpawn() {
+        const w = walkControls.getObject();
+        const yaw = thirdPerson.yaw();
+        w.position.copy(spawnPos);
+        w.position.y = eyeHeight;
+        playerCrash.respawn(w.position, yaw);
+        playerMotion.stop();
+        thirdPerson.setYaw(yaw);
+        thirdPerson.snap(w.position);
+        camera.up.copy(UP_WORLD);
+        playerAvatar.setVisible(true);
+        hud.setHealth(100);
+      }
+      let caught = false;
       playerCrash.setOnDeath(() => {
         police?.onPlayerDown();
-        hud.notify("You died · restarting…", 4500);
-        setTimeout(() => {
-          if (!playerCrash.dead) return;
-          const w = walkControls.getObject();
-          const yaw = thirdPerson.yaw();
-          w.position.copy(spawnPos);
-          w.position.y = eyeHeight;
-          playerCrash.respawn(w.position, yaw);
-          playerMotion.stop();
-          thirdPerson.setYaw(yaw);
-          thirdPerson.snap(w.position);
-          playerAvatar.setVisible(true);
-          hud.setHealth(100);
-          hud.notify("Back on your feet", 2800);
-        }, 2800);
+        playWasted({ onBlack: placeAtSpawn });
       });
+      function bustPlayer() {
+        if (caught || playerCrash.dead || playerCrash.active) return;
+        const started = playBusted({
+          onBlack: placeAtSpawn,
+          onDone() {
+            caught = false;
+          },
+        });
+        if (!started) return;
+        caught = true;
+        const w = walkControls.getObject();
+        const yaw = playerMotion.yaw();
+        if (scooters && scooters.isRiding()) scooters.tryInteract({ x: w.position.x, z: w.position.z, yaw });
+        if (velo && velo.isRiding && velo.isRiding()) velo.tryInteract({ x: w.position.x, z: w.position.z });
+        rideEl.style.display = "none";
+        promptEl.style.display = "none";
+        playerMotion.stop();
+        keys.space = false;
+        JUMP.active = false;
+        JUMP.v = 0;
+        JUMP.y = 0;
+        police?.onPlayerDown();
+      }
       // Free-view marker (top-down framing of the walker).
       const avatar = playerAvatar.root;
 
@@ -2902,6 +2926,8 @@
             pushOutOfSolids(w.position);
             collideWorld(w.position, false);
           }
+        } else if (caught) {
+          playerMotion.stop();
         } else if (!menuOpen) {
           // Just stood up inside a bus or car: keep sliding clear so it does not
           // knock you straight back down and leave the camera rolled.
@@ -3054,7 +3080,8 @@
             police.update(simDt, {
               x: wPos.x,
               z: wPos.z,
-              dead: playerCrash.dead,
+              dead: playerCrash.dead || caught,
+              bust: bustPlayer,
               hurt: (n) => playerCrash.hurt(n),
               ranRed: !!(traffic.playerRanRed && traffic.playerRanRed(wPos.x, wPos.z, face)),
               harmed: harmedPulse,
