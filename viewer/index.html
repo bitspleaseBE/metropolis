@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Metropolis — Klein Antwerpen · Velo Harmonie</title>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
     <style>
       :root {
         --ink: #1a2430;
@@ -893,12 +894,14 @@
           },
         };
         window.__glbPromise = (async () => {
-          const res = await fetch("./klein_antwerpen.glb");
+          const res = await fetch("./klein_antwerpen.glb", { priority: "high" });
           if (!res.ok) throw new Error("GLB HTTP " + res.status);
           if (!res.body) return res.arrayBuffer();
-          // Content-Length can be the compressed size while we count decoded bytes, so only
-          // trust it while got <= total; otherwise fall back to an asymptotic estimate.
-          const total = +res.headers.get("Content-Length") || 0;
+          // fetch() yields decoded bytes. GitHub Pages gzips the city file, so
+          // Content-Length is the ~17 MB wire size, not the ~56 MB file. Using the
+          // wire size as the total pins the bar at 80% for the rest of the download.
+          const wire = +res.headers.get("Content-Length") || 0;
+          const estimate = !wire || wire >= 24e6 ? wire || 58e6 : Math.round(wire * 3.22);
           const reader = res.body.getReader();
           const chunks = [];
           let got = 0;
@@ -907,8 +910,8 @@
             if (done) break;
             chunks.push(value);
             got += value.length;
-            // ~36 MB Meshopt city; asymptotic fallback when Content-Length is missing/wrong.
-            const f = total && got <= total ? got / total : 1 - Math.exp(-got / 36e6);
+            const denom = Math.max(estimate, got / 0.98);
+            const f = Math.min(0.98, got / denom);
             window.__loading.set(f * 0.8, "Fetching the streets");
           }
           const buf = new Uint8Array(got);
@@ -920,8 +923,55 @@
           return buf.buffer;
         })();
         window.__glbPromise.catch(() => {}); // surfaced by the viewer module
+        // Repeat visits. GitHub Pages forces Cache-Control: max-age=600, so images
+        // would be fetched again every ten minutes. The worker keeps them.
+        if ("serviceWorker" in navigator && location.hostname.endsWith("github.io")) {
+          navigator.serviceWorker.register("./sw.js").catch(() => {});
+        }
       })();
     </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/build/three.module.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/loaders/GLTFLoader.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/libs/meshopt_decoder.module.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/environments/RoomEnvironment.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/utils/BufferGeometryUtils.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/utils/SkeletonUtils.js" crossorigin />
+    <link rel="modulepreload" href="./traffic.js" />
+    <link rel="modulepreload" href="./transit.js" />
+    <link rel="modulepreload" href="./pedestrians.js" />
+    <link rel="modulepreload" href="./micromobility.js" />
+    <link rel="modulepreload" href="./characters.js" />
+    <link rel="modulepreload" href="./velo.js" />
+    <link rel="modulepreload" href="./scooters.js" />
+    <link rel="modulepreload" href="./shops.js" />
+    <link rel="modulepreload" href="./terraces.js" />
+    <link rel="modulepreload" href="./props-collide.js" />
+    <link rel="modulepreload" href="./player-motion.js" />
+    <link rel="modulepreload" href="./crash.js" />
+    <link rel="modulepreload" href="./players.js" />
+    <link rel="modulepreload" href="./third-person.js" />
+    <link rel="modulepreload" href="./menu.js" />
+    <link rel="modulepreload" href="./hud.js" />
+    <link rel="modulepreload" href="./minimap.js" />
+    <link rel="modulepreload" href="./street-locate.js" />
+    <link rel="modulepreload" href="./outdoors.js" />
+    <link rel="modulepreload" href="./cars.js" />
+    <link rel="modulepreload" href="./touch-controls.js" />
+    <link rel="modulepreload" href="./landmark-stream.js" />
+    <link rel="modulepreload" href="./pavement-frontage.js" />
+    <link rel="modulepreload" href="./json-cache.js" />
+    <link rel="modulepreload" href="./lanes.js" />
+    <link rel="modulepreload" href="./cell-grid.js" />
+    <link rel="modulepreload" href="./humanoid-fit.js" />
+    <link rel="modulepreload" href="./people.js" />
     <div id="hint">Walk: click + WASD · Shift sprint · Space jump · E Velo / scooter / tram · V free · N day/night</div>
     <div id="modes">
       <button type="button" id="btn-walk" class="active">Walk</button>
@@ -940,14 +990,6 @@
     </div>
     <div id="click-cue">Click to play</div>
     <div id="crosshair" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
-        }
-      }
-    </script>
     <script type="module">
       import * as THREE from "three";
       import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -970,12 +1012,16 @@
       import { createThirdPersonCamera } from "./third-person.js";
       import { createMenu } from "./menu.js";
       import { createHud } from "./hud.js";
+      import { createWanted } from "./wanted.js";
+      import { createCombat } from "./combat.js";
+      import { createPolice } from "./police.js";
       import { createMinimap } from "./minimap.js";
       import { createStreetLocator } from "./street-locate.js";
       import { createOutdoorsGuard } from "./outdoors.js";
       import { paintParkedCars, wireParkedCarLamps } from "./cars.js";
       import { createTouchControls, wantsTouchControls } from "./touch-controls.js";
       import { LOAD_M, createLandmarkStream } from "./landmark-stream.js";
+      import { applyPavementFrontage } from "./pavement-frontage.js";
 
       const status = document.getElementById("status");
       const hint = document.getElementById("hint");
@@ -1370,6 +1416,8 @@
       let cityRoot = null;
       let spawnPos = new THREE.Vector3(-218.5, eyeHeight, -432.1);
       let traffic = { update() {}, dispose() {} };
+      let police = null;
+      let harmedPulse = false;
       let transit = { update() {}, dispose() {} };
       let pedestrians = null;
       let micromobility = null;
@@ -1691,6 +1739,28 @@
         },
       };
       const playerCrash = createPlayerCrash(THREE, camera, { eye: eyeHeight, canvas: renderer.domElement });
+      const wanted = createWanted();
+      wanted.setOnChange((state) => hud.setWanted(state.level, state.sign));
+      function landBlow(range, damage, single) {
+        if (playerCrash.active || playerCrash.dead || mode !== "walk") return;
+        const w = walkControls.getObject().position;
+        const yaw = playerMotion.yaw();
+        const dx = -Math.sin(yaw);
+        const dz = -Math.cos(yaw);
+        const peopleHit = pedestrians?.strike ? pedestrians.strike(w.x, w.z, dx, dz, range, damage, single) : [];
+        if (police?.hit) police.hit(w.x, w.z, dx, dz, range, damage, single);
+        if (peopleHit.length) harmedPulse = true;
+      }
+      const combat = createCombat(THREE, {
+        bones: () => playerAvatar.bones,
+        legs: () => playerAvatar.legs,
+        blocked: () =>
+          menu.open || mode !== "walk" || playerCrash.active || playerCrash.dead || (transit.isRiding && transit.isRiding()),
+        onHud: (info) => hud.setWeapon(info),
+        onMelee: (range, damage) => landBlow(range, damage, false),
+        onShot: (_damage, range) => landBlow(range, _damage, true),
+      });
+      window.startFactionPursuit = (spec) => police?.startFactionPursuit(spec) || false;
       const CRASH_IMPACT = 3.2; // m/s straight into something solid throws you off
       const CRASH_PERSON = 3.0; // m/s into a pedestrian: you both go down
 
@@ -1738,6 +1808,7 @@
         if (speed >= HIT_SPEED) hitByVehicle(speed);
       }
       playerCrash.setOnDeath(() => {
+        police?.onPlayerDown();
         hud.notify("You died · restarting…", 4500);
         setTimeout(() => {
           if (!playerCrash.dead) return;
@@ -2130,6 +2201,7 @@
         touch = createTouchControls({
           keys,
           onInteract: () => handleInteractE(),
+          onAttack: () => combat.attack(),
           onToggleMode: () => {
             if (transit.isRiding && transit.isRiding()) return;
             if (velo && velo.isRiding && velo.isRiding()) return;
@@ -2195,8 +2267,25 @@
         }
       });
 
+      window.addEventListener("mousedown", (e) => {
+        if (e.button !== 0 || menu.open || !pointerLocked || mode !== "walk") return;
+        combat.attack();
+      });
+      window.addEventListener("keyup", (e) => {
+        if (e.code === "Tab") combat.setOpen(false);
+      });
+      window.addEventListener("wheel", (e) => {
+        if (!pointerLocked || menu.open) return;
+        combat.cycle(e.deltaY > 0 ? 1 : -1);
+      }, { passive: true });
+
       window.addEventListener("keydown", (e) => {
         if (menu.open) return;
+        if (e.code === "Tab") {
+          e.preventDefault();
+          combat.setOpen(true);
+          return;
+        }
         if (e.code === "Escape") {
           e.preventDefault();
           if (sessionStarted) menu.show();
@@ -2453,6 +2542,13 @@
 
       async function onCityLoaded(gltf) {
           cityRoot = gltf.scene;
+          try {
+            const pavement = await applyPavementFrontage(cityRoot, THREE);
+            window.__buildingLift = pavement.lift || 0;
+          } catch (err) {
+            window.__buildingLift = 0;
+            console.warn("[metropolis] pavement frontage skipped", err);
+          }
           const shading = downgradeCityMaterials(cityRoot);
           console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
           // Cheap: disable expensive features for FPS; freeze static transforms.
@@ -2593,7 +2689,8 @@
               scooters.fleet
                 .filter((s) => s.parked)
                 .map((s) => ({ x: s.mesh.position.x, z: s.mesh.position.z, color: BRAND[s.brand] || "#fff" }))
-                .concat(stations),
+                .concat(stations)
+                .concat(police ? police.blips() : []),
             );
           }
           streetLocator = await createStreetLocator();
@@ -2609,6 +2706,18 @@
           } else {
             console.warn("[metropolis] outdoors guard: no buildings.json — indoor walk possible");
           }
+          police = await createPolice(scene, THREE, {
+            paths: traffic.paths || [],
+            wanted,
+            people: pedestrians?.people,
+            inside: (x, z) => (outdoors?.ready ? outdoors.insideBuilding(x, z) : false),
+            player: () => {
+              const p = walkControls.getObject().position;
+              return { x: p.x, z: p.z };
+            },
+            notify: (text) => hud.notify(text, 2800),
+            onLoot: () => combat.givePistol(),
+          });
           // Cars give way to trams/buses instead of driving through them.
           if (traffic.setObstacles) traffic.setObstacles(() => transit.vehicles || []);
           const nCars = traffic.count ?? 0;
@@ -2708,7 +2817,8 @@
         try {
           setLoad(0, "Fetching the streets");
           const buf = await window.__glbPromise;
-          // After the city file, so these don't compete with the 55 MB download.
+          // After the city file, so posters and portraits don't compete with it.
+          menu?.loadArt?.();
           // Only Aj and the saved neighbour. The rest start once the city is visible.
           preloadStarter();
           preloadPlayer();
@@ -2882,6 +2992,7 @@
                     0.3,
                   )
                 : 0;
+              if (people) harmedPulse = true;
               if (
                 (impact > CRASH_IMPACT && Math.abs(rideSpeed) > CRASH_IMPACT) ||
                 (people && Math.abs(rideSpeed) > CRASH_PERSON)
@@ -2962,6 +3073,19 @@
           traffic.update(simDt, walker);
           transit.update(simDt, walker);
           if (pedestrians) pedestrians.update(simDt);
+          if (police) {
+            const face = playerMotion.yaw();
+            police.update(simDt, {
+              x: wPos.x,
+              z: wPos.z,
+              dead: playerCrash.dead,
+              hurt: (n) => playerCrash.hurt(n),
+              ranRed: !!(traffic.playerRanRed && traffic.playerRanRed(wPos.x, wPos.z, face)),
+              harmed: harmedPulse,
+            });
+            harmedPulse = false;
+          }
+          combat.update(menuOpen ? 0 : dt);
           if (micromobility) {
             fillRiderObstacles(walker);
             micromobility.update(simDt, _riderObstacles);

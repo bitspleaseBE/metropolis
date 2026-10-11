@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>The three</title>
+  <g fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round">
+    <path d="M78 78v100"/>
+    <path d="M128 78v100"/>
+    <path d="M178 78v100"/>
+  </g>
+</svg>

@@ -120,6 +120,7 @@ export function createTouchControls(opts) {
   const {
     keys,
     onInteract,
+    onAttack,
     onToggleMode,
     onToggleNight,
     onToggleHelp,
@@ -154,6 +155,7 @@ export function createTouchControls(opts) {
       </div>
       <div class="tc-row">
         <button type="button" class="tc-btn tc-jump" data-hold="space">Jump</button>
+        <button type="button" class="tc-btn" data-act="attack">Hit</button>
         <button type="button" class="tc-btn tc-interact big" data-act="interact">Go</button>
       </div>
     </div>
@@ -286,6 +288,7 @@ export function createTouchControls(opts) {
       startSession();
       const act = btn.getAttribute("data-act");
       if (act === "interact") onInteract?.();
+      else if (act === "attack") onAttack?.();
       else if (act === "mode") onToggleMode?.();
       else if (act === "night") onToggleNight?.();
       else if (act === "help") onToggleHelp?.();
