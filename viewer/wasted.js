@@ -25,13 +25,21 @@ const CSS = `
   transition: opacity 0.55s ease;
 }
 #wasted.show .wasted-dim { opacity: 1; }
-#wasted .wasted-word {
+#wasted .wasted-stack {
   position: absolute;
   left: 50%;
   top: 46%;
   margin: 0;
   transform: translate(-50%, -50%) scale(1.16);
   opacity: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 1.6vw, 22px);
+  user-select: none;
+}
+#wasted .wasted-word {
+  margin: 0;
   font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
   font-weight: 400;
   font-size: clamp(4.8rem, 14vw, 15rem);
@@ -40,14 +48,23 @@ const CSS = `
   text-transform: uppercase;
   -webkit-text-stroke: clamp(4px, 0.7vw, 10px) var(--card-ink, #140004);
   paint-order: stroke fill;
-  color: var(--card-ink, #e10600);
+  color: var(--card-fill, #e10600);
   text-shadow: 0.055em 0.07em 0 var(--card-ink, #140004), 0 0 28px rgba(0,0,0,0.55);
-  user-select: none;
+}
+#wasted .wasted-stars {
+  display: none;
+  gap: clamp(8px, 1.5vw, 18px);
+  align-items: center;
+}
+#wasted .wasted-stars.on { display: flex; }
+#wasted .wasted-stars img {
+  width: clamp(42px, 6.4vw, 78px);
+  height: clamp(42px, 6.4vw, 78px);
+  filter: drop-shadow(0 0.12em 0 #071428) drop-shadow(0 0 12px rgba(0,0,0,0.65));
 }
 #wasted.tone-wasted { --card-ink: #140004; --card-fill: #e10600; }
 #wasted.tone-busted { --card-ink: #071428; --card-fill: #3d7dff; }
-#wasted .wasted-word { color: var(--card-fill, #e10600); }
-#wasted.show .wasted-word {
+#wasted.show .wasted-stack {
   animation: wasted-in 2.6s cubic-bezier(0.16, 0.84, 0.28, 1) forwards;
 }
 @keyframes wasted-in {
@@ -90,7 +107,7 @@ body.wasted .hud-street {
 @media (prefers-reduced-motion: reduce) {
   #wasted .wasted-dim,
   #wasted .wasted-black { transition: none; }
-  #wasted.show .wasted-word {
+  #wasted.show .wasted-stack {
     animation: none;
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
@@ -102,9 +119,12 @@ const TONES = {
   wasted: "WASTED",
   busted: "BUSTED",
 };
+const POLICE_STAR = "signs/heat-police.svg";
+const MAX_STARS = 4;
 
 let root = null;
 let wordEl = null;
+let starsEl = null;
 let playing = false;
 let timers = [];
 
@@ -117,9 +137,33 @@ function ensure() {
   root.id = "wasted";
   root.setAttribute("role", "alert");
   root.setAttribute("aria-hidden", "true");
-  root.innerHTML = '<div class="wasted-dim"></div><p class="wasted-word"></p><div class="wasted-black"></div>';
+  root.innerHTML =
+    '<div class="wasted-dim"></div><div class="wasted-stack"><div class="wasted-stars" aria-hidden="true"></div><p class="wasted-word"></p></div><div class="wasted-black"></div>';
   wordEl = root.querySelector(".wasted-word");
+  starsEl = root.querySelector(".wasted-stars");
   document.body.appendChild(root);
+}
+
+/** Wanted pips for a bust. Wasted clears them. Count is capped at the meter max. */
+function setStars(count, sign) {
+  const n = Math.max(0, Math.min(MAX_STARS, count | 0));
+  starsEl.replaceChildren();
+  if (n <= 0) {
+    starsEl.classList.remove("on");
+    starsEl.setAttribute("aria-hidden", "true");
+    starsEl.removeAttribute("aria-label");
+    return;
+  }
+  const src = sign || POLICE_STAR;
+  for (let i = 0; i < n; i++) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = src;
+    starsEl.appendChild(img);
+  }
+  starsEl.classList.add("on");
+  starsEl.setAttribute("aria-hidden", "false");
+  starsEl.setAttribute("aria-label", n === 1 ? "1 wanted star" : `${n} wanted stars`);
 }
 
 function later(ms, fn) {
@@ -136,7 +180,7 @@ function clearTimers() {
  * Play a card. `onBlack` runs once the frame is fully black. `onDone` runs
  * after the fade back up.
  */
-function playCard(tone, { onBlack, onDone } = {}) {
+function playCard(tone, { onBlack, onDone, stars = 0, sign = null } = {}) {
   if (playing || !TONES[tone]) return false;
   playing = true;
   ensure();
@@ -149,6 +193,7 @@ function playCard(tone, { onBlack, onDone } = {}) {
   const fromBlack = reduce ? 180 : 1050;
 
   wordEl.textContent = TONES[tone];
+  setStars(tone === "busted" ? stars : 0, sign);
   root.classList.remove("tone-wasted", "tone-busted", "show", "black");
   root.classList.add(`tone-${tone}`);
   root.setAttribute("aria-hidden", "false");
