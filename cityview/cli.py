@@ -336,12 +336,35 @@ def city_command(args: argparse.Namespace) -> int:
 
 def serve_command(args: argparse.Namespace) -> int:
     from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+    from urllib.parse import urlsplit
+
+    from cityview.pad_bridge import PadBridge
+
+    bridge = PadBridge()
+    bridge.start()
 
     class RevalidatingHandler(SimpleHTTPRequestHandler):
         # Re-baked GLBs and edited modules must show up on reload, not from a stale cache.
         def end_headers(self) -> None:
             self.send_header("Cache-Control", "no-cache")
             super().end_headers()
+
+        def do_GET(self) -> None:
+            if urlsplit(self.path).path == "/pad-state":
+                body = bridge.snapshot()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            super().do_GET()
+
+        def log_message(self, fmt: str, *log_args) -> None:
+            if log_args and "/pad-state" in str(log_args[0]):
+                return
+            super().log_message(fmt, *log_args)
 
     os.chdir(VIEWER)
     server = ThreadingHTTPServer((args.host, args.port), RevalidatingHandler)

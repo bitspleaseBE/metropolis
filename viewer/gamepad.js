@@ -20,7 +20,8 @@
 const DEAD = 0.18;
 const HOLD_MS = 160;
 const DROP_MS = 1200;
-const HID_FRESH_MS = 500;
+const HID_FRESH_MS = 1200;
+const BRIDGE_FRESH_MS = 1500;
 
 /** Sony pads Chrome's Gamepad API misses, read through WebHID instead. */
 const SONY_FILTERS = [
@@ -324,14 +325,18 @@ export function createGamepad() {
   const gate = { w: false, a: false, s: false, d: false };
   const listeners = new Set();
   let queued = empty();
+  let seq = 0;
+  let enabled = true;
+  let seenOn = false;
+  let seenLabel = "";
+  let receiving = false;
   let hidDevice = null;
   let hidPad = null;
   let hidAt = 0;
-  const hidListening = new WeakSet();
   let bridgePad = null;
   let bridgeAt = 0;
   let bridgeBusy = false;
-  let bridgeStop = false;
+  let bridgeWait = 0;
 
   function emit(info) {
     for (const fn of listeners) fn(info);
@@ -342,10 +347,11 @@ export function createGamepad() {
     layout = null;
     label = "";
     id = "";
+    receiving = false;
     missSince = 0;
     prev.length = 0;
     gate.w = gate.a = gate.s = gate.d = false;
-    queued = empty();
+    publish(empty());
     emit(null);
   }
 
@@ -394,11 +400,18 @@ export function createGamepad() {
     };
   }
 
+  function publish(next) {
+    seq += 1;
+    next.seq = seq;
+    queued = next;
+    return queued;
+  }
+
   function holdLast(now) {
     const gone = now - missSince;
     if (gone > HOLD_MS) {
       gate.w = gate.a = gate.s = gate.d = false;
-      queued = {
+      publish({
         ...queued,
         move: emptyMove(),
         sprint: false,
@@ -407,11 +420,32 @@ export function createGamepad() {
         sticks: { lx: 0, ly: 0, rx: 0, ry: 0 },
         down: {},
         pressed: {},
-      };
+      });
     } else {
-      queued = { ...queued, pressed: {} };
+      publish({ ...queued, pressed: {} });
     }
     if (gone > DROP_MS) disconnect();
+  }
+
+  function markSeen(pad) {
+    const on = !!pad;
+    if (on) seenLabel = padLabel(pad.id) || "Controller";
+    if (on === seenOn) return false;
+    seenOn = on;
+    return true;
+  }
+
+  function padEnergy(pad) {
+    let energy = 0;
+    const axes = pad.axes || [];
+    for (let i = 0; i < 4; i++) energy += Math.abs(axes[i] || 0);
+    const buttons = pad.buttons || [];
+    for (let i = 0; i < buttons.length; i++) {
+      const button = buttons[i];
+      if (!button) continue;
+      energy += Math.abs(button.value || 0);
+    }
+    return energy;
   }
 
   function poll() {
@@ -419,11 +453,22 @@ export function createGamepad() {
     const list = typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : [];
     const now = performance.now();
     const api = choosePad(list);
-    const bridgeFresh = bridgePad && now - bridgeAt < 250;
+    const bridgeFresh = bridgePad && now - bridgeAt < BRIDGE_FRESH_MS;
     const hidFresh = hidPad && now - hidAt < HID_FRESH_MS;
-    const pad = api || (bridgeFresh ? bridgePad : null) || (hidFresh ? hidPad : null);
+    // Use whichever source is actually moving. A browser gamepad can sit
+    // "connected" at rest while the bridge has the sticks, and the reverse
+    // happens when the OS reader is frozen.
+    const bridge = bridgeFresh ? bridgePad : null;
+    const hid = hidFresh ? hidPad : null;
+    const raw = [bridge, api, hid].find((pad) => pad && padEnergy(pad) > 0.08) || bridge || api || hid;
+    if (raw && padEnergy(raw) > 0.08) receiving = true;
+    const presenceChanged = markSeen(raw);
+    const pad = enabled ? raw : null;
     if (!pad) {
-      if (layout) holdLast(now);
+      if (layout) {
+        if (!missSince) missSince = now;
+        holdLast(now);
+      } else if (presenceChanged) emit(null);
       return queued;
     }
     missSince = 0;
@@ -439,31 +484,30 @@ export function createGamepad() {
     } else {
       id = pad.id;
     }
-    queued = read(pad);
-    return queued;
+    return publish(read(pad));
   }
 
   function pullBridge() {
-    if (bridgeStop || bridgeBusy) return;
+    if (bridgeBusy || performance.now() < bridgeWait) return;
     if (typeof location === "undefined") return;
     if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
     bridgeBusy = true;
     fetch("/pad-state", { cache: "no-store" })
-      .then((res) => {
-        if (!res.ok) {
-          bridgeStop = true;
-          return null;
-        }
-        return res.json();
-      })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data == null) return;
+        if (!data) {
+          bridgePad = null;
+          bridgeWait = performance.now() + 1000;
+          return;
+        }
         const pad = padFromBridge(data);
         bridgePad = pad;
         if (pad) bridgeAt = performance.now();
+        else bridgeWait = performance.now() + 400;
       })
       .catch(() => {
-        bridgeStop = true;
+        bridgePad = null;
+        bridgeWait = performance.now() + 1000;
       })
       .finally(() => {
         bridgeBusy = false;
@@ -482,40 +526,50 @@ export function createGamepad() {
 
   async function openHid(device) {
     if (!device || !SONY_PRODUCTS.has(device.productId)) return false;
-    if (hidDevice && hidDevice !== device) {
-      hidDevice.removeEventListener("inputreport", onHidReport);
-      hidListening.delete(hidDevice);
-    }
+    if (hidDevice && hidDevice !== device) hidDevice.removeEventListener("inputreport", onHidReport);
     hidDevice = device;
-    if (!hidListening.has(device)) {
-      device.addEventListener("inputreport", onHidReport);
-      hidListening.add(device);
-    }
+    device.removeEventListener("inputreport", onHidReport);
+    device.addEventListener("inputreport", onHidReport);
     if (!device.opened) await device.open();
     return true;
   }
 
-  async function restoreHid() {
-    if (typeof navigator === "undefined" || !navigator.hid?.getDevices) return false;
-    try {
-      const devices = await navigator.hid.getDevices();
-      const device = devices.find((d) => d.vendorId === 0x054c && SONY_PRODUCTS.has(d.productId));
-      if (!device) return false;
-      return await openHid(device);
-    } catch {
-      return false;
-    }
-  }
-
-  /** User gesture. Wakes the Gamepad API, then asks for the Sony pad over WebHID. */
-  async function connectHid() {
+  /** Use a pad the page can already see. Opens the browser picker only if nothing is reading yet. */
+  async function connect() {
+    enabled = true;
     poll();
     if (layout) return true;
-    if (typeof navigator === "undefined" || !navigator.hid?.requestDevice) return false;
+    if (typeof navigator === "undefined" || !navigator.hid?.requestDevice) return !!layout;
     const devices = await navigator.hid.requestDevice({ filters: SONY_FILTERS });
     const device = devices && devices[0];
-    if (!device) return false;
-    return openHid(device);
+    if (!device) return !!layout;
+    const opened = await openHid(device);
+    poll();
+    return opened || !!layout;
+  }
+
+  /** Stop driving the game with the pad. The controller stays plugged in. */
+  async function disconnectPad() {
+    enabled = false;
+    const device = hidDevice;
+    hidDevice = null;
+    hidPad = null;
+    hidAt = 0;
+    if (device) {
+      device.removeEventListener("inputreport", onHidReport);
+      try {
+        await device.close();
+      } catch {
+        /* already closed */
+      }
+      try {
+        await device.forget?.();
+      } catch {
+        /* forget is optional */
+      }
+    }
+    disconnect();
+    poll();
   }
 
   if (typeof window !== "undefined") {
@@ -529,7 +583,6 @@ export function createGamepad() {
       hidAt = 0;
       poll();
     });
-    void restoreHid();
   }
 
   return {
@@ -540,8 +593,8 @@ export function createGamepad() {
       listeners.add(fn);
       return () => listeners.delete(fn);
     },
-    connectHid,
-    canConnectHid: () => typeof navigator !== "undefined" && !!navigator.hid && !layout,
+    connect,
+    disconnectPad,
     get layout() {
       return layout;
     },
@@ -549,5 +602,8 @@ export function createGamepad() {
       return label;
     },
     connected: () => !!layout,
+    receiving: () => receiving,
+    detected: () => seenOn,
+    detectedLabel: () => seenLabel || "Controller",
   };
 }

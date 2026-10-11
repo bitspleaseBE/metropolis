@@ -49,9 +49,6 @@ const CSS = `
   color: #eee; font: 500 0.84rem/1.6 "Helvetica Neue", Arial, sans-serif; padding: 12px 16px; border-radius: 4px;
   opacity: 0; transition: opacity .35s ease; max-width: 26rem; }
 #hud-help.on { opacity: 1; }
-#hud-help .hud-hid { pointer-events: auto; display: block; margin-top: 10px; cursor: pointer;
-  font: 600 13px/1 system-ui, sans-serif; color: #1a1208; background: #f4e7c5; border: 0; border-radius: 999px; padding: 7px 12px; }
-#hud-help .hud-hid[hidden] { display: none; }
 #hud-help kbd, #prompt kbd { display: inline-block; min-width: 1.3em; padding: 0 5px; margin-right: 6px; text-align: center;
   background: #f2f2f2; color: #111; border-radius: 3px; font: 700 0.78rem/1.45 "Helvetica Neue", Arial, sans-serif; text-shadow: none; }
 #hud-stats { position: fixed; left: 22px; top: 18px; z-index: 640; display: none; pointer-events: none;
@@ -195,43 +192,13 @@ export function createHud(opts = {}) {
   const help = el("div", "hud-help");
   const helpBody = document.createElement("div");
   help.append(helpBody);
-  const hidBtn = document.createElement("button");
-  hidBtn.type = "button";
-  hidBtn.className = "hud-hid";
-  hidBtn.textContent = "Connect controller";
-  hidBtn.hidden = true;
-  help.append(hidBtn);
   let helpKind = "keyboard";
-  let hidConnect = null;
-  function syncHidBtn() {
-    const cardOn = help.classList.contains("on");
-    hidBtn.hidden = !(hidConnect && helpKind === "keyboard" && cardOn);
-  }
-  hidBtn.addEventListener("click", async (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-    try {
-      const ok = await hidConnect?.();
-      if (ok === false) hidBtn.textContent = "Choose the Wireless controller";
-    } catch (err) {
-      if (err?.name !== "NotAllowedError") hidBtn.textContent = "Unplug it and try again";
-    }
-  });
   renderHelp(helpBody, "keyboard");
   function setHelpKind(kind) {
     const key = kind === "generic" ? "xbox" : kind;
-    if (!HELP[key] || key === helpKind) {
-      syncHidBtn();
-      return;
-    }
+    if (!HELP[key] || key === helpKind) return;
     helpKind = key;
     renderHelp(helpBody, key);
-    syncHidBtn();
-  }
-  function offerController(connect) {
-    hidConnect = connect || null;
-    if (hidConnect) hidBtn.textContent = "Connect controller";
-    syncHidBtn();
   }
   const stats = el("div", "hud-stats");
 
@@ -275,7 +242,6 @@ export function createHud(opts = {}) {
   const setHelp = (on) => {
     help.classList.toggle("on", on);
     document.body.classList.toggle("help-on", on || stats.classList.contains("on"));
-    syncHidBtn();
   };
   function showHelp(ms = 7000) {
     setHelp(true);
@@ -406,7 +372,6 @@ export function createHud(opts = {}) {
     setWeapon,
     showHelp,
     setHelpKind,
-    offerController,
     toggleHelp,
     toggleStats,
     perf,
