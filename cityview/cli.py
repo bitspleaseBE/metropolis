@@ -154,6 +154,26 @@ def build_command(args: argparse.Namespace) -> int:
 
 
 def city_command(args: argparse.Namespace) -> int:
+    # Route Harmonie builds through the district package when requested (or when
+    # the package already exists), so CI can migrate gradually.
+    if getattr(args, "via_district", False) or (
+        not args.bbox and (args.place or "") in {"harmonie", "klein-antwerpen"}
+        and (ROOT / "districts" / "2018-harmonie" / "district.json").exists()
+        and getattr(args, "via_district", None) is not False
+    ):
+        # Default: keep legacy city_command path unless --via-district is set,
+        # so existing CI stays bit-identical until migrate+via-district.
+        if getattr(args, "via_district", False):
+            from cityview.district_pipeline import district_build
+            from cityview.districts import ID_2018
+
+            return district_build(
+                ID_2018,
+                refresh=bool(args.refresh),
+                no_render=bool(args.no_render),
+                out=Path(args.out) if args.out else None,
+            )
+
     places = load_scene(Path(args.places))
     style_policy = "default"
     viewer_glb = "antwerp_street.glb"
@@ -180,10 +200,26 @@ def city_command(args: argparse.Namespace) -> int:
         )
 
     cache_key = place.get("osm_cache") if place else None
+    # Prefer district package cache when present (extended 2018 bbox, etc.).
+    district_id = place.get("district") if place else None
     cache = OSM_CACHE / f"{cache_key or place_name}.json"
+    if district_id:
+        from cityview.districts import district_paths as _dpaths
+
+        dcache = _dpaths(district_id).osm_cache
+        if dcache.exists() or not cache.exists():
+            cache = dcache
     if args.refresh and cache.exists():
         cache.unlink()
     osm = fetch_osm(bbox, cache)
+    # Keep legacy assets/osm/harmonie.json in sync for CI when building Harmonie.
+    if district_id == "2018-harmonie" and cache != OSM_CACHE / "harmonie.json":
+        OSM_CACHE.mkdir(parents=True, exist_ok=True)
+        legacy = OSM_CACHE / "harmonie.json"
+        if cache.exists():
+            import shutil as _shutil
+
+            _shutil.copy2(cache, legacy)
     layout = layout_from_osm(osm, origin, style_policy=style_policy)
     gtfs_key = (place.get("osm_cache") if place else None) or place_name
     gtfs_cache = GTFS_CACHE / f"delijn_{gtfs_key}.json"
@@ -322,7 +358,13 @@ def city_command(args: argparse.Namespace) -> int:
     velo_path = VIEWER / "velo.json"
     velo_path.write_text(json.dumps(velo_payload) + "\n")
     print(f"Wrote {velo_path} ({len(velo_payload['stations'])} Velo stations)")
-    shops_payload = export_shops_for_viewer(plan_shops(osm, layout, origin), spawn)
+    shop_inputs: dict = {}
+    if district_id:
+        from cityview.districts import district_paths as _dpaths
+        from cityview.shops import district_shop_inputs
+
+        shop_inputs = district_shop_inputs(_dpaths(district_id))
+    shops_payload = export_shops_for_viewer(plan_shops(osm, layout, origin, **shop_inputs), spawn)
     shops_path = VIEWER / "shops.json"
     shops_path.write_text(json.dumps(shops_payload) + "\n")
     print(f"Wrote {shops_path} ({len(shops_payload['shops'])} shopfronts)")
@@ -348,6 +390,110 @@ def serve_command(args: argparse.Namespace) -> int:
     print(f"Street viewer at http://{args.host}:{args.port}/")
     server.serve_forever()
     return 0
+
+
+def _district_refs(district_id: str, doc: dict, *, refresh: bool) -> None:
+    """Places (when not cached) + picture-reference pack for a district."""
+    import json as _json
+
+    from cityview.districts import district_paths
+    from cityview.place_refs import build_reference_pack
+    from cityview.places import fetch_places
+
+    paths = district_paths(district_id)
+    try:
+        places = fetch_places(tuple(doc["bbox"]), paths.cache / "places.json")["places"]
+    except Exception as exc:  # noqa: BLE001 — refs still work from the dossier alone
+        print(f"places fetch skipped: {exc}")
+        places = []
+    dossier_path = paths.root / "special_buildings.json"
+    dossier = _json.loads(dossier_path.read_text()) if dossier_path.exists() else {"buildings": []}
+    try:
+        build_reference_pack(district_id, doc, dossier, places, paths.root, paths.cache, refresh=refresh)
+    except Exception as exc:  # noqa: BLE001 — offline review packs must still write
+        print(f"picture references skipped: {exc}")
+
+
+def district_command(args: argparse.Namespace) -> int:
+    from cityview.district_pipeline import (
+        district_add,
+        district_build,
+        district_check,
+        district_rechunk,
+        migrate_legacy_viewer_to_2018,
+        seed_2018_district_json,
+        write_districts_index,
+    )
+    from cityview.districts import ID_2018, PLACE_TO_DISTRICT, load_district
+    from cityview.district_review import write_district_review_pack
+    from cityview.special_buildings import write_special_buildings_dossier
+    import json as _json
+
+    action = args.district_action
+    if action == "add":
+        district_add(postcode=str(args.postcode), district_id=args.id, refresh=bool(args.refresh))
+        return 0
+    if action == "build":
+        did = args.id or PLACE_TO_DISTRICT.get(args.place or "")
+        if not did:
+            raise ValueError("district build needs <id> or --place")
+        return district_build(
+            did,
+            refresh=bool(args.refresh),
+            no_render=bool(args.no_render),
+            out=Path(args.out) if args.out else None,
+            skip_blender=bool(args.skip_blender),
+        )
+    if action == "chunks":
+        return district_rechunk(
+            args.id,
+            out=Path(args.out) if getattr(args, "out", None) else None,
+        )
+    if action == "check":
+        errors = district_check(args.id, run_sims=not args.no_sims)
+        if errors:
+            for e in errors:
+                print(f"FAIL: {e}", file=sys.stderr)
+            return 1
+        print(f"OK: {args.id}")
+        return 0
+    if action == "review":
+        from cityview.districts import district_paths
+
+        did = args.id
+        paths = district_paths(did)
+        doc = load_district(did)
+        osm = {}
+        if paths.osm_cache.exists():
+            osm = _json.loads(paths.osm_cache.read_text())
+        write_special_buildings_dossier(did, doc, osm)
+        if not getattr(args, "no_refs", False):
+            _district_refs(did, doc, refresh=False)
+        write_district_review_pack(did, doc)
+        print(f"OK: review pack for {did}")
+        return 0
+    if action == "places":
+        from cityview.districts import district_paths
+        from cityview.places import fetch_places
+
+        doc = load_district(args.id)
+        fetch_places(tuple(doc["bbox"]), district_paths(args.id).cache / "places.json", refresh=True)
+        return 0
+    if action == "refs":
+        _district_refs(args.id, load_district(args.id), refresh=bool(args.refresh))
+        return 0
+    if action == "shops":
+        from cityview.district_pipeline import district_republish_shops
+
+        district_republish_shops(args.id)
+        return 0
+    if action == "migrate":
+        seed_2018_district_json(extend_to_bank=True)
+        write_districts_index()
+        migrate_legacy_viewer_to_2018()
+        print(f"Migrated legacy viewer into districts/{ID_2018}")
+        return 0
+    raise ValueError(f"Unknown district action {action!r}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -388,7 +534,74 @@ def build_parser() -> argparse.ArgumentParser:
     city.add_argument("--street-name", default="")
     city.add_argument("--refresh", action="store_true", help="Ignore cached OSM download")
     city.add_argument("--no-render", action="store_true")
+    city.add_argument(
+        "--via-district",
+        action="store_true",
+        help="Route klein-antwerpen / harmonie through the district pipeline",
+    )
     city.set_defaults(func=city_command)
+
+    district = sub.add_parser("district", help="Add / build / check a district package")
+    dsub = district.add_subparsers(dest="district_action", required=True)
+
+    d_add = dsub.add_parser("add", help="Write district.json + profile (no Blender)")
+    d_add.add_argument("--postcode", required=True, help="Belgian postcode, e.g. 2000")
+    d_add.add_argument("--id", default=None, help="District id override")
+    d_add.add_argument("--refresh", action="store_true")
+    d_add.set_defaults(func=district_command)
+
+    d_build = dsub.add_parser("build", help="Full district build into viewer/districts/<id>/")
+    d_build.add_argument("id", nargs="?", default=None, help="District id (e.g. 2018-harmonie)")
+    d_build.add_argument("--place", default=None, help="Legacy place alias")
+    d_build.add_argument("--out", default=str(OUTPUT))
+    d_build.add_argument("--refresh", action="store_true")
+    d_build.add_argument("--no-render", action="store_true", default=True)
+    d_build.add_argument("--skip-blender", action="store_true", help="Export JSON package only")
+    d_build.set_defaults(func=district_command)
+
+    d_check = dsub.add_parser("check", help="Playability checks for a district package")
+    d_check.add_argument("id", help="District id")
+    d_check.add_argument("--no-sims", action="store_true", help="Skip headless Node sims")
+    d_check.set_defaults(func=district_command)
+
+    d_chunks = dsub.add_parser(
+        "chunks",
+        help="Migration: peel spatial chunks from an existing .blend (normal builds do this automatically)",
+    )
+    d_chunks.add_argument("id", help="District id")
+    d_chunks.add_argument("--out", default=str(OUTPUT), help="Output directory containing the .blend")
+    d_chunks.set_defaults(func=district_command)
+
+    d_review = dsub.add_parser(
+        "review",
+        help="Regenerate special_buildings dossier + AGENT_REVIEW.md + buildings/catalog.html",
+    )
+    d_review.add_argument("id", help="District id")
+    d_review.add_argument("--no-refs", action="store_true", help="Skip the picture-reference stage")
+    d_review.set_defaults(func=district_command)
+
+    d_places = dsub.add_parser("places", help="Re-download named shops / horeca / sights into cache/places.json")
+    d_places.add_argument("id", help="District id")
+    d_places.set_defaults(func=district_command)
+
+    d_refs = dsub.add_parser(
+        "refs",
+        help="Picture references (Wikidata P18, OSM image tags, geotagged Commons) → districts/<id>/references/",
+    )
+    d_refs.add_argument("id", help="District id")
+    d_refs.add_argument("--refresh", action="store_true", help="Re-query Commons / Wikidata caches")
+    d_refs.set_defaults(func=district_command)
+
+    d_shops = dsub.add_parser(
+        "shops",
+        help="Re-plan shopfronts (places + shop_overrides.json) into viewer/districts/<id>/shops.json, no Blender",
+    )
+    d_shops.add_argument("id", help="District id")
+    d_shops.set_defaults(func=district_command)
+
+    d_mig = dsub.add_parser("migrate", help="Seed 2018 package from current viewer/ assets")
+    d_mig.set_defaults(func=district_command)
+
     return parser
 
 

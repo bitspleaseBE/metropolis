@@ -46,7 +46,7 @@ from pathlib import Path
 from typing import Any
 
 from cityview.geo import project
-from cityview.paths import BENCHES_CACHE
+from cityview.paths import BENCHES_CACHE, is_allowed_cache_json
 from cityview.railclear import CLEAR_FURNITURE
 from cityview.trees import (
     DRIVEABLE,
@@ -146,11 +146,13 @@ def fetch_city_benches(bbox: tuple[float, float, float, float]) -> list[dict[str
 
 
 def _checked_cache_path(path: Path) -> Path:
-    """Bench caches live under assets/benches/*.json — nothing else is read or written."""
+    """Bench caches live under assets/benches/*.json or districts/*/cache/."""
     resolved = Path(path).resolve()
-    root = BENCHES_CACHE.resolve()
-    if resolved.suffix != ".json" or root not in resolved.parents:
-        raise ValueError(f"bench cache must be a .json file under {root}")
+    if not is_allowed_cache_json(resolved, BENCHES_CACHE):
+        raise ValueError(
+            f"bench cache must be a .json file under {BENCHES_CACHE.resolve()} "
+            f"or districts/*/cache/"
+        )
     return resolved
 
 

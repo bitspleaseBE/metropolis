@@ -130,6 +130,50 @@ class ShopPlanTests(unittest.TestCase):
         self.assertIsNone(normalize_shop_brand({"name": "Ettings", "shop": "furniture"}))
         self.assertIsNone(normalize_shop_brand({"name": "Dokterswartier De Koning", "amenity": "doctors"}))
 
+    def test_high_street_brands_and_short_names(self):
+        self.assertEqual(normalize_shop_brand({"name": "AD Delhaize Meir", "shop": "supermarket"}), "delhaize")
+        self.assertEqual(normalize_shop_brand({"name": "Proxy Delhaize", "shop": "supermarket"}), "proxy")
+        self.assertEqual(normalize_shop_brand({"brand": "H&M", "shop": "clothes"}), "hm")
+        self.assertEqual(normalize_shop_brand({"name": "Paul", "shop": "bakery"}), "paul")
+        # Short common words only count as a brand from brand= or an exact name.
+        self.assertIsNone(normalize_shop_brand({"name": "Paul's Boutique", "shop": "clothes"}))
+        self.assertIsNone(normalize_shop_brand({"name": "Base Camp Coffee", "amenity": "cafe"}))
+
+    def test_fronts_by_kind(self):
+        from cityview.shop_brands import awning_for, front_for
+
+        self.assertEqual(front_for({}, "pub", "horeca"), "bar")
+        self.assertEqual(front_for({}, "clothes", "retail"), "boutique")
+        self.assertEqual(front_for({"name": "Frituur Max"}, "fast_food", "horeca"), "frituur")
+        self.assertEqual(front_for({}, "fast_food", "horeca"), "fastfood")
+        self.assertEqual(front_for({}, "books", "retail"), "heritage")
+        self.assertEqual(front_for({}, "chocolate", "food"), "chocolatier")
+        self.assertEqual(shopfront_style({"brand": "Zara"}, "clothes", "retail", 1)["front"], "boutique")
+        stripe = awning_for("market", "greengrocer", (0.2, 0.4, 0.2), (1, 1, 1), 3, False)
+        self.assertIsNotNone(stripe["stripe"])
+        self.assertIsNone(awning_for("boutique", "clothes", (0, 0, 0), (1, 1, 1), 3, False))
+
+    def test_places_overrides_and_dedupe(self):
+        osm = {"elements": [_node(20, 4.0, 2.0, amenity="pub", name="Den Engel")]}
+        lat, lon = _latlon(4.2, 2.0)
+        places = [
+            {"type": "node", "id": 21, "lat": lat, "lon": lon, "tags": {"amenity": "pub", "name": "Den Engel"}},
+            {"type": "way", "id": 22, "center": {"lat": _latlon(15.0, 2.0)[0], "lon": _latlon(15.0, 2.0)[1]},
+             "tags": {"shop": "clothes", "name": "Zara", "brand": "Zara"}},
+        ]
+        overrides = {"by_osm": {"node/20": {"fascia": [0.7, 0.1, 0.1], "frame": [0.1, 0.1, 0.1], "awning": False}}}
+        shops = plan_shops(osm, _layout(), ORIGIN, places=places, overrides=overrides)
+        by_id = {s["id"]: s for s in shops}
+        self.assertEqual(sorted(by_id), [20, 22])  # node 21 is the same pub, 0.2 m away
+        engel = by_id[20]
+        self.assertTrue(engel["override"])
+        self.assertEqual(engel["fascia"], [0.7, 0.1, 0.1])
+        self.assertEqual(engel["frame"], [0.1, 0.1, 0.1])
+        self.assertNotIn("awning", engel)
+        self.assertEqual(engel["front"], "bar")
+        self.assertEqual(by_id[22]["front"], "boutique")
+        self.assertEqual(by_id[22]["brand"], "zara")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,936 @@
+{
+  "version": 1,
+  "source": "Digitaal Vlaanderen aerial plazas + inventory filter (walk-critical squares)",
+  "plazas": [
+    {
+      "name": "Groenplaats",
+      "slug": "groenplaats",
+      "mode": "replace_inside",
+      "polygon": [
+        [
+          29.279694281092603,
+          -146.48064200047304
+        ],
+        [
+          152.03001963804766,
+          -146.48064200047304
+        ],
+        [
+          152.03001963804766,
+          46.795669999557845
+        ],
+        [
+          29.279694281092603,
+          46.795669999557845
+        ]
+      ],
+      "trees": [
+        {
+          "x": 62.86,
+          "y": -44.47,
+          "species": "Platanus \u00d7 hispanica",
+          "genus": "Platanus",
+          "girth_cm": null,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 63.77,
+          "y": -56.25,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 60.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 61.08,
+          "y": -70.08,
+          "species": "Platanus \u00d7 hispanica",
+          "genus": "Platanus",
+          "girth_cm": null,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 70.85,
+          "y": -62.91,
+          "species": "Liquidambar styraciflua 'Moraine'",
+          "genus": "Liquidambar",
+          "girth_cm": 32.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 98.15,
+          "y": -68.67,
+          "species": "Platanus \u00d7 hispanica",
+          "genus": "Platanus",
+          "girth_cm": null,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 115.04,
+          "y": -77.92,
+          "species": "Liquidambar styraciflua 'Moraine'",
+          "genus": "Liquidambar",
+          "girth_cm": 29.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 130.33,
+          "y": -78.57,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 54.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 116.02,
+          "y": -58.87,
+          "species": "Liquidambar styraciflua 'Moraine'",
+          "genus": "Liquidambar",
+          "girth_cm": 40.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 131.05,
+          "y": -66.01,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 54.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 123.83,
+          "y": -52.69,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 47.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 124.48,
+          "y": -39.98,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 47.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 132.39,
+          "y": -8.06,
+          "species": "Liquidambar styraciflua 'Moraine'",
+          "genus": "Liquidambar",
+          "girth_cm": 60.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 112.0,
+          "y": -20.36,
+          "species": "Liquidambar styraciflua 'Moraine'",
+          "genus": "Liquidambar",
+          "girth_cm": 63.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 118.7,
+          "y": -6.99,
+          "species": "Platanus \u00d7 hispanica",
+          "genus": "Platanus",
+          "girth_cm": null,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 105.6,
+          "y": -13.22,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 46.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 106.43,
+          "y": -0.46,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 53.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 98.15,
+          "y": -19.67,
+          "species": "Platanus \u00d7 hispanica",
+          "genus": "Platanus",
+          "girth_cm": null,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 93.3,
+          "y": 0.23,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 66.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 91.43,
+          "y": -12.07,
+          "species": "Platanus \u00d7 hispanica",
+          "genus": "Platanus",
+          "girth_cm": null,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 80.18,
+          "y": 0.92,
+          "species": "Liquidambar styraciflua 'Moraine'",
+          "genus": "Liquidambar",
+          "girth_cm": 63.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 79.53,
+          "y": -12.05,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 46.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 58.24,
+          "y": -10.66,
+          "species": "Platanus \u00d7 hispanica",
+          "genus": "Platanus",
+          "girth_cm": null,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 72.65,
+          "y": -25.49,
+          "species": "Liquidambar styraciflua 'Moraine'",
+          "genus": "Liquidambar",
+          "girth_cm": 25.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": 57.26,
+          "y": -23.52,
+          "species": "Tilia europaea 'Euchlora' (x)",
+          "genus": "Tilia",
+          "girth_cm": 43.0,
+          "source": "aerial_edit"
+        }
+      ]
+    },
+    {
+      "name": "Steenplein",
+      "slug": "steenplein",
+      "mode": "replace_inside",
+      "polygon": [
+        [
+          -221.07318486515396,
+          354.53494199996584
+        ],
+        [
+          -230.01177328401036,
+          359.49818799984473
+        ],
+        [
+          -235.45720039407684,
+          361.77531199975067
+        ],
+        [
+          -246.05521474405856,
+          337.33491800003577
+        ],
+        [
+          -226.58136337596713,
+          328.9449320001688
+        ],
+        [
+          -278.5464955802226,
+          203.4709779994877
+        ],
+        [
+          -276.1619423514767,
+          202.5424419996328
+        ],
+        [
+          -274.0562842371812,
+          201.72444599949884
+        ],
+        [
+          -263.03295483767346,
+          228.74042199946572
+        ],
+        [
+          -261.79884395607417,
+          230.6196020002193
+        ],
+        [
+          -259.96510857840957,
+          232.18926999971217
+        ],
+        [
+          -251.17294009469072,
+          236.94248999949295
+        ],
+        [
+          -241.58592053466134,
+          242.13786999972825
+        ],
+        [
+          -239.13861590516876,
+          247.7201399997722
+        ],
+        [
+          -243.35690451157922,
+          249.26769999979214
+        ],
+        [
+          -226.51163959733907,
+          291.53819599973133
+        ],
+        [
+          -218.81413443790146,
+          288.45412999982057
+        ],
+        [
+          -211.76506041957495,
+          285.62430599973925
+        ],
+        [
+          -233.63043739429364,
+          232.23348600022888
+        ],
+        [
+          -238.65752183265357,
+          234.1568819999283
+        ],
+        [
+          -241.66958906899026,
+          234.97487800006226
+        ],
+        [
+          -244.24936887785762,
+          234.77590600009336
+        ],
+        [
+          -252.4488852433926,
+          230.95122200016746
+        ],
+        [
+          -256.32552733454406,
+          227.78977800013791
+        ],
+        [
+          -258.5009092274676,
+          224.10879599953503
+        ],
+        [
+          -259.1911746358051,
+          219.64297999997115
+        ],
+        [
+          -258.4799920938854,
+          215.16610999949265
+        ],
+        [
+          -256.3534168460077,
+          211.81674799962337
+        ],
+        [
+          -252.9439240715467,
+          209.20800399976926
+        ],
+        [
+          -230.76479009309452,
+          195.943203999486
+        ],
+        [
+          -194.38292241001628,
+          280.77159999958127
+        ],
+        [
+          -189.74629113189926,
+          292.1130040001651
+        ],
+        [
+          -187.96136239928055,
+          296.04822799981196
+        ],
+        [
+          -191.12682194857422,
+          298.04900199963015
+        ],
+        [
+          -194.02035876123696,
+          300.0055599997171
+        ],
+        [
+          -195.0801601962351,
+          296.3356320000288
+        ],
+        [
+          -196.02840358544077,
+          296.6230359994603
+        ],
+        [
+          -187.77310819704047,
+          314.1325719998656
+        ],
+        [
+          -190.08096526927687,
+          323.0642039997788
+        ],
+        [
+          -208.28584386654782,
+          322.5446659999909
+        ],
+        [
+          -214.1286965147386,
+          337.43440399962753
+        ]
+      ],
+      "trees": [
+        {
+          "x": -236.13,
+          "y": 273.85,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 252.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -239.49,
+          "y": 265.7,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 135.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -261.49,
+          "y": 236.88,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 110.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -212.13,
+          "y": 249.09,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 25.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -223.01,
+          "y": 223.4,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 35.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -256.55,
+          "y": 225.15,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 158.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -258.28,
+          "y": 244.6,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 110.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -206.72,
+          "y": 261.85,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 35.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -216.11,
+          "y": 265.64,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 135.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -249.65,
+          "y": 240.72,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 45.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -236.53,
+          "y": 230.29,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 172.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -209.39,
+          "y": 290.62,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 195.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -246.22,
+          "y": 249.06,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 45.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -231.12,
+          "y": 204.29,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 45.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -203.96,
+          "y": 268.41,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 35.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -243.29,
+          "y": 280.72,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 130.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -212.74,
+          "y": 273.84,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 135.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -239.65,
+          "y": 222.05,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 160.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -264.43,
+          "y": 229.68,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 130.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -250.73,
+          "y": 210.31,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 45.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -214.83,
+          "y": 242.71,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 35.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -234.19,
+          "y": 302.69,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 175.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -233.05,
+          "y": 224.43,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 183.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -209.37,
+          "y": 255.49,
+          "species": "Tilia tomentosa 'Brabant'",
+          "genus": "Tilia",
+          "girth_cm": 20.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -229.9,
+          "y": 353.67,
+          "species": "Prunus serrulata",
+          "genus": "Prunus",
+          "girth_cm": 150.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -246.32,
+          "y": 273.38,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 130.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -229.17,
+          "y": 290.32,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 305.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -232.31,
+          "y": 282.23,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 160.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -249.98,
+          "y": 226.6,
+          "species": "Ulmus glabra 'Pendula'",
+          "genus": "Ulmus",
+          "girth_cm": 22.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -201.24,
+          "y": 274.8,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 25.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -219.52,
+          "y": 257.33,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 85.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -252.35,
+          "y": 258.83,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 130.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -229.61,
+          "y": 232.83,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 135.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -240.25,
+          "y": 288.19,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 130.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -242.73,
+          "y": 210.09,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 194.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -242.81,
+          "y": 257.47,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 135.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -228.32,
+          "y": 210.66,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 35.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -223.03,
+          "y": 248.98,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 85.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -231.09,
+          "y": 310.19,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 175.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -217.57,
+          "y": 236.28,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 20.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -255.27,
+          "y": 251.73,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 130.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -225.72,
+          "y": 217.01,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 35.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -220.32,
+          "y": 229.78,
+          "species": "Sorbus thuringiaca 'Fastigiata' (x)",
+          "genus": "Sorbus",
+          "girth_cm": 25.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -226.37,
+          "y": 240.91,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 135.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -198.58,
+          "y": 280.97,
+          "species": "Tilia tomentosa 'Brabant'",
+          "genus": "Tilia",
+          "girth_cm": 20.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -256.43,
+          "y": 216.35,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 159.0,
+          "source": "aerial_edit"
+        },
+        {
+          "x": -237.3,
+          "y": 295.26,
+          "species": "Tilia tomentosa",
+          "genus": "Tilia",
+          "girth_cm": 130.0,
+          "source": "aerial_edit"
+        }
+      ]
+    },
+    {
+      "name": "Grote Markt",
+      "slug": "grote-markt",
+      "mode": "clear",
+      "polygon": [
+        [
+          31.807987805707945,
+          165.8321079994792
+        ],
+        [
+          -2.049879091368266,
+          165.46732599992893
+        ],
+        [
+          0.6135692518280099,
+          145.68066599961767
+        ],
+        [
+          -0.46017693887100747,
+          145.57012599989676
+        ],
+        [
+          -58.46338837143872,
+          139.678344000163
+        ],
+        [
+          -68.78947998485144,
+          121.2402719999028
+        ],
+        [
+          -78.34861003341723,
+          124.66701199989089
+        ],
+        [
+          -72.27566891575997,
+          141.0048239999557
+        ],
+        [
+          -77.49797993424136,
+          142.98348999951557
+        ],
+        [
+          -75.97800156037218,
+          147.0403079997979
+        ],
+        [
+          -67.10913692014387,
+          171.2043520002105
+        ],
+        [
+          -65.2405396531343,
+          170.49689599979743
+        ],
+        [
+          -64.64788753488853,
+          172.0334019996882
+        ],
+        [
+          -64.27137913034643,
+          173.017208000189
+        ],
+        [
+          -63.7902850578932,
+          174.27736399999205
+        ],
+        [
+          -63.30919098543996,
+          175.5485739999243
+        ],
+        [
+          -62.34700284047155,
+          178.0688859995304
+        ],
+        [
+          -61.384814695565076,
+          180.58919799992196
+        ],
+        [
+          -60.903720623111845,
+          181.84935399972503
+        ],
+        [
+          -60.422626550658606,
+          183.12056399965726
+        ],
+        [
+          -60.01125625677152,
+          184.13753199976014
+        ],
+        [
+          -59.453466027808815,
+          185.64087600004882
+        ],
+        [
+          -61.33600805051923,
+          186.32622400020352
+        ],
+        [
+          -52.42530914312646,
+          209.94862199978442
+        ],
+        [
+          -46.14319668958496,
+          212.5352580001656
+        ],
+        [
+          -44.99275434237648,
+          215.46456799983872
+        ],
+        [
+          -35.580044228948246,
+          213.16533599967443
+        ],
+        [
+          -11.232500735391966,
+          206.63242199951725
+        ],
+        [
+          3.3606861294151367,
+          199.9005360001766
+        ],
+        [
+          9.461516758536014,
+          199.10464799951555
+        ],
+        [
+          50.933220280720896,
+          182.29151400017955
+        ],
+        [
+          73.3215255950573,
+          171.41437799952314
+        ],
+        [
+          91.72860315026915,
+          164.80408600003258
+        ],
+        [
+          95.51460432927222,
+          158.7575480000612
+        ],
+        [
+          91.54732132591046,
+          156.32566799991764
+        ],
+        [
+          80.90050033088289,
+          157.43106799948308
+        ],
+        [
+          68.88709327494314,
+          160.117189999456
+        ],
+        [
+          52.29283396375169,
+          162.6596100001059
+        ],
+        [
+          42.37811264422606,
+          164.8814640001514
+        ]
+      ],
+      "trees": []
+    }
+  ]
+}

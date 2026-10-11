@@ -1360,6 +1360,7 @@
         collideWorld,
         get clock() { return { hour: gameHour, day: gameDay }; },
         get motion() { return playerMotion; },
+        get thirdPerson() { return thirdPerson; },
         get pixelRatio() { return pixelRatio; },
       };
 
@@ -2973,6 +2974,21 @@
             spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             width: 200,
             height: 200,
+            districtName:
+              (typeof window !== "undefined" && window.__DISTRICT && window.__DISTRICT.title) ||
+              "Antwerp",
+            roadsUrl:
+              (typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
+              "./roads.json",
+            transitUrl:
+              (typeof window.districtUrl === "function" && window.districtUrl("transit.json")) ||
+              "./transit.json",
+            landmarksUrl:
+              (typeof window.districtUrl === "function" && window.districtUrl("landmarks.json")) ||
+              "./landmarks.json",
+            shopsUrl:
+              (typeof window.districtUrl === "function" && window.districtUrl("shops.json")) ||
+              "./shops.json",
           });
           if (minimap.setBlips) {
             const BRAND = { Dott: "#18a6e0", Bolt: "#34d186" };
@@ -2985,7 +3001,11 @@
                 .concat(police ? police.blips() : []),
             );
           }
-          streetLocator = await createStreetLocator();
+          streetLocator = await createStreetLocator({
+            roadsUrl:
+              (typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
+              "./roads.json",
+          });
           outdoors = await createOutdoorsGuard();
           props = await createPropCollider();
           if (pedestrians && outdoors.ready && pedestrians.setBlocker) {
@@ -3593,7 +3613,7 @@
           const camH = mode === "free" ? freeCam.height : camera.position.y;
           landmarkStream.update(camera.position.x, camera.position.z, mode, camH);
         }
-        shops && shops.update(gameHour, gameDay);
+        shops && shops.update(gameHour, gameDay, camera.position.x, camera.position.z);
         terraces && terraces.update();
         refreshRideHud();
         const sRide = scooters && scooters.isRiding() ? scooters.getRideHud() : null;

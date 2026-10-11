@@ -5,7 +5,14 @@ from __future__ import annotations
 import unittest
 
 from cityview import facade_kit
-from cityview.kerbs import CarriagewayIndex, kerb_profile, split_at_carriageways
+from cityview.kerbs import (
+    CarriagewayIndex,
+    FootprintIndex,
+    frontage_sidewalk_runs,
+    kerb_profile,
+    sidewalk_strip,
+    split_at_carriageways,
+)
 
 
 def _normal(verts, face):
@@ -88,6 +95,70 @@ class JunctionTrimTests(unittest.TestCase):
         ]
         kerb = [[-60.0, 3.62], [60.0, 3.62]]
         self.assertEqual(split_at_carriageways(kerb, CarriagewayIndex(roads), 0, -0.3), [kerb])
+
+
+class FrontagePavementTests(unittest.TestCase):
+    """Pavement reaches the façade, and stops at the next carriageway."""
+
+    def test_strip_reaches_a_set_back_facade(self):
+        # Road along +x, half-width 4. Façade at y=9 → 5 m past the kerb (y=4).
+        road = [[0.0, 0.0], [20.0, 0.0]]
+        house = [[-1.0, 9.0], [21.0, 9.0], [21.0, 16.0], [-1.0, 16.0]]
+        runs = frontage_sidewalk_runs(road, 4.0, 1.0, FootprintIndex([house]), None, 0)
+        self.assertEqual(len(runs), 1)
+        _inner, outer = runs[0]
+        ys = [p[1] for p in outer]
+        self.assertGreater(min(ys), 8.9)
+        self.assertLess(max(ys), 9.5)
+        self.assertAlmostEqual(runs[0][0][0][1], 4.0, places=2)
+
+    def test_open_side_keeps_the_nominal_width(self):
+        road = [[0.0, 0.0], [20.0, 0.0]]
+        runs = frontage_sidewalk_runs(road, 4.0, 1.0, FootprintIndex([]), None, 0)
+        self.assertEqual(len(runs), 1)
+        inner, outer = runs[0]
+        for a, b in zip(inner, outer):
+            self.assertAlmostEqual(b[1] - a[1], 2.0, places=2)
+
+    def test_does_not_cross_a_parallel_carriageway(self):
+        # Boulevard: our road at y=0 (width 8), the other half at y=12 (width 8).
+        # The far houses sit at y=20. Pavement must stay on our side.
+        ours = {"kind": "secondary", "width": 8.0, "points": [[-40.0, 0.0], [40.0, 0.0]]}
+        other = {"kind": "secondary", "width": 8.0, "points": [[-40.0, 12.0], [40.0, 12.0]]}
+        far = [[-30.0, 20.0], [30.0, 20.0], [30.0, 28.0], [-30.0, 28.0]]
+        idx = CarriagewayIndex([ours, other])
+        runs = frontage_sidewalk_runs(
+            ours["points"], 4.0, 1.0, FootprintIndex([far]), idx, 0
+        )
+        self.assertTrue(runs)
+        for _inner, outer in runs:
+            for p in outer:
+                self.assertLess(p[1], 8.0)
+
+    def test_side_street_mouth_is_left_open(self):
+        main = {"kind": "residential", "width": 8.0, "points": [[-40.0, 0.0], [40.0, 0.0]]}
+        side = {"kind": "residential", "width": 6.0, "points": [[0.0, 0.0], [0.0, 40.0]]}
+        house = [[8.0, 9.0], [24.0, 9.0], [24.0, 16.0], [8.0, 16.0]]
+        idx = CarriagewayIndex([main, side])
+        runs = frontage_sidewalk_runs(main["points"], 4.0, 1.0, FootprintIndex([house]), idx, 0)
+        xs = [p[0] for run in runs for p in run[0]]
+        self.assertTrue(xs)
+        self.assertTrue(all(x < -1.5 or x > 1.5 for x in xs))
+        reached = [p[1] for run in runs for p in run[1] if p[0] > 10.0]
+        self.assertTrue(reached)
+        self.assertGreater(max(reached), 8.9)
+
+    def test_strip_faces_up(self):
+        inner = [[0.0, 4.0], [6.0, 4.0]]
+        outer = [[0.0, 9.0], [6.0, 9.0]]
+        verts, faces, uvs = sidewalk_strip(inner, outer, 0.12, 2.4)
+        self.assertEqual(len(uvs), sum(len(f) for f in faces))
+        ax, ay, _az = verts[faces[0][0]]
+        bx, by, _bz = verts[faces[0][1]]
+        cx, cy, _cz = verts[faces[0][2]]
+        nz = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+        self.assertGreater(nz, 0.0)
+        self.assertTrue(all(abs(v[2] - 0.12) < 1e-6 for v in verts))
 
 
 class DoorStepTests(unittest.TestCase):

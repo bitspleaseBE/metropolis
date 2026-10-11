@@ -1,0 +1,615 @@
+{
+  "id": "2018-harmonie",
+  "title": "Klein Antwerpen \u00b7 Harmonie \u00b7 2018",
+  "postcode": "2018",
+  "description": "Human spawn in Harmoniepark, on the central path. LOD2 roofs and style-driven procedural facades on street-facing edges. North gate: Nationale Bank.",
+  "bbox": [
+    51.197,
+    4.404,
+    51.21405,
+    4.4195
+  ],
+  "boundary": [
+    [
+      4.404,
+      51.197
+    ],
+    [
+      4.4195,
+      51.197
+    ],
+    [
+      4.4195,
+      51.21405
+    ],
+    [
+      4.404,
+      51.21405
+    ],
+    [
+      4.404,
+      51.197
+    ]
+  ],
+  "origin": [
+    51.2017,
+    4.4114
+  ],
+  "style_policy": "historic",
+  "spawn": {
+    "label": "Harmoniepark",
+    "lat": 51.20170236549149,
+    "lon": 4.411358124617046,
+    "eye_height": 1.7
+  },
+  "seam": {
+    "nationale_bank": {
+      "lat": 51.21167078571428,
+      "lon": 4.4083106
+    },
+    "role": "north_gate"
+  },
+  "profile": {
+    "summary": "Scheldt quays, historic core, trams",
+    "modes": {
+      "tram": true,
+      "premetro": false,
+      "bus": true,
+      "velo": true,
+      "train": false,
+      "water": true,
+      "port": false
+    },
+    "velo_stations_hint": 9,
+    "building_eras": {
+      "brick_townhouse": 5100,
+      "other": 149,
+      "neoclassical": 4,
+      "art_nouveau": 3,
+      "baroque_civic": 1,
+      "art_deco": 1
+    },
+    "materials": {
+      "glass": 1
+    },
+    "roof_mix": {},
+    "shops": [
+      "Carrefour Express",
+      "Restaurant Lokal",
+      "Carrefour Market",
+      "Finch",
+      "De Zwaan",
+      "Needs",
+      "Tafeltje Dekje",
+      "a tavola",
+      "De Merode",
+      "'t Park",
+      "Nachtwinkel",
+      "La Lanterna",
+      "de Vos & Marie",
+      "Het Gebaar",
+      "Kapitein Zeppos",
+      "Beni Falafel",
+      "Il Carpaccio",
+      "De Pelgrim",
+      "The Butcher's Son",
+      "Black Smoke",
+      "Sensunik",
+      "Little B\u00fan THEATER",
+      "Mattina",
+      "Picniq Koreanen eats",
+      "Lints",
+      "Barchel",
+      "Bardin",
+      "Frituur Vogelmarkt",
+      "Perruche",
+      "scotties",
+      "Ateliercafe",
+      "'t Stad Kebab",
+      "Cobra",
+      "Lillet",
+      "Caffenation",
+      "Mini Vogelmarkt",
+      "Fabrik",
+      "Lin",
+      "Nieuwe Vaart",
+      "Felfel"
+    ],
+    "landmarks": [
+      {
+        "osm_id": 232921429,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouw van Gratiekerk",
+        "score": 217.8,
+        "heritage": true,
+        "wikidata": "Q28530528",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": "church"
+      },
+      {
+        "osm_id": 353285592,
+        "osm_type": "way",
+        "name": "Basiliek van het Heilig Hart",
+        "score": 156.4,
+        "heritage": true,
+        "wikidata": "Q2750109",
+        "building": "basilica",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 12470557,
+        "osm_type": "relation",
+        "name": "Nationale Bank",
+        "score": 150.6,
+        "heritage": true,
+        "wikidata": "Q88535463",
+        "building": "yes",
+        "amenity": null,
+        "historic": "building"
+      },
+      {
+        "osm_id": 4437976,
+        "osm_type": "way",
+        "name": "Mechelsesteenweg",
+        "score": 131.4,
+        "heritage": false,
+        "wikidata": "Q2157292",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 232921428,
+        "osm_type": "way",
+        "name": "Kapel van het Allerheiligste Sacrament",
+        "score": 130.5,
+        "heritage": true,
+        "wikidata": "Q2420493",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 222816084,
+        "osm_type": "way",
+        "name": "Vlaamse Evangelische kerk",
+        "score": 125.1,
+        "heritage": true,
+        "wikidata": "Q28515913",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 121677048,
+        "osm_type": "way",
+        "name": "Christus\u2019 Geboortekerk",
+        "score": 124.3,
+        "heritage": true,
+        "wikidata": "Q2375157",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 453577567,
+        "osm_type": "way",
+        "name": "Sint-Bonifaciuskerk",
+        "score": 122.8,
+        "heritage": true,
+        "wikidata": "Q2306039",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": "church"
+      },
+      {
+        "osm_id": 232926614,
+        "osm_type": "way",
+        "name": "Sint-Joriskerk",
+        "score": 120.9,
+        "heritage": true,
+        "wikidata": "Q2278872",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 95797211,
+        "osm_type": "way",
+        "name": "Grotesteenweg",
+        "score": 105.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 232921430,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouwencollege",
+        "score": 100.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 5832228887,
+        "osm_type": "node",
+        "name": "Monument Belgisch-Congo",
+        "score": 99.2,
+        "heritage": true,
+        "wikidata": "Q56070901",
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 7296545179,
+        "osm_type": "node",
+        "name": "Monument Jan van Beers",
+        "score": 98.8,
+        "heritage": true,
+        "wikidata": "Q56070888",
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 4344313,
+        "osm_type": "way",
+        "name": "Stadspark",
+        "score": 98.3,
+        "heritage": true,
+        "wikidata": "Q21771395",
+        "building": null,
+        "amenity": null,
+        "historic": "park"
+      },
+      {
+        "osm_id": 231689700,
+        "osm_type": "way",
+        "name": "Kasteel de Bergeyck",
+        "score": 97.8,
+        "heritage": true,
+        "wikidata": "Q99584299",
+        "building": "house",
+        "amenity": null,
+        "historic": "castle"
+      },
+      {
+        "osm_id": 4358044,
+        "osm_type": "way",
+        "name": "Koning Albertpark",
+        "score": 84.4,
+        "heritage": true,
+        "wikidata": "Q33100208",
+        "building": null,
+        "amenity": null,
+        "historic": "park"
+      },
+      {
+        "osm_id": 501410385,
+        "osm_type": "way",
+        "name": "Heilige Geestkerk",
+        "score": 82.2,
+        "heritage": false,
+        "wikidata": "Q107316402",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 6681855661,
+        "osm_type": "node",
+        "name": "Herdenkingsmonument Koningin Astrid",
+        "score": 79.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 783100218,
+        "osm_type": "way",
+        "name": "ZNA Sint-Elisabeth",
+        "score": 75.9,
+        "heritage": true,
+        "wikidata": "Q2667287",
+        "building": null,
+        "amenity": "hospital",
+        "historic": null
+      },
+      {
+        "osm_id": 4816404456,
+        "osm_type": "node",
+        "name": "Camille-Aim\u00e9 Coquilhat",
+        "score": 73.8,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 231220414,
+        "osm_type": "way",
+        "name": "Feestzaal Harmonie",
+        "score": 72.6,
+        "heritage": true,
+        "wikidata": "Q33100413",
+        "building": "house",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 6681855648,
+        "osm_type": "node",
+        "name": "Theodoor Verstraete",
+        "score": 72.6,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 9226762024,
+        "osm_type": "node",
+        "name": "Evarist Allewaert",
+        "score": 71.8,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 22956428,
+        "osm_type": "way",
+        "name": "Plantentuin",
+        "score": 71.5,
+        "heritage": true,
+        "wikidata": "Q3232192",
+        "building": null,
+        "amenity": null,
+        "historic": "garden"
+      },
+      {
+        "osm_id": 192642420,
+        "osm_type": "way",
+        "name": "Gerechtshof",
+        "score": 71.1,
+        "heritage": true,
+        "wikidata": "Q33100193",
+        "building": "yes",
+        "amenity": "courthouse",
+        "historic": "building"
+      },
+      {
+        "osm_id": 432190363,
+        "osm_type": "way",
+        "name": "osm-432190363",
+        "score": 70.2,
+        "heritage": true,
+        "wikidata": null,
+        "building": "monastery",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 6339963544,
+        "osm_type": "node",
+        "name": "Louis Major",
+        "score": 69.4,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 6681855660,
+        "osm_type": "node",
+        "name": "osm-6681855660",
+        "score": 65.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 21047453,
+        "osm_type": "way",
+        "name": "Blauwtorentunnel",
+        "score": 61.4,
+        "heritage": false,
+        "wikidata": "Q2303862",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 21078127,
+        "osm_type": "way",
+        "name": "Gasthuistunnel",
+        "score": 60.6,
+        "heritage": false,
+        "wikidata": "Q2570505",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 23862688,
+        "osm_type": "way",
+        "name": "Van Eycktunnel",
+        "score": 60.6,
+        "heritage": false,
+        "wikidata": "Q2245294",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 502132536,
+        "osm_type": "way",
+        "name": "Militaire centrale Antwerpen. Provincie- en Plaatscommando Antwerpen",
+        "score": 60.1,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 7271693776,
+        "osm_type": "node",
+        "name": "Royal Hamilton Light Infantry (Canada) Liberation of Antwerp Plaque",
+        "score": 60.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 22807735,
+        "osm_type": "way",
+        "name": "Belgi\u00eblei",
+        "score": 58.6,
+        "heritage": false,
+        "wikidata": "Q2157292",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 408533653,
+        "osm_type": "way",
+        "name": "osm-408533653",
+        "score": 55.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": "bench",
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 7347476,
+        "osm_type": "relation",
+        "name": "Klooster van de Soeurs de l'Esp\u00e9rance",
+        "score": 54.8,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 2396262252,
+        "osm_type": "node",
+        "name": "Peter Benoit",
+        "score": 54.8,
+        "heritage": false,
+        "wikidata": "Q116036362",
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 9715814,
+        "osm_type": "way",
+        "name": "ZAS Vincentius",
+        "score": 53.2,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": "hospital",
+        "historic": null
+      },
+      {
+        "osm_id": 512812539,
+        "osm_type": "way",
+        "name": "Eclectische groepsbebouwing",
+        "score": 50.8,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 5022942969,
+        "osm_type": "node",
+        "name": "Beit Hakneset Hasafaradi Jotsei Geruzia",
+        "score": 45.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": "synagogue",
+        "amenity": "place_of_worship",
+        "historic": null
+      }
+    ],
+    "facade_brief": {
+      "styles": [
+        "baroque_civic",
+        "stepped_gable",
+        "neck_gable",
+        "brick_sandstone_band",
+        "narrow_plot",
+        "neo_flemish",
+        "art_nouveau",
+        "art_deco",
+        "warehouse_quay"
+      ],
+      "eras": [
+        "brick_townhouse",
+        "other",
+        "neoclassical",
+        "art_nouveau",
+        "baroque_civic"
+      ],
+      "materials": [
+        "glass"
+      ],
+      "notes": "District-local elevations only. Do not reuse another district's facade files. Variety from frontage width, gable type, storey bands, shop inserts, roof tint."
+    },
+    "stages": {
+      "osm": true,
+      "gtfs_delijn": true,
+      "gtfs_nmbs": false,
+      "velo": true,
+      "trees": true,
+      "benches": true,
+      "aerial": true,
+      "facades": true,
+      "monuments": true,
+      "port_props": false,
+      "train_meshes": false
+    },
+    "building_count": 5258,
+    "highway_count": 1698
+  },
+  "stages": {
+    "osm": true,
+    "gtfs_delijn": true,
+    "gtfs_nmbs": false,
+    "velo": true,
+    "trees": true,
+    "benches": true,
+    "aerial": true,
+    "facades": true,
+    "monuments": true,
+    "port_props": false,
+    "train_meshes": false
+  },
+  "viewer_glb": "city.glb",
+  "legacy_viewer_glb": "klein_antwerpen.glb"
+}

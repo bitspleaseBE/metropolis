@@ -84,6 +84,48 @@ python3 -m cityview city --bbox 51.218,4.388,51.226,4.405
 
 Presets live in `scenes/antwerp_places.json`. Other OSM downloads cache under `assets/osm/` (gitignored except Harmonie).
 
+## District pipeline
+
+Each modelled area is a package under [`districts/<id>/`](districts/) (caches, facades, landmarks) with a viewer export in [`viewer/districts/<id>/`](viewer/districts/). Facades are never shared between districts.
+
+```bash
+# Inspect / write district.json + street profile (no Blender)
+python3 -m cityview district add --postcode 2000
+
+# Full build → viewer/districts/<id>/
+# Blender peels a spawn-core GLB + spatial cell chunks automatically.
+python3 -m cityview district build 2018-harmonie --no-render
+python3 -m cityview district build 2000-antwerpen --no-render
+
+# Playability checks
+python3 -m cityview district check 2018-harmonie
+
+# Agent review pack (special_buildings dossier + AGENT_REVIEW.md + buildings/catalog.html)
+python3 -m cityview district review 2000-antwerpen
+
+# Migration only: re-peel chunks from an existing .blend (normal builds do this themselves)
+python3 -m cityview district chunks 2000-antwerpen
+```
+
+After each build, open [`docs/district-agent.md`](docs/district-agent.md) and `districts/<id>/review/LATEST.md` for checkbox tasks with geo context. Browse `viewer/districts/<id>/buildings/catalog.html` for the special-building catalog.
+
+`district add` discovers tram / bus / train / Velo / water / port from OSM and only enables the stages that apply. OpenStreetMap fetch tries every Overpass mirror, then tiles the official `/map` API when a bbox exceeds the 50k-node limit (the old single-call fallback returned HTTP 400 on Antwerpen 2000).
+
+Every district Blender export writes `core.glb` (spawn neighbourhood, first paint), `chunks/c_*.glb` (256 m cells beyond ~320 m of spawn), and `chunks.json`. The walk viewer loads the core first and streams cells / landmark GLBs as you walk. Packages always include `chunks.json` (possibly with an empty `chunks` list for small tiles).
+
+The walk viewer loads `?district=2018-harmonie` by default. At a modelled edge listed in [`districts/index.json`](districts/index.json) (Nationale Bank / Leopoldplaats between 2018 and 2000) a prompt offers the neighbouring district.
+
+**Local QA (before Pages):** keep CI on the legacy path until this feels solid.
+
+```bash
+python3 -m cityview serve --host 127.0.0.1 --port 8767
+node scripts/smoke_district_chunks.mjs --base http://127.0.0.1:8767
+# then open:
+#   http://127.0.0.1:8767/?district=2018-harmonie
+#   http://127.0.0.1:8767/?district=2000-antwerpen
+# DevTools → Network: first paint should be core.glb only; nearby chunks/*.glb follow.
+```
+
 ## Build a side street
 
 ```bash

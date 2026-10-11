@@ -30,7 +30,7 @@ from typing import Any
 from cityview.benches import CARRIAGEWAY, KERB_CLEARANCE, _Ways
 from cityview.clutter import _yaw_from_facing
 from cityview.geo import project
-from cityview.paths import VELO_CACHE
+from cityview.paths import VELO_CACHE, is_allowed_cache_json
 from cityview.railclear import CLEAR_FURNITURE
 from cityview.trees import _Obstacles, _PointGrid
 
@@ -71,9 +71,11 @@ def _http_json(url: str, timeout: float = 60.0) -> Any:
 
 def _checked_cache_path(path: Path) -> Path:
     resolved = Path(path).resolve()
-    root = VELO_CACHE.resolve()
-    if resolved.suffix != ".json" or root not in resolved.parents:
-        raise ValueError(f"velo cache must be a .json file under {root}")
+    if not is_allowed_cache_json(resolved, VELO_CACHE):
+        raise ValueError(
+            f"velo cache must be a .json file under {VELO_CACHE.resolve()} "
+            f"or districts/*/cache/"
+        )
     return resolved
 
 

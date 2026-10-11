@@ -8,6 +8,7 @@ import { buttonName, controlRows } from "./gamepad.js";
 const MAPS = [
   {
     id: "klein-antwerpen",
+    district: "2018-harmonie",
     name: "Klein Antwerpen",
     playable: true,
     note: "Playable now",
@@ -16,11 +17,12 @@ const MAPS = [
   },
   {
     id: "antwerpen-city",
-    name: "Antwerpen City",
-    playable: false,
-    note: "Coming later",
-    blurb: "Centrum to the Scheldt — mapped, not open yet",
-    preview: null,
+    district: "2000-antwerpen",
+    name: "Antwerpen · 2000",
+    playable: true,
+    note: "Playable now",
+    blurb: "Historic core · Meir · Scheldt quays",
+    preview: "./menu/map-2000-antwerpen.jpg",
   },
   {
     id: "borgerhout",
@@ -139,8 +141,12 @@ export function createMenu(hooks) {
   const mapTitle = root.querySelector("#cm-map-title");
   const mapBlurb = root.querySelector("#cm-map-blurb");
 
-  let mapIndex = 0;
-  let roadsPainted = false;
+  const currentDistrict =
+    (typeof window !== "undefined" && window.__DISTRICT && window.__DISTRICT.id) || "2018-harmonie";
+  let mapIndex = MAPS.findIndex((m) => m.district === currentDistrict);
+  if (mapIndex < 0) mapIndex = 0;
+  /** @type {string | null} */
+  let roadsPaintedFor = null;
 
   for (const m of MAPS) {
     const li = document.createElement("li");
@@ -152,11 +158,37 @@ export function createMenu(hooks) {
   }
   const mapButtons = [...mapsUl.querySelectorAll(".cm-map")];
 
-  /** Stroke roads.json onto the preview canvas (once). */
-  async function paintRoadsOverlay() {
-    if (roadsPainted || !mapRoads) return;
+  /** The default district always plays (legacy city); others need their local GLB build. */
+  async function lockUnbuiltMaps() {
+    const boot = typeof window !== "undefined" ? window.__DISTRICT : null;
+    if (!boot || typeof window.districtBuilt !== "function") return;
+    await boot.ready;
+    const fallback = (boot.index && boot.index.default) || "2018-harmonie";
+    MAPS.forEach(async (m, i) => {
+      if (!m.playable || !m.district || m.district === fallback) return;
+      if (await window.districtBuilt(m.district)) return;
+      m.playable = false;
+      m.note = "Local build only";
+      const btn = mapButtons[i];
+      btn.classList.add("locked");
+      btn.setAttribute("aria-disabled", "true");
+      btn.querySelector(".cm-map-note").textContent = m.note;
+      if (i === mapIndex) setMapSelected(i);
+    });
+  }
+  void lockUnbuiltMaps();
+
+  /** Stroke a district's roads.json onto the preview canvas. */
+  async function paintRoadsOverlay(map) {
+    if (!mapRoads || !map?.playable) return;
+    const key = map.district || map.id;
+    if (roadsPaintedFor === key) return;
+    const roadsUrl = map.district
+      ? `./districts/${map.district}/roads.json`
+      : (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
+        "./roads.json";
     try {
-      const res = await fetch("./roads.json");
+      const res = await fetch(roadsUrl);
       if (!res.ok) return;
       const data = await res.json();
       const roads = data.roads || [];
@@ -164,6 +196,12 @@ export function createMenu(hooks) {
       const H = mapRoads.height;
       const ctx = mapRoads.getContext("2d");
       ctx.clearRect(0, 0, W, H);
+      // Only paint a dark plate when there is no aerial underlay (locked / missing jpg).
+      // With mix-blend-mode:screen a dark fill would wash out the Digitaal Vlaanderen plate.
+      if (!map.preview) {
+        ctx.fillStyle = "rgba(12, 18, 28, 0.92)";
+        ctx.fillRect(0, 0, W, H);
+      }
       let minX = Infinity;
       let maxX = -Infinity;
       let minY = Infinity;
@@ -181,7 +219,6 @@ export function createMenu(hooks) {
       const spanX = (maxX - minX) * (1 + pad * 2) || 1;
       const spanY = (maxY - minY) * (1 + pad * 2) || 1;
       const ox = minX - (maxX - minX) * pad;
-      const oy = minY - (maxY - minY) * pad;
       const sx = W / spanX;
       const sy = H / spanY;
       const s = Math.min(sx, sy);
@@ -224,7 +261,7 @@ export function createMenu(hooks) {
         ctx.lineWidth = 2;
         ctx.stroke();
       }
-      roadsPainted = true;
+      roadsPaintedFor = key;
     } catch {
       /* preview still works from aerial alone */
     }
@@ -236,13 +273,18 @@ export function createMenu(hooks) {
     const m = MAPS[mapIndex];
     mapTitle.textContent = m.name;
     mapBlurb.textContent = m.blurb;
-    if (m.preview) {
-      mapImg.hidden = false;
-      mapImg.src = m.preview;
-      mapImg.alt = `Map of ${m.name}`;
-      mapRoads.hidden = false;
+    if (m.playable) {
       mapPlaceholder.hidden = true;
-      paintRoadsOverlay();
+      mapRoads.hidden = false;
+      if (m.preview) {
+        mapImg.hidden = false;
+        mapImg.src = m.preview;
+        mapImg.alt = `Map of ${m.name}`;
+      } else {
+        mapImg.hidden = true;
+        mapImg.removeAttribute("src");
+      }
+      paintRoadsOverlay(m);
     } else {
       mapImg.hidden = true;
       mapImg.removeAttribute("src");
@@ -254,6 +296,13 @@ export function createMenu(hooks) {
   function activateMap() {
     const m = MAPS[mapIndex];
     if (!m?.playable) return;
+    const target = m.district;
+    const here =
+      (typeof window !== "undefined" && window.__DISTRICT && window.__DISTRICT.id) || "2018-harmonie";
+    if (target && target !== here && typeof window.enterDistrict === "function") {
+      window.enterDistrict(target);
+      return;
+    }
     hide();
     hooks.onPlay();
   }
@@ -386,8 +435,7 @@ export function createMenu(hooks) {
     if (plate) plate.hidden = next !== "home";
     if (next === "cast") setCastView();
     if (next === "maps") {
-      mapIndex = 0;
-      setMapSelected(0);
+      setMapSelected(mapIndex);
     }
     if (next === "controls") openControls();
     else stopControls();

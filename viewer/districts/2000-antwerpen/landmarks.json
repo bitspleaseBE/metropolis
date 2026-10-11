@@ -1,0 +1,51 @@
+{
+  "origin": [
+    51.21965,
+    4.40025
+  ],
+  "landmarks": [
+    {
+      "id": "22966134",
+      "name": "Stadhuis Antwerpen",
+      "kind": "civic",
+      "x": -65.84,
+      "y": 179.35,
+      "file": "landmarks/22966134.glb"
+    },
+    {
+      "id": "26495164",
+      "name": "Onze-Lieve-Vrouwekathedraal",
+      "kind": "church",
+      "x": 76.8,
+      "y": 79.66,
+      "file": "landmarks/26495164.glb",
+      "reach": 60
+    },
+    {
+      "id": "29067925",
+      "name": "Het Steen",
+      "kind": "castle",
+      "x": -198.66,
+      "y": 339.0,
+      "file": "landmarks/29067925.glb"
+    },
+    {
+      "id": "496929324",
+      "name": "Huis Spaengien",
+      "kind": "civic",
+      "x": -25.1,
+      "y": 229.83,
+      "file": "landmarks/496929324.glb"
+    },
+    {
+      "id": "900000001",
+      "name": "Brabo fountain",
+      "kind": "memorial",
+      "x": -36.95,
+      "y": 161.39,
+      "file": "landmarks/900000001.glb",
+      "stream": true,
+      "custom": "brabo_fountain"
+    }
+  ]
+}

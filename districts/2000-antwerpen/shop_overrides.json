@@ -1,0 +1,74 @@
+{
+  "_doc": "Per-place shopfront looks authored from districts/2000-antwerpen/references/. Keys: node/<id> or way/<id> (by_osm) or lowercase name (by_name). Fields: name, fascia, accent, glass, frame ([r,g,b] 0..1), front (boutique|bar|cafe|restaurant|bakery|chocolatier|heritage|market|frituur|fastfood|bank|pharmacy|office|plain), awning ({colour, stripe} or false), terrace, mood. ref/note are documentation.",
+  "by_osm": {
+    "node/2405486929": {
+      "name": "Den Engel",
+      "fascia": [0.72, 0.08, 0.08],
+      "accent": [1.0, 1.0, 1.0],
+      "frame": [0.16, 0.10, 0.08],
+      "front": "bar",
+      "awning": {"colour": [0.74, 0.10, 0.10], "stripe": null},
+      "terrace": true,
+      "ref": "references/den-engel/01.jpg",
+      "note": "Grote Markt 3: red fascia band lettered DEN ENGEL in white, red awning, black parasols on the square."
+    },
+    "node/1858262840": {
+      "fascia": [0.84, 0.70, 0.30],
+      "accent": [0.08, 0.07, 0.06],
+      "frame": [0.18, 0.20, 0.14],
+      "front": "bar",
+      "awning": {"colour": [0.46, 0.64, 0.18], "stripe": null},
+      "ref": "references/chatleroi/01.jpg",
+      "note": "Painted mustard sign board with black cats; lime-green awning lettered Chatleroi; dark olive front."
+    },
+    "node/6679841673": {
+      "fascia": [0.78, 0.64, 0.34],
+      "accent": [0.20, 0.12, 0.06],
+      "frame": [0.42, 0.26, 0.14],
+      "front": "heritage",
+      "awning": false,
+      "ref": "references/g-bastin/01.jpg",
+      "note": "Blauwmoezelstraat 3: gilded letters on brick, gold valance 'CHOCOLADE SINCE 1908', varnished wood window, stone plinth."
+    },
+    "node/13026212324": {
+      "fascia": [0.07, 0.07, 0.07],
+      "accent": [0.92, 0.88, 0.78],
+      "frame": [0.07, 0.07, 0.07],
+      "front": "heritage",
+      "awning": false,
+      "ref": "references/demian/01.jpg",
+      "note": "Antiquarian bookshop: black-painted three-bay timber shopfront with a deep cornice, stone sill."
+    },
+    "node/11114411511": {
+      "fascia": [0.12, 0.13, 0.14],
+      "accent": [1.0, 1.0, 1.0],
+      "frame": [0.10, 0.11, 0.12],
+      "front": "boutique",
+      "awning": {"colour": [0.26, 0.28, 0.31], "stripe": null},
+      "ref": "references/america-today/01.jpg",
+      "note": "Kipdorpvest 26: slate-roofed canopy over a black recessed entrance, vertical blade sign."
+    },
+    "node/3025995007": {
+      "name": "Italiano La Torre",
+      "fascia": [0.96, 0.96, 0.94],
+      "accent": [0.78, 0.10, 0.10],
+      "frame": [0.12, 0.12, 0.12],
+      "front": "restaurant",
+      "awning": {"colour": [0.70, 0.10, 0.12], "stripe": null},
+      "terrace": true,
+      "ref": "references/nello/01.jpg",
+      "note": "Handschoenmarkt: white board, green ITALIANO over red LA TORRE, glazed terrace on the square."
+    },
+    "node/6225842206": {
+      "name": "Italiano La Torre",
+      "fascia": [0.96, 0.96, 0.94],
+      "accent": [0.78, 0.10, 0.10],
+      "frame": [0.12, 0.12, 0.12],
+      "front": "restaurant",
+      "awning": {"colour": [0.70, 0.10, 0.12], "stripe": null},
+      "terrace": true,
+      "ref": "references/nello/01.jpg"
+    }
+  },
+  "by_name": {}
+}

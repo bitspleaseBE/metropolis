@@ -1,0 +1,1729 @@
+{
+ "district_id": "2018-harmonie",
+ "generated": "2026-10-11T22:05:22Z",
+ "attribution": "Photos: Wikimedia Commons contributors (see per-image author + licence)",
+ "counts": {
+  "subjects": 372,
+  "with_images": 32,
+  "landmark": 19,
+  "sight": 11,
+  "shopfront": 2,
+  "images": 57,
+  "mapillary_links": 4
+ },
+ "without_images": [
+  {
+   "kind": "landmark",
+   "name": "Mechelsesteenweg",
+   "osm_type": "way",
+   "osm_id": 4437976
+  },
+  {
+   "kind": "landmark",
+   "name": "Grotesteenweg",
+   "osm_type": "way",
+   "osm_id": 95797211
+  },
+  {
+   "kind": "landmark",
+   "name": "Onze-Lieve-Vrouwencollege",
+   "osm_type": "way",
+   "osm_id": 232921430
+  },
+  {
+   "kind": "landmark",
+   "name": "Herdenkingsmonument Koningin Astrid",
+   "osm_type": "node",
+   "osm_id": 6681855661
+  },
+  {
+   "kind": "landmark",
+   "name": "Camille-Aimé Coquilhat",
+   "osm_type": "node",
+   "osm_id": 4816404456
+  },
+  {
+   "kind": "landmark",
+   "name": "Feestzaal Harmonie",
+   "osm_type": "way",
+   "osm_id": 231220414
+  },
+  {
+   "kind": "landmark",
+   "name": "Theodoor Verstraete",
+   "osm_type": "node",
+   "osm_id": 6681855648
+  },
+  {
+   "kind": "landmark",
+   "name": "Evarist Allewaert",
+   "osm_type": "node",
+   "osm_id": 9226762024
+  },
+  {
+   "kind": "landmark",
+   "name": "osm-432190363",
+   "osm_type": "way",
+   "osm_id": 432190363
+  },
+  {
+   "kind": "landmark",
+   "name": "Louis Major",
+   "osm_type": "node",
+   "osm_id": 6339963544
+  },
+  {
+   "kind": "landmark",
+   "name": "osm-6681855660",
+   "osm_type": "node",
+   "osm_id": 6681855660
+  },
+  {
+   "kind": "landmark",
+   "name": "Gasthuistunnel",
+   "osm_type": "way",
+   "osm_id": 21078127
+  },
+  {
+   "kind": "landmark",
+   "name": "Van Eycktunnel",
+   "osm_type": "way",
+   "osm_id": 23862688
+  },
+  {
+   "kind": "landmark",
+   "name": "Militaire centrale Antwerpen. Provincie- en Plaatscommando Antwerpen",
+   "osm_type": "way",
+   "osm_id": 502132536
+  },
+  {
+   "kind": "landmark",
+   "name": "Royal Hamilton Light Infantry (Canada) Liberation of Antwerp Plaque",
+   "osm_type": "node",
+   "osm_id": 7271693776
+  },
+  {
+   "kind": "landmark",
+   "name": "Belgiëlei",
+   "osm_type": "way",
+   "osm_id": 22807735
+  },
+  {
+   "kind": "landmark",
+   "name": "osm-408533653",
+   "osm_type": "way",
+   "osm_id": 408533653
+  },
+  {
+   "kind": "landmark",
+   "name": "ZAS Vincentius",
+   "osm_type": "way",
+   "osm_id": 9715814
+  },
+  {
+   "kind": "landmark",
+   "name": "Eclectische groepsbebouwing",
+   "osm_type": "way",
+   "osm_id": 512812539
+  },
+  {
+   "kind": "landmark",
+   "name": "Beit Hakneset Hasafaradi Jotsei Geruzia",
+   "osm_type": "node",
+   "osm_id": 5022942969
+  },
+  {
+   "kind": "landmark",
+   "name": "AZ Monica Antwerpen",
+   "osm_type": "way",
+   "osm_id": 780448684
+  },
+  {
+   "kind": "landmark",
+   "name": "Mechelsesteenweg 123 (Art Deco)",
+   "osm_type": "way",
+   "osm_id": 501410388
+  },
+  {
+   "kind": "landmark",
+   "name": "In de Gulden Spoor",
+   "osm_type": "way",
+   "osm_id": 232921425
+  },
+  {
+   "kind": "landmark",
+   "name": "In de Gulden Spoor – poortgebouw",
+   "osm_type": "way",
+   "osm_id": 503176291
+  },
+  {
+   "kind": "landmark",
+   "name": "Koetshuis Harmoniestraat 24",
+   "osm_type": "way",
+   "osm_id": 503713425
+  },
+  {
+   "kind": "landmark",
+   "name": "Peter Benoitstraat 34",
+   "osm_type": "way",
+   "osm_id": 501637650
+  },
+  {
+   "kind": "landmark",
+   "name": "Peter Benoitstraat 38",
+   "osm_type": "way",
+   "osm_id": 501637651
+  },
+  {
+   "kind": "landmark",
+   "name": "Peter Benoitstraat 40",
+   "osm_type": "way",
+   "osm_id": 501637652
+  },
+  {
+   "kind": "sight",
+   "name": "Firean",
+   "osm_type": "node",
+   "osm_id": 932290919
+  },
+  {
+   "kind": "sight",
+   "name": "The Plaza Hotel",
+   "osm_type": "node",
+   "osm_id": 2371324168
+  },
+  {
+   "kind": "sight",
+   "name": "Meisje met de geit",
+   "osm_type": "node",
+   "osm_id": 4806591922
+  },
+  {
+   "kind": "sight",
+   "name": "Wannes Van De Velde",
+   "osm_type": "node",
+   "osm_id": 4810650016
+  },
+  {
+   "kind": "sight",
+   "name": "Belgie Vrij!",
+   "osm_type": "node",
+   "osm_id": 4813668100
+  },
+  {
+   "kind": "sight",
+   "name": "Badende Kinderen",
+   "osm_type": "node",
+   "osm_id": 4818530388
+  },
+  {
+   "kind": "sight",
+   "name": "Portret Wannes Van De Velde",
+   "osm_type": "node",
+   "osm_id": 4818530389
+  },
+  {
+   "kind": "sight",
+   "name": "YUST",
+   "osm_type": "node",
+   "osm_id": 6404288763
+  },
+  {
+   "kind": "sight",
+   "name": "Tick Tack",
+   "osm_type": "node",
+   "osm_id": 7249445685
+  },
+  {
+   "kind": "sight",
+   "name": "Fonteinfiguur",
+   "osm_type": "node",
+   "osm_id": 7261413849
+  },
+  {
+   "kind": "sight",
+   "name": "Le Tisse",
+   "osm_type": "node",
+   "osm_id": 7296483166
+  },
+  {
+   "kind": "sight",
+   "name": "Mahatma Gandhi",
+   "osm_type": "node",
+   "osm_id": 7302314319
+  },
+  {
+   "kind": "sight",
+   "name": "Galerie Geukens & De Vil",
+   "osm_type": "node",
+   "osm_id": 9916526779
+  },
+  {
+   "kind": "sight",
+   "name": "Maek Hotel Antwerp Central",
+   "osm_type": "way",
+   "osm_id": 499848431
+  },
+  {
+   "kind": "sight",
+   "name": "Oorlogsmonument Antwerpen 1914-'18 & 1940-'45",
+   "osm_type": "way",
+   "osm_id": 905438164
+  }
+ ],
+ "places": [
+  {
+   "kind": "landmark",
+   "name": "Peter Benoit",
+   "osm_type": "node",
+   "osm_id": 2396262252,
+   "wikidata": "Q116036362",
+   "lat": 51.2011604,
+   "lon": 4.4117296,
+   "custom": "benoit_monument",
+   "spawn_distance_m": 65.6,
+   "images": [
+    {
+     "title": "File:Antwerpen Mechelsesteenweg 216 Monument Peter Benoit - 176346 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Antwerpen_Mechelsesteenweg_216_Monument_Peter_Benoit_-_176346_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Mechelsesteenweg_216_Monument_Peter_Benoit_-_176346_-_onroerenderfgoed.jpg",
+     "width": 640,
+     "height": 480,
+     "author": "Depuydt, Katrijn",
+     "license": "CC BY 4.0",
+     "date": "2005-07-19",
+     "description": "Antwerpen Mechelsesteenweg 216 Monument Peter Benoit",
+     "file": "peter-benoit/01.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Peter_Benoit_memorial",
+   "slug": "peter-benoit",
+   "xy": [
+    22.99,
+    -59.65
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Koning Albertpark",
+   "osm_type": "way",
+   "osm_id": 4358044,
+   "wikidata": "Q33100208",
+   "lat": 51.199694867441856,
+   "lon": 4.412704811627907,
+   "custom": null,
+   "spawn_distance_m": 242.1,
+   "images": [
+    {
+     "title": "File:Koning Albertpark.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Koning_Albertpark.jpg/960px-Koning_Albertpark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Koning_Albertpark.jpg",
+     "width": 2000,
+     "height": 1500,
+     "author": "Michiel Dumon",
+     "license": "CC BY-SA 3.0",
+     "date": "2011-04-16",
+     "description": "Antwerp Koning Albertpark",
+     "file": "koning-albertpark/01.jpg"
+    },
+    {
+     "title": "File:Ducks in Koning Albertpark (1).jpg",
+     "dist_m": 23.5,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Ducks_in_Koning_Albertpark_%281%29.jpg/960px-Ducks_in_Koning_Albertpark_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Ducks_in_Koning_Albertpark_(1).jpg",
+     "width": 2000,
+     "height": 1500,
+     "author": "Michiel Dumon",
+     "license": "CC BY-SA 3.0",
+     "date": "2011-04-16",
+     "description": "Wild ducks in the Antwerp Koning Albertpark",
+     "file": "koning-albertpark/02.jpg"
+    },
+    {
+     "title": "File:Ducks in Koning Albertpark (2).jpg",
+     "dist_m": 23.5,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/Ducks_in_Koning_Albertpark_%282%29.jpg/960px-Ducks_in_Koning_Albertpark_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Ducks_in_Koning_Albertpark_(2).jpg",
+     "width": 2000,
+     "height": 1500,
+     "author": "Michiel Dumon",
+     "license": "CC BY-SA 3.0",
+     "date": "2011-04-16",
+     "description": "Wild ducks in the Antwerp Koning Albertpark",
+     "file": "koning-albertpark/03.jpg"
+    },
+    {
+     "title": "File:Ducks in Koning Albertpark (3).jpg",
+     "dist_m": 23.5,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Ducks_in_Koning_Albertpark_%283%29.jpg/960px-Ducks_in_Koning_Albertpark_%283%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Ducks_in_Koning_Albertpark_(3).jpg",
+     "width": 2000,
+     "height": 1500,
+     "author": "Michiel Dumon",
+     "license": "CC BY-SA 3.0",
+     "date": "2011-04-16",
+     "description": "Wild ducks in the Antwerp Koning Albertpark",
+     "file": "koning-albertpark/04.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Koning_Albertpark_%28Antwerpen%29",
+   "slug": "koning-albertpark",
+   "xy": [
+    91.01,
+    -221.65
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Muziekkiosk Koning Albertpark",
+   "osm_type": "way",
+   "osm_id": 117235287,
+   "wikidata": null,
+   "lat": 51.19957121111111,
+   "lon": 4.412916466666666,
+   "custom": "albertpark_kiosk",
+   "spawn_distance_m": 260.7,
+   "images": [
+    {
+     "title": "File:Ducks in Koning Albertpark (1).jpg",
+     "dist_m": 34.4,
+     "score": 0.67,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Ducks_in_Koning_Albertpark_%281%29.jpg/960px-Ducks_in_Koning_Albertpark_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Ducks_in_Koning_Albertpark_(1).jpg",
+     "width": 2000,
+     "height": 1500,
+     "author": "Michiel Dumon",
+     "license": "CC BY-SA 3.0",
+     "date": "2011-04-16",
+     "description": "Wild ducks in the Antwerp Koning Albertpark",
+     "file": "muziekkiosk-koning-albertpark/01.jpg"
+    },
+    {
+     "title": "File:Ducks in Koning Albertpark (2).jpg",
+     "dist_m": 34.4,
+     "score": 0.67,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/Ducks_in_Koning_Albertpark_%282%29.jpg/960px-Ducks_in_Koning_Albertpark_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Ducks_in_Koning_Albertpark_(2).jpg",
+     "width": 2000,
+     "height": 1500,
+     "author": "Michiel Dumon",
+     "license": "CC BY-SA 3.0",
+     "date": "2011-04-16",
+     "description": "Wild ducks in the Antwerp Koning Albertpark",
+     "file": "muziekkiosk-koning-albertpark/02.jpg"
+    },
+    {
+     "title": "File:Ducks in Koning Albertpark (3).jpg",
+     "dist_m": 34.4,
+     "score": 0.67,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Ducks_in_Koning_Albertpark_%283%29.jpg/960px-Ducks_in_Koning_Albertpark_%283%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Ducks_in_Koning_Albertpark_(3).jpg",
+     "width": 2000,
+     "height": 1500,
+     "author": "Michiel Dumon",
+     "license": "CC BY-SA 3.0",
+     "date": "2011-04-16",
+     "description": "Wild ducks in the Antwerp Koning Albertpark",
+     "file": "muziekkiosk-koning-albertpark/03.jpg"
+    },
+    {
+     "title": "File:Ducks in Koning Albertpark (4).jpg",
+     "dist_m": 34.4,
+     "score": 0.67,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Ducks_in_Koning_Albertpark_%284%29.jpg/960px-Ducks_in_Koning_Albertpark_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Ducks_in_Koning_Albertpark_(4).jpg",
+     "width": 2000,
+     "height": 1500,
+     "author": "Michiel Dumon",
+     "license": "CC BY-SA 3.0",
+     "date": "2011-04-16",
+     "description": "Wild ducks in the Antwerp Koning Albertpark",
+     "file": "muziekkiosk-koning-albertpark/04.jpg"
+    }
+   ],
+   "slug": "muziekkiosk-koning-albertpark",
+   "xy": [
+    105.78,
+    -235.32
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Sint-Bonifaciuskerk",
+   "osm_type": "way",
+   "osm_id": 453577567,
+   "wikidata": "Q2306039",
+   "lat": 51.202583295121954,
+   "lon": 4.4171276573170735,
+   "custom": "bonifacius",
+   "spawn_distance_m": 413.7,
+   "images": [
+    {
+     "title": "File:St Boniface Anglican Church, Antwerp.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/5/54/St_Boniface_Anglican_Church%2C_Antwerp.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:St_Boniface_Anglican_Church,_Antwerp.jpg",
+     "width": 340,
+     "height": 453,
+     "author": "Antwerpenaar",
+     "license": "CC BY-SA 4.0",
+     "date": "2010-01-01",
+     "description": "The exterior of St Boniface Anglican Church, Antwerp",
+     "file": "sint-bonifaciuskerk/01.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Saint_Boniface_Anglican_Church_%28Antwerp%29",
+   "slug": "sint-bonifaciuskerk",
+   "xy": [
+    399.51,
+    97.64
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Heilige Geestkerk",
+   "osm_type": "way",
+   "osm_id": 501410385,
+   "wikidata": "Q107316402",
+   "lat": 51.20578114166667,
+   "lon": 4.410730258333333,
+   "custom": null,
+   "spawn_distance_m": 455.6,
+   "images": [
+    {
+     "title": "File:Antwerpen Mechelsesteenweg 133 - 104171 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/0/05/Antwerpen_Mechelsesteenweg_133_-_104171_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Mechelsesteenweg_133_-_104171_-_onroerenderfgoed.jpg",
+     "width": 591,
+     "height": 831,
+     "author": "Vandevorst, Kris",
+     "license": "CC BY 4.0",
+     "date": "2008-08-19",
+     "description": "Antwerpen Mechelsesteenweg 133",
+     "file": "heilige-geestkerk/01.jpg"
+    },
+    {
+     "title": "File:Heilige Geestkerk interieur Sint-Cecilia langs links.jpg",
+     "dist_m": 11.0,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Heilige_Geestkerk_interieur_Sint-Cecilia_langs_links.jpg/960px-Heilige_Geestkerk_interieur_Sint-Cecilia_langs_links.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Heilige_Geestkerk_interieur_Sint-Cecilia_langs_links.jpg",
+     "width": 1188,
+     "height": 2648,
+     "author": "Fifiwikiyo",
+     "license": "CC0",
+     "date": "2026-08-10",
+     "description": "Heilige Geestkerk - Sint‑Cecilia‑glasraam door Yoors.",
+     "file": "heilige-geestkerk/02.jpg"
+    },
+    {
+     "title": "File:Heilige Geestkerk Sint-Gertrudis door Julien Creytens.jpg",
+     "dist_m": 12.9,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Heilige_Geestkerk_Sint-Gertrudis_door_Julien_Creytens.jpg/960px-Heilige_Geestkerk_Sint-Gertrudis_door_Julien_Creytens.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Heilige_Geestkerk_Sint-Gertrudis_door_Julien_Creytens.jpg",
+     "width": 1208,
+     "height": 2604,
+     "author": "Fifiwikiyo",
+     "license": "CC0",
+     "date": "2026-08-10",
+     "description": "Heilige Geestkerk - Zijbeuk - Glasraam Sint-Gertrudis naar kartons van Julien Creytens.",
+     "file": "heilige-geestkerk/03.jpg"
+    },
+    {
+     "title": "File:Heilige Geestkerk binnen altaar.jpg",
+     "dist_m": 18.4,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Heilige_Geestkerk_binnen_altaar.jpg/960px-Heilige_Geestkerk_binnen_altaar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Heilige_Geestkerk_binnen_altaar.jpg",
+     "width": 2048,
+     "height": 1536,
+     "author": "Fifiwikiyo",
+     "license": "CC0",
+     "date": "2026-08-10",
+     "description": "Heilige Geestkerk - Zicht op de oostzijde met het hoofdaltaar.",
+     "file": "heilige-geestkerk/04.jpg"
+    }
+   ],
+   "slug": "heilige-geestkerk",
+   "xy": [
+    -46.72,
+    451.13
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Basiliek van het Heilig Hart",
+   "osm_type": "way",
+   "osm_id": 353285592,
+   "wikidata": "Q2750109",
+   "lat": 51.197142927777776,
+   "lon": 4.41158275,
+   "custom": "heilig_hart",
+   "spawn_distance_m": 507.2,
+   "images": [
+    {
+     "title": "File:Berchem Basiliek2.JPG",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/Berchem_Basiliek2.JPG/960px-Berchem_Basiliek2.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Berchem_Basiliek2.JPG",
+     "width": 1224,
+     "height": 1632,
+     "author": "Torsade de Pointes",
+     "license": "Public domain",
+     "date": "2008-05",
+     "description": "Basilique du Sacré-Coeur à Berchem-Anvers, Belgique. Arch. J. Bilmeyer.",
+     "file": "basiliek-van-het-heilig-hart/01.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Heilig_Hartbasiliek_%28Berchem%29",
+   "slug": "basiliek-van-het-heilig-hart",
+   "xy": [
+    12.75,
+    -503.74
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Kasteel de Bergeyck",
+   "osm_type": "way",
+   "osm_id": 231689700,
+   "wikidata": "Q99584299",
+   "lat": 51.19704426976744,
+   "lon": 4.415041518604651,
+   "custom": null,
+   "spawn_distance_m": 578.1,
+   "images": [
+    {
+     "title": "File:Antwerpen Kardinaal Mercierlei 14 - 223135 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Antwerpen_Kardinaal_Mercierlei_14_-_223135_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Kardinaal_Mercierlei_14_-_223135_-_onroerenderfgoed.jpg",
+     "width": 480,
+     "height": 654,
+     "author": "Braeken, Jo",
+     "license": "CC BY 4.0",
+     "date": "2015-04-20",
+     "description": "Antwerpen Kardinaal Mercierlei 14",
+     "file": "kasteel-de-bergeyck/01.jpg"
+    },
+    {
+     "title": "File:Antwerpen Kardinaal Mercierlei 14 - 223136 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Antwerpen_Kardinaal_Mercierlei_14_-_223136_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Kardinaal_Mercierlei_14_-_223136_-_onroerenderfgoed.jpg",
+     "width": 638,
+     "height": 480,
+     "author": "Braeken, Jo",
+     "license": "CC BY 4.0",
+     "date": "2015-04-20",
+     "description": "Antwerpen Kardinaal Mercierlei 14",
+     "file": "kasteel-de-bergeyck/02.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Kasteel_de_Bergeyck",
+   "slug": "kasteel-de-bergeyck",
+   "xy": [
+    254.0,
+    -514.64
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Kapel van het Allerheiligste Sacrament",
+   "osm_type": "way",
+   "osm_id": 232921428,
+   "wikidata": "Q2420493",
+   "lat": 51.20927500714286,
+   "lon": 4.409642757142857,
+   "custom": null,
+   "spawn_distance_m": 850.5,
+   "images": [
+    {
+     "title": "File:Antwerpen Allerheiligste Sacrament2.JPG",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Antwerpen_Allerheiligste_Sacrament2.JPG/960px-Antwerpen_Allerheiligste_Sacrament2.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Allerheiligste_Sacrament2.JPG",
+     "width": 1920,
+     "height": 2560,
+     "author": "Torsade de Pointes",
+     "license": "Public domain",
+     "date": "2009-07",
+     "description": "Chapelle néo-gothique du Très-Saint-Sacrement, avec couvent adjacent des Sœurs bénédictines de l'Adoration perpétuelle, sis aux n° 21 et 23 de la Hemelstraat à ",
+     "file": "kapel-van-het-allerheiligste-sacrament/01.jpg"
+    },
+    {
+     "title": "File:Kapel-van-het-Allerheiligste-Sacrament.jpg",
+     "dist_m": 5.5,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Kapel-van-het-Allerheiligste-Sacrament.jpg/960px-Kapel-van-het-Allerheiligste-Sacrament.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Kapel-van-het-Allerheiligste-Sacrament.jpg",
+     "width": 1000,
+     "height": 500,
+     "author": "Studiovr.pl",
+     "license": "CC BY-SA 3.0",
+     "date": "2013-09-03",
+     "description": "This is a photo of onroerend erfgoed number 6872",
+     "file": "kapel-van-het-allerheiligste-sacrament/02.jpg"
+    },
+    {
+     "title": "File:Kapel van het Allerheiligste Sacrament Antwerpen 3.jpg",
+     "dist_m": 45.2,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Kapel_van_het_Allerheiligste_Sacrament_Antwerpen_3.jpg/960px-Kapel_van_het_Allerheiligste_Sacrament_Antwerpen_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Kapel_van_het_Allerheiligste_Sacrament_Antwerpen_3.jpg",
+     "width": 8961,
+     "height": 12175,
+     "author": "Ricardalovesmonuments",
+     "license": "CC BY-SA 4.0",
+     "date": "2023-05-17",
+     "description": "Kapel van het Allerheiligste Sacrament (Antwerpen)",
+     "file": "kapel-van-het-allerheiligste-sacrament/03.jpg"
+    },
+    {
+     "title": "File:Kapel van het Allerheiligste Sacrament Antwerpen 4.jpg",
+     "dist_m": 45.2,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Kapel_van_het_Allerheiligste_Sacrament_Antwerpen_4.jpg/960px-Kapel_van_het_Allerheiligste_Sacrament_Antwerpen_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Kapel_van_het_Allerheiligste_Sacrament_Antwerpen_4.jpg",
+     "width": 9693,
+     "height": 12774,
+     "author": "Ricardalovesmonuments",
+     "license": "CC BY-SA 4.0",
+     "date": "2023-05-17",
+     "description": "Kapel van het Allerheiligste Sacrament (Antwerpen)",
+     "file": "kapel-van-het-allerheiligste-sacrament/04.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Kapel_van_het_Allerheiligste_Sacrament_%28Antwerpen%29",
+   "slug": "kapel-van-het-allerheiligste-sacrament",
+   "xy": [
+    -122.57,
+    837.34
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Vlaamse Evangelische kerk",
+   "osm_type": "way",
+   "osm_id": 222816084,
+   "wikidata": "Q28515913",
+   "lat": 51.20949562068965,
+   "lon": 4.413013610344827,
+   "custom": null,
+   "spawn_distance_m": 874.2,
+   "images": [
+    {
+     "title": "File:Antwerpen Bexstraat 13 - 103683 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/6/68/Antwerpen_Bexstraat_13_-_103683_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Bexstraat_13_-_103683_-_onroerenderfgoed.jpg",
+     "width": 591,
+     "height": 748,
+     "author": "Vandevorst, Kris",
+     "license": "CC BY 4.0",
+     "date": "2008-09-03",
+     "description": "Antwerpen Bexstraat 13",
+     "file": "vlaamse-evangelische-kerk/01.jpg"
+    }
+   ],
+   "slug": "vlaamse-evangelische-kerk",
+   "xy": [
+    112.55,
+    861.73
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Gerechtshof",
+   "osm_type": "way",
+   "osm_id": 192642420,
+   "wikidata": "Q33100193",
+   "lat": 51.20868169315069,
+   "lon": 4.403882697260274,
+   "custom": null,
+   "spawn_distance_m": 934.6,
+   "images": [
+    {
+     "title": "File:Gerechtshof Britselei (hoek met de Anselmostraat).jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Gerechtshof_Britselei_%28hoek_met_de_Anselmostraat%29.jpg/960px-Gerechtshof_Britselei_%28hoek_met_de_Anselmostraat%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Gerechtshof_Britselei_(hoek_met_de_Anselmostraat).jpg",
+     "width": 3491,
+     "height": 2618,
+     "author": "IDD5000",
+     "license": "CC BY-SA 4.0",
+     "date": "2019-06-14",
+     "description": "Work by the architects Louis Baeckelmans and Frans Baeckelmans (1871-1874).",
+     "file": "gerechtshof/01.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Gerechtshof_Britselei",
+   "slug": "gerechtshof",
+   "xy": [
+    -524.34,
+    771.76
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Christus’ Geboortekerk",
+   "osm_type": "way",
+   "osm_id": 121677048,
+   "wikidata": "Q2375157",
+   "lat": 51.209602996190476,
+   "lon": 4.418902441904762,
+   "custom": null,
+   "spawn_distance_m": 1023.7,
+   "images": [
+    {
+     "title": "File:Antwerpen Charlottalei 2 - 103747 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Antwerpen_Charlottalei_2_-_103747_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Charlottalei_2_-_103747_-_onroerenderfgoed.jpg",
+     "width": 591,
+     "height": 858,
+     "author": "Vandevorst, Kris",
+     "license": "CC BY 4.0",
+     "date": "2008-09-03",
+     "description": "Antwerpen Charlottalei 2",
+     "file": "christus-geboortekerk/01.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Sint-Jozefkerk_%28Antwerpen%29",
+   "slug": "christus-geboortekerk",
+   "xy": [
+    523.3,
+    873.6
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Blauwtorentunnel",
+   "osm_type": "way",
+   "osm_id": 21047453,
+   "wikidata": "Q2303862",
+   "lat": 51.21181055625,
+   "lon": 4.40941834375,
+   "custom": null,
+   "spawn_distance_m": 1132.1,
+   "images": [
+    {
+     "title": "File:Blauwtorentunnel.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Blauwtorentunnel.jpg/960px-Blauwtorentunnel.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Blauwtorentunnel.jpg",
+     "width": 1789,
+     "height": 1342,
+     "author": "Michiel1972",
+     "license": "CC BY-SA 3.0",
+     "date": "",
+     "description": "Blauwtorentunnel",
+     "file": "blauwtorentunnel/01.jpg"
+    }
+   ],
+   "slug": "blauwtorentunnel",
+   "xy": [
+    -138.22,
+    1117.62
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Stadspark",
+   "osm_type": "way",
+   "osm_id": 4344313,
+   "wikidata": "Q21771395",
+   "lat": 51.21202495714285,
+   "lon": 4.4147200125,
+   "custom": null,
+   "spawn_distance_m": 1171.5,
+   "images": [
+    {
+     "title": "File:Urban park.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Urban_park.jpg/960px-Urban_park.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Urban_park.jpg",
+     "width": 4608,
+     "height": 3456,
+     "author": "Orrling",
+     "license": "CC BY-SA 3.0",
+     "date": "2013-09",
+     "description": "Facing the southeast vertex of the beautiful Stadspark there's all you need to just pull out the canvas and palette and start painting off. I think this place p",
+     "file": "stadspark/01.jpg"
+    },
+    {
+     "title": "File:STADSPARK 1900 - panoramio.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/STADSPARK_1900_-_panoramio.jpg/960px-STADSPARK_1900_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:STADSPARK_1900_-_panoramio.jpg",
+     "width": 2366,
+     "height": 1650,
+     "author": "jean melis",
+     "license": "CC BY 3.0",
+     "date": "Taken on 1",
+     "description": "STADSPARK 1900",
+     "file": "stadspark/02.jpg"
+    },
+    {
+     "title": "File:Stadspark Antwerpen 8.jpg",
+     "dist_m": 80.5,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Stadspark_Antwerpen_8.jpg/960px-Stadspark_Antwerpen_8.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Stadspark_Antwerpen_8.jpg",
+     "width": 12000,
+     "height": 9000,
+     "author": "Ricardalovesmonuments",
+     "license": "CC BY-SA 4.0",
+     "date": "2022-05-20",
+     "description": "Antwerpen",
+     "file": "stadspark/03.jpg"
+    },
+    {
+     "title": "File:Stadspark Antwerpen 1.jpg",
+     "dist_m": 98.2,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Stadspark_Antwerpen_1.jpg/960px-Stadspark_Antwerpen_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Stadspark_Antwerpen_1.jpg",
+     "width": 12000,
+     "height": 9000,
+     "author": "Ricardalovesmonuments",
+     "license": "CC BY-SA 4.0",
+     "date": "2022-05-20",
+     "description": "Antwerpen",
+     "file": "stadspark/04.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Stadspark_%28Antwerp%29",
+   "slug": "stadspark",
+   "xy": [
+    231.57,
+    1141.32
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Monument Belgisch-Congo",
+   "osm_type": "node",
+   "osm_id": 5832228887,
+   "wikidata": "Q56070901",
+   "lat": 51.2128733,
+   "lon": 4.4130871,
+   "custom": null,
+   "spawn_distance_m": 1248.0,
+   "images": [
+    {
+     "title": "File:Monument Belgisch-Congo.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Monument_Belgisch-Congo.jpg/960px-Monument_Belgisch-Congo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Monument_Belgisch-Congo.jpg",
+     "width": 2448,
+     "height": 3264,
+     "author": "Dutchy45",
+     "license": "CC BY-SA 4.0",
+     "date": "12 June 20",
+     "description": "Monument Belgisch-Congo (bouwkundig relict te Rubenslei zonder nummer, Antwerpen. Bewaard)",
+     "file": "monument-belgisch-congo/01.jpg"
+    },
+    {
+     "title": "File:Monument Belgisch-Congo 3.jpg",
+     "dist_m": 10.5,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Monument_Belgisch-Congo_3.jpg/500px-Monument_Belgisch-Congo_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Monument_Belgisch-Congo_3.jpg",
+     "width": 513,
+     "height": 886,
+     "author": "Dutchy45",
+     "license": "CC BY-SA 4.0",
+     "date": "12 June 20",
+     "description": "Dutch text on monument Belgisch-Congo (bouwkundig relict te Rubenslei zonder nummer, Antwerpen. Bewaard)",
+     "file": "monument-belgisch-congo/02.jpg"
+    },
+    {
+     "title": "File:Monument Belgisch-Congo 2.jpg",
+     "dist_m": 14.3,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Monument_Belgisch-Congo_2.jpg/330px-Monument_Belgisch-Congo_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Monument_Belgisch-Congo_2.jpg",
+     "width": 485,
+     "height": 857,
+     "author": "Dutchy45",
+     "license": "CC BY-SA 4.0",
+     "date": "12 June 20",
+     "description": "French text on monument Belgisch-Congo (bouwkundig relict te Rubenslei zonder nummer, Antwerpen. Bewaard)",
+     "file": "monument-belgisch-congo/03.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Monument_Belgisch-Congo_%28Stadspark_Antwerpen%29",
+   "slug": "monument-belgisch-congo",
+   "xy": [
+    117.68,
+    1235.1
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Monument Jan van Beers",
+   "osm_type": "node",
+   "osm_id": 7296545179,
+   "wikidata": "Q56070888",
+   "lat": 51.212788,
+   "lon": 4.4154131,
+   "custom": null,
+   "spawn_distance_m": 1264.6,
+   "images": [
+    {
+     "title": "File:Antwerpen Stadspark Van Beersmonument - 222257 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/4/47/Antwerpen_Stadspark_Van_Beersmonument_-_222257_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Stadspark_Van_Beersmonument_-_222257_-_onroerenderfgoed.jpg",
+     "width": 480,
+     "height": 658,
+     "author": "Braeken, Jo",
+     "license": "CC BY 4.0",
+     "date": "2015-04-11",
+     "description": "Antwerpen Stadspark Van Beersmonument",
+     "file": "monument-jan-van-beers/01.jpg"
+    }
+   ],
+   "slug": "monument-jan-van-beers",
+   "xy": [
+    279.92,
+    1225.67
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Sint-Joriskerk",
+   "osm_type": "way",
+   "osm_id": 232926614,
+   "wikidata": "Q2278872",
+   "lat": 51.21264227592592,
+   "lon": 4.404873442592593,
+   "custom": null,
+   "spawn_distance_m": 1297.6,
+   "images": [
+    {
+     "title": "File:Antwerpen Sint-Joriskerk1.JPG",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Antwerpen_Sint-Joriskerk1.JPG/960px-Antwerpen_Sint-Joriskerk1.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Sint-Joriskerk1.JPG",
+     "width": 1224,
+     "height": 1632,
+     "author": "Torsade de Pointes",
+     "license": "Public domain",
+     "date": "2009-05",
+     "description": "Antwerpen, Sint-Joriskerk, voorgevel.",
+     "file": "sint-joriskerk/01.jpg"
+    },
+    {
+     "title": "File:Sint-Joriskerk (Antwerp).jpg",
+     "dist_m": 93.8,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Sint-Joriskerk_%28Antwerp%29.jpg/960px-Sint-Joriskerk_%28Antwerp%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Sint-Joriskerk_(Antwerp).jpg",
+     "width": 3902,
+     "height": 6936,
+     "author": "Ricardalovesmonuments",
+     "license": "CC BY-SA 4.0",
+     "date": "2022-05-17",
+     "description": "Sint-Joriskerk (Antwerp)",
+     "file": "sint-joriskerk/02.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Sint-Joriskerk_%28Antwerp%29",
+   "slug": "sint-joriskerk",
+   "xy": [
+    -455.23,
+    1209.56
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "ZNA Sint-Elisabeth",
+   "osm_type": "way",
+   "osm_id": 783100218,
+   "wikidata": "Q2667287",
+   "lat": 51.21329959186046,
+   "lon": 4.405882780232559,
+   "custom": null,
+   "spawn_distance_m": 1344.8,
+   "images": [
+    {
+     "title": "File:LangeGasthuisstraat45breed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/LangeGasthuisstraat45breed.jpg/960px-LangeGasthuisstraat45breed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:LangeGasthuisstraat45breed.jpg",
+     "width": 4608,
+     "height": 3456,
+     "author": "Berthgmn",
+     "license": "CC BY-SA 3.0",
+     "date": "2015-05-06",
+     "description": "Former hospital St Elisabeth, now congress center.",
+     "file": "zna-sint-elisabeth/01.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Sint-Elisabethgasthuis_%28Antwerpen%29",
+   "slug": "zna-sint-elisabeth",
+   "xy": [
+    -384.83,
+    1282.22
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Onze-Lieve-Vrouw van Gratiekerk",
+   "osm_type": "way",
+   "osm_id": 232921429,
+   "wikidata": "Q28530528",
+   "lat": 51.21409413181818,
+   "lon": 4.412666731818182,
+   "custom": null,
+   "spawn_distance_m": 1380.9,
+   "images": [
+    {
+     "title": "File:Antwerpen Onze-Lieve-Vrouw van Gratie1.JPG",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Antwerpen_Onze-Lieve-Vrouw_van_Gratie1.JPG/960px-Antwerpen_Onze-Lieve-Vrouw_van_Gratie1.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Onze-Lieve-Vrouw_van_Gratie1.JPG",
+     "width": 1845,
+     "height": 2557,
+     "author": "Torsade de Pointes",
+     "license": "Public domain",
+     "date": "2010-04",
+     "description": "Antwerpen. Kerk Onze-Lieve-Vrouw van Gratie, Frankrijklei 89. Westgevel. Ontwerp van Jules Bilmeyer, 1881. Rechts op foto: gebouw Onze-Lieve-Vrouwecollege. Vgl.",
+     "file": "onze-lieve-vrouw-van-gratiekerk/01.jpg"
+    },
+    {
+     "title": "File:Onze-Lieve-Vrouw van Gratiekerk (Antwerpen) 2.jpg",
+     "dist_m": 77.2,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9f/Onze-Lieve-Vrouw_van_Gratiekerk_%28Antwerpen%29_2.jpg/960px-Onze-Lieve-Vrouw_van_Gratiekerk_%28Antwerpen%29_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Onze-Lieve-Vrouw_van_Gratiekerk_(Antwerpen)_2.jpg",
+     "width": 3953,
+     "height": 9416,
+     "author": "Ricardalovesmonuments",
+     "license": "CC BY-SA 4.0",
+     "date": "2023-05-16",
+     "description": "Antwerpen, Onze-Lieve-Vrouw van Gratiekerk",
+     "file": "onze-lieve-vrouw-van-gratiekerk/02.jpg"
+    },
+    {
+     "title": "File:Onze-Lieve-Vrouw van Gratiekerk (Antwerpen) 1.jpg",
+     "dist_m": 78.0,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Onze-Lieve-Vrouw_van_Gratiekerk_%28Antwerpen%29_1.jpg/960px-Onze-Lieve-Vrouw_van_Gratiekerk_%28Antwerpen%29_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Onze-Lieve-Vrouw_van_Gratiekerk_(Antwerpen)_1.jpg",
+     "width": 3727,
+     "height": 9182,
+     "author": "Ricardalovesmonuments",
+     "license": "CC BY-SA 4.0",
+     "date": "2023-05-16",
+     "description": "Antwerpen, Onze-Lieve-Vrouw van Gratiekerk",
+     "file": "onze-lieve-vrouw-van-gratiekerk/03.jpg"
+    },
+    {
+     "title": "File:Onze-Lieve-Vrouw van Gratiekerk (Antwerpen) mit Onze-Lieve-Vrouwecollege.jpg",
+     "dist_m": 97.8,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/Onze-Lieve-Vrouw_van_Gratiekerk_%28Antwerpen%29_mit_Onze-Lieve-Vrouwecollege.jpg/960px-Onze-Lieve-Vrouw_van_Gratiekerk_%28Antwerpen%29_mit_Onze-Lieve-Vrouwecollege.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Onze-Lieve-Vrouw_van_Gratiekerk_(Antwerpen)_mit_Onze-Lieve-Vrouwecollege.jpg",
+     "width": 7136,
+     "height": 6957,
+     "author": "Ricardalovesmonuments",
+     "license": "CC BY-SA 4.0",
+     "date": "2022-05-17",
+     "description": "Antwerpen",
+     "file": "onze-lieve-vrouw-van-gratiekerk/04.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Onze-Lieve-Vrouw_van_Gratiekerk_%28Antwerpen%29",
+   "slug": "onze-lieve-vrouw-van-gratiekerk",
+   "xy": [
+    88.36,
+    1370.05
+   ]
+  },
+  {
+   "kind": "landmark",
+   "name": "Plantentuin",
+   "osm_type": "way",
+   "osm_id": 22956428,
+   "wikidata": "Q3232192",
+   "lat": 51.21440617941177,
+   "lon": 4.406330473529412,
+   "custom": null,
+   "spawn_distance_m": 1455.4,
+   "images": [
+    {
+     "title": "File:Botanical garden.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Botanical_garden.jpg/960px-Botanical_garden.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Botanical_garden.jpg",
+     "width": 3264,
+     "height": 2448,
+     "author": "Orrling",
+     "license": "CC BY-SA 3.0",
+     "date": "2013-09",
+     "description": "Plantentuin.",
+     "file": "plantentuin/01.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Botanical_garden_Antwerp",
+   "slug": "plantentuin",
+   "xy": [
+    -353.6,
+    1404.54
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Ballerina",
+   "osm_type": "node",
+   "osm_id": 4810650015,
+   "wikidata": "Q130729989",
+   "lat": 51.1988401,
+   "lon": 4.4116314,
+   "category": "artwork",
+   "address": "",
+   "spawn_distance_m": 318.8,
+   "images": [
+    {
+     "title": "File:Antwerpen Koning Albertpark ballerina - 242387 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Antwerpen_Koning_Albertpark_ballerina_-_242387_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Koning_Albertpark_ballerina_-_242387_-_onroerenderfgoed.jpg",
+     "width": 480,
+     "height": 673,
+     "author": "Jo Braeken",
+     "license": "CC BY 4.0",
+     "date": "2016-05-27",
+     "description": "Antwerpen Koning Albertpark ballerina",
+     "file": "ballerina/01.jpg"
+    }
+   ],
+   "slug": "ballerina",
+   "xy": [
+    16.14,
+    -316.13
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Stadsbrouwerij De Koninck",
+   "osm_type": "way",
+   "osm_id": 439689724,
+   "wikidata": "Q2684279",
+   "lat": 51.199621,
+   "lon": 4.4158324,
+   "category": "attraction",
+   "address": "Mechelsesteenweg 291",
+   "spawn_distance_m": 388.3,
+   "images": [
+    {
+     "title": "File:Brouwerijdekoninck 1.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Brouwerijdekoninck_1.jpg/960px-Brouwerijdekoninck_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Brouwerijdekoninck_1.jpg",
+     "width": 2500,
+     "height": 1676,
+     "author": "DirkVE",
+     "license": "CC BY-SA 3.0",
+     "date": "2013-10-05",
+     "description": "Whirlpool, Trubtank und Würzekühler in der Brouwerij De Koninck Antwerpen",
+     "file": "stadsbrouwerij-de-koninck/01.jpg"
+    }
+   ],
+   "links": {
+    "website": "https://www.dekoninck.be/"
+   },
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:De_Koninck_beer",
+   "slug": "stadsbrouwerij-de-koninck",
+   "xy": [
+    309.16,
+    -229.81
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Belgie Vrij!",
+   "osm_type": "node",
+   "osm_id": 4813668100,
+   "wikidata": null,
+   "lat": 51.1976171,
+   "lon": 4.4163689,
+   "category": "memorial",
+   "address": "",
+   "spawn_distance_m": 572.9,
+   "images": [],
+   "links": {
+    "mapillary": "https://www.mapillary.com/app/?pKey=858700571409292&focus=photo"
+   },
+   "slug": "belgie-vrij",
+   "xy": [
+    346.59,
+    -451.32
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Badende Kinderen",
+   "osm_type": "node",
+   "osm_id": 4818530388,
+   "wikidata": null,
+   "lat": 51.2093809,
+   "lon": 4.4078087,
+   "category": "artwork",
+   "address": "",
+   "spawn_distance_m": 888.9,
+   "images": [],
+   "links": {
+    "mapillary": "https://www.mapillary.com/app/?pKey=322638095971881&focus=photo"
+   },
+   "slug": "badende-kinderen",
+   "xy": [
+    -250.5,
+    849.05
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Abraham Eizik-Albert Boruchowitch",
+   "osm_type": "node",
+   "osm_id": 11362761183,
+   "wikidata": null,
+   "lat": 51.2106783,
+   "lon": 4.408931,
+   "category": "memorial",
+   "address": "",
+   "spawn_distance_m": 1012.3,
+   "images": [
+    {
+     "title": "File:Stolperstein für Abraham Eizik-Albert Boruchowitch (Antwerpen).jpg",
+     "source": "osm-image",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/Stolperstein_f%C3%BCr_Abraham_Eizik-Albert_Boruchowitch_%28Antwerpen%29.jpg/960px-Stolperstein_f%C3%BCr_Abraham_Eizik-Albert_Boruchowitch_%28Antwerpen%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Stolperstein_f%C3%BCr_Abraham_Eizik-Albert_Boruchowitch_(Antwerpen).jpg",
+     "width": 2586,
+     "height": 2586,
+     "author": "Christian Michelides",
+     "license": "CC BY-SA 4.0",
+     "date": "2022-04-23",
+     "description": "Stolperstein für Abraham Eizik-Albert Boruchowitch",
+     "file": "abraham-eizik-albert-boruchowitch/01.jpg"
+    }
+   ],
+   "slug": "abraham-eizik-albert-boruchowitch",
+   "xy": [
+    -172.22,
+    992.46
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Amerika",
+   "osm_type": "node",
+   "osm_id": 9226833078,
+   "wikidata": "Q56070898",
+   "lat": 51.2118563,
+   "lon": 4.4121949,
+   "category": "artwork",
+   "address": "",
+   "spawn_distance_m": 1130.6,
+   "images": [
+    {
+     "title": "File:Antwerpen Stadspark Amerika - 222244 - onroerenderfgoed.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://upload.wikimedia.org/wikipedia/commons/2/22/Antwerpen_Stadspark_Amerika_-_222244_-_onroerenderfgoed.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen_Stadspark_Amerika_-_222244_-_onroerenderfgoed.jpg",
+     "width": 480,
+     "height": 778,
+     "author": "Braeken, Jo",
+     "license": "CC BY 4.0",
+     "date": "2015-04-10",
+     "description": "Antwerpen Stadspark Amerika",
+     "file": "amerika/01.jpg"
+    },
+    {
+     "title": "File:Beeld Amerika Stadspark (Antwerpen).jpg",
+     "dist_m": 7.5,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Beeld_Amerika_Stadspark_%28Antwerpen%29.jpg/960px-Beeld_Amerika_Stadspark_%28Antwerpen%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Beeld_Amerika_Stadspark_(Antwerpen).jpg",
+     "width": 2595,
+     "height": 3887,
+     "author": "LouisCartier",
+     "license": "CC BY-SA 4.0",
+     "date": "2021-09-22",
+     "description": "Beeld in het Antwerpse Stadspark, vervaardigd uit witte natuursteen op een sokkel van blauwe hardsteen. Het dateert van het midden van de 18de eeuw. Dit beeld s",
+     "file": "amerika/02.jpg"
+    }
+   ],
+   "slug": "amerika",
+   "xy": [
+    55.45,
+    1122.68
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Leopold I",
+   "osm_type": "node",
+   "osm_id": 4806591921,
+   "wikidata": "Q27615045",
+   "lat": 51.2125041,
+   "lon": 4.4073151,
+   "category": "artwork",
+   "address": "",
+   "spawn_distance_m": 1233.7,
+   "images": [
+    {
+     "title": "File:Koning Leopold I Blijde Intrede in Antwerpen (Anno 1872).jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Koning_Leopold_I_Blijde_Intrede_in_Antwerpen_%28Anno_1872%29.jpg/960px-Koning_Leopold_I_Blijde_Intrede_in_Antwerpen_%28Anno_1872%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Koning_Leopold_I_Blijde_Intrede_in_Antwerpen_(Anno_1872).jpg",
+     "width": 2250,
+     "height": 1500,
+     "author": "Standbeeld gemaakt door Joseph Geefs in 1872",
+     "license": "Public domain",
+     "date": "2015-02",
+     "description": "Standbeeld Koning Leopold I-Blijde intrede in Antwerpen",
+     "file": "leopold-i/01.jpg"
+    },
+    {
+     "title": "File:Statue of Leopold I, First King of the Belgians - panoramio.jpg",
+     "dist_m": 40.2,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Statue_of_Leopold_I%2C_First_King_of_the_Belgians_-_panoramio.jpg/960px-Statue_of_Leopold_I%2C_First_King_of_the_Belgians_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Statue_of_Leopold_I,_First_King_of_the_Belgians_-_panoramio.jpg",
+     "width": 2292,
+     "height": 4044,
+     "author": "agracier - NO VIEWS",
+     "license": "CC BY-SA 3.0",
+     "date": "1 February",
+     "description": "Statue of Leopold I, First King of the Belgians",
+     "file": "leopold-i/02.jpg"
+    }
+   ],
+   "links": {
+    "mapillary": "https://www.mapillary.com/app/?pKey=1208506529609317&focus=photo"
+   },
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Equestrian_statue_of_Leopold_I_of_Belgium_%28Antwerp%29",
+   "slug": "leopold-i",
+   "xy": [
+    -284.93,
+    1194.29
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Baron H. Leys",
+   "osm_type": "node",
+   "osm_id": 4937503273,
+   "wikidata": null,
+   "lat": 51.2135591,
+   "lon": 4.4118119,
+   "category": "artwork",
+   "address": "",
+   "spawn_distance_m": 1318.8,
+   "images": [
+    {
+     "title": "File:Antwerp statue Baron Leys 01.JPG",
+     "dist_m": 15.4,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Antwerp_statue_Baron_Leys_01.JPG/960px-Antwerp_statue_Baron_Leys_01.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerp_statue_Baron_Leys_01.JPG",
+     "width": 2384,
+     "height": 3611,
+     "author": "Ad Meskens",
+     "license": "CC BY-SA 3.0",
+     "date": "2014-04-23",
+     "description": "Statue of the painter baron Hendrik Leys by Joseph Ducaju at Maria-Louizalei in Antwerp.",
+     "file": "baron-h-leys/01.jpg"
+    },
+    {
+     "title": "File:Antwerp statue Baron Leys 02.JPG",
+     "dist_m": 15.4,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/Antwerp_statue_Baron_Leys_02.JPG/960px-Antwerp_statue_Baron_Leys_02.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerp_statue_Baron_Leys_02.JPG",
+     "width": 2723,
+     "height": 3741,
+     "author": "Ad Meskens",
+     "license": "CC BY-SA 3.0",
+     "date": "2014-04-23",
+     "description": "Statue of the painter baron Hendrik Leys by Joseph Ducaju at Maria-Louizalei in Antwerp.",
+     "file": "baron-h-leys/02.jpg"
+    },
+    {
+     "title": "File:Antwerp statue Baron Leys 03.JPG",
+     "dist_m": 15.4,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Antwerp_statue_Baron_Leys_03.JPG/960px-Antwerp_statue_Baron_Leys_03.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerp_statue_Baron_Leys_03.JPG",
+     "width": 2112,
+     "height": 2816,
+     "author": "Ad Meskens",
+     "license": "CC BY-SA 3.0",
+     "date": "2014-04-23",
+     "description": "Statue of the painter baron Hendrik Leys by Joseph Ducaju at Maria-Louizalei in Antwerp.",
+     "file": "baron-h-leys/03.jpg"
+    }
+   ],
+   "slug": "baron-h-leys",
+   "xy": [
+    28.73,
+    1310.9
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Botanic Sanctuary Antwerp",
+   "osm_type": "node",
+   "osm_id": 8512640435,
+   "wikidata": "Q114100963",
+   "lat": 51.2136338,
+   "lon": 4.4057049,
+   "category": "hotel",
+   "address": "Leopoldstraat 26A",
+   "spawn_distance_m": 1383.9,
+   "images": [
+    {
+     "title": "File:Botanic Sanctuary Antwerp.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Botanic_Sanctuary_Antwerp.jpg/960px-Botanic_Sanctuary_Antwerp.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Botanic_Sanctuary_Antwerp.jpg",
+     "width": 3867,
+     "height": 2900,
+     "author": "LouisCartier",
+     "license": "CC BY-SA 4.0",
+     "date": "2022-12-11",
+     "description": "De voorgevel van het Botanic Sanctuary Antwerp op de historische Elzenveldsite in Antwerpen. Zicht vanop het Mechelseplein.",
+     "file": "botanic-sanctuary-antwerp/01.jpg"
+    }
+   ],
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Botanic_Sanctuary_Antwerp",
+   "slug": "botanic-sanctuary-antwerp",
+   "xy": [
+    -397.24,
+    1319.16
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Peeter van Coudenberghe",
+   "osm_type": "node",
+   "osm_id": 12114468267,
+   "wikidata": null,
+   "lat": 51.2140321,
+   "lon": 4.4068013,
+   "category": "artwork",
+   "address": "",
+   "spawn_distance_m": 1407.3,
+   "images": [
+    {
+     "title": "File:Peeter van Coudenberghe (standbeeld).jpg",
+     "source": "osm-wikimedia_commons",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Peeter_van_Coudenberghe_%28standbeeld%29.jpg/960px-Peeter_van_Coudenberghe_%28standbeeld%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Peeter_van_Coudenberghe_(standbeeld).jpg",
+     "width": 3000,
+     "height": 4000,
+     "author": "LouisCartier",
+     "license": "CC BY-SA 4.0",
+     "date": "2021-09-22",
+     "description": "Standbeeld van Peeter van Coudenberghe, apotheker en plantkundige, in de Plantentuin van Antwerpen. Het is ontworpen door Pierre-Joseph De Cuyper.",
+     "file": "peeter-van-coudenberghe/01.jpg"
+    }
+   ],
+   "slug": "peeter-van-coudenberghe",
+   "xy": [
+    -320.76,
+    1363.19
+   ]
+  },
+  {
+   "kind": "sight",
+   "name": "Willem Elsschot",
+   "osm_type": "node",
+   "osm_id": 7312299732,
+   "wikidata": "Q117756637",
+   "lat": 51.2139762,
+   "lon": 4.404689,
+   "category": "artwork",
+   "address": "",
+   "spawn_distance_m": 1441.7,
+   "images": [
+    {
+     "title": "File:Antwerpen-Willem Elsschot op Mechelseplein.jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/74/Antwerpen-Willem_Elsschot_op_Mechelseplein.jpg/960px-Antwerpen-Willem_Elsschot_op_Mechelseplein.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen-Willem_Elsschot_op_Mechelseplein.jpg",
+     "width": 5312,
+     "height": 2988,
+     "author": "Romaine",
+     "license": "CC0",
+     "date": "2016-09-22",
+     "description": "Willem Elsschot op Mechelseplein, Antwerpen, België",
+     "file": "willem-elsschot/01.jpg"
+    }
+   ],
+   "links": {
+    "mapillary": "https://www.mapillary.com/app/?pKey=2864154443823966&focus=photo"
+   },
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:Willem_Elsschot_statue%2C_Antwerp",
+   "slug": "willem-elsschot",
+   "xy": [
+    -468.1,
+    1357.01
+   ]
+  },
+  {
+   "kind": "shopfront",
+   "name": "De Merode",
+   "osm_type": "node",
+   "osm_id": 2329196231,
+   "wikidata": null,
+   "lat": 51.1975425,
+   "lon": 4.4166328,
+   "category": "restaurant",
+   "address": "Grotesteenweg 29",
+   "spawn_distance_m": 590.8,
+   "images": [
+    {
+     "title": "File:Frédéric de Merode monument.jpg",
+     "dist_m": 31.6,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Fr%C3%A9d%C3%A9ric_de_Merode_monument.jpg/960px-Fr%C3%A9d%C3%A9ric_de_Merode_monument.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Fr%C3%A9d%C3%A9ric_de_Merode_monument.jpg",
+     "width": 1672,
+     "height": 1881,
+     "author": "APK",
+     "license": "CC BY-SA 4.0",
+     "date": "2023-09-14",
+     "description": "Frédéric de Merode monument at the intersection of Frederik de Merodeplein and Grotesteenweg (N1 road).",
+     "file": "de-merode/01.jpg"
+    }
+   ],
+   "links": {
+    "website": "https://www.demerodeberchem.be"
+   },
+   "slug": "de-merode",
+   "xy": [
+    364.99,
+    -459.57
+   ]
+  },
+  {
+   "kind": "shopfront",
+   "name": "DE Studio",
+   "osm_type": "node",
+   "osm_id": 4809730099,
+   "wikidata": "Q26972754",
+   "lat": 51.213319,
+   "lon": 4.4042508,
+   "category": "theatre",
+   "address": "Maarschalk Gérardstraat 4",
+   "spawn_distance_m": 1383.4,
+   "images": [
+    {
+     "title": "File:Antwerpen-De Studio (2).jpg",
+     "source": "wikidata-p18",
+     "score": 1.0,
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Antwerpen-De_Studio_%282%29.jpg/960px-Antwerpen-De_Studio_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Antwerpen-De_Studio_(2).jpg",
+     "width": 5312,
+     "height": 2988,
+     "author": "Romaine",
+     "license": "CC0",
+     "date": "2016-09-22",
+     "description": "De Studio, Maarschalk Gerardstraat/Mechelseplein, Antwerpen, België",
+     "file": "de-studio/01.jpg"
+    },
+    {
+     "title": "File:Workshop in DE Studio in Antwerp, 22 September 2016 (1).jpg",
+     "dist_m": 0.9,
+     "score": 1.0,
+     "source": "commons-geo",
+     "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Workshop_in_DE_Studio_in_Antwerp%2C_22_September_2016_%281%29.jpg/960px-Workshop_in_DE_Studio_in_Antwerp%2C_22_September_2016_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "page": "https://commons.wikimedia.org/wiki/File:Workshop_in_DE_Studio_in_Antwerp,_22_September_2016_(1).jpg",
+     "width": 5312,
+     "height": 2988,
+     "author": "Romaine",
+     "license": "CC0",
+     "date": "2016-09-22",
+     "description": "Workshop in DE Studio in Antwerp, 22 September 2016",
+     "file": "de-studio/02.jpg"
+    }
+   ],
+   "links": {
+    "website": "https://www.destudio.com/"
+   },
+   "commons_category": "https://commons.wikimedia.org/wiki/Category:DE_Studio",
+   "slug": "de-studio",
+   "xy": [
+    -498.66,
+    1284.36
+   ]
+  }
+ ]
+}

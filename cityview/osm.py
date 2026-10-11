@@ -120,6 +120,9 @@ def overpass_query(south: float, west: float, north: float, east: float) -> str:
   way["railway"="tram"]({bbox});
   way["railway"="subway"]({bbox});
   way["railway"="light_rail"]({bbox});
+  way["railway"="rail"]({bbox});
+  node["railway"="station"]({bbox});
+  node["railway"="halt"]({bbox});
   node["highway"="traffic_signals"]({bbox});
   node["highway"="crossing"]["crossing"="traffic_signals"]({bbox});
   node["amenity"="bench"]({bbox});
@@ -128,10 +131,10 @@ def overpass_query(south: float, west: float, north: float, east: float) -> str:
   node["railway"="tram_stop"]({bbox});
   node["public_transport"="platform"]({bbox});
   node["public_transport"="stop_position"]({bbox});
-  node["amenity"~"^(place_of_worship|school|university|kindergarten|hospital|clinic|restaurant|cafe|fast_food|pharmacy)$"]({bbox});
-  way["amenity"~"^(place_of_worship|school|university|kindergarten|hospital|clinic|restaurant|cafe|fast_food|pharmacy)$"]({bbox});
-  node["shop"~"^(supermarket|convenience)$"]({bbox});
-  way["shop"~"^(supermarket|convenience)$"]({bbox});
+  node["amenity"~"^(place_of_worship|school|university|kindergarten|hospital|clinic|restaurant|cafe|fast_food|pharmacy|bar|pub|biergarten|ice_cream|bank)$"]({bbox});
+  way["amenity"~"^(place_of_worship|school|university|kindergarten|hospital|clinic|restaurant|cafe|fast_food|pharmacy|bar|pub|biergarten|ice_cream|bank)$"]({bbox});
+  node["shop"~"^(supermarket|convenience|bakery|butcher|greengrocer|clothes|books|jewelry|gift|chocolate|tea|coffee|alcohol|wine|pastry|cheese|confectionery)$"]({bbox});
+  way["shop"~"^(supermarket|convenience|bakery|butcher|greengrocer|clothes|books|jewelry|gift|chocolate|tea|coffee|alcohol|wine|pastry|cheese|confectionery)$"]({bbox});
   relation["natural"="water"]({bbox});
   relation["water"]({bbox});
   relation["landuse"="basin"]({bbox});
@@ -139,6 +142,17 @@ def overpass_query(south: float, west: float, north: float, east: float) -> str:
   relation["building"]["type"="multipolygon"]({bbox});
   node["historic"~"^(memorial|monument)$"]({bbox});
   relation["route"~"^(tram|bus|subway|light_rail)$"]({bbox});
+  way["barrier"~"^(wall|retaining_wall|hedge|fence)$"]({bbox});
+  node["barrier"="bollard"]({bbox});
+  node["amenity"~"^(waste_basket|bicycle_parking|post_box|recycling|vending_machine|charging_station|shelter|fountain)$"]({bbox});
+  way["amenity"~"^(bicycle_parking|shelter|fountain)$"]({bbox});
+  node["emergency"="fire_hydrant"]({bbox});
+  node["man_made"~"^(street_cabinet|flagpole)$"]({bbox});
+  node["leisure"="picnic_table"]({bbox});
+  node["tourism"~"^(artwork|information)$"]({bbox});
+  way["tourism"="artwork"]({bbox});
+  node["advertising"]({bbox});
+  node["highway"="street_lamp"]({bbox});
 );
 (._;>;);
 out body;
@@ -155,8 +169,33 @@ POI_AMENITIES = {
     "cafe",
     "fast_food",
     "pharmacy",
+    "bar",
+    "pub",
+    "biergarten",
+    "ice_cream",
+    "bank",
 }
-POI_SHOPS = {"supermarket", "convenience"}
+POI_SHOPS = {
+    "supermarket",
+    "convenience",
+    "bakery",
+    "butcher",
+    "greengrocer",
+    "clothes",
+    "books",
+    "jewelry",
+    "gift",
+    "chocolate",
+    "tea",
+    "coffee",
+    "alcohol",
+    "wine",
+    "pastry",
+    "cheese",
+    "confectionery",
+}
+# Only grocery stores get the big-box "supermarket" facade; other shops stay in their row.
+SUPERMARKET_SHOPS = {"supermarket", "convenience"}
 CAMPUS_AMENITIES = {"hospital", "school", "university", "kindergarten"}
 CAMPUS_AREA_MAX = 50000.0
 POI_JOIN_M = 25.0
@@ -359,7 +398,8 @@ def _osm_xml_to_elements(xml_text: str) -> list[dict[str, Any]]:
 def _fetch_overpass(south: float, west: float, north: float, east: float) -> dict[str, Any]:
     body = urllib.parse.urlencode({"data": overpass_query(south, west, north, east)}).encode()
     last_error: Exception | None = None
-    for url in OVERPASS_URLS[:1]:
+    # Try every mirror — a single flaky host used to fail the whole district add.
+    for url in OVERPASS_URLS:
         req = urllib.request.Request(
             url,
             data=body,
@@ -367,20 +407,76 @@ def _fetch_overpass(south: float, west: float, north: float, east: float) -> dic
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=25) as resp:
+            with urllib.request.urlopen(req, timeout=90) as resp:
                 return json.loads(resp.read().decode())
         except Exception as exc:  # noqa: BLE001
             last_error = exc
+            continue
     raise RuntimeError(f"Overpass fetch failed: {last_error}") from last_error
 
 
-def _fetch_osm_map(south: float, west: float, north: float, east: float) -> dict[str, Any]:
+def _fetch_osm_map_tile(south: float, west: float, north: float, east: float) -> list[dict[str, Any]]:
+    """One OSM /map call. Raises HTTPError 400 when the tile has >50k nodes."""
     # Official map API uses minlon,minlat,maxlon,maxlat.
     url = f"{OSM_MAP_URL}?bbox={west:.6f},{south:.6f},{east:.6f},{north:.6f}"
     req = urllib.request.Request(url, headers={"User-Agent": "metropolis/0.1 (Antwerp procedural city)"})
     with urllib.request.urlopen(req, timeout=60) as resp:
         xml_text = resp.read().decode()
-    return {"elements": _osm_xml_to_elements(xml_text)}
+    return _osm_xml_to_elements(xml_text)
+
+
+def _fetch_osm_map(south: float, west: float, north: float, east: float) -> dict[str, Any]:
+    """Fetch via the OSM map API, tiling when a bbox exceeds the 50k-node limit.
+
+    District-scale Antwerp tiles (e.g. postcode 2000) routinely trip
+    ``You requested too many nodes`` on a single call; subdivide until each
+    tile fits or the grid is finer than ~0.005°.
+    """
+    import urllib.error
+
+    def _merge(tiles: list[list[dict[str, Any]]]) -> list[dict[str, Any]]:
+        seen: set[tuple[str, int]] = set()
+        out: list[dict[str, Any]] = []
+        for els in tiles:
+            for el in els:
+                key = (str(el.get("type")), int(el["id"]))
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(el)
+        return out
+
+    def _fetch_quad(s: float, w: float, n: float, e: float, depth: int = 0) -> list[dict[str, Any]]:
+        try:
+            return _fetch_osm_map_tile(s, w, n, e)
+        except urllib.error.HTTPError as exc:
+            body = b""
+            try:
+                body = exc.read() or b""
+            except Exception:  # noqa: BLE001
+                pass
+            too_big = exc.code == 400 and (
+                b"too many nodes" in body.lower() or b"smaller area" in body.lower()
+            )
+            # Also subdivide on generic 400 for dense urban bboxes.
+            if not too_big and exc.code != 400:
+                raise
+            if depth >= 4 or (n - s) < 0.004 or (e - w) < 0.004:
+                raise RuntimeError(
+                    f"OSM map tile still too large after tiling "
+                    f"({s:.4f},{w:.4f},{n:.4f},{e:.4f}): {body[:200]!r}"
+                ) from exc
+            mid_lat = (s + n) / 2.0
+            mid_lon = (w + e) / 2.0
+            parts = [
+                _fetch_quad(s, w, mid_lat, mid_lon, depth + 1),
+                _fetch_quad(s, mid_lon, mid_lat, e, depth + 1),
+                _fetch_quad(mid_lat, w, n, mid_lon, depth + 1),
+                _fetch_quad(mid_lat, mid_lon, n, e, depth + 1),
+            ]
+            return _merge(parts)
+
+    return {"elements": _fetch_quad(south, west, north, east)}
 
 
 def fetch_osm(bbox: tuple[float, float, float, float], cache_path: Path) -> dict[str, Any]:
@@ -389,8 +485,14 @@ def fetch_osm(bbox: tuple[float, float, float, float], cache_path: Path) -> dict
     south, west, north, east = bbox
     try:
         payload = _fetch_overpass(south, west, north, east)
-    except Exception:
-        payload = _fetch_osm_map(south, west, north, east)
+    except Exception as overpass_exc:  # noqa: BLE001
+        try:
+            payload = _fetch_osm_map(south, west, north, east)
+        except Exception as map_exc:  # noqa: BLE001
+            raise RuntimeError(
+                f"OSM download failed for bbox {bbox}: "
+                f"overpass={overpass_exc}; map={map_exc}"
+            ) from map_exc
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(payload))
     return payload
@@ -491,7 +593,7 @@ def _special_use_type(tags: dict[str, str]) -> str | None:
         return "hospital"
     if kind == "school" or amenity in {"school", "university", "kindergarten"}:
         return "school"
-    if shop in POI_SHOPS:
+    if shop in SUPERMARKET_SHOPS:
         return "supermarket"
     if amenity in {"restaurant", "cafe", "fast_food"}:
         return "restaurant"
@@ -1081,6 +1183,7 @@ def layout_from_osm(
                 "kind": tags.get("highway", "residential"),
                 # Street name: lets the builder group OSM ways into one street.
                 "name": tags.get("name") or "",
+                # cobble | asphalt — stone streets stay stone, the rest is asphalt.
                 "surface": carriageway_material(tags),
             }
             limit = parse_maxspeed_kmh(tags)

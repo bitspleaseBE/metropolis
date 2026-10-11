@@ -126,10 +126,12 @@ class CommittedDataTests(unittest.TestCase):
         self.assertGreaterEqual(len(trams), 2)
         self.assertTrue(all(p["direction"] in (1, -1) for p in trams))
         # The two tracks of the Mechelsesteenweg median head opposite ways in world space.
+        # They are the two longest tram paths; junction stubs near the ring come first in file order.
         def heading(p):
             (ax, ay), (bx, by) = p["points"][0], p["points"][-1]
             return (bx - ax) * p["direction"], (by - ay) * p["direction"]
-        h = [heading(p) for p in trams[:2]]
+        median = sorted(trams, key=lambda p: len(p["points"]), reverse=True)[:2]
+        h = [heading(p) for p in median]
         self.assertLess(h[0][0] * h[1][0] + h[0][1] * h[1][1], 0)
 
     def test_buses_follow_their_shape_order(self):

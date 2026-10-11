@@ -22,6 +22,22 @@
     return "./districts/" + id + "/";
   }
 
+  // District GLBs are built locally and git-ignored; Pages ships JSON-only packages.
+  // A package without its core.glb is not playable.
+  const builtCache = new Map();
+  function districtBuilt(id) {
+    if (!builtCache.has(id)) {
+      builtCache.set(
+        id,
+        fetch(baseFor(id) + "core.glb", { method: "HEAD" })
+          .then((res) => res.ok)
+          .catch(() => false),
+      );
+    }
+    return builtCache.get(id);
+  }
+  window.districtBuilt = districtBuilt;
+
   async function loadIndex() {
     try {
       const res = await fetch("./districts/index.json");
@@ -35,28 +51,32 @@
   window.__DISTRICT.ready = (async () => {
     const index = await loadIndex();
     window.__DISTRICT.index = index;
-    let id = requested;
-    if (!id && index && index.default) id = index.default;
-    if (!id) id = "2018-harmonie";
-    window.__DISTRICT.id = id;
+    const fallbackId = (index && index.default) || "2018-harmonie";
+    let id = requested || fallbackId;
     window.__DISTRICT.base = baseFor(id);
+    // Unbuilt package (e.g. Pages): the legacy Klein Antwerpen city at the viewer root.
+    if (!(await districtBuilt(id))) {
+      let legacy = false;
+      try {
+        legacy = (await fetch("./spawn.json", { method: "HEAD" })).ok;
+      } catch (_) {
+        legacy = true;
+      }
+      if (legacy) {
+        id = fallbackId;
+        window.__DISTRICT.base = "./";
+      }
+    }
+    window.__DISTRICT.id = id;
     if (index && Array.isArray(index.districts)) {
       const meta = index.districts.find((d) => d.id === id);
       if (meta) {
         window.__DISTRICT.title = meta.title || id;
         window.__DISTRICT.summary = meta.summary || "";
       }
-      window.__DISTRICT.edges = (index.edges || []).filter((e) => e.from === id);
-    }
-    // Probe package; fall back to viewer root for unmigrated deploys.
-    try {
-      const probe = await fetch(window.__DISTRICT.base + "spawn.json", { method: "HEAD" });
-      if (!probe.ok) {
-        const legacy = await fetch("./spawn.json", { method: "HEAD" });
-        if (legacy.ok) window.__DISTRICT.base = "./";
-      }
-    } catch (_) {
-      window.__DISTRICT.base = "./";
+      const edges = (index.edges || []).filter((e) => e.from === id);
+      const built = await Promise.all(edges.map((e) => districtBuilt(e.to)));
+      window.__DISTRICT.edges = edges.filter((_, i) => built[i]);
     }
     return window.__DISTRICT;
   })();

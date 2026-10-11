@@ -1,0 +1,39 @@
+{
+  "default": "2018-harmonie",
+  "districts": [
+    {
+      "id": "2018-harmonie",
+      "title": "Klein Antwerpen \u00b7 Harmonie",
+      "postcode": "2018",
+      "summary": "19th-century belt around Harmoniepark"
+    },
+    {
+      "id": "2000-antwerpen",
+      "title": "Antwerpen \u00b7 2000",
+      "postcode": "2000",
+      "summary": "Historic core, Meir, Scheldt quays"
+    }
+  ],
+  "edges": [
+    {
+      "from": "2018-harmonie",
+      "to": "2000-antwerpen",
+      "side": "north",
+      "label": "Nationale Bank / Leopoldplaats",
+      "gate": {
+        "lat": 51.21285,
+        "lon": 4.40655
+      }
+    },
+    {
+      "from": "2000-antwerpen",
+      "to": "2018-harmonie",
+      "side": "south",
+      "label": "Nationale Bank / Leopoldplaats",
+      "gate": {
+        "lat": 51.21285,
+        "lon": 4.40655
+      }
+    }
+  ]
+}
