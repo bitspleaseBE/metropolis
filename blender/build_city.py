@@ -285,6 +285,18 @@ def link(obj: bpy.types.Object) -> bpy.types.Object:
     return obj
 
 
+def _tag_pbr(mat) -> None:
+    """Flag shiny materials so the viewer keeps MeshStandardMaterial.
+
+    glTF only carries metallic-roughness, so the viewer downgrades everything
+    else to Lambert after load. Keep this name test in sync with keepCityPbr()
+    in viewer/index.html.
+    """
+    n = mat.name.lower()
+    if "glass" in n or "water" in n or "gold" in n or n.startswith("car_"):
+        mat["cityview_shader"] = "pbr"
+
+
 def principled(name: str, color, rough: float = 0.85, metallic: float = 0.0):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -298,6 +310,7 @@ def principled(name: str, color, rough: float = 0.85, metallic: float = 0.0):
     if "Metallic" in bsdf.inputs:
         bsdf.inputs["Metallic"].default_value = metallic
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    _tag_pbr(mat)
     return mat
 
 
@@ -368,6 +381,7 @@ def textured(
     else:
         links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    _tag_pbr(mat)
     return mat
 
 
@@ -1715,6 +1729,7 @@ def photo_material_cropped(name: str, image_path: Path, crop: list[float], rough
     links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
     links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    _tag_pbr(mat)
     return mat
 
 
@@ -4473,6 +4488,7 @@ def peel_streamed_landmarks(output_dir: Path) -> None:
             export_texcoords=True,
             export_normals=True,
             export_materials="EXPORT",
+            export_extras=True,  # material cityview_shader → glTF extras
             export_yup=True,
             export_cameras=False,
         )
@@ -4492,6 +4508,7 @@ def export_outputs(output_dir: Path, name: str, do_render: bool) -> None:
         export_texcoords=True,
         export_normals=True,
         export_materials="EXPORT",
+        export_extras=True,  # material cityview_shader → glTF extras
         export_image_format="JPEG",  # photo textures stay JPEG inside the GLB
         export_jpeg_quality=85,
         export_cameras=True,
