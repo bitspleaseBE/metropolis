@@ -29,16 +29,16 @@
   },
   "klein-antwerpen": {
     "title": "Klein Antwerpen · Harmonie · 2018",
-    "description": "Human spawn at Gounod tram halt on Mechelsesteenweg, facing Heilige Geestkerk. LOD2 roofs and style-driven procedural facades on street-facing edges.",
+    "description": "Human spawn in Harmoniepark, on the central path. LOD2 roofs and style-driven procedural facades on street-facing edges.",
     "bbox": [51.197, 4.404, 51.2075, 4.4195],
     "origin": [51.2017, 4.4114],
     "style_policy": "historic",
     "osm_cache": "harmonie",
     "viewer_glb": "klein_antwerpen.glb",
     "spawn": {
-      "label": "Halte Gounod",
-      "lat": 51.2055821,
-      "lon": 4.410028,
+      "label": "Harmoniepark",
+      "lat": 51.20170236549149,
+      "lon": 4.411358124617046,
       "eye_height": 1.7
     }
   }
