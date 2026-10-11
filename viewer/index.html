@@ -287,6 +287,29 @@
       body.help-on #prompt {
         top: 196px;
       }
+      #prompt .district-border {
+        pointer-events: auto;
+        white-space: normal;
+      }
+      #prompt .district-border-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      #prompt .district-border-actions button {
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font: 600 0.85rem/1.2 system-ui, sans-serif;
+      }
+      #prompt .district-border-actions button[data-act="go"] {
+        background: #ff2bd6;
+        border-color: #ff2bd6;
+        color: #120018;
+      }
       #ride {
         top: 18px;
         background: rgba(10, 12, 16, 0.78);
@@ -515,6 +538,19 @@
         font: 12px/1.5 system-ui, sans-serif;
         color: #e0e7ed;
       }
+      #city-menu .cm-hid {
+        margin: 10px 0 0;
+        font: 600 13px/1 system-ui, sans-serif;
+        letter-spacing: 0.03em;
+        color: #1a1208;
+        background: #f4e7c5;
+        border: 0;
+        border-radius: 999px;
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      #city-menu .cm-hid:hover { background: #fff; }
+      #city-menu .cm-panel .cm-hid { margin: 0 0 16px; }
       #city-menu .cm-footer {
         position: absolute;
         bottom: 14px;
@@ -565,6 +601,41 @@
         font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
         font-size: clamp(28px, 5vw, 44px);
         letter-spacing: 0.02em;
+      }
+      #city-menu .cm-controls-live {
+        margin: 0 0 16px;
+        min-height: 2.8em;
+        font: 13px/1.45 ui-monospace, Menlo, monospace;
+        color: #d7e0e7;
+      }
+      #city-menu .cm-controls-list {
+        list-style: none;
+        margin: 0 0 18px;
+        padding: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 28px;
+      }
+      #city-menu .cm-controls-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font: 500 15px/1.45 system-ui, sans-serif;
+        border-bottom: 1px solid #ffffff14;
+        padding-bottom: 6px;
+      }
+      #city-menu .cm-controls-list kbd {
+        display: inline-block;
+        min-width: 1.4em;
+        padding: 0 6px;
+        text-align: center;
+        background: #f2f2f2;
+        color: #111;
+        border-radius: 3px;
+        font: 700 13px/1.5 system-ui, sans-serif;
+      }
+      @media (max-width: 700px) {
+        #city-menu .cm-controls-list { grid-template-columns: 1fr; }
       }
       #city-menu .cm-eyebrow {
         margin: 0 0 6px;
@@ -864,6 +935,7 @@
         <p class="ld-sub"><span id="ld-stage">Fetching the streets</span><span id="ld-pct"></span></p>
       </div>
     </div>
+    <script src="./district-boot.js"></script>
     <script>
       // Loading screen + GLB download. Runs before the (CDN-hosted) three.js module so the
       // 60 MB district download overlaps with the engine download instead of waiting for it.
@@ -894,8 +966,23 @@
           },
         };
         window.__glbPromise = (async () => {
-          const res = await fetch("./klein_antwerpen.glb", { priority: "high" });
-          if (!res.ok) throw new Error("GLB HTTP " + res.status);
+          if (window.__DISTRICT && window.__DISTRICT.ready) await window.__DISTRICT.ready;
+          // Spawn-core first; fall back to city.glb / legacy monolith.
+          const candidates = [];
+          if (typeof window.districtCoreUrl === "function") candidates.push(window.districtCoreUrl());
+          if (typeof window.districtUrl === "function") {
+            candidates.push(window.districtUrl("core.glb"));
+            candidates.push(window.districtUrl("city.glb"));
+          }
+          candidates.push("./klein_antwerpen.glb");
+          let res = null;
+          let glbUrl = candidates[0];
+          for (const url of candidates) {
+            glbUrl = url;
+            res = await fetch(url, { priority: "high" });
+            if (res.ok) break;
+          }
+          if (!res || !res.ok) throw new Error("GLB HTTP " + (res && res.status));
           if (!res.body) return res.arrayBuffer();
           // fetch() yields decoded bytes. GitHub Pages gzips the city file, so
           // Content-Length is the ~17 MB wire size, not the ~56 MB file. Using the
@@ -965,6 +1052,9 @@
     <link rel="modulepreload" href="./outdoors.js" />
     <link rel="modulepreload" href="./cars.js" />
     <link rel="modulepreload" href="./touch-controls.js" />
+    <link rel="modulepreload" href="./gamepad.js" />
+    <link rel="modulepreload" href="./district-border.js" />
+    <link rel="modulepreload" href="./chunk-stream.js" />
     <link rel="modulepreload" href="./landmark-stream.js" />
     <link rel="modulepreload" href="./pavement-frontage.js" />
     <link rel="modulepreload" href="./json-cache.js" />
@@ -1012,17 +1102,35 @@
       import { createThirdPersonCamera } from "./third-person.js";
       import { createMenu } from "./menu.js";
       import { createHud } from "./hud.js";
+      import { playWasted, playBusted } from "./wasted.js";
       import { createWanted } from "./wanted.js";
       import { createCombat } from "./combat.js";
       import { createPolice } from "./police.js";
-      import { playWasted, playBusted } from "./wasted.js";
       import { createMinimap } from "./minimap.js";
       import { createStreetLocator } from "./street-locate.js";
       import { createOutdoorsGuard } from "./outdoors.js";
       import { paintParkedCars, wireParkedCarLamps } from "./cars.js";
       import { createTouchControls, wantsTouchControls } from "./touch-controls.js";
+      import { createGamepad, interactLabel } from "./gamepad.js";
+      import { createDistrictBorder } from "./district-border.js";
+      import { createChunkStream } from "./chunk-stream.js";
       import { LOAD_M, createLandmarkStream } from "./landmark-stream.js";
-      import { applyPavementFrontage } from "./pavement-frontage.js";
+      import { applyPavementFrontage, raiseStreetBuildings } from "./pavement-frontage.js";
+      import { applyStreetSurfaces } from "./street-surfaces.js";
+      import { wallLightAnchors } from "./wall-lights.js";
+      import { fetchJsonCached } from "./json-cache.js";
+
+      if (window.__DISTRICT && window.__DISTRICT.ready) await window.__DISTRICT.ready;
+      const districtMeta = window.__DISTRICT || {};
+      if (districtMeta.title) {
+        document.title = "Metropolis — " + districtMeta.title;
+        const hudH = document.querySelector("#hud h1");
+        const hudP = document.querySelector("#hud p");
+        if (hudH) hudH.textContent = districtMeta.title;
+        if (hudP && districtMeta.summary) hudP.textContent = districtMeta.summary;
+        const kicker = document.querySelector(".ld-kicker");
+        if (kicker) kicker.textContent = districtMeta.title;
+      }
 
       const status = document.getElementById("status");
       const hint = document.getElementById("hint");
@@ -1050,7 +1158,8 @@
       // Zenith → horizon stops for day, dusk (horizon glow) and night; blended by paintSky().
       const SKY_DAY = ["#4aa0ff", "#6eb6ff", "#a8d4ff", "#d8e8f4"];
       const SKY_DUSK = ["#2b3a6e", "#7a5a8c", "#e8935c", "#ffc98a"];
-      const SKY_NIGHT = ["#03060f", "#08101f", "#101c34", "#1d2c46"];
+      // City night: blue zenith, sodium glow on the horizon. Light enough to read the street.
+      const SKY_NIGHT = ["#3a5a86", "#5d7594", "#a39e94", "#e0c4a0"];
       const _c0 = new THREE.Color();
       const _c1 = new THREE.Color();
       function skyStop(i, t) {
@@ -1140,10 +1249,10 @@
       const SUN_DUSK = new THREE.Color(0xff9a52);
       const MOON_COL = new THREE.Color(0x8fa6d8);
       const HEMI_SKY_DAY = new THREE.Color(0xb8d8ff);
-      const HEMI_SKY_NIGHT = new THREE.Color(0x3a4f86);
+      const HEMI_SKY_NIGHT = new THREE.Color(0xd0dced);
       const HEMI_GND_DAY = new THREE.Color(0xb8a48a);
-      const HEMI_GND_NIGHT = new THREE.Color(0x1a1c26);
-      const FOG_NIGHT = new THREE.Color(0x0d1527);
+      const HEMI_GND_NIGHT = new THREE.Color(0x8a7564);
+      const FOG_NIGHT = new THREE.Color(0x6d7d8e);
       const FOG_DUSK = new THREE.Color(0xd9a07c);
       const CLEAR_DAY = new THREE.Color(SKY);
       const SUN_DAY_POS = new THREE.Vector3(220, 320, -160);
@@ -1189,15 +1298,15 @@
       const glowMats = []; // { mat, scale }: emissive intensity = scale * glow(t)
       /** Tree / shrub leaves + bark: lerp base colour toward night green/brown. */
       const vegMats = []; // { mat, day: Color }
-      const VEG_NIGHT = new THREE.Color(0x0a120c);
-      const TRUNK_NIGHT = new THREE.Color(0x0c0908);
-      const lampHeads = []; // world positions of street-lamp heads
-      const LAMP_LIGHTS = 4;
-      const LAMP_INTENSITY = 38;
+      const VEG_NIGHT = new THREE.Color(0x2a4a32);
+      const TRUNK_NIGHT = new THREE.Color(0x4a382c);
+      const lampHeads = []; // world positions of street-lamp heads and second-floor fills
+      const LAMP_LIGHTS = 8;
+      const LAMP_INTENSITY = 46;
       const lampLights = [];
       let lampGlow = 0;
       for (let i = 0; i < LAMP_LIGHTS; i++) {
-        const l = new THREE.PointLight(0xffc27a, 0, 24, 1.6);
+        const l = new THREE.PointLight(0xffc27a, 0, 56, 1.15);
         l.visible = false;
         l.userData.on = 0; // 1 when this light is parked on a lamp near the walker
         scene.add(l);
@@ -1265,18 +1374,20 @@
         _tmpCol.set(FOG_COLOR).lerp(FOG_DUSK, dusk * 0.6).lerp(FOG_NIGHT, smooth(0.3, 0.9, t));
         scene.fog.color.copy(_tmpCol);
         renderer.setClearColor(_tmpCol, 1);
-        scene.fog.density = baseFogDensity * (1 + 0.5 * night);
+        scene.fog.density = baseFogDensity * (1 + 0.06 * night);
 
-        renderer.toneMappingExposure = 1.18 - 0.1 * night;
-        scene.environmentIntensity = 1 - 0.86 * smooth(0.05, 0.8, t);
+        renderer.toneMappingExposure = 1.18 + 0.22 * night;
+        scene.environmentIntensity = 1 - 0.15 * smooth(0.05, 0.8, t);
 
+        // Hemisphere is the non-directional fill: sky from above, warm ground bounce.
         hemi.color.copy(HEMI_SKY_DAY).lerp(HEMI_SKY_NIGHT, night);
         hemi.groundColor.copy(HEMI_GND_DAY).lerp(HEMI_GND_NIGHT, night);
-        hemi.intensity = 0.85 - 0.62 * night;
+        // Night stays readable without a lamp on every corner.
+        hemi.intensity = 0.85 + 0.25 * night;
 
         // One directional light plays the sun by day and the moon by night.
         sun.color.copy(SUN_COL).lerp(SUN_DUSK, dusk).lerp(MOON_COL, smooth(0.5, 0.9, t));
-        sun.intensity = 1.35 * dayAmt + 0.3 * smooth(0.5, 1.0, t);
+        sun.intensity = 1.35 * dayAmt + 0.9 * smooth(0.5, 1.0, t);
         sun.position.lerpVectors(sunArcPos, MOON_POS, smooth(0.2, 0.8, t));
         sunMesh.position.copy(sun.position).normalize().multiplyScalar(900);
         sunHaze.position.copy(sunMesh.position);
@@ -1284,7 +1395,7 @@
         sunMesh.scale.setScalar(1 - 0.45 * smooth(0.4, 0.9, t));
         sunHaze.material.color.set(0xffe8b0).lerp(_tmpCol.set(0x8fa6d8), smooth(0.4, 0.9, t));
         sunHaze.material.opacity = 0.18 + 0.1 * dusk;
-        fill.intensity = 0.35 - 0.2 * night;
+        fill.intensity = 0.35 + 0.25 * night;
 
         // Façade windows + lamp heads glow; cars and trams follow.
         const glow = smooth(0.4, 0.9, t);
@@ -1302,7 +1413,7 @@
 
         // Crowns stay vivid green under moonlight unless we pull them down with the sky.
         for (const v of vegMats) {
-          v.mat.color.copy(v.day).lerp(v.night, night * 0.88);
+          v.mat.color.copy(v.day).lerp(v.night, night * 0.45);
           if (v.mat.envMapIntensity != null) {
             v.mat.envMapIntensity = v.dayEnv * (1 - 0.75 * night);
           }
@@ -1310,7 +1421,7 @@
 
         starMat.opacity = smooth(0.55, 1.0, t) * 0.9;
         stars.visible = starMat.opacity > 0.01;
-        skirtMat && skirtMat.color.set(GROUND_SKIRT).lerp(_tmpCol.set(0x23252b), night);
+        skirtMat && skirtMat.color.set(GROUND_SKIRT).lerp(_tmpCol.set(0x6e685e), night);
 
         const isNight = t > 0.5;
         btnNight.textContent = isNight ? "Day" : "Night";
@@ -1404,6 +1515,12 @@
       let mode = "walk"; // walk | free
       const eyeHeight = 1.7;
       const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+      const kb = { w: false, a: false, s: false, d: false, shift: false, space: false };
+      let padDrive = false;
+      let padSprint = false;
+      let padJump = false;
+      let fromPad = false;
+      const gamepad = createGamepad();
       const TOUCH = wantsTouchControls();
       if (TOUCH) {
         document.body.classList.add("touch-device");
@@ -1429,12 +1546,13 @@
       let props = null;
       let parkedCars = null;
       let outdoors = null;
+      let chunkStream = null;
+      let landmarkStream = null;
       const _groundRay = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 2.5);
       let groundMeshes = null;
       /** Sidewalk / road tiles only. Raycasting the whole city (façades included) stalls for tens of seconds. */
-      function collectGroundMeshes(root) {
-        const meshes = [];
-        const size = new THREE.Vector3();
+      function collectGroundFromRoot(root, meshes, size) {
+        if (!root) return;
         root.traverse((obj) => {
           if (!obj.isMesh) return;
           const n = obj.name || "";
@@ -1443,11 +1561,23 @@
           if (!geo) return;
           if (!geo.boundingBox) geo.computeBoundingBox();
           geo.boundingBox.getSize(size);
-          if (Math.max(size.x, size.z) > 200) return;
+          // The ground plane is huge and stalls the ray. Sidewalk batches stay
+          // in the set even when a boulevard tile runs past 200 m, or the feet
+          // fall through to the road and walk inside the pavement.
+          if (!/sidewalk/i.test(n) && Math.max(size.x, size.z) > 200) return;
           meshes.push(obj);
         });
+      }
+      function collectGroundMeshes(root) {
+        const meshes = [];
+        const size = new THREE.Vector3();
+        collectGroundFromRoot(root, meshes, size);
+        collectGroundFromRoot(chunkStream?.root, meshes, size);
         groundMeshes = meshes;
         console.info(`[metropolis] ground rays: ${meshes.length} walkable meshes`);
+      }
+      function refreshGroundMeshes() {
+        collectGroundMeshes(cityRoot);
       }
       /** Height of the walkable surface (road 0, pavement ~0.12 m) under x/z; 0 if nothing is hit. */
       function groundAt(x, z) {
@@ -1459,6 +1589,27 @@
         return hit && hit.point.y < 0.6 ? hit.point.y : 0;
       }
       const _riderObstacles = [{ x: 0, z: 0, r: 0.45 }];
+      /** Walker plus every bus / tram, so a clip throws the rider instead of passing through. */
+      function fillRiderObstacles(walker) {
+        _riderObstacles.length = 0;
+        _riderObstacles.push({ x: walker.position.x, z: walker.position.z, r: 0.45 });
+        const fleet = transit.vehicles || [];
+        for (let i = 0; i < fleet.length; i++) {
+          const v = fleet[i];
+          if (!v?.pos || !v.tan || v.phase === "gone") continue;
+          const bus = v.mode === "bus";
+          _riderObstacles.push({
+            x: v.pos.x,
+            z: v.pos.z,
+            tx: v.tan.x,
+            tz: v.tan.z,
+            hl: bus ? 6.75 : 15.5,
+            hw: bus ? 1.2 : 1.25,
+            hard: true,
+            speed: v.velocity || 0,
+          });
+        }
+      }
       const _beforeStep = { x: 0, z: 0 };
       const _afterWall = { x: 0, z: 0 };
       let _lastVehicleHitMs = 0;
@@ -1687,7 +1838,7 @@
         freeCam.minH = 35;
       }
 
-      // Player root holds feet position; camera is a lagged third-person boom.
+      // Player root stores eye height (~1.7); avatar feet sit at eye−1.7. Boom camera lags behind.
       const playerRoot = new THREE.Object3D();
       playerRoot.position.set(-218.5, 1.7, -432.1);
       scene.add(playerRoot);
@@ -1734,6 +1885,7 @@
       const combat = createCombat(THREE, {
         bones: () => playerAvatar.bones,
         legs: () => playerAvatar.legs,
+        skipPose: () => playerAvatar.striking,
         blocked: () =>
           menu.open || mode !== "walk" || playerCrash.active || playerCrash.dead || (transit.isRiding && transit.isRiding()),
         onHud: (info) => hud.setWeapon(info),
@@ -1765,8 +1917,7 @@
         JUMP.v = 0;
         JUMP.y = 0;
         const kmh = Math.round(Math.abs(speed) * 3.6);
-        if (playerCrash.dead) hud.notify(label || `Fatal impact at ${kmh} km/h`, 6000);
-        else hud.notify((label || `Crashed at ${kmh} km/h`) + ` · −${dmg} health`, 5000);
+        if (!playerCrash.dead) hud.notify((label || `Crashed at ${kmh} km/h`) + ` · −${dmg} health`, 5000);
         playerAvatar.setVisible(false);
       }
       /** Car, tram, bus, bike or scooter that could not stop in time. */
@@ -1916,6 +2067,67 @@
       renderer.domElement.addEventListener("pointerup", endFreeDrag);
       renderer.domElement.addEventListener("pointercancel", endFreeDrag);
 
+      function hintFor(kind) {
+        const layout = gamepad.layout;
+        if (!layout && TOUCH) {
+          if (kind === "free") return "Map view: drag pan · pinch zoom · tap radar to teleport";
+          if (kind === "cycle") return "Cycling — stick steer · Go hop off";
+          if (kind === "ride") return "Riding — Go request stop · get off at next halt";
+          return "Walk: stick move · drag look · Go interact · Sprint / Jump";
+        }
+        if (layout === "playstation") {
+          if (kind === "free") return "Map view: left stick pan · L2 fast · D-pad up walk · Options menu";
+          if (kind === "cycle") return "Cycling — left stick · Square hop off / return at a station";
+          if (kind === "ride") return "Riding — Square request stop · get off at next halt";
+          return "Left stick · right stick look · L2 sprint · Cross jump · R2 punch · Circle kick · Square interact";
+        }
+        if (layout === "xbox" || layout === "generic") {
+          if (kind === "free") return "Map view: left stick pan · LT fast · D-pad up walk · Menu pause";
+          if (kind === "cycle") return "Cycling — left stick · X hop off / return at a station";
+          if (kind === "ride") return "Riding — X request stop · get off at next halt";
+          return "Left stick · right stick look · LT sprint · A jump · RT punch · B kick · X interact";
+        }
+        if (kind === "free") {
+          return "Free view (top-down): WASD pan · Shift fast · scroll zoom · click map teleport · V walk · N night";
+        }
+        if (kind === "cycle") return "Cycling — WASD · E hop off / return at a station";
+        if (kind === "ride") return "Riding — E request stop · get off at next halt";
+        if (kind === "walkLock") {
+          return "WASD · mouse look · click punch · right-click kick · Space jump · E Velo / tram";
+        }
+        if (kind === "walkShort") return "Walk: click + WASD · E Velo / tram · Esc · V free · N night";
+        return "Walk: click + WASD · Shift sprint · Space jump · click punch · right-click kick · E Velo";
+      }
+
+      function syncHints() {
+        if (!cityReady) return;
+        if (mode === "free") hint.textContent = hintFor("free");
+        else if (velo && velo.isRiding && velo.isRiding()) hint.textContent = hintFor("cycle");
+        else if (transit.isRiding && transit.isRiding()) hint.textContent = hintFor("ride");
+        else if (walkControls.isLocked) hint.textContent = hintFor("walkLock");
+        else hint.textContent = hintFor("walk");
+      }
+
+      function controlStatus() {
+        if (gamepad.connected()) return "Game controller ready";
+        if (TOUCH) return "Touch controls ready · Best in landscape";
+        return "Keyboard & mouse ready";
+      }
+
+      function offerController() {
+        const pending = gamepad.canConnectHid() && !gamepad.connected();
+        hud.offerController(pending ? () => gamepad.connectHid() : null);
+      }
+
+      gamepad.onChange((info) => {
+        hud.setHelpKind(info ? info.layout : TOUCH ? "touch" : "keyboard");
+        if (info) hud.showHelp(8000);
+        offerController();
+        if (menu) menu.setStatus(controlStatus());
+        syncHints();
+      });
+      offerController();
+
       function setMode(next) {
         if (transit.isRiding && transit.isRiding()) return;
         if (velo && velo.isRiding && velo.isRiding()) return;
@@ -1938,9 +2150,7 @@
           }
           walkControls.getObject().position.y = eyeHeight;
           clampWalkerXZ(walkControls.getObject().position);
-          hint.textContent = TOUCH
-            ? "Walk: stick move · drag look · Go interact · Sprint / Jump"
-            : "Walk: click + WASD · Shift sprint · Space jump · E Velo / tram · Esc menu · V free · N night · M map";
+          hint.textContent = hintFor("walk");
           status.textContent = "Walking — Velo Harmonie";
           touch?.setModeLabel("walk");
         } else {
@@ -1959,9 +2169,7 @@
           freeCam.z = walkSaved.z;
           softClampXZ(freeCam, playBounds);
           applyFreeCamera();
-          hint.textContent = TOUCH
-            ? "Map view: drag pan · pinch zoom · tap radar to teleport"
-            : "Free view (top-down): WASD pan · Shift fast · scroll zoom · click map teleport · V walk · N night";
+          hint.textContent = hintFor("free");
           status.textContent = "Free view";
           touch?.setModeLabel("free");
         }
@@ -1973,7 +2181,7 @@
         clampWalkerXZ(walkControls.getObject().position);
         rideEl.style.display = "none";
         promptEl.style.display = "none";
-        hint.textContent = "Walk: click + WASD · E Velo / tram · Esc · V free · N night";
+        hint.textContent = hintFor("walkShort");
         status.textContent = "Back on the street";
         if (mode === "walk" && !walkControls.isLocked) {
           // Keep unlocked until click — pointer lock after ride is flaky mid-frame.
@@ -2017,7 +2225,7 @@
             rideLine.textContent = "Velo";
             rideNext.textContent = result.name;
             promptEl.style.display = "none";
-            hint.textContent = "Cycling — WASD · E hop off / return at a station";
+            hint.textContent = hintFor("cycle");
             status.textContent =
               result.capacity === "—"
                 ? `On a Velo · ${result.name}`
@@ -2028,7 +2236,7 @@
             avatar.visible = mode !== "walk";
             rideEl.style.display = "none";
             promptEl.style.display = "none";
-            hint.textContent = "Walk: click + WASD · E Velo / tram · Esc · V free · N night";
+            hint.textContent = hintFor("walkShort");
             status.textContent = `Returned Velo at ${result.name}`;
             return;
           }
@@ -2036,7 +2244,7 @@
             avatar.visible = mode !== "walk";
             rideEl.style.display = "none";
             promptEl.style.display = "none";
-            hint.textContent = "Walk: click + WASD · E Velo / tram · Esc · V free · N night";
+            hint.textContent = hintFor("walkShort");
             status.textContent = "Hopped off — E remounts the parked bike";
             return;
           }
@@ -2056,7 +2264,7 @@
           rideLine.textContent = `${result.mode === "bus" ? "Bus" : "Tram"} ${result.line}`;
           rideNext.textContent = `Next halt: ${result.nextHalt}`;
           promptEl.style.display = "none";
-          hint.textContent = "Riding — E request stop · get off at next halt";
+          hint.textContent = hintFor("ride");
           status.textContent = `On board · next ${result.nextHalt}`;
         } else if (result.action === "request_alight") {
           rideNext.textContent = `Getting off at: ${result.nextHalt}`;
@@ -2067,13 +2275,24 @@
         }
       }
 
+      function localizePrompt(text) {
+        if (!text) return text;
+        if (touch && !gamepad.connected()) return touch.softenPrompt(text);
+        if (!gamepad.connected()) return text;
+        const name = interactLabel(gamepad.layout);
+        return text
+          .replace(/Press E to /gi, `Press ${name} to `)
+          .replace(/^E · /i, `${name} · `)
+          .replace(/ · E to leave/gi, ` · ${name} to leave`);
+      }
+
       function showPrompt(text) {
         if (!text) {
           promptEl.style.display = "none";
           return;
         }
         promptEl.style.display = "block";
-        promptEl.textContent = touch ? touch.softenPrompt(text) : text;
+        promptEl.textContent = localizePrompt(text);
       }
 
       function refreshRideHud() {
@@ -2108,9 +2327,9 @@
           if (hud.wantAlight) {
             rideNext.textContent = `Getting off at: ${hud.nextHalt}`;
           } else if (hud.dwelling && hud.currentHalt) {
-            rideNext.textContent = touch
+            rideNext.textContent = touch && !gamepad.connected()
               ? `Stopped: ${hud.currentHalt} · next ${hud.nextHalt} · tap Go to leave`
-              : `Stopped: ${hud.currentHalt} · next ${hud.nextHalt} · E to leave`;
+              : `Stopped: ${hud.currentHalt} · next ${hud.nextHalt} · ${interactLabel(gamepad.layout)} to leave`;
           } else {
             rideNext.textContent = `Next halt: ${hud.nextHalt}`;
           }
@@ -2151,6 +2370,7 @@
       menu = createMenu({
         hasStarted: () => sessionStarted,
         isPlaying: () => sessionStarted && menu && !menu.open,
+        gamepad,
         onPause: () => {
           walkControls.unlock();
           document.body.classList.remove("locked");
@@ -2166,9 +2386,7 @@
           }
           if (!TOUCH) walkControls.lock();
           else touch?.startSession();
-          hint.textContent = TOUCH
-            ? "Walk: stick move · drag look · Go interact · Sprint / Jump"
-            : "WASD · mouse look · Space jump · E Velo / tram · Esc menu · V free · N night · M map";
+          hint.textContent = hintFor(gamepad.connected() || !TOUCH ? "walkLock" : "walk");
         },
         onCharacter: async (id) => {
           await playerAvatar.setPlayer(id);
@@ -2204,6 +2422,8 @@
         touch = createTouchControls({
           keys,
           onInteract: () => handleInteractE(),
+          onPunch: () => playerAvatar.strike("punch"),
+          onKick: () => playerAvatar.strike("kick"),
           onAttack: () => combat.attack(),
           onToggleMode: () => {
             if (transit.isRiding && transit.isRiding()) return;
@@ -2239,6 +2459,18 @@
         touch.bindCanvas(renderer.domElement);
       }
 
+      window.addEventListener("mousedown", (e) => {
+        if (!pointerLocked || menu.open || mode !== "walk") return;
+        if (transit.isRiding && transit.isRiding()) return;
+        if (velo && velo.isRiding && velo.isRiding()) return;
+        if (scooters && scooters.isRiding()) return;
+        if (e.button === 0) playerAvatar.strike("punch");
+        if (e.button === 2) playerAvatar.strike("kick");
+      });
+      window.addEventListener("contextmenu", (e) => {
+        if (pointerLocked) e.preventDefault();
+      });
+
       document.body.addEventListener("click", (e) => {
         if (menu.open) return;
         if (mode !== "walk") return;
@@ -2261,12 +2493,12 @@
           helpShown = true;
           hud.showHelp(8000);
         }
-        hint.textContent = "WASD · mouse look · Space jump · E Velo / tram · Esc menu · V free · N night · M map";
+        hint.textContent = hintFor("walkLock");
       });
       walkControls.addEventListener("unlock", () => {
         if (!(touch && touch.isActive()) && !menu.open) document.body.classList.remove("locked");
-        if (mode === "walk" && !TOUCH && !menu.open) {
-          hint.textContent = "Walk: click + WASD · E Velo / tram · Esc menu · V free · N night · M map";
+        if (mode === "walk" && !menu.open && (!TOUCH || gamepad.connected())) {
+          hint.textContent = hintFor("walk");
         }
       });
 
@@ -2291,6 +2523,8 @@
         }
         if (e.code === "Escape") {
           e.preventDefault();
+          // A pad press while the poster is open is handled by the menu listener first.
+          if (fromPad) return;
           if (sessionStarted) menu.show();
           return;
         }
@@ -2327,20 +2561,25 @@
           setMode(mode === "walk" ? "free" : "walk");
           return;
         }
-        if (e.code === "KeyW") keys.w = true;
-        if (e.code === "KeyA") keys.a = true;
-        if (e.code === "KeyS") keys.s = true;
-        if (e.code === "KeyD") keys.d = true;
-        if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.key === "Shift") keys.shift = true;
-        if (e.code === "Space") { e.preventDefault(); keys.space = true; }
+        if (e.code === "KeyW") { kb.w = true; keys.w = true; }
+        if (e.code === "KeyA") { kb.a = true; keys.a = true; }
+        if (e.code === "KeyS") { kb.s = true; keys.s = true; }
+        if (e.code === "KeyD") { kb.d = true; keys.d = true; }
+        if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.key === "Shift") { kb.shift = true; keys.shift = true; }
+        if (e.code === "Space") { e.preventDefault(); kb.space = true; keys.space = true; }
       });
       window.addEventListener("keyup", (e) => {
-        if (e.code === "KeyW") keys.w = false;
-        if (e.code === "KeyA") keys.a = false;
-        if (e.code === "KeyS") keys.s = false;
-        if (e.code === "KeyD") keys.d = false;
-        if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.key === "Shift") keys.shift = false;
-        if (e.code === "Space") { keys.space = false; }
+        const g = gamepad.sample();
+        const held = (name) => !!(g.layout && (name === "shift" ? g.sprint : name === "space" ? g.jump : g.move[name]));
+        if (e.code === "KeyW") { kb.w = false; if (!held("w")) keys.w = false; }
+        if (e.code === "KeyA") { kb.a = false; if (!held("a")) keys.a = false; }
+        if (e.code === "KeyS") { kb.s = false; if (!held("s")) keys.s = false; }
+        if (e.code === "KeyD") { kb.d = false; if (!held("d")) keys.d = false; }
+        if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.key === "Shift") {
+          kb.shift = false;
+          if (!held("shift")) keys.shift = false;
+        }
+        if (e.code === "Space") { kb.space = false; if (!held("space")) keys.space = false; }
       });
 
       function applySpawnFromNode(node) {
@@ -2363,7 +2602,11 @@
 
       async function loadSpawnJson() {
         try {
-          const res = await fetch("./spawn.json");
+          const url =
+            (typeof window.districtUrl === "function" && window.districtUrl("spawn.json")) ||
+            "./spawn.json";
+          let res = await fetch(url);
+          if (!res.ok && url !== "./spawn.json") res = await fetch("./spawn.json");
           if (!res.ok) return null;
           return await res.json();
         } catch {
@@ -2382,7 +2625,17 @@
         });
       const setLoad = (f, label) => window.__loading && window.__loading.set(f, label);
       let cityReady = false;
-      let landmarkStream = null;
+      let districtBorder = null;
+      const _districtOrigin = { lat: 51.2017, lon: 4.4114 };
+
+      function projectGateLatLon(lat, lon) {
+        // cityview.geo.project → Blender XY; Three.js z = -y
+        const mLat = 110540.0;
+        const mLon = 111320.0 * Math.cos((_districtOrigin.lat * Math.PI) / 180);
+        const x = (lon - _districtOrigin.lon) * mLon;
+        const y = (lat - _districtOrigin.lat) * mLat;
+        return { x, z: -y };
+      }
 
       // glTF has no Lambert shader, so every Principled material arrives as MeshStandardMaterial
       // and samples the scene environment. Keep that for glass, water, gold and car paint
@@ -2554,6 +2807,19 @@
           }
           const shading = downgradeCityMaterials(cityRoot);
           console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
+          try {
+            const surfUrl =
+              (typeof window.districtUrl === "function" && window.districtUrl("road-surfaces.json")) ||
+              "./road-surfaces.json";
+            const sres = await fetch(surfUrl);
+            const surfaces = sres.ok ? await sres.json() : {};
+            const streets = applyStreetSurfaces(cityRoot, THREE, surfaces);
+            console.info(
+              `[metropolis] streets: asphalt lifted ${streets.lifted}, ${streets.cobble} cobble`,
+            );
+          } catch (err) {
+            console.warn("[metropolis] street surfaces skipped", err);
+          }
           // Cheap: disable expensive features for FPS; freeze static transforms.
           // Coplanar street layers: bias is monotone with the Blender height stack
           // (Z_GROUND < Z_PARK < Z_ROAD < markings < sidewalk < curb < tram bed < rails
@@ -2635,6 +2901,24 @@
               lampHeads.push(new THREE.Vector3().setFromMatrixPosition(obj.matrixWorld));
             }
           });
+          try {
+            const [roadsRes, bldRes] = await Promise.all([
+              fetchJsonCached("./roads.json"),
+              fetchJsonCached("./buildings.json"),
+            ]);
+            const roadsDoc = roadsRes.ok ? await roadsRes.json() : null;
+            const bldDoc = bldRes.ok ? await bldRes.json() : null;
+            const poles = lampHeads.length;
+            const extra = wallLightAnchors({
+              lamps: lampHeads,
+              roads: (roadsDoc && roadsDoc.roads) || [],
+              buildings: (bldDoc && bldDoc.buildings) || [],
+            });
+            for (const p of extra) lampHeads.push(new THREE.Vector3(p.x, p.y, p.z));
+            console.info(`[metropolis] lights: ${poles} street lamps, ${extra.length} second-floor fills`);
+          } catch (err) {
+            console.warn("[metropolis] wall lights skipped", err);
+          }
           // Wrap kerbside cars + bolt-on lamps before merge so they stay discrete.
           // Per-car paint before merge — otherwise every parked car keeps the shared grey `car_paint`.
           paintParkedCars(cityRoot);
@@ -2668,6 +2952,7 @@
             firstCount: 5,
             spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             playBounds: playBounds || { minX: -500, maxX: 200, minZ: -800, maxZ: 100 },
+            groundAt,
           });
           if (pedestrians.setCrossingGate && traffic.pedMayCross) {
             pedestrians.setCrossingGate((id) => traffic.pedMayCross(id));
@@ -2741,6 +3026,63 @@
                 ? "Sunny day — tap to walk"
                 : "Sunny day — click to walk";
           setupDistrictBounds(cityRoot);
+          // District origin for border-gate projection (copied into viewer package).
+          try {
+            const ores = await fetch(
+              "./districts/" + (districtMeta.id || "2018-harmonie") + "/district.json",
+            );
+            if (ores.ok) {
+              const ddoc = await ores.json();
+              if (ddoc.origin) {
+                _districtOrigin.lat = ddoc.origin[0];
+                _districtOrigin.lon = ddoc.origin[1];
+              }
+            }
+          } catch (_) {
+            /* keep defaults */
+          }
+
+          // Spatial chunks + landmark sidecars (background after core is on screen).
+          try {
+            const chunksUrl =
+              (typeof window.districtUrl === "function" && window.districtUrl("chunks.json")) ||
+              "./chunks.json";
+            const cres = await fetch(chunksUrl);
+            if (cres.ok) {
+              const catalog = await cres.json();
+              chunkStream = createChunkStream({
+                THREE,
+                scene,
+                loader,
+                catalog,
+                onChunkLoaded: (chunkRoot) => {
+                  if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                  refreshGroundMeshes();
+                },
+                onChunkUnloaded: () => refreshGroundMeshes(),
+              });
+              if (playBounds && chunkStream.expandBounds) {
+                playBounds = chunkStream.expandBounds(playBounds);
+              }
+              await chunkStream.prime(spawnPos.x, spawnPos.z);
+              console.info(
+                `[metropolis] chunks: ${chunkStream.items.length} cells (core first paint)`,
+              );
+            }
+          } catch (err) {
+            console.warn("[metropolis] chunks.json unavailable", err);
+          }
+          districtBorder = createDistrictBorder({
+            THREE,
+            getPos: () => {
+              const p = walkControls.getObject().position;
+              return { x: p.x, z: p.z };
+            },
+            projectGate: projectGateLatLon,
+            promptEl,
+            radiusM: 30,
+          });
+          await districtBorder.init();
           applyTimeOfDay(tod);
           setLoad(0.97, "Warming up the lights");
           await nextFrame();
@@ -2748,22 +3090,15 @@
           if (touch) {
             touch.setActive(true);
             touch.setNightLabel(tod > 0.5);
-            const helpEl = document.getElementById("hud-help");
-            if (helpEl) {
-              helpEl.innerHTML = [
-                "Left stick — walk · steer when riding",
-                "Drag screen — look around",
-                "<kbd>Go</kbd>scooter · tram · bus · Velo",
-                "<kbd>Sprint</kbd>jog · <kbd>Jump</kbd>jump",
-                "<kbd>Map</kbd>top-down · <kbd>Radar</kbd>minimap",
-                "<kbd>Night</kbd>day/night · <kbd>Help</kbd>this card",
-              ].join("<br>");
-            }
+            if (!gamepad.connected()) hud.setHelpKind("touch");
           }
           setLoad(0.98, "Placing landmarks");
           await nextFrame();
           try {
-            const lmRes = await fetch("./landmarks.json");
+            const lmUrl =
+              (typeof window.districtUrl === "function" && window.districtUrl("landmarks.json")) ||
+              "./landmarks.json";
+            const lmRes = await fetch(lmUrl);
             if (lmRes.ok) {
               const catalog = await lmRes.json();
               landmarkStream = createLandmarkStream({ scene, loader, cityRoot, catalog });
@@ -2785,7 +3120,8 @@
           await playerAvatar.ready();
           thirdPerson.setYaw(playerMotion.yaw());
           thirdPerson.snap(walkControls.getObject().position);
-          menu.setStatus(TOUCH ? "Touch controls ready · Best in landscape" : "Keyboard & mouse ready");
+          gamepad.poll();
+          menu.setStatus(controlStatus());
           menu.show();
           setTimeout(() => document.getElementById("hud")?.classList.add("gone"), 9000);
           requestAnimationFrame(() => {
@@ -2886,6 +3222,101 @@
         }
       }
 
+      function tap(code) {
+        fromPad = true;
+        window.dispatchEvent(new KeyboardEvent("keydown", { code, bubbles: true, cancelable: true }));
+        fromPad = false;
+      }
+
+      function releasePadHeld() {
+        if (padDrive) {
+          keys.w = kb.w;
+          keys.a = kb.a;
+          keys.s = kb.s;
+          keys.d = kb.d;
+          padDrive = false;
+        }
+        if (padSprint) {
+          keys.shift = kb.shift;
+          padSprint = false;
+        }
+        if (padJump) {
+          keys.space = kb.space;
+          padJump = false;
+        }
+      }
+
+      let menuNav = { code: "", at: 0 };
+      function steerMenu(g) {
+        const now = performance.now();
+        const vertical = g.pressed.down ? "ArrowDown" : g.pressed.up ? "ArrowUp" : g.move.s ? "ArrowDown" : g.move.w ? "ArrowUp" : "";
+        const horizontal = g.pressed.right ? "ArrowRight" : g.pressed.left ? "ArrowLeft" : g.move.d ? "ArrowRight" : g.move.a ? "ArrowLeft" : "";
+        const code = vertical || horizontal;
+        const edge = !!(g.pressed.up || g.pressed.down || g.pressed.left || g.pressed.right);
+        if (!code) menuNav.code = "";
+        else if (code !== menuNav.code || edge || now - menuNav.at > 180) {
+          menuNav = { code, at: now };
+          tap(code);
+        }
+        if (g.pressed.cross) tap("Enter");
+        if (g.pressed.circle || g.pressed.options) tap("Escape");
+      }
+
+      function applyGamepad(dt) {
+        const g = gamepad.sample();
+        if (!g.layout) {
+          releasePadHeld();
+          return;
+        }
+        if (menu && menu.open) {
+          steerMenu(g);
+          releasePadHeld();
+          return;
+        }
+        const moving = g.move.w || g.move.a || g.move.s || g.move.d;
+        if (moving || padDrive) {
+          keys.w = kb.w || g.move.w;
+          keys.a = kb.a || g.move.a;
+          keys.s = kb.s || g.move.s;
+          keys.d = kb.d || g.move.d;
+          padDrive = moving;
+        }
+        if (g.sprint || padSprint) {
+          keys.shift = kb.shift || g.sprint;
+          padSprint = g.sprint;
+        }
+        if (g.jump || padJump) {
+          keys.space = kb.space || g.jump;
+          padJump = g.jump;
+        }
+        if (g.pressed.options && sessionStarted) {
+          menu.show();
+          return;
+        }
+        if (g.pressed.square) tap("KeyE");
+        if (
+          mode === "walk" &&
+          !(transit.isRiding && transit.isRiding()) &&
+          !(velo && velo.isRiding && velo.isRiding()) &&
+          !(scooters && scooters.isRiding())
+        ) {
+          if (g.pressed.r2) playerAvatar.strike("punch");
+          if (g.pressed.circle) playerAvatar.strike("kick");
+        }
+        if (g.pressed.triangle) tap("KeyN");
+        if (g.pressed.r1) tap("KeyH");
+        if (g.pressed.up) tap("KeyV");
+        if (g.pressed.down) tap("KeyM");
+        if (
+          mode === "walk" &&
+          !playerCrash.active &&
+          !(transit.isRiding && transit.isRiding()) &&
+          (g.look.x || g.look.y)
+        ) {
+          applyLookDelta(g.look.x * 900 * dt, g.look.y * 900 * dt);
+        }
+      }
+
       function tick() {
         const time = performance.now();
         const rawDt = (time - prevTime) / 1000;
@@ -2894,12 +3325,15 @@
         // frame does not put the whole street in slow motion. Walking/camera keep the 50 ms cap.
         const simDt = Math.min(0.25, rawDt);
         prevTime = time;
+        // One read per frame. A second poll in the same frame clears button edges.
+        gamepad.poll();
         if (!cityReady) {
           // Loading screen is up: don't burn GPU/CPU on an empty scene.
           requestAnimationFrame(tick);
           return;
         }
         adaptResolution(rawDt);
+        applyGamepad(dt);
 
         const menuOpen = menu.open;
         const ridingTram = transit.isRiding && transit.isRiding();
@@ -2965,7 +3399,9 @@
           {
             const walker = walkControls.getObject();
             const baseEye = playerMotion.eye(onScooter ? "scooter" : ridingVelo ? "velo" : "walk");
-            walker.position.y = baseEye + JUMP.y;
+            const onFoot = !riding && !ridingVelo && !onScooter;
+            const surface = onFoot ? Math.max(0, groundAt(walker.position.x, walker.position.z)) : 0;
+            walker.position.y = baseEye + surface + JUMP.y;
           }
 
           if (!riding && mode === "walk" && walkEngaged()) {
@@ -2974,11 +3410,13 @@
             _beforeStep.x = w.position.x;
             _beforeStep.z = w.position.z;
             playerMotion.step(dt, keys, kind);
-            w.position.y = playerMotion.eye(kind) + JUMP.y;
-            const overlapSpeed = !onScooter && !ridingVelo ? fastestOverlap(w.position, 0.36) : 0;
+            const surface = kind === "walk" ? Math.max(0, groundAt(w.position.x, w.position.z)) : 0;
+            w.position.y = playerMotion.eye(kind) + surface + JUMP.y;
+            const overlapSpeed = fastestOverlap(w.position, onScooter || ridingVelo ? 0.55 : 0.36);
             const wallHit = !!(outdoors && outdoors.rejectIfIndoors(w.position, _beforeStep));
             if (wallHit) playerMotion.bump(0.5);
             clampWalkerXZ(w.position);
+            if (districtBorder) districtBorder.update();
             _afterWall.x = w.position.x;
             _afterWall.z = w.position.z;
             if (!onScooter && !ridingVelo) pushOutOfSolids(w.position);
@@ -3018,6 +3456,7 @@
                 yaw: playerMotion.yaw(),
                 moving: Math.abs(playerMotion.speed) > 0.05,
                 speed: playerMotion.speed,
+                pedal: playerAvatar.pedalPhase ? playerAvatar.pedalPhase() : 0,
               });
             }
             if ((onScooter || ridingVelo) && !playerCrash.active && Math.abs(playerMotion.speed) > 0.15) {
@@ -3045,6 +3484,9 @@
 
         const wPos = walkControls.getObject().position;
         const moveKind = ridingVelo ? "velo" : onScooter ? "scooter" : "walk";
+        const scooterDeck = onScooter && scooters?.deckAnchor ? scooters.deckAnchor() : null;
+        // Eye sits just above the grip so the soles, not the ankles, meet the deck.
+        if (scooterDeck) wPos.y = scooterDeck.y + 1.58;
         const spd = Math.abs(playerMotion.speed);
         let bodyYaw = thirdPerson.yaw();
         if (spd > 0.12 && mode === "walk") {
@@ -3056,7 +3498,7 @@
         }
         const crashing = playerCrash.active;
         if (mode === "walk" || mode === "free") {
-          playerAvatar.update(menuOpen || crashing ? 0 : dt, wPos, crashing ? 0 : spd, bodyYaw, moveKind);
+          playerAvatar.update(menuOpen || crashing ? 0 : dt, wPos, crashing ? 0 : spd, bodyYaw, moveKind, scooterDeck);
           playerAvatar.setVisible(!crashing);
         }
         if (crashing) {
@@ -3074,6 +3516,11 @@
           if (stars.visible) stars.position.copy(camera.position);
           traffic.update(simDt, walker);
           transit.update(simDt, walker);
+          {
+            const streamH = mode === "free" ? freeCam.height : 0;
+            chunkStream?.update(walker.position.x, walker.position.z, mode, streamH);
+            landmarkStream?.update(walker.position.x, walker.position.z, mode, streamH);
+          }
           if (pedestrians) pedestrians.update(simDt);
           if (police) {
             const face = playerMotion.yaw();
@@ -3090,8 +3537,7 @@
           }
           combat.update(menuOpen ? 0 : dt);
           if (micromobility) {
-            _riderObstacles[0].x = walker.position.x;
-            _riderObstacles[0].z = walker.position.z;
+            fillRiderObstacles(walker);
             micromobility.update(simDt, _riderObstacles);
           }
           if (traffic.setCamera) traffic.setCamera(camera.position.x, camera.position.z);

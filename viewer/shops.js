@@ -8,7 +8,9 @@
  * into three meshes sharing one canvas atlas, so ~130 shops cost three draw calls.
  */
 
-const URL_SHOPS = "./shops.json";
+const URL_SHOPS =
+  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("shops.json")) ||
+  "./shops.json";
 const ATLAS_W = 2048;
 const ATLAS_H = 2304; // was 4096; lower rows were unused ~half the GPU upload
 const SLOT_W = 512;

@@ -111,7 +111,9 @@ export function createCombat(THREE, opts = {}) {
     cooldown = Math.max(0, cooldown - dt);
     if (swing > 0) {
       swing = Math.max(0, swing - dt);
-      pose(swing / 0.32);
+      // Mixamo already plays the jab and kick. A second bend on those bones
+      // twists the clip back toward the bind pose.
+      if (!opts.skipPose?.()) pose(swing / 0.32);
     }
   }
 

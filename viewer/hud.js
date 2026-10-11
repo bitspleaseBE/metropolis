@@ -47,8 +47,11 @@ const CSS = `
 #hud-speed .sub { font-weight: 600; font-size: 0.8rem; letter-spacing: 0.06em; margin-top: 5px; opacity: 0.9; }
 #hud-help { position: fixed; left: 22px; top: 18px; z-index: 650; pointer-events: none; background: rgba(10,12,16,0.8);
   color: #eee; font: 500 0.84rem/1.6 "Helvetica Neue", Arial, sans-serif; padding: 12px 16px; border-radius: 4px;
-  opacity: 0; transition: opacity .35s ease; max-width: 20rem; }
+  opacity: 0; transition: opacity .35s ease; max-width: 26rem; }
 #hud-help.on { opacity: 1; }
+#hud-help .hud-hid { pointer-events: auto; display: block; margin-top: 10px; cursor: pointer;
+  font: 600 13px/1 system-ui, sans-serif; color: #1a1208; background: #f4e7c5; border: 0; border-radius: 999px; padding: 7px 12px; }
+#hud-help .hud-hid[hidden] { display: none; }
 #hud-help kbd, #prompt kbd { display: inline-block; min-width: 1.3em; padding: 0 5px; margin-right: 6px; text-align: center;
   background: #f2f2f2; color: #111; border-radius: 3px; font: 700 0.78rem/1.45 "Helvetica Neue", Arial, sans-serif; text-shadow: none; }
 #hud-stats { position: fixed; left: 22px; top: 18px; z-index: 640; display: none; pointer-events: none;
@@ -98,6 +101,67 @@ export const perf = (() => {
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+/** Each row is text and { kbd } chips. Rendered as nodes so a pad id never becomes HTML. */
+const HELP = {
+  keyboard: [
+    [{ kbd: "W A S D" }, "walk · steer when riding"],
+    [{ kbd: "Shift" }, "sprint · ", { kbd: "Space" }, "jump"],
+    [{ kbd: "Click" }, "punch · ", { kbd: "Right-click" }, "kick · ", { kbd: "Tab" }, "weapons"],
+    [{ kbd: "E" }, "scooter · tram · bus · Velo"],
+    [{ kbd: "N" }, "fast-forward to night / day"],
+    [{ kbd: "V" }, "map view · ", { kbd: "M" }, "radar"],
+    [{ kbd: "Esc" }, "release mouse"],
+    [{ kbd: "H" }, "this card · ", { kbd: "F3" }, "stats"],
+  ],
+  touch: [
+    ["Left stick — walk · steer when riding"],
+    ["Drag screen — look around"],
+    [{ kbd: "Go" }, "scooter · tram · bus · Velo"],
+    [{ kbd: "Sprint" }, "jog · ", { kbd: "Jump" }, "jump"],
+    [{ kbd: "Map" }, "top-down · ", { kbd: "Radar" }, "minimap"],
+    [{ kbd: "Night" }, "day/night · ", { kbd: "Help" }, "this card"],
+  ],
+  playstation: [
+    ["Left stick walk · steer when riding"],
+    ["Right stick look"],
+    [{ kbd: "L2" }, "sprint · ", { kbd: "Cross" }, "jump"],
+    [{ kbd: "R2" }, "punch · ", { kbd: "Circle" }, "kick"],
+    [{ kbd: "Square" }, "scooter · tram · bus · Velo"],
+    [{ kbd: "Triangle" }, "night / day"],
+    [{ kbd: "D-pad ↑" }, "map · ", { kbd: "D-pad ↓" }, "radar"],
+    [{ kbd: "Options" }, "menu · ", { kbd: "R1" }, "this card"],
+  ],
+  xbox: [
+    ["Left stick walk · steer when riding"],
+    ["Right stick look"],
+    [{ kbd: "LT" }, "sprint · ", { kbd: "A" }, "jump"],
+    [{ kbd: "RT" }, "punch · ", { kbd: "B" }, "kick"],
+    [{ kbd: "X" }, "scooter · tram · bus · Velo"],
+    [{ kbd: "Y" }, "night / day"],
+    [{ kbd: "D-pad ↑" }, "map · ", { kbd: "D-pad ↓" }, "radar"],
+    [{ kbd: "Menu" }, "pause · ", { kbd: "RB" }, "this card"],
+  ],
+};
+
+function renderHelp(help, kind) {
+  const rows = HELP[kind];
+  if (!rows) return;
+  const frag = document.createDocumentFragment();
+  rows.forEach((row, i) => {
+    if (i) frag.appendChild(document.createElement("br"));
+    for (const part of row) {
+      if (typeof part === "string") {
+        frag.appendChild(document.createTextNode(part));
+      } else {
+        const k = document.createElement("kbd");
+        k.textContent = part.kbd;
+        frag.appendChild(k);
+      }
+    }
+  });
+  help.replaceChildren(frag);
+}
+
 export function createHud(opts = {}) {
   const style = document.createElement("style");
   style.textContent = CSS;
@@ -129,16 +193,46 @@ export function createHud(opts = {}) {
   const speedFill = speed.querySelector(".bar i");
   const speedSub = speed.querySelector(".sub");
   const help = el("div", "hud-help");
-  help.innerHTML = [
-    "<kbd>Click</kbd>punch · <kbd>Tab</kbd>weapons",
-    "<kbd>W A S D</kbd>walk · steer when riding",
-    "<kbd>Shift</kbd>jog · <kbd>Space</kbd>jump",
-    "<kbd>E</kbd>scooter · tram · bus · Velo",
-    "<kbd>N</kbd>fast-forward to night / day",
-    "<kbd>V</kbd>map view · <kbd>M</kbd>radar",
-    "<kbd>Esc</kbd>release mouse",
-    "<kbd>H</kbd>this card · <kbd>F3</kbd>stats",
-  ].join("<br>");
+  const helpBody = document.createElement("div");
+  help.append(helpBody);
+  const hidBtn = document.createElement("button");
+  hidBtn.type = "button";
+  hidBtn.className = "hud-hid";
+  hidBtn.textContent = "Connect controller";
+  hidBtn.hidden = true;
+  help.append(hidBtn);
+  let helpKind = "keyboard";
+  let hidConnect = null;
+  function syncHidBtn() {
+    const cardOn = help.classList.contains("on");
+    hidBtn.hidden = !(hidConnect && helpKind === "keyboard" && cardOn);
+  }
+  hidBtn.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    try {
+      const ok = await hidConnect?.();
+      if (ok === false) hidBtn.textContent = "Choose the Wireless controller";
+    } catch (err) {
+      if (err?.name !== "NotAllowedError") hidBtn.textContent = "Unplug it and try again";
+    }
+  });
+  renderHelp(helpBody, "keyboard");
+  function setHelpKind(kind) {
+    const key = kind === "generic" ? "xbox" : kind;
+    if (!HELP[key] || key === helpKind) {
+      syncHidBtn();
+      return;
+    }
+    helpKind = key;
+    renderHelp(helpBody, key);
+    syncHidBtn();
+  }
+  function offerController(connect) {
+    hidConnect = connect || null;
+    if (hidConnect) hidBtn.textContent = "Connect controller";
+    syncHidBtn();
+  }
   const stats = el("div", "hud-stats");
 
   let money = opts.wallet ?? 25;
@@ -181,6 +275,7 @@ export function createHud(opts = {}) {
   const setHelp = (on) => {
     help.classList.toggle("on", on);
     document.body.classList.toggle("help-on", on || stats.classList.contains("on"));
+    syncHidBtn();
   };
   function showHelp(ms = 7000) {
     setHelp(true);
@@ -310,6 +405,8 @@ export function createHud(opts = {}) {
     setWanted,
     setWeapon,
     showHelp,
+    setHelpKind,
+    offerController,
     toggleHelp,
     toggleStats,
     perf,

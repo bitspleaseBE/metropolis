@@ -3,7 +3,9 @@
  * (Blender XY → Three XZ with z = −y). Used for GTA-style captions and map pins.
  */
 
-const LANDMARKS_URL = "./landmarks.json";
+const LANDMARKS_URL =
+  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("landmarks.json")) ||
+  "./landmarks.json";
 const REACH_M = 28;
 
 export async function createLandmarkLocator(opts = {}) {

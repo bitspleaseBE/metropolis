@@ -5,7 +5,9 @@
  * spawns the bike you ride, so stations are not doubled with runtime meshes.
  */
 
-const VELO_URL = "./velo.json";
+const VELO_URL =
+  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("velo.json")) ||
+  "./velo.json";
 const BOARD_DIST = 4.0; // m to the rail (not only the centre point)
 const CAPTION_DIST = 6.0; // slightly wider for GTA-style area captions
 const BIKE_SPEED = 8.6; // ~31 km/h cruise (MOVE.velo.speed); the viewer owns acceleration
@@ -146,12 +148,21 @@ export function makeVeloBike(THREE) {
   const badge = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.04), frame);
   badge.position.set(0, 0.32, 0.5);
 
-  // Crank
-  const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 8), metal);
+  // Crank + pedals. Group rotation.x is driven from the rider's pedal phase
+  // (0 = left pedal forward, increasing = that pedal pushes down).
+  const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.08, 8), metal);
   bb.rotation.z = Math.PI / 2;
   bb.position.set(0, 0.2, 0.02);
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.12, 0.02), metal);
-  arm.position.set(0.04, 0.2, 0.02);
+  const crank = new THREE.Group();
+  crank.position.set(0, 0.2, 0.02);
+  const armLen = 0.11;
+  for (const up of [1, -1]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.016, armLen, 0.016), metal);
+    arm.position.y = up * armLen * 0.5;
+    const pedal = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.016, 0.038), tire);
+    pedal.position.set(up > 0 ? 0.045 : -0.045, up * armLen, 0);
+    crank.add(arm, pedal);
+  }
 
   // Headlamp on the rack / fork; red reflector under the mudguard.
   const headlamp = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), lamp);
@@ -177,11 +188,12 @@ export function makeVeloBike(THREE) {
     mud,
     badge,
     bb,
-    arm,
+    crank,
     headlamp,
     taillight
   );
   g.userData.wheels = [front, rear];
+  g.userData.crank = crank;
   g.scale.setScalar(BIKE_SCALE);
   return g;
 }
@@ -412,6 +424,9 @@ export async function createVelo(scene, THREE) {
       player.z - Math.cos(yaw) * fwd
     );
     mesh.rotation.y = yaw;
+    if (mesh.userData.crank && Number.isFinite(player.pedal)) {
+      mesh.userData.crank.rotation.x = -Math.PI / 2 - player.pedal * Math.PI * 2;
+    }
     if (player.moving && mesh.userData.wheels) {
       const spin = (player.speed ?? BIKE_SPEED) / (0.2 * BIKE_SCALE);
       for (const w of mesh.userData.wheels) w.rotation.x -= dt * spin;

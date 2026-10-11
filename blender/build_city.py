@@ -68,7 +68,7 @@ FACADE_PHOTO_MAT = None  # shared atlas material, set in build()
 # orthophoto (yard median ~RGB 78/94/103 -> de-blued ~86/97/92; park median ~88/105/106), far
 # darker than the old pale gravel / lime grass. Linear Base-Color multipliers measured with
 # scripts/topdown_probe.html + scripts/compare_roofs.py so the top-down render lands on those.
-GROUND_TINT = (0.061, 0.079, 0.074)
+GROUND_TINT = (0.82, 0.80, 0.74)
 PARK_TINT = (0.42, 0.36, 0.46)
 ROOF_AERIAL = surface_kit.load_roof_aerial()  # per-building roof family + tint measured from the orthophoto
 SURFACES_DIR = Path(_REPO_ROOT) / "assets" / surface_kit.TEXTURES_DIRNAME  # procedural roofs / paving / grass
@@ -4094,7 +4094,8 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
 
     water_mat = principled("water", (0.18, 0.32, 0.42, 1.0), 0.12)
     park_mat = surface_mat("grass", "park", (0.28, 0.48, 0.26, 1.0), 0.92, tint=PARK_TINT)
-    road_mat = surface_mat("asphalt", "asphalt", (0.08, 0.08, 0.09, 1.0), 0.96)
+    road_mat = surface_mat("asphalt", "asphalt", (0.32, 0.32, 0.34, 1.0), 0.92)
+    cobble_mat = surface_mat("sett", "cobble", (0.45, 0.43, 0.40, 1.0), 0.88)
     sidewalk_mat = surface_mat("sidewalk", "sidewalk", (0.55, 0.54, 0.50, 1.0), 0.95)
     curb_mat = surface_mat("curb", "curb", (0.42, 0.41, 0.38, 1.0), 0.9)
     # Doorsteps: the same granite, a touch bluer and darker (arduin) so they read against the plinth.
@@ -4150,8 +4151,8 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
         principled("shutter_blue", (0.22, 0.28, 0.38, 1.0), 0.72),
     ]
     wear_mats = [
-        principled("asphalt_wear_a", (0.05, 0.05, 0.055, 1.0), 0.98),
-        principled("asphalt_wear_b", (0.10, 0.09, 0.08, 1.0), 0.97),
+        principled("asphalt_wear_a", (0.20, 0.20, 0.21, 1.0), 0.98),
+        principled("asphalt_wear_b", (0.28, 0.26, 0.24, 1.0), 0.97),
     ]
     dash_mat = principled("road_dash", (0.82, 0.78, 0.55, 1.0), 0.9)
     path_mat = principled("park_path", (0.48, 0.42, 0.32, 1.0), 0.95)
@@ -4302,13 +4303,14 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     courtyard_stats = courtyards_blender.add_courtyards(layout, courtyard_mats, courtyard_tiles)
     print(f"Courtyard surfaces (OSM car parks, playgrounds, pitches, sites, pools, woods): {courtyard_stats}")
     for i, road in enumerate(layout.get("roads") or []):
+        stone = road.get("surface") == "cobble"
         add_road(
             f"road_{road.get('id', i)}",
             road["points"],
             float(road["width"]),
-            road_mat,
+            cobble_mat if stone else road_mat,
             z=Z_ROAD,
-            uv_tile_m=surface_kit.surface_tile_m("asphalt"),
+            uv_tile_m=surface_kit.surface_tile_m("sett" if stone else "asphalt"),
         )
 
     tram_n, stop_n = add_transit_layer(layout, spawn_xy)
