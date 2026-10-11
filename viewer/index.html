@@ -976,6 +976,7 @@
       import { paintParkedCars, wireParkedCarLamps } from "./cars.js";
       import { createTouchControls, wantsTouchControls } from "./touch-controls.js";
       import { LOAD_M, createLandmarkStream } from "./landmark-stream.js";
+      import { applyPavementFrontage } from "./pavement-frontage.js";
 
       const status = document.getElementById("status");
       const hint = document.getElementById("hint");
@@ -2432,6 +2433,13 @@
 
       async function onCityLoaded(gltf) {
           cityRoot = gltf.scene;
+          try {
+            const pavement = await applyPavementFrontage(cityRoot, THREE);
+            window.__buildingLift = pavement.lift || 0;
+          } catch (err) {
+            window.__buildingLift = 0;
+            console.warn("[metropolis] pavement frontage skipped", err);
+          }
           const shading = downgradeCityMaterials(cityRoot);
           console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
           // Cheap: disable expensive features for FPS; freeze static transforms.
