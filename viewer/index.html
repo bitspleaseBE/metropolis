@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Metropolis — Klein Antwerpen · Velo Harmonie</title>
+    <title>Metropolis — Klein Antwerpen</title>
     <link rel="preconnect" href="https://unpkg.com" crossorigin />
     <style>
       :root {
@@ -929,7 +929,7 @@
       <img class="ld-art" src="./menu/loading-antwerp.jpg" alt="" />
       <div class="ld-veil" aria-hidden="true"></div>
       <div class="ld-card">
-        <p class="ld-kicker">Klein Antwerpen · Velo Harmonie</p>
+        <p class="ld-kicker">Klein Antwerpen</p>
         <h2>Antwerp is loading<span class="ld-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></h2>
         <div class="ld-track"><div class="ld-fill" id="ld-fill"></div></div>
         <p class="ld-sub"><span id="ld-stage">Fetching the streets</span><span id="ld-pct"></span></p>
@@ -1076,7 +1076,7 @@
     <div id="prompt"></div>
     <div id="hud">
       <h1>Klein Antwerpen</h1>
-      <p>Velo Harmonie · grab a Velo or a scooter, hop on a tram, or just walk</p>
+      <p>Grab a Velo or a scooter, hop on a tram, or just walk</p>
     </div>
     <div id="click-cue">Click to play</div>
     <div id="crosshair" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -1129,7 +1129,7 @@
         if (hudH) hudH.textContent = districtMeta.title;
         if (hudP && districtMeta.summary) hudP.textContent = districtMeta.summary;
         const kicker = document.querySelector(".ld-kicker");
-        if (kicker) kicker.textContent = districtMeta.title;
+        if (kicker) kicker.textContent = districtMeta.title.split("·")[0].trim();
       }
 
       const status = document.getElementById("status");
@@ -1189,7 +1189,7 @@
         0.2,
         4500,
       );
-      camera.position.set(-218.5, 3.2, -427.5);
+      camera.position.set(-2.921, 3.2, 4.34);
 
       // Opaque canvas with no stencil: cheaper framebuffer + no alpha compositing with the page.
       const renderer = new THREE.WebGLRenderer({
@@ -1532,7 +1532,7 @@
       const JUMP = { v: 0, y: 0, g: -16, strength: 6.2, active: false, held: false };
       let prevTime = performance.now();
       let cityRoot = null;
-      let spawnPos = new THREE.Vector3(-218.5, eyeHeight, -432.1);
+      let spawnPos = new THREE.Vector3(-2.921, eyeHeight, -0.261);
       let traffic = { update() {}, dispose() {} };
       let police = null;
       let harmedPulse = false;
@@ -1840,7 +1840,7 @@
 
       // Player root stores eye height (~1.7); avatar feet sit at eye−1.7. Boom camera lags behind.
       const playerRoot = new THREE.Object3D();
-      playerRoot.position.set(-218.5, 1.7, -432.1);
+      playerRoot.position.set(-2.921, 1.7, -0.261);
       scene.add(playerRoot);
       const thirdPerson = createThirdPersonCamera(THREE, camera, () => outdoors);
       const playerMotion = createPlayerMotion(
@@ -2151,7 +2151,7 @@
           walkControls.getObject().position.y = eyeHeight;
           clampWalkerXZ(walkControls.getObject().position);
           hint.textContent = hintFor("walk");
-          status.textContent = "Walking — Velo Harmonie";
+          status.textContent = "Walking — Klein Antwerpen";
           touch?.setModeLabel("walk");
         } else {
           if (walkControls.isLocked) walkControls.unlock();
@@ -2937,8 +2937,10 @@
           collectGroundMeshes(cityRoot);
           const spawnNode = cityRoot.getObjectByName("HumanSpawn");
           const spawnJson = await loadSpawnJson();
-          if (spawnNode) applySpawnFromNode(spawnNode);
-          else if (spawnJson) applySpawnJson(spawnJson);
+          // spawn.json is the live district start. The baked HumanSpawn empty
+          // stays at whatever the last city build used.
+          if (spawnJson) applySpawnJson(spawnJson);
+          else if (spawnNode) applySpawnFromNode(spawnNode);
           setMode("walk");
           setLoad(0.94, "Starting traffic and trams");
           await nextFrame();
