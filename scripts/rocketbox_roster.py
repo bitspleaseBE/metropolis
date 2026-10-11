@@ -117,6 +117,17 @@ ROSTER: list[dict] = [
     _adult("Medical_Female_01", "f", "mediterranean"),
     _adult("Medical_Male_02", "m", "european", "m_walk_neutral_02"),
     _adult("Police_Male_03", "m", "european"),
+    # Same mesh as Police_Male_03, darker skin, baked when assets/rocketbox is present.
+    # Until then the viewer tints a second clone at runtime.
+    {
+        "id": "Police_Male_04",
+        "src": "Police_Male_03",
+        "age": "adult",
+        "sex": "m",
+        "look": "mediterranean",
+        "walk": "m_walk_neutral_01",
+        "recolor": [tint((8, 40), (92, 62, 46), sat=(0.15, 0.7), val=(0.25, 0.85), keep=0.35)],
+    },
     _adult("Sports_Female_02", "f", "asian", "f_walk_neutral_02"),
     _adult("Sports_Male_04", "m", "european"),
     _adult("Wood_Male_01", "m", "muslim", "m_walk_stroll_01"),

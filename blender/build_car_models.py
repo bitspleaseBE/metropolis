@@ -32,7 +32,7 @@ REPO = Path(__file__).resolve().parents[1]
 CARS_DIR = REPO / "viewer" / "cars"
 FLEET_PATH = CARS_DIR / "fleet.json"
 
-SLOTS = ("paint", "glass", "trim", "metal", "headlight", "taillight")
+SLOTS = ("paint", "glass", "trim", "metal", "headlight", "taillight", "beacon_l", "beacon_r")
 
 # Surface key -> (material slot, sRGB vertex colour). Slots that read vertex colour fold
 # many finishes into one draw call.
@@ -53,6 +53,13 @@ KEYS = {
     "rim_dark": ("metal", (0.13, 0.135, 0.14)),
     "headlight": ("headlight", (1.0, 1.0, 1.0)),
     "taillight": ("taillight", (1.0, 1.0, 1.0)),
+    # Roof-bar pods. Separate slots so a chase can flash them without the headlights.
+    "beacon_l": ("beacon_l", (0.25, 0.55, 1.0)),
+    "beacon_r": ("beacon_r", (0.25, 0.55, 1.0)),
+    # Battenburg sits on the trim slot, which keeps vertex colour, so a later
+    # car_paint recolour cannot wash the checks out.
+    "bat_blue": ("trim", (0.07, 0.2, 0.62)),
+    "bat_yellow": ("trim", (0.96, 0.82, 0.05)),
 }
 
 # Lower-body ring heights as fractions of sill→beltline, greenhouse as belt→roof edge.
@@ -360,6 +367,64 @@ MODELS = [
             Q("rear", "trim", (0, 0.99), (0.32, 0.6)),
         ],
         "parts": [P("rear", "seam", 0.0, 1.06, 0.012, 1.48, t=0.006, mirror=False)],
+    },
+    {
+        # Antwerp local-police kombi: VW Transporter T6.1 proportions, white body,
+        # blue/yellow Battenburg, a door board, and a roof light bar. Weight 0 keeps
+        # it out of the civilian mix; viewer/cars.js leaves car_paint white.
+        "id": "politie_transporter", "name": "Volkswagen Transporter", "gen": "T6.1 Politie",
+        "weight": 0, "livery": True,
+        "L": 4.904, "W": 1.904, "wb": 3.0, "fo": 0.92,
+        "wheel_r": 0.343, "rim_r": 0.2032, "tire_w": 0.215, "clr": 0.18,
+        "lift": (0.15, 0.12), "corner": (0.3, 0.12), "bulge": (0.03, 0.006), "rake": (0.07, 0.03),
+        # Short, gently rising bonnet, raked screen, then a flat roof to a near-vertical tail.
+        "top": [(0, 1.03), (0.04, 1.085), (0.14, 1.13), (0.4, 1.17), (0.78, 1.205),
+                (1.0, 1.37), (1.35, 1.68), (1.6, 1.9), (1.8, 1.975), (2.05, 1.99), (4.78, 1.99),
+                (4.87, 1.97), (4.904, 1.93)],
+        "belt": [(0, 0.99), (0.08, 1.07), (0.4, 1.14), (0.8, 1.185), (2.2, 1.2),
+                 (4.76, 1.2), (4.904, 1.13)],
+        "roof_hw": 0.875, "ledge": 0.022, "shoulder": 0.006, "glass_bulge": 0.012, "roof_crown": 0.022,
+        "ws": (0.8, 1.62), "rs": (4.904, 4.904), "dlo": (0.98, 2.2),
+        "seams": (1.3, 2.27, 3.38), "tall_seams": True, "handles": (2.08, 2.47), "handle_k": "trim",
+        "roof": "paint", "pillar": "paint", "mirror": "trim", "mirror_size": (0.14, 0.21, 0.3),
+        "cladding": True, "rocker": 0.09, "clad_spans": "mid", "flare_w": 0.05,
+        "rim_style": "vspoke", "spokes": 5, "rim_k": "rim",
+        "plate_f": 0.69, "plate_r": 0.62, "badge_f": 0.9, "badge_size": 0.13,
+        # Two rows of 0.25 m squares from the front wing to the tail, trimmed around the arches.
+        "checks": {"d": (0.98, 4.73), "z": (0.64, 1.14), "cols": 15, "rows": 2},
+        "hood_checks": {"d": (0.26, 0.77), "hy": 0.78, "cols": 6, "rows": 2},
+        "board": {"d": (2.36, 3.64), "z": (1.26, 1.68)},
+        "slide_rail": (3.42, 4.68, 1.18),
+        "lightbar": True,
+        "decals": [
+            {"text": "Politie", "d": 3.0, "z": 1.5, "size": 0.21},
+            {"text": "Antwerpen", "d": 3.0, "z": 1.33, "size": 0.1},
+        ],
+        "rects": [],
+        "patches": [
+            # Slim black grille between the headlights, two chrome bars, the top one
+            # running into the lamps like the T6.1.
+            Q("front", "gloss", (0, 0.6), (0.8, 0.995)),
+            Q("front", "chrome", (0, 0.6), (0.965, 0.978), layer=1),
+            Q("front", "chrome", (0, 0.56), (0.875, 0.884), layer=1),
+            Q("front", "lens", (0.58, 0.92), ((0.8, 1.0), (0.85, 0.99))),
+            Q("front", "headlight", (0.6, 0.9), ((0.973, 0.988), (0.963, 0.977)), layer=2),
+            Q("front", "trim", (0, 0.6), (0.42, 0.6)),
+            Q("front", "satin", (0, 0.56), (0.505, 0.515), layer=1),
+            Q("front", "trim", (0, 0.84), (0.32, 0.4)),
+            Q("rear", "taillight", (0.8, 0.96), (0.86, 1.32)),
+            Q("rear", "glass", (0.08, 0.78), (1.3, 1.76)),
+            Q("rear", "trim", (0, 0.86), (0.28, 0.5)),
+            Q("rear", "satin", (0, 0.7), (0.5, 0.52), layer=1),
+        ],
+        "parts": [
+            P("rear", "seam", 0.0, 1.03, 0.012, 1.42, t=0.006, mirror=False),
+            P("front", "chrome", 0.7, 0.895, 0.15, 0.1, t=0.012, r=0.045),
+            P("front", "headlight", 0.68, 0.895, 0.085, 0.07, t=0.02, r=0.03),
+            P("front", "headlight", 0.81, 0.89, 0.065, 0.06, t=0.018, r=0.025),
+            P("front", "headlight", 0.74, 0.51, 0.1, 0.055, t=0.014, r=0.02, frame=("chrome", 0.01)),
+            P("rear", "trim", 0.0, 1.0, 0.18, 0.05, t=0.02, r=0.01, mirror=False),
+        ],
     },
 ]
 
@@ -730,6 +795,10 @@ def classify(car: Car, d, ay, z, n, seg, cap):
     ws0, ws1 = s["ws"]
     rs0, rs1 = s["rs"]
     cabin_end = max(rs1, ws1)
+    # Panel-van doors run up past the belt where there is no glass.
+    if s.get("tall_seams") and seg in ("ledge", "seal", "dlo") and d > s["dlo"][1]:
+        if any(abs(d - sd) < 0.0072 for sd in s.get("seams", ())):
+            return "seam"
     if seg == "top":
         if ws0 <= d <= ws1 and ay < s["roof_hw"] + 0.04:
             return "glass"
@@ -874,7 +943,7 @@ def add_side_strip(car: Car, mb: MB, rows, key: str, off: float = 0.01) -> None:
 def add_cladding(car: Car, mb: MB) -> None:
     """Black arch flares and sill panels (crossovers, vans) as smooth strips."""
     s = car.s
-    w, rocker = 0.075, s.get("rocker", 0.14)
+    w, rocker = s.get("flare_w", 0.075), s.get("rocker", 0.14)
     for a in car.axles:
         rows = []
         lo_f, lo_r = car.zb_c(a - car.ra) - 0.01, car.zb_c(a + car.ra) - 0.01
@@ -895,6 +964,8 @@ def add_cladding(car: Car, mb: MB) -> None:
              (car.axles[1] + car.ra, car.L - rr * 0.9))
     ends = s.get("clad_ends")
     for n, (d0, d1) in enumerate(spans):
+        if s.get("clad_spans") == "mid" and n != 1:
+            continue
         k = max(2, int((d1 - d0) / 0.1) + 1)
         rows = []
         for i in range(k):
@@ -909,9 +980,168 @@ def add_cladding(car: Car, mb: MB) -> None:
         add_side_strip(car, mb, rows, "trim")
 
 
+def side_hit(car: Car, d: float, z: float, sg: int) -> tuple[Vector, Vector]:
+    """Point on the faceted body side at (d, z), found by a ray from outside, so panels
+    hug the greenhouse tumblehome as well as the lower side."""
+    x = car.L / 2 - d - car.rake("front", d, z) + car.rake("rear", d, z)
+    fallback = Vector((x, sg * car.body_y(d, z), z)), Vector((0.0, float(sg), 0.0))
+    if car.bvh is None:
+        return fallback
+    hit, hn, _i, _dist = car.bvh.ray_cast(Vector((x, sg * (car.hw0 + 0.5), z)), Vector((0.0, -sg, 0.0)), 1.0)
+    if hit is None:
+        return fallback
+    if hn.y * sg < 0:
+        hn = -hn
+    return hit, hn.normalized()
+
+
+def add_snapped_panel(car: Car, mb: MB, cols, z1: float, key: str, off: float, nz: int = 3) -> None:
+    """Side panel on both flanks; ``cols`` = [(d, z_bottom), ...] so the lower edge can
+    follow an arch while the top stays straight."""
+    for sg in (1, -1):
+        surf, nrms = [], []
+        for d, z0 in cols:
+            rs, rn = [], []
+            for j in range(nz):
+                p, n = side_hit(car, d, lerp(z0, z1, j / (nz - 1)), sg)
+                rs.append(p)
+                rn.append(n)
+            surf.append(rs)
+            nrms.append(rn)
+        emit_shell(mb, surf, nrms, off, key)
+
+
+def arch_clear(car: Car, d: float) -> float:
+    """Height a side panel must stay above at ``d`` to clear the arch lip."""
+    rr = car.ra + car.s.get("flare_w", 0.075) + 0.015
+    best = 0.0
+    for a in car.axles:
+        dx = d - a
+        if abs(dx) < rr:
+            best = max(best, car.R + math.sqrt(rr * rr - dx * dx))
+    return best
+
+
+def add_battenburg(car: Car, mb: MB) -> None:
+    """Checker squares as panels sitting just proud of the side, so the loft's
+    uneven faces don't break the pattern. Squares over a wheel are cut to the arch."""
+    chk = car.s.get("checks")
+    if not chk:
+        return
+    d0, d1 = chk["d"]
+    z0, z1 = chk["z"]
+    cols, rows = chk.get("cols", 8), chk.get("rows", 2)
+    for col in range(cols):
+        da, db = lerp(d0, d1, col / cols), lerp(d0, d1, (col + 1) / cols)
+        for row in range(rows):
+            za, zb = lerp(z0, z1, row / rows), lerp(z0, z1, (row + 1) / rows)
+            key = "bat_yellow" if (col + row) % 2 == 0 else "bat_blue"
+            n = 12 if max(arch_clear(car, da), arch_clear(car, db), arch_clear(car, (da + db) / 2)) > za else 2
+            run, best = [], []
+            for i in range(n):
+                d = lerp(da, db, i / (n - 1))
+                lo = max(za, arch_clear(car, d))
+                if lo < zb - 0.03:
+                    run.append((d, lo))
+                else:
+                    best, run = max(best, run, key=len), []
+            best = max(best, run, key=len)
+            if len(best) >= 2:
+                add_snapped_panel(car, mb, best, zb, key, off=0.01)
+
+
+def add_hood_checks(car: Car, mb: MB) -> None:
+    """Checks draped onto the bonnet by casting down onto the body."""
+    hc = car.s.get("hood_checks")
+    if not hc or car.bvh is None:
+        return
+    d0, d1 = hc["d"]
+    hy = hc.get("hy", car.s["roof_hw"] - 0.05)
+    cols, rows = hc.get("cols", 6), hc.get("rows", 2)
+    down = Vector((0.0, 0.0, -1.0))
+    for c in range(cols):
+        ya, yb = lerp(-hy, hy, c / cols), lerp(-hy, hy, (c + 1) / cols)
+        for r in range(rows):
+            da, db = lerp(d1, d0, r / rows), lerp(d1, d0, (r + 1) / rows)
+            surf, nrms = [], []
+            for i in range(4):
+                d = lerp(da, db, i / 3)
+                rs, rn = [], []
+                for j in range(4):
+                    y = lerp(ya, yb, j / 3)
+                    x = car.L / 2 - d - car.rake("front", d, car.top(d))
+                    hit, hn, _i, _dist = car.bvh.ray_cast(Vector((x, y, 3.0)), down, 4.0)
+                    if hit is None:
+                        hit, hn = Vector((x, y, car.top(d))), Vector((0.0, 0.0, 1.0))
+                    if hn.z < 0:
+                        hn = -hn
+                    rs.append(hit)
+                    rn.append(hn.normalized())
+                surf.append(rs)
+                nrms.append(rn)
+            key = "bat_yellow" if (c + r) % 2 == 0 else "bat_blue"
+            emit_shell(mb, surf, nrms, 0.006, key)
+
+
+def add_board(car: Car, mb: MB) -> None:
+    """Blue name board on the sliding door with a thin yellow keyline."""
+    bd = car.s.get("board")
+    if not bd:
+        return
+    (d0, d1), (z0, z1) = bd["d"], bd["z"]
+    k = 0.018
+    for key, off, pad in (("bat_yellow", 0.009, k), ("bat_blue", 0.013, 0.0)):
+        n = max(2, int((d1 - d0 + 2 * pad) / 0.08) + 1)
+        cols = [(lerp(d0 - pad, d1 + pad, i / (n - 1)), z0 - pad) for i in range(n)]
+        add_snapped_panel(car, mb, cols, z1 + pad, key, off, nz=5)
+
+
+def add_slide_rail(car: Car, mb: MB) -> None:
+    """Sliding-door track cover along the rear quarter."""
+    sr = car.s.get("slide_rail")
+    if not sr:
+        return
+    d0, d1, z = sr
+    for sg in (1, -1):
+        p0, n0 = side_hit(car, d0, z, sg)
+        p1, n1 = side_hit(car, d1, z, sg)
+        mb.beam(p0 + n0 * 0.012, p1 + n1 * 0.012, Vector((0, 0, 1)), 0.034, 0.034, 0.024, "trim")
+        for p, n in ((p0, n0), (p1, n1)):
+            mb.rbox(p + n * 0.012, (0.03, 0.026, 0.036), 0.008, "trim")
+
+
+def add_lightbar(car: Car, mb: MB) -> None:
+    """Roof bar: black base on four feet, two long lens pods either side of a siren
+    module, with blue reflector backs."""
+    s = car.s
+    d = s["ws"][1] + 0.34
+    z = car.top(d)
+    x = car.L / 2 - d
+    zb = z + 0.06
+    for fy in (-0.5, 0.5):
+        for fx in (-0.09, 0.09):
+            mb.rbox(Vector((x + fx, fy, z + 0.02)), (0.05, 0.06, 0.05), 0.01, "trim")
+    mb.rbox(Vector((x, 0.0, zb)), (0.3, 1.28, 0.04), 0.014, "trim")
+    mb.rbox(Vector((x, 0.0, zb + 0.04)), (0.22, 0.3, 0.05), 0.012, "satin")
+    for sg in (1, -1):
+        cy = sg * 0.39
+        mb.rbox(Vector((x, cy, zb + 0.03)), (0.25, 0.47, 0.03), 0.01, "bat_blue")
+        # Own slot per side. viewer/police.js flashes these only while the unit is chasing.
+        mb.rbox(Vector((x, cy, zb + 0.058)), (0.24, 0.45, 0.068), 0.03, "beacon_l" if sg > 0 else "beacon_r")
+        for k in (-1, 1):
+            mb.rbox(Vector((x, cy + k * 0.075, zb + 0.06)), (0.245, 0.012, 0.07), 0.004, "trim")
+
+
 def add_parts(car: Car, mb: MB) -> None:
     s, L = car.s, car.L
     car.bvh = BVHTree.FromPolygons(mb.v, mb.f)
+    if s.get("checks"):
+        add_battenburg(car, mb)
+    add_hood_checks(car, mb)
+    add_board(car, mb)
+    add_slide_rail(car, mb)
+    if s.get("lightbar"):
+        add_lightbar(car, mb)
     for p in s.get("patches", ()):
         add_patch(car, mb, p)
     if s.get("cladding"):
@@ -939,7 +1169,8 @@ def add_parts(car: Car, mb: MB) -> None:
             mb.rbox(pos + nrm * 0.011, (0.004, 0.4, 0.052), 0.0, "plate_red", smooth=False)
         if badge:
             pos, nrm = car.fascia(end, 0.0, badge)
-            mb.rbox(pos + nrm * 0.006, (0.014, 0.085, 0.085), 0.03, "chrome")
+            bs = s.get("badge_size", 0.085)
+            mb.rbox(pos + nrm * 0.006, (0.014, bs, bs), bs * 0.35, "chrome")
 
     # Door mirrors on the door skin just behind the A-pillar base.
     dm = s["ws"][0] + 0.16
@@ -1039,6 +1270,8 @@ def make_materials() -> dict:
         "metal": dict(metal=0.85, rough=0.3),
         "headlight": dict(base=(0.86, 0.87, 0.86), metal=0.0, rough=0.12, vcol=False),
         "taillight": dict(base=(0.55, 0.03, 0.03), metal=0.0, rough=0.2, vcol=False),
+        "beacon_l": dict(base=(0.15, 0.4, 1.0), metal=0.0, rough=0.2, vcol=False),
+        "beacon_r": dict(base=(0.15, 0.4, 1.0), metal=0.0, rough=0.2, vcol=False),
     }
     mats = {}
     for slot in SLOTS:
@@ -1113,6 +1346,46 @@ def build_car(spec: dict, mats: dict) -> list:
             o.location = TO_EXPORT @ Vector((car.L / 2 - axle, sg * y, car.R))
             bpy.context.scene.collection.objects.link(o)
             objs.append(o)
+    return add_decals(spec, objs, car)
+
+
+def add_decals(spec: dict, objs: list, car: Car) -> list:
+    """White side lettering on both flanks, facing out, in the same space as the exported
+    body. Each side reads left-to-right for someone standing next to it."""
+    marks = spec.get("decals") or []
+    if not marks:
+        return objs
+    ink = bpy.data.materials.new("car_ink")
+    if getattr(ink, "node_tree", None) is None:
+        ink.use_nodes = True
+    bsdf = next(nd for nd in ink.node_tree.nodes if nd.type == "BSDF_PRINCIPLED")
+    bsdf.inputs["Base Color"].default_value = (0.97, 0.98, 0.99, 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.45
+    faces = {
+        1: Matrix.Rotation(math.pi / 2, 4, "X") @ Matrix.Scale(-1, 4, Vector((1, 0, 0))),
+        -1: Matrix.Rotation(math.pi / 2, 4, "X"),
+    }
+    for mark in marks:
+        for sg, face in faces.items():
+            curve = bpy.data.curves.new(mark["text"], "FONT")
+            curve.body = mark["text"]
+            curve.size = mark.get("size", 0.11)
+            curve.extrude = 0.003
+            curve.align_x = "CENTER"
+            curve.align_y = "CENTER"
+            ob = bpy.data.objects.new("decal", curve)
+            ob.data.materials.append(ink)
+            bpy.context.scene.collection.objects.link(ob)
+            bpy.context.view_layer.objects.active = ob
+            bpy.ops.object.select_all(action="DESELECT")
+            ob.select_set(True)
+            bpy.ops.object.convert(target="MESH")
+            pos, nrm = side_hit(car, mark["d"], mark["z"], sg)
+            tilt = math.atan2(nrm.z, abs(nrm.y))
+            pos = pos + nrm * 0.02
+            ob.matrix_world = (TO_EXPORT @ Matrix.Translation(pos)
+                               @ Matrix.Rotation(sg * tilt, 4, "X") @ face)
+            objs.append(ob)
     return objs
 
 
@@ -1147,11 +1420,12 @@ def preview(builds, out_prefix: str) -> None:
     palette = [(0.92, 0.92, 0.9), (0.05, 0.05, 0.055), (0.22, 0.24, 0.26), (0.11, 0.17, 0.3),
                (0.6, 0.62, 0.64), (0.5, 0.08, 0.08), (0.18, 0.25, 0.2), (0.38, 0.4, 0.42),
                (0.72, 0.66, 0.55), (0.92, 0.92, 0.9)]
-    for i, (_spec, objs) in enumerate(builds):
+    for i, (spec, objs) in enumerate(builds):
         body = objs[0]
         m = body.data.materials[0].copy()
         bsdf = next(nd for nd in m.node_tree.nodes if nd.type == "BSDF_PRINCIPLED")
-        bsdf.inputs["Base Color"].default_value = (*(srgb_to_linear(c) for c in palette[i % len(palette)]), 1)
+        rgb = (0.95, 0.96, 0.97) if spec.get("livery") else palette[i % len(palette)]
+        bsdf.inputs["Base Color"].default_value = (*(srgb_to_linear(c) for c in rgb), 1)
         body.data.materials[0] = m
 
     bpy.ops.mesh.primitive_plane_add(size=400)
@@ -1211,8 +1485,11 @@ def preview(builds, out_prefix: str) -> None:
         side.append((0.0, x + spec["L"] / 2))
         x += spec["L"] + 0.6
     place([(sx, sy - x / 2) for sx, sy in side])
-    look((30, 0, 0.8), (0, 0, 0.8), ortho=x * 1.02)
-    scene.render.resolution_x, scene.render.resolution_y = 2400, 340
+    tallest = max(bounds(objs)[1].z for _s, objs in builds)
+    zc = max(0.8, tallest / 2)
+    look((30, 0, zc), (0, 0, zc), ortho=x * 1.02)
+    scene.render.resolution_x = 2400
+    scene.render.resolution_y = max(340, int(2400 * (tallest + 0.4) / (x * 1.02)))
     scene.render.filepath = f"{out_prefix}_side.png"
     bpy.ops.render.render(write_still=True)
 
@@ -1273,11 +1550,14 @@ def main() -> None:
         export_glb(objs, path)
         tris = sum(len(p.vertices) - 2 for o in objs for p in o.data.polygons)
         print(f"  {spec['id']}: {size.y:.2f} x {size.x:.2f} x {size.z:.2f} m, ~{tris} tris -> {path.name}")
-        entries.append({
+        entry = {
             "id": spec["id"], "file": path.name, "weight": spec["weight"],
             "length": round(size.y, 3), "width": round(size.x, 3), "height": round(size.z, 3),
             "model": spec["name"], "generation": spec["gen"],
-        })
+        }
+        if spec.get("livery"):
+            entry["livery"] = True
+        entries.append(entry)
 
     if args.only and FLEET_PATH.is_file():
         old = json.loads(FLEET_PATH.read_text(encoding="utf-8")).get("models", [])

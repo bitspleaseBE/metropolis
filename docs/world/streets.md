@@ -66,6 +66,8 @@ Heat is the city’s immune system: police attention, faction notice, cameras, n
 
 - Every loud job raises it. Tags less than grenades; grenades more than collections.
 - Heat changes how the map feels: more blue lights, shorter patience on corners, closed doors at the bourse.
+- A police unit that sees you run a red light, or hurt someone, puts sheriff stars on you. Up to four. The same combi and the same two officers, duplicated. Stay out of their sight and the stars fall, one at a time.
+- Killing an officer or a crew member adds a star. A clan sign on that meter is not something you can trigger. A mission calls it, and then a black car with four armed members flies that clan's drawing. Same chase, same cap of four.
 - Escaping on a step is how heat gets spent down — if you know the one-ways and the tram beds.
 - Killing random pedestrians for cash (today’s sandbox pickup) does not belong to this heat model. It is not how the three build.
 

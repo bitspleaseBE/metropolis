@@ -629,5 +629,11 @@ export function createPlayerAvatar(THREE, scene) {
     setVisible(v) {
       root.visible = !!v;
     },
+    get bones() {
+      return armBones;
+    },
+    get legs() {
+      return bodyBones;
+    },
   };
 }
