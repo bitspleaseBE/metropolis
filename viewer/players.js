@@ -761,7 +761,12 @@ export function createPlayerAvatar(THREE, scene) {
     if (!next) return;
     next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity);
     next.clampWhenFinished = !!once;
-    next.reset().fadeIn(fade).play();
+    // Clips are parked at weight 0 so they don't all blend on load. fadeIn
+    // multiplies that weight, so a parked clip fades from 0 to 0 and the body
+    // snaps back to the bind pose (arms out, legs straight) once idle fades out.
+    next.reset();
+    next.setEffectiveWeight(1);
+    next.fadeIn(fade).play();
     if (prev && prev !== next) prev.fadeOut(fade);
     current = name;
     // The ride crossfade can leave a spun head. Don't treat the next pose as a glitch.
