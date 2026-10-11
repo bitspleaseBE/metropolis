@@ -9,6 +9,9 @@
  * on safe walks and only use ``crossing`` links when the graph offers no other
  * forward option. At signalised crossings they wait on the kerb until
  * ``setCrossingGate`` says the ped light is green. Lateral offset stays on the pavement.
+ *
+ * Walk playback changes also update viewer/movement.html.
+ * See .cursor/rules/movement-gallery.mdc.
  */
 import { createPeoplePool } from "./people.js";
 import { fetchJsonCached } from "./json-cache.js";
@@ -925,8 +928,16 @@ export async function createPedestrians(scene, THREE, opts = {}) {
 
         // placeMember already set Y — do not raycast again.
         if (m.mesh.userData.mixer) {
-          if (precise || (d2 <= warm2 && _lodParity)) {
-            m.mesh.userData.mixer.update(dt);
+          // Anyone still on screen keeps the walk. Further out the mixer steps
+          // less often, and the skipped time is applied so the stride does not
+          // slow down. Skipping the mixer entirely left them in the bind pose.
+          m.animHold = (m.animHold || 0) + dt;
+          const cadence = precise ? 1 : d2 <= warm2 ? 2 : 3;
+          m.animSkip = (m.animSkip || 0) + 1;
+          if (m.animSkip >= cadence) {
+            m.mesh.userData.mixer.update(m.animHold);
+            m.animHold = 0;
+            m.animSkip = 0;
           }
         } else if (precise) {
           m.phase += dt * m.speed * BOBBLE_FREQ;

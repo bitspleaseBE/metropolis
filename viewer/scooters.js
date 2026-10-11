@@ -80,7 +80,7 @@ function mergeByMaterial(THREE, group, keep) {
 }
 
 /** Shared e-scooter, front wheel toward local −Z, origin on the ground under the deck. */
-export function makeShareScooter(THREE, fleet) {
+export function makeShareScooter(THREE, fleet = FLEETS[0]) {
   const g = new THREE.Group();
   const M = fleetMaterials(THREE, fleet);
   const { body, trim, metal, tire, lamp, tail, screen } = M;
@@ -149,7 +149,13 @@ export function makeShareScooter(THREE, fleet) {
   g.add(front, rear, deck, grip, battery, fender, tailLight, stem, neck, headlight, brand);
   g.add(bars, gripL, gripR, display, basket, kickstand);
   mergeByMaterial(THREE, g, [front, rear, kickstand]);
-  g.userData = { wheels: [front, rear], kickstand, lamps: [lamp, tail, screen] };
+  g.userData = {
+    wheels: [front, rear],
+    kickstand,
+    lamps: [lamp, tail, screen],
+    // Front wheel is −Z. Deck top and bar centre, in this mesh's local space.
+    seat: { kind: "step", deck: new THREE.Vector3(0, 0.172, 0.01), bar: stemTop.clone(), grip: 0.22 },
+  };
   return g;
 }
 
@@ -185,6 +191,27 @@ function buildKerbSpots(roads, rand) {
     }
   }
   return spots;
+}
+
+/** The ridden scooter sits this far ahead of the player root, deck under the feet. */
+export const SCOOTER_FWD = 0.18;
+const DECK_TOP = 0.172;
+
+/**
+ * Put the ridden scooter under the player. The game and viewer/movement.html both call
+ * this. `player` is { x, z, yaw, turn, speed }; `groundY` is the road under the deck.
+ */
+export function placeRideScooter(mesh, dt, player, groundY = 0) {
+  const yaw = player.yaw ?? 0;
+  mesh.position.set(player.x - Math.sin(yaw) * SCOOTER_FWD, groundY, player.z - Math.cos(yaw) * SCOOTER_FWD);
+  mesh.rotation.set(0, yaw, -(player.turn || 0) * 0.12);
+  const speed = player.speed || 0;
+  for (const w of mesh.userData.wheels || []) w.rotation.x -= (speed / 0.15) * dt;
+}
+
+/** Grip surface on a scooter mesh, for the rider's feet (players.js polishScooterLegs). */
+export function scooterDeck(mesh) {
+  return { x: mesh.position.x, y: mesh.position.y + DECK_TOP, z: mesh.position.z, yaw: mesh.rotation.y };
 }
 
 export async function createScooters(scene, THREE, opts = {}) {
@@ -346,33 +373,20 @@ export async function createScooters(scene, THREE, opts = {}) {
     if (!ride) return;
     const s = ride.s;
     const yaw = player.yaw ?? 0;
-    // Deck under the rider's feet, bars just ahead of the camera.
-    const rx = player.x - Math.sin(yaw) * 0.18;
-    const rz = player.z - Math.cos(yaw) * 0.18;
     if ((groundClock -= dt) <= 0) {
       groundClock = 0.12;
-      groundY = groundAt(rx, rz);
+      groundY = groundAt(player.x - Math.sin(yaw) * SCOOTER_FWD, player.z - Math.cos(yaw) * SCOOTER_FWD);
     }
-    s.mesh.position.set(rx, s.mesh.position.y + (groundY - s.mesh.position.y) * Math.min(1, dt * 12), rz);
-    s.mesh.rotation.set(0, yaw, -(player.turn || 0) * 0.12);
+    placeRideScooter(s.mesh, dt, player, s.mesh.position.y + (groundY - s.mesh.position.y) * Math.min(1, dt * 12));
     const speed = player.speed || 0;
-    for (const w of s.mesh.userData.wheels) w.rotation.x -= (speed / 0.15) * dt;
     ride.t += dt;
     ride.cost = PRICE_UNLOCK + Math.ceil(ride.t / 60) * PRICE_MIN;
     if (Math.abs(speed) > 0.5) s.battery = Math.max(5, s.battery - dt * 0.05);
   }
 
   /** Grip surface under the rider while a scooter is unlocked. y is the deck top. */
-  const DECK_TOP = 0.172;
   function deckAnchor() {
-    if (!ride) return null;
-    const s = ride.s;
-    return {
-      x: s.mesh.position.x,
-      y: s.mesh.position.y + DECK_TOP,
-      z: s.mesh.position.z,
-      yaw: s.mesh.rotation.y,
-    };
+    return ride ? scooterDeck(ride.s.mesh) : null;
   }
 
   function getRideHud() {

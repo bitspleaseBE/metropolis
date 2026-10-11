@@ -92,11 +92,15 @@ const KINDS = {
     speedKmh: 20,
     color: [0x00c2a8, 0x6b4cff, 0xff3d6e, 0x222222], // shared-fleet vibes
   },
+  // Speed-pedelec long-john: up to ~40 km/h, pulls away hard, 2.7 m long.
   cargo: {
     label: "cargo",
     weight: 0.2,
-    speedKmh: 15,
-    color: [0x3a5a78, 0xd4a020, 0x5a7a4a, 0x8a4a3a],
+    speedKmh: 35,
+    accel: 2.8,
+    hl: 1.35, // half length about the hit centre
+    nose: 0.21, // hit centre ahead of the rider
+    color: [0x9fb5a8, 0x3a5a78, 0xd4a020, 0x8a4a3a, 0x2a2a2a],
   },
 };
 
@@ -277,7 +281,21 @@ function handlebar(THREE, metal, gripMat, y, z) {
   ];
 }
 
-function makeBicycle(THREE, color, rideTemplates) {
+/** Spinning crank. Phase 0 (rotation.x = −π/2) puts the left pedal on world −X when the bike faces +Z. */
+function bikeCrank(THREE, metal, tireMat, bb, armLen) {
+  const crank = new THREE.Group();
+  crank.position.set(bb[0], bb[1], bb[2]);
+  for (const up of [1, -1]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.016, armLen, 0.016), metal);
+    arm.position.y = up * armLen * 0.5;
+    const pedal = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.016, 0.04), tireMat);
+    pedal.position.set(up > 0 ? -0.08 : 0.08, up * armLen, 0);
+    crank.add(arm, pedal);
+  }
+  return crank;
+}
+
+function makeBicycle(THREE, color, rideTemplates, withRider = true) {
   const g = new THREE.Group();
   const frameMat = new THREE.MeshLambertMaterial({ color });
   const tireMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
@@ -319,17 +337,34 @@ function makeBicycle(THREE, color, rideTemplates) {
   const rear = makeWheel(THREE, tireMat, metal, R, 0.025);
   rear.position.set(...rearHub);
 
-  g.add(...parts, saddle, front, rear);
+  const crank = bikeCrank(THREE, metal, tireMat, bb, RIDE.crank);
+  g.add(...parts, saddle, front, rear, crank);
   addBikeLights(THREE, g, 0.42, -0.4, 0.72);
-  const rider = makeRider(THREE, rideTemplates, true);
-  seatRider(rider, saddleY, saddleZ);
-  g.add(rider);
   g.userData.wheels = [front, rear];
-  g.userData.rider = rider;
+  g.userData.crank = crank;
+  g.userData.seat = {
+    saddle: new THREE.Vector3(0, saddleY, saddleZ),
+    crank: new THREE.Vector3(bb[0], bb[1], bb[2]),
+    crankR: RIDE.crank,
+    pedalX: 0.08,
+    bar: new THREE.Vector3(0, barY, barZ),
+    grip: RIDE.gripHalf,
+  };
+  if (withRider) {
+    const rider = makeRider(THREE, rideTemplates, true);
+    seatRider(rider, saddleY, saddleZ);
+    g.add(rider);
+    g.userData.rider = rider;
+  }
   return g;
 }
 
-function makeScooter(THREE, color, scooterTemplates) {
+/** City bicycle at its real size, without a rider. */
+export function makeBicycleMesh(THREE, color = 0x2a6a9a) {
+  return makeBicycle(THREE, color, [], false);
+}
+
+function makeScooter(THREE, color, scooterTemplates, withRider = true) {
   const g = new THREE.Group();
   // Same model as the parked share scooters; that one faces −Z, NPC traffic faces +Z.
   const body = makeShareScooter(THREE, { name: `npc-${color}`, body: color, trim: 0xf4f6f8, deck: 0x22262b });
@@ -337,65 +372,153 @@ function makeScooter(THREE, color, scooterTemplates) {
   body.userData.kickstand.visible = false;
   g.add(body);
   addBikeLights(THREE, g, 0.47, -0.5, 0.44);
-  const rider = makeRider(THREE, scooterTemplates, false);
-  // Deck top and stance; the baked Scooter clip reaches grips 0.99 m up and 0.34 m ahead.
-  rider.position.y += 0.175;
-  rider.position.z = -0.08;
-  g.add(rider);
   g.userData.wheels = body.userData.wheels;
   g.userData.wheelSign = -1; // wheels live in the flipped frame
   g.userData.wheelR = 0.15;
-  g.userData.rider = rider;
+  body.updateMatrix();
+  const raw = body.userData.seat;
+  g.userData.seat = {
+    kind: "step",
+    deck: raw.deck.clone().applyMatrix4(body.matrix),
+    bar: raw.bar.clone().applyMatrix4(body.matrix),
+    grip: raw.grip,
+  };
+  if (withRider) {
+    const rider = makeRider(THREE, scooterTemplates, false);
+    // Deck top and stance; the baked Scooter clip reaches grips 0.99 m up and 0.34 m ahead.
+    rider.position.y += 0.175;
+    rider.position.z = -0.08;
+    g.add(rider);
+    g.userData.rider = rider;
+  }
   return g;
 }
 
-function makeCargoBike(THREE, color, rideTemplates) {
+/** Share step at its real size, without a rider. Front ends up toward +Z. */
+export function makeScooterMesh(THREE, color = 0x222222) {
+  return makeScooter(THREE, color, [], false);
+}
+
+/**
+ * Electric long-john bakfiets (Urban Arrow style), front +Z: 26" rear wheel under the rider,
+ * a low foam box slung between the rider and a 20" front wheel, steered by a rod under the box.
+ * About 2.7 m nose to tail.
+ */
+function makeCargoBike(THREE, color, rideTemplates, withRider = true) {
   const g = new THREE.Group();
   const frameMat = new THREE.MeshLambertMaterial({ color });
-  const boxMat = new THREE.MeshLambertMaterial({ color: 0xe8e0d0 });
+  const boxMat = new THREE.MeshLambertMaterial({ color: 0x26292b });
   const tireMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
   const metal = new THREE.MeshLambertMaterial({ color: 0x777777 });
+  const dark = new THREE.MeshLambertMaterial({ color: 0x2c2c2c });
 
-  // Longtail / bakfiets-ish: rider mid, cargo box in front
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.07, 1.55), frameMat);
-  frame.position.set(0, 0.4, 0.05);
-  const box = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.7), boxMat);
-  box.position.set(0, 0.45, 0.75);
-  const lid = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.04, 0.72), frameMat);
-  lid.position.set(0, 0.7, 0.75);
-
-  const saddleY = 0.82;
-  const saddleZ = -0.45;
+  const RR = 0.33; // rear wheel radius
+  const FR = 0.25; // front wheel radius
+  const rearHub = [0, RR, -0.8];
+  const frontHub = [0, FR, 1.3];
+  const saddleY = 0.86;
+  const saddleZ = -0.5;
   const bb = [0, saddleY - RIDE.bbDown, saddleZ + RIDE.bbFwd];
   const barY = saddleY + RIDE.barUp;
   const barZ = saddleZ + RIDE.barFwd;
-  const seatPost = tube(THREE, metal, [0, 0.4, saddleZ + 0.04], [0, saddleY - 0.02, saddleZ], 0.022);
-  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.24), tireMat);
+  const spineY = 0.24;
+  const seatTop = [0, 0.72, -0.44];
+  const headTop = [0, barY - 0.1, barZ - 0.06];
+  const forkTop = [0, 0.66, 1.2];
+
+  // Box side profile (z, y), extruded across the bike: flat floor, raked nose.
+  const W = 0.62;
+  const prof = [
+    [0.12, 0.3],
+    [0.92, 0.3],
+    [1.14, 0.52],
+    [1.2, 0.8],
+    [0.12, 0.86],
+  ];
+  const shape = new THREE.Shape(prof.map(([z, y]) => new THREE.Vector2(z, y)));
+  const box = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: W, bevelEnabled: false }), boxMat);
+  box.rotation.y = -Math.PI / 2;
+  box.position.x = W / 2;
+  const rim = [];
+  for (const x of [-W / 2, W / 2]) {
+    for (let i = 1; i < prof.length; i++) {
+      const [z0, y0] = prof[i - 1];
+      const [z1, y1] = prof[i];
+      if (i === 1) continue; // the floor edge sits on the spine
+      rim.push(tube(THREE, frameMat, [x, y0, z0], [x, y1, z1], 0.022));
+    }
+  }
+  rim.push(tube(THREE, frameMat, [-W / 2, 0.8, 1.2], [W / 2, 0.8, 1.2], 0.022));
+  rim.push(tube(THREE, frameMat, [-W / 2, 0.86, 0.12], [W / 2, 0.86, 0.12], 0.022));
+
+  const parts = [
+    // Low spine: bottom bracket, under the box floor, up to the front head tube.
+    tube(THREE, frameMat, bb, [0, spineY, 0.12], 0.04),
+    tube(THREE, frameMat, [0, spineY, 0.12], [0, spineY, 0.95], 0.04),
+    tube(THREE, frameMat, [0, spineY, 0.95], forkTop, 0.035),
+    // Rear triangle.
+    tube(THREE, frameMat, bb, seatTop, 0.03),
+    tube(THREE, frameMat, [0.05, ...bb.slice(1)], [0.05, ...rearHub.slice(1)], 0.015),
+    tube(THREE, frameMat, [-0.05, ...bb.slice(1)], [-0.05, ...rearHub.slice(1)], 0.015),
+    tube(THREE, frameMat, [0.04, ...seatTop.slice(1)], [0.05, ...rearHub.slice(1)], 0.014),
+    tube(THREE, frameMat, [-0.04, ...seatTop.slice(1)], [-0.05, ...rearHub.slice(1)], 0.014),
+    // Steering column behind the box, and its stem.
+    tube(THREE, frameMat, [0, spineY + 0.02, 0.06], headTop, 0.032),
+    tube(THREE, metal, headTop, [0, barY, barZ], 0.016),
+    ...handlebar(THREE, metal, tireMat, barY, barZ),
+    tube(THREE, metal, seatTop, [0, saddleY - 0.02, saddleZ], 0.015),
+    // Front fork and the steering rod under the box.
+    tube(THREE, metal, [0.045, ...forkTop.slice(1)], [0.045, ...frontHub.slice(1)], 0.014),
+    tube(THREE, metal, [-0.045, ...forkTop.slice(1)], [-0.045, ...frontHub.slice(1)], 0.014),
+    tube(THREE, metal, [0.06, 0.2, 0.06], [0.06, 0.2, 1.16], 0.008),
+    tube(THREE, metal, [-0.09, ...bb.slice(1)], [0.09, ...bb.slice(1)], 0.012),
+  ];
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.26), tireMat);
   seat.position.set(0, saddleY, saddleZ);
-  const stem = tube(THREE, metal, [0, 0.4, barZ - 0.08], [0, barY, barZ], 0.02);
-  const bars = handlebar(THREE, metal, tireMat, barY, barZ);
-  const bbTube = tube(THREE, frameMat, [0, 0.4, bb[2] - 0.05], bb, 0.025);
-  const crank = tube(THREE, metal, [-0.09, bb[1], bb[2]], [0.09, bb[1], bb[2]], 0.012);
+  // Mid-drive motor at the cranks and the frame battery in front of the seat tube.
+  const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.12, 12), dark);
+  motor.rotation.z = Math.PI / 2;
+  motor.position.set(0, bb[1] - 0.02, bb[2] + 0.02);
+  const battery = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.3, 0.11), dark);
+  battery.position.set(0, 0.42, 0.0);
+  battery.rotation.x = -0.25;
+  const fender = new THREE.Mesh(new THREE.TorusGeometry(RR + 0.04, 0.02, 4, 16, Math.PI * 0.75), tireMat);
+  fender.rotation.y = Math.PI / 2; // arc runs from behind the hub over the top
+  fender.position.set(...rearHub);
 
-  const frontL = makeWheel(THREE, tireMat, metal, 0.22);
-  frontL.position.set(-0.34, 0.22, 0.85);
-  const frontR = makeWheel(THREE, tireMat, metal, 0.22);
-  frontR.position.set(0.34, 0.22, 0.85);
-  const rear = makeWheel(THREE, tireMat, metal, 0.28);
-  rear.position.set(0, 0.28, -0.65);
+  const crank = bikeCrank(THREE, metal, tireMat, bb, RIDE.crank);
+  const front = makeWheel(THREE, tireMat, metal, FR, 0.03);
+  front.position.set(...frontHub);
+  front.userData.r = FR;
+  const rear = makeWheel(THREE, tireMat, metal, RR, 0.035);
+  rear.position.set(...rearHub);
+  rear.userData.r = RR;
 
-  // Small battery pack under the frame
-  const battery = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.35), new THREE.MeshLambertMaterial({ color: 0x222222 }));
-  battery.position.set(0, 0.28, -0.15);
-
-  g.add(frame, box, lid, seatPost, seat, stem, ...bars, bbTube, crank, frontL, frontR, rear, battery);
-  addBikeLights(THREE, g, 1.05, -0.7, 0.7);
-  const rider = makeRider(THREE, rideTemplates, true);
-  seatRider(rider, saddleY, saddleZ);
-  g.add(rider);
-  g.userData.wheels = [frontL, frontR, rear];
-  g.userData.rider = rider;
+  g.add(...parts, ...rim, box, seat, motor, battery, fender, crank, front, rear);
+  addBikeLights(THREE, g, 1.22, -1.14, 0.72);
+  g.userData.wheels = [front, rear];
+  g.userData.wheelR = RR;
+  g.userData.crank = crank;
+  g.userData.seat = {
+    saddle: new THREE.Vector3(0, saddleY, saddleZ),
+    crank: new THREE.Vector3(bb[0], bb[1], bb[2]),
+    crankR: RIDE.crank,
+    pedalX: 0.08,
+    bar: new THREE.Vector3(0, barY, barZ),
+    grip: RIDE.gripHalf,
+  };
+  if (withRider) {
+    const rider = makeRider(THREE, rideTemplates, true);
+    seatRider(rider, saddleY, saddleZ);
+    g.add(rider);
+    g.userData.rider = rider;
+  }
   return g;
+}
+
+/** Bakfiets at its real size, without a rider. The box stays in front; the rider is not scaled to it. */
+export function makeCargoMesh(THREE, color = 0x3a5a78) {
+  return makeCargoBike(THREE, color, [], false);
 }
 
 function makeVehicle(THREE, kind, rideTemplates, scooterTemplates) {
@@ -510,6 +633,8 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     root.add(mesh);
     const v = {
       kind,
+      hl: cfg.hl || 0, // half length for long bikes (0 = round footprint)
+      nose: cfg.nose || 0,
       path,
       reverse,
       s,
@@ -561,11 +686,15 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     let hardBlock = false;
     const tx = v.tan.x;
     const tz = v.tan.z;
+    const cfg = KINDS[v.kind];
+    // Long nose ahead of the rider, and the stopping distance at this speed (brakes ~5 m/s²).
+    const front = cfg.hl ? cfg.nose + cfg.hl - 0.5 : 0;
+    const look = Math.max(LOOK_AHEAD, front + STOP_GAP + (v.speed * v.speed) / 10);
     const consider = (ox, oz, otx, otz, radius) => {
       const dx = ox - v.pos.x;
       const dz = oz - v.pos.z;
       const along = dx * tx + dz * tz;
-      if (along <= 0 || along > LOOK_AHEAD) return;
+      if (along <= 0 || along > look) return;
       const lat = Math.abs(dx * tz - dz * tx);
       if (lat > LANE_HALF + radius) return;
       if (otx * tx + otz * tz < -0.3) oncoming = true;
@@ -577,7 +706,7 @@ export async function createMicromobility(scene, THREE, opts = {}) {
       const hl = ob.hl ?? 1;
       const hw = ob.hw ?? 1;
       const ahead = dx * tx + dz * tz;
-      const reach = (ob.hard ? LOOK_AHEAD_HARD : LOOK_AHEAD) + hl;
+      const reach = Math.max(ob.hard ? LOOK_AHEAD_HARD : LOOK_AHEAD, look) + hl;
       if (ahead < -hl || ahead > reach) return;
       const lat = Math.abs(dx * tz - dz * tx);
       // Soft lane box for cars; hard transit is noticed from the neighbouring track too
@@ -599,12 +728,15 @@ export async function createMicromobility(scene, THREE, opts = {}) {
         consider(o.pos.x, o.pos.z, 0, 0, 0.85);
         continue;
       }
-      consider(o.pos.x, o.pos.z, o.tan.x, o.tan.z, 0.5);
+      const oc = KINDS[o.kind];
+      consider(o.pos.x, o.pos.z, o.tan.x, o.tan.z, oc.hl ? oc.hl - oc.nose : 0.5);
     }
     for (const ob of nearObstacles(v, obstacles)) {
       if (ob.hl != null) considerBox(ob);
       else consider(ob.x, ob.z, 0, 0, ob.r ?? 0.4);
     }
+    // Measure from this bike's own nose, not the saddle.
+    gap -= front;
     // Held up for a while behind something that is not moving: pull out and pass on the left —
     // never past a tram / bus (they fill the lane; "passing" would ride through them).
     v.stuck = gap < STOP_GAP + 1 && v.cur < 0.5 ? (v.stuck || 0) + dtSwerve : 0;
@@ -622,7 +754,7 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     if (gap === Infinity) return v.speed;
     // Hard stop in front of a tram / bus that already overlaps the bike's nose.
     if (hardBlock && gap < STOP_GAP) return 0;
-    return v.speed * Math.max(0, Math.min(1, (gap - STOP_GAP) / (LOOK_AHEAD - STOP_GAP)));
+    return v.speed * Math.max(0, Math.min(1, (gap - STOP_GAP) / (look - front - STOP_GAP)));
   }
   let dtSwerve = 0;
 
@@ -686,7 +818,7 @@ export async function createMicromobility(scene, THREE, opts = {}) {
    * Pads are the bike's own half-length / half-width: a bus that clips the
    * wheel or the bars counts, not only a hit that swallows the saddle.
    */
-  function riderTouchesBody(ob, x, z) {
+  function riderTouchesBody(ob, x, z, pad = 0.35) {
     if (!ob?.hard || ob.hl == null) return false;
     const dx = x - ob.x;
     const dz = z - ob.z;
@@ -696,15 +828,19 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     const lat = Math.abs(dx * otz - dz * otx);
     // 0.32 m is a handlebar / shoulder past the saddle, so a bus that
     // brushes the bike counts. A clear gap beside the body does not.
-    return along < (ob.hl ?? 1) + 0.35 && lat < (ob.hw ?? 1) + 0.32;
+    return along < (ob.hl ?? 1) + pad && lat < (ob.hw ?? 1) + 0.32;
   }
 
   /** Nearest hard tram/bus the rider's body is touching, or null. */
   function hardHit(v, obstacles) {
     let best = null;
     let bestD = Infinity;
+    const cfg = KINDS[v.kind];
+    const nose = cfg.nose || 0;
+    const cx = v.pos.x + v.tan.x * nose;
+    const cz = v.pos.z + v.tan.z * nose;
     for (const ob of nearObstacles(v, obstacles)) {
-      if (!riderTouchesBody(ob, v.pos.x, v.pos.z)) continue;
+      if (!riderTouchesBody(ob, cx, cz, cfg.hl || 0.35)) continue;
       const dx = v.pos.x - ob.x;
       const dz = v.pos.z - ob.z;
       const d = Math.hypot(dx, dz);
@@ -918,7 +1054,7 @@ export async function createMicromobility(scene, THREE, opts = {}) {
       v.mesh.visible = true;
 
       const want = targetSpeed(v, obstacles);
-      const rate = want < v.cur ? 6.0 : 1.6; // brake hard, pull away gently
+      const rate = want < v.cur ? 6.0 : KINDS[v.kind].accel || 1.6; // brake hard, pull away gently
       v.cur += Math.max(-rate * dt, Math.min(rate * dt, want - v.cur));
       const delta = v.cur * dt;
       v.s += v.reverse ? -delta : delta;
@@ -949,7 +1085,8 @@ export async function createMicromobility(scene, THREE, opts = {}) {
       v.wheelPhase += delta / (v.mesh.userData.wheelR || 0.32);
       const wheels = v.mesh.userData.wheels || [];
       const spin = v.wheelPhase * (v.mesh.userData.wheelSign || 1);
-      for (const w of wheels) w.rotation.x = spin;
+      const refR = v.mesh.userData.wheelR || 0.32;
+      for (const w of wheels) w.rotation.x = w.userData.r ? (spin * refR) / w.userData.r : spin;
 
       const rider = v.mesh.userData.rider;
       if (rider?.userData?.mixer) {

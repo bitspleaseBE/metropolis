@@ -11,13 +11,64 @@ const VELO_URL =
 const BOARD_DIST = 4.0; // m to the rail (not only the centre point)
 const CAPTION_DIST = 6.0; // slightly wider for GTA-style area captions
 const BIKE_SPEED = 8.6; // ~31 km/h cruise (MOVE.velo.speed); the viewer owns acceleration
-const FRAME_RED = 0xed0b0d;
-const MUDGUARD = 0xf5f2ec;
-const METAL = 0x3a3a3c;
-const TIRE = 0x1c1c1c;
-const RIM = 0xb8b8bc;
-// Modelled at 1:1.55 like blender/velo_blender.py; this is a real-size Velo (wheel r ≈ 0.31 m).
-const BIKE_SCALE = 1.55;
+// Built by scripts/build_velo_glb.py at real size. Rebuild it there, not here.
+const MODEL_URL = new URL("./vehicles/velo.glb", import.meta.url).href;
+
+/**
+ * Ride points in the bike's own frame: metres, front −Z, origin on the ground
+ * under the bottom bracket. velo.glb overwrites these from its seat_* nodes, so
+ * the rider IK (players.js, movement.html) always follows the model.
+ */
+export const VELO_RIDE = {
+  saddle: { x: 0, y: 0.962, z: 0.29 },
+  crank: { x: 0, y: 0.28, z: 0 },
+  crankR: 0.17,
+  pedalX: 0.125,
+  bar: { x: 0, y: 1.02, z: -0.32 },
+  grip: 0.272,
+  wheelR: 0.335,
+};
+
+let _model = null;
+let _loading = null;
+
+function readRide(scene) {
+  const root = scene.getObjectByName("velo") || scene;
+  const at = (name) => root.getObjectByName(name)?.position;
+  const copy = (key, p) => {
+    if (p) VELO_RIDE[key] = { x: p.x, y: p.y, z: p.z };
+  };
+  copy("saddle", at("seat_saddle"));
+  copy("crank", at("seat_crank"));
+  const gl = at("grip_L");
+  const gr = at("grip_R");
+  if (gl && gr) {
+    VELO_RIDE.bar = { x: (gl.x + gr.x) / 2, y: (gl.y + gr.y) / 2, z: (gl.z + gr.z) / 2 };
+    VELO_RIDE.grip = Math.abs(gr.x - gl.x) / 2;
+  }
+  for (const key of ["crankR", "pedalX", "wheelR"]) {
+    const v = Number(root.userData?.[key]);
+    if (Number.isFinite(v) && v > 0) VELO_RIDE[key] = v;
+  }
+}
+
+/** Load velo.glb once. Resolves to null when it can't load (headless sims). */
+export function preloadVeloModel() {
+  if (!_loading) {
+    _loading = (async () => {
+      try {
+        const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
+        const gltf = await new GLTFLoader().loadAsync(MODEL_URL);
+        _model = gltf.scene;
+        readRide(_model);
+      } catch (e) {
+        console.warn("[metropolis] velo: could not load", MODEL_URL, e);
+      }
+      return _model;
+    })();
+  }
+  return _loading;
+}
 
 /** Shared so every ride / street-parked Velo brightens together at night. */
 let _lampMat = null;
@@ -42,160 +93,60 @@ function nightMats(THREE) {
 }
 
 /**
- * Compact Velo step-through. Front wheel toward local −Z (matches Three.js look dir).
- * Origin on the ground under the bottom bracket.
+ * Ride Velo from velo.glb. Front wheel toward local −Z, origin on the ground
+ * under the bottom bracket, real size. Call preloadVeloModel() first.
+ * Geometry and materials are shared between bikes, so never dispose them.
  */
 export function makeVeloBike(THREE) {
-  const g = new THREE.Group();
-  const frame = new THREE.MeshStandardMaterial({ color: FRAME_RED, roughness: 0.45, metalness: 0.15 });
-  const white = new THREE.MeshStandardMaterial({ color: MUDGUARD, roughness: 0.55, metalness: 0.05 });
-  const metal = new THREE.MeshStandardMaterial({ color: METAL, roughness: 0.35, metalness: 0.65 });
-  const tire = new THREE.MeshStandardMaterial({ color: TIRE, roughness: 0.9, metalness: 0.05 });
-  const rim = new THREE.MeshStandardMaterial({ color: RIM, roughness: 0.4, metalness: 0.5 });
+  const g = _model ? _model.clone(true) : new THREE.Group();
+  if (!_model) console.warn("[metropolis] velo: model not loaded yet");
   const { lamp, tail } = nightMats(THREE);
-
-  function tube(len, rad, mat) {
-    return new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, len, 8), mat);
-  }
-
-  function wheel(radius) {
-    const w = new THREE.Group();
-    const t = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.022, 8, 20), tire);
-    t.rotation.y = Math.PI / 2;
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.035, 8), rim);
-    hub.rotation.z = Math.PI / 2;
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(radius * 0.85, 16), rim);
-    disc.rotation.y = Math.PI / 2;
-    disc.material = new THREE.MeshStandardMaterial({
-      color: RIM,
-      roughness: 0.5,
-      metalness: 0.4,
-      transparent: true,
-      opacity: 0.35,
-      side: THREE.DoubleSide,
-    });
-    w.add(t, hub, disc);
-    return w;
-  }
-
-  const wr = 0.2;
-  // Front toward −Z
-  const front = wheel(wr);
-  front.position.set(0, wr, -0.33);
-  const rear = wheel(wr);
-  rear.position.set(0, wr, 0.33);
-
-  // Tube segment in the YZ plane (bike side view); cylinder default axis = Y.
-  function frameSeg(z0, y0, z1, y1, rad = 0.017) {
-    const dy = y1 - y0;
-    const dz = z1 - z0;
-    const len = Math.hypot(dy, dz) || 0.01;
-    const m = tube(len, rad, frame);
-    const dir = new THREE.Vector3(0, dy, dz).normalize();
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-    m.position.set(0, (y0 + y1) * 0.5, (z0 + z1) * 0.5);
-    return m;
-  }
-
-  // Open step-through (front −Z ← → rear +Z)
-  g.add(frameSeg(-0.28, 0.14, -0.05, 0.22)); // front hub rise → BB
-  g.add(frameSeg(-0.05, 0.22, 0.08, 0.26)); // BB → low step-through
-  g.add(frameSeg(0.08, 0.26, 0.28, 0.4)); // rise to seat
-  g.add(frameSeg(-0.05, 0.22, -0.28, 0.4)); // BB → head tube
-  g.add(frameSeg(0.28, 0.4, 0.33, 0.2)); // seat stay → rear hub
-
-  // Head tube / fork
-  const head = tube(0.2, 0.016, metal);
-  head.position.set(0, 0.48, -0.3);
-  const forkL = tube(0.22, 0.01, metal);
-  forkL.position.set(-0.03, 0.32, -0.32);
-  forkL.rotation.z = 0.12;
-  const forkR = tube(0.22, 0.01, metal);
-  forkR.position.set(0.03, 0.32, -0.32);
-  forkR.rotation.z = -0.12;
-
-  // Seat post + saddle
-  const seatPost = tube(0.22, 0.012, metal);
-  seatPost.position.set(0, 0.52, 0.28);
-  const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.035, 0.18), tire);
-  saddle.position.set(0, 0.64, 0.28);
-  saddle.rotation.x = -0.15;
-
-  // Stem + flat bars
-  const stem = tube(0.12, 0.012, metal);
-  stem.position.set(0, 0.6, -0.3);
-  const bars = tube(0.44, 0.011, metal);
-  bars.rotation.z = Math.PI / 2;
-  bars.position.set(0, 0.67, -0.3);
-  const gripL = tube(0.07, 0.014, tire);
-  gripL.rotation.z = Math.PI / 2;
-  gripL.position.set(-0.2, 0.67, -0.3);
-  const gripR = gripL.clone();
-  gripR.position.x = 0.2;
-
-  // Front rack (wire tray)
-  const rack = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.015, 0.18), metal);
-  rack.position.set(0, 0.48, -0.42);
-  const rackLegL = tube(0.14, 0.008, metal);
-  rackLegL.position.set(-0.1, 0.4, -0.42);
-  const rackLegR = rackLegL.clone();
-  rackLegR.position.x = 0.1;
-
-  // White rear mudguard — thin curved plate, not a brick
-  const mud = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.22), white);
-  mud.position.set(0, 0.3, 0.4);
-  mud.rotation.x = -0.4;
-  const badge = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.04), frame);
-  badge.position.set(0, 0.32, 0.5);
-
-  // Crank + pedals. Group rotation.x is driven from the rider's pedal phase
-  // (0 = left pedal forward, increasing = that pedal pushes down).
-  const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.08, 8), metal);
-  bb.rotation.z = Math.PI / 2;
-  bb.position.set(0, 0.2, 0.02);
-  const crank = new THREE.Group();
-  crank.position.set(0, 0.2, 0.02);
-  const armLen = 0.11;
-  for (const up of [1, -1]) {
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.016, armLen, 0.016), metal);
-    arm.position.y = up * armLen * 0.5;
-    const pedal = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.016, 0.038), tire);
-    pedal.position.set(up > 0 ? 0.045 : -0.045, up * armLen, 0);
-    crank.add(arm, pedal);
-  }
-
-  // Headlamp on the rack / fork; red reflector under the mudguard.
-  const headlamp = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), lamp);
-  headlamp.position.set(0, 0.5, -0.48);
-  const taillight = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.028, 0.022), tail);
-  taillight.position.set(0, 0.34, 0.52);
-
-  g.add(
-    front,
-    rear,
-    head,
-    forkL,
-    forkR,
-    seatPost,
-    saddle,
-    stem,
-    bars,
-    gripL,
-    gripR,
-    rack,
-    rackLegL,
-    rackLegR,
-    mud,
-    badge,
-    bb,
-    crank,
-    headlamp,
-    taillight
-  );
-  g.userData.wheels = [front, rear];
+  g.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = true;
+    o.receiveShadow = true;
+    if (o.material?.name === "velo_lamp") o.material = lamp;
+    else if (o.material?.name === "velo_tail") o.material = tail;
+  });
+  const crank = g.getObjectByName("velo_crank") || null;
+  g.userData.shared = true;
+  g.userData.wheels = ["velo_wheel_front", "velo_wheel_rear"].map((n) => g.getObjectByName(n)).filter(Boolean);
   g.userData.crank = crank;
-  g.scale.setScalar(BIKE_SCALE);
+  // The left crank points up at rest: phase 0 swings it forward, and a growing phase pushes it down.
+  g.userData.setPedal = (phase) => {
+    if (crank) crank.rotation.x = -Math.PI / 2 - phase;
+  };
+  const v = (p) => new THREE.Vector3(p.x, p.y, p.z);
+  g.userData.seat = {
+    saddle: v(VELO_RIDE.saddle),
+    crank: v(VELO_RIDE.crank),
+    crankR: VELO_RIDE.crankR,
+    pedalX: VELO_RIDE.pedalX,
+    bar: v(VELO_RIDE.bar),
+    grip: VELO_RIDE.grip,
+  };
   return g;
+}
+
+/** The ridden Velo sits this far ahead of the player root. players.js seats the rider on it. */
+export const VELO_FWD = 0.15;
+
+/**
+ * Put the ridden Velo under the player: position, yaw, crank, and wheels.
+ * The game and viewer/movement.html both call this, so the gallery shows the game's bike.
+ * `player` is { x, z, yaw, pedal (0–1), moving, speed }.
+ */
+export function placeRideVelo(mesh, dt, player) {
+  const yaw = player.yaw ?? 0;
+  mesh.position.set(player.x - Math.sin(yaw) * VELO_FWD, 0, player.z - Math.cos(yaw) * VELO_FWD);
+  mesh.rotation.set(0, yaw, 0);
+  if (mesh.userData.setPedal && Number.isFinite(player.pedal)) {
+    mesh.userData.setPedal(player.pedal * Math.PI * 2);
+  }
+  if (player.moving && mesh.userData.wheels) {
+    const spin = (player.speed || 0) / VELO_RIDE.wheelR;
+    for (const w of mesh.userData.wheels) w.rotation.x -= dt * spin;
+  }
 }
 
 /** Closest point on the station rail segment (Blender local X after yaw → Three XZ). */
@@ -220,12 +171,14 @@ function distToRail(st, px, pz) {
 
 export async function createVelo(scene, THREE) {
   let doc = { stations: [] };
+  const model = preloadVeloModel();
   try {
     const res = await fetch(VELO_URL);
     if (res.ok) doc = await res.json();
   } catch (e) {
     console.warn("[metropolis] velo: could not load", VELO_URL, e);
   }
+  await model;
 
   const stations = (doc.stations || []).map((raw) => ({
     id: String(raw.id),
@@ -280,7 +233,7 @@ export async function createVelo(scene, THREE) {
   }
 
   function disposeMesh(mesh) {
-    if (!mesh) return;
+    if (!mesh || mesh.userData.shared) return;
     mesh.traverse((o) => {
       if (o.geometry) o.geometry.dispose?.();
       if (o.material) {
@@ -414,23 +367,7 @@ export async function createVelo(scene, THREE) {
   function update(dt, player) {
     if (toastT > 0) toastT -= dt;
     if (!ride || !player) return;
-    const mesh = ride.mesh;
-    const yaw = player.yaw != null ? player.yaw : 0;
-    // Sit the bike under the camera; slight forward bias so the rack is in view.
-    const fwd = 0.15;
-    mesh.position.set(
-      player.x - Math.sin(yaw) * fwd,
-      0,
-      player.z - Math.cos(yaw) * fwd
-    );
-    mesh.rotation.y = yaw;
-    if (mesh.userData.crank && Number.isFinite(player.pedal)) {
-      mesh.userData.crank.rotation.x = -Math.PI / 2 - player.pedal * Math.PI * 2;
-    }
-    if (player.moving && mesh.userData.wheels) {
-      const spin = (player.speed ?? BIKE_SPEED) / (0.2 * BIKE_SCALE);
-      for (const w of mesh.userData.wheels) w.rotation.x -= dt * spin;
-    }
+    placeRideVelo(ride.mesh, dt, { ...player, speed: player.speed ?? BIKE_SPEED });
   }
 
   function dispose() {
