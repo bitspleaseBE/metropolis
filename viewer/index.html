@@ -1410,6 +1410,27 @@
         return hit && hit.point.y < 0.6 ? hit.point.y : 0;
       }
       const _riderObstacles = [{ x: 0, z: 0, r: 0.45 }];
+      /** Walker plus every bus / tram, so a clip throws the rider instead of passing through. */
+      function fillRiderObstacles(walker) {
+        _riderObstacles.length = 0;
+        _riderObstacles.push({ x: walker.position.x, z: walker.position.z, r: 0.45 });
+        const fleet = transit.vehicles || [];
+        for (let i = 0; i < fleet.length; i++) {
+          const v = fleet[i];
+          if (!v?.pos || !v.tan || v.phase === "gone") continue;
+          const bus = v.mode === "bus";
+          _riderObstacles.push({
+            x: v.pos.x,
+            z: v.pos.z,
+            tx: v.tan.x,
+            tz: v.tan.z,
+            hl: bus ? 6.75 : 15.5,
+            hw: bus ? 1.2 : 1.25,
+            hard: true,
+            speed: v.velocity || 0,
+          });
+        }
+      }
       const _beforeStep = { x: 0, z: 0 };
       const _afterWall = { x: 0, z: 0 };
       let _lastVehicleHitMs = 0;
@@ -2839,7 +2860,7 @@
             _beforeStep.z = w.position.z;
             playerMotion.step(dt, keys, kind);
             w.position.y = playerMotion.eye(kind) + JUMP.y;
-            const overlapSpeed = !onScooter && !ridingVelo ? fastestOverlap(w.position, 0.36) : 0;
+            const overlapSpeed = fastestOverlap(w.position, onScooter || ridingVelo ? 0.55 : 0.36);
             const wallHit = !!(outdoors && outdoors.rejectIfIndoors(w.position, _beforeStep));
             if (wallHit) playerMotion.bump(0.5);
             clampWalkerXZ(w.position);
@@ -2908,6 +2929,9 @@
 
         const wPos = walkControls.getObject().position;
         const moveKind = ridingVelo ? "velo" : onScooter ? "scooter" : "walk";
+        const scooterDeck = onScooter && scooters?.deckAnchor ? scooters.deckAnchor() : null;
+        // Eye sits just above the grip so the soles, not the ankles, meet the deck.
+        if (scooterDeck) wPos.y = scooterDeck.y + 1.58;
         const spd = Math.abs(playerMotion.speed);
         let bodyYaw = thirdPerson.yaw();
         if (spd > 0.12 && mode === "walk") {
@@ -2919,7 +2943,7 @@
         }
         const crashing = playerCrash.active;
         if (mode === "walk" || mode === "free") {
-          playerAvatar.update(menuOpen || crashing ? 0 : dt, wPos, crashing ? 0 : spd, bodyYaw, moveKind);
+          playerAvatar.update(menuOpen || crashing ? 0 : dt, wPos, crashing ? 0 : spd, bodyYaw, moveKind, scooterDeck);
           playerAvatar.setVisible(!crashing);
         }
         if (crashing) {
@@ -2939,8 +2963,7 @@
           transit.update(simDt, walker);
           if (pedestrians) pedestrians.update(simDt);
           if (micromobility) {
-            _riderObstacles[0].x = walker.position.x;
-            _riderObstacles[0].z = walker.position.z;
+            fillRiderObstacles(walker);
             micromobility.update(simDt, _riderObstacles);
           }
           if (traffic.setCamera) traffic.setCamera(camera.position.x, camera.position.z);
