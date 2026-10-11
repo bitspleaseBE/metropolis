@@ -156,7 +156,8 @@ export async function loadCarTemplates(THREE, opts = {}) {
         out.push({
           id: spec.id,
           file: spec.file,
-          weight: Number(spec.weight) || 1,
+          weight: Number(spec.weight) || 0,
+          livery: !!spec.livery,
           length: spec.length,
           width: spec.width,
           height: spec.height,
@@ -179,14 +180,17 @@ export async function loadCarTemplates(THREE, opts = {}) {
 /** Weighted pick into `templates` (same order / weights as loaded). */
 export function pickCarTemplate(templates) {
   if (!templates || !templates.length) return null;
+  const pool = templates.filter((t) => t.weight > 0);
+  const list = pool.length ? pool : templates;
   let total = 0;
-  for (const t of templates) total += t.weight;
+  for (const t of list) total += Math.max(0, t.weight);
+  if (total <= 0) return list[0];
   let r = Math.random() * total;
-  for (const t of templates) {
+  for (const t of list) {
     r -= t.weight;
     if (r <= 0) return t;
   }
-  return templates[templates.length - 1];
+  return list[list.length - 1];
 }
 
 /**
@@ -196,12 +200,12 @@ export function pickCarTemplate(templates) {
  * @param {ReturnType<typeof makeLampParts>} parts
  * @param {CarTemplate} template
  */
-export function cloneCarMesh(THREE, parts, template) {
+export function cloneCarMesh(THREE, parts, template, opts = {}) {
   const group = new THREE.Group();
   const body = template.scene.clone(true);
   group.add(body);
 
-  const paint = pickCarPaint(Math.random());
+  const paint = template.livery ? 0xf4f5f2 : opts.paint ?? pickCarPaint(Math.random());
   let painted = false;
   forEachMaterial(body, (m) => {
     if (PAINT_RE.test(m.name || "")) {

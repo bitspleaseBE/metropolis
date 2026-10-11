@@ -1012,6 +1012,9 @@
       import { createThirdPersonCamera } from "./third-person.js";
       import { createMenu } from "./menu.js";
       import { createHud } from "./hud.js";
+      import { createWanted } from "./wanted.js";
+      import { createCombat } from "./combat.js";
+      import { createPolice } from "./police.js";
       import { createMinimap } from "./minimap.js";
       import { createStreetLocator } from "./street-locate.js";
       import { createOutdoorsGuard } from "./outdoors.js";
@@ -1413,6 +1416,8 @@
       let cityRoot = null;
       let spawnPos = new THREE.Vector3(-218.5, eyeHeight, -432.1);
       let traffic = { update() {}, dispose() {} };
+      let police = null;
+      let harmedPulse = false;
       let transit = { update() {}, dispose() {} };
       let pedestrians = null;
       let micromobility = null;
@@ -1713,6 +1718,28 @@
         },
       };
       const playerCrash = createPlayerCrash(THREE, camera, { eye: eyeHeight, canvas: renderer.domElement });
+      const wanted = createWanted();
+      wanted.setOnChange((state) => hud.setWanted(state.level, state.sign));
+      function landBlow(range, damage, single) {
+        if (playerCrash.active || playerCrash.dead || mode !== "walk") return;
+        const w = walkControls.getObject().position;
+        const yaw = playerMotion.yaw();
+        const dx = -Math.sin(yaw);
+        const dz = -Math.cos(yaw);
+        const peopleHit = pedestrians?.strike ? pedestrians.strike(w.x, w.z, dx, dz, range, damage, single) : [];
+        if (police?.hit) police.hit(w.x, w.z, dx, dz, range, damage, single);
+        if (peopleHit.length) harmedPulse = true;
+      }
+      const combat = createCombat(THREE, {
+        bones: () => playerAvatar.bones,
+        legs: () => playerAvatar.legs,
+        blocked: () =>
+          menu.open || mode !== "walk" || playerCrash.active || playerCrash.dead || (transit.isRiding && transit.isRiding()),
+        onHud: (info) => hud.setWeapon(info),
+        onMelee: (range, damage) => landBlow(range, damage, false),
+        onShot: (_damage, range) => landBlow(range, _damage, true),
+      });
+      window.startFactionPursuit = (spec) => police?.startFactionPursuit(spec) || false;
       const CRASH_IMPACT = 3.2; // m/s straight into something solid throws you off
       const CRASH_PERSON = 3.0; // m/s into a pedestrian: you both go down
 
@@ -1760,6 +1787,7 @@
         if (speed >= HIT_SPEED) hitByVehicle(speed);
       }
       playerCrash.setOnDeath(() => {
+        police?.onPlayerDown();
         hud.notify("You died · restarting…", 4500);
         setTimeout(() => {
           if (!playerCrash.dead) return;
@@ -2152,6 +2180,7 @@
         touch = createTouchControls({
           keys,
           onInteract: () => handleInteractE(),
+          onAttack: () => combat.attack(),
           onToggleMode: () => {
             if (transit.isRiding && transit.isRiding()) return;
             if (velo && velo.isRiding && velo.isRiding()) return;
@@ -2217,8 +2246,25 @@
         }
       });
 
+      window.addEventListener("mousedown", (e) => {
+        if (e.button !== 0 || menu.open || !pointerLocked || mode !== "walk") return;
+        combat.attack();
+      });
+      window.addEventListener("keyup", (e) => {
+        if (e.code === "Tab") combat.setOpen(false);
+      });
+      window.addEventListener("wheel", (e) => {
+        if (!pointerLocked || menu.open) return;
+        combat.cycle(e.deltaY > 0 ? 1 : -1);
+      }, { passive: true });
+
       window.addEventListener("keydown", (e) => {
         if (menu.open) return;
+        if (e.code === "Tab") {
+          e.preventDefault();
+          combat.setOpen(true);
+          return;
+        }
         if (e.code === "Escape") {
           e.preventDefault();
           if (sessionStarted) menu.show();
@@ -2622,7 +2668,8 @@
               scooters.fleet
                 .filter((s) => s.parked)
                 .map((s) => ({ x: s.mesh.position.x, z: s.mesh.position.z, color: BRAND[s.brand] || "#fff" }))
-                .concat(stations),
+                .concat(stations)
+                .concat(police ? police.blips() : []),
             );
           }
           streetLocator = await createStreetLocator();
@@ -2638,6 +2685,18 @@
           } else {
             console.warn("[metropolis] outdoors guard: no buildings.json — indoor walk possible");
           }
+          police = await createPolice(scene, THREE, {
+            paths: traffic.paths || [],
+            wanted,
+            people: pedestrians?.people,
+            inside: (x, z) => (outdoors?.ready ? outdoors.insideBuilding(x, z) : false),
+            player: () => {
+              const p = walkControls.getObject().position;
+              return { x: p.x, z: p.z };
+            },
+            notify: (text) => hud.notify(text, 2800),
+            onLoot: () => combat.givePistol(),
+          });
           // Cars give way to trams/buses instead of driving through them.
           if (traffic.setObstacles) traffic.setObstacles(() => transit.vehicles || []);
           const nCars = traffic.count ?? 0;
@@ -2912,6 +2971,7 @@
                     0.3,
                   )
                 : 0;
+              if (people) harmedPulse = true;
               if (
                 (impact > CRASH_IMPACT && Math.abs(rideSpeed) > CRASH_IMPACT) ||
                 (people && Math.abs(rideSpeed) > CRASH_PERSON)
@@ -2989,6 +3049,19 @@
           traffic.update(simDt, walker);
           transit.update(simDt, walker);
           if (pedestrians) pedestrians.update(simDt);
+          if (police) {
+            const face = playerMotion.yaw();
+            police.update(simDt, {
+              x: wPos.x,
+              z: wPos.z,
+              dead: playerCrash.dead,
+              hurt: (n) => playerCrash.hurt(n),
+              ranRed: !!(traffic.playerRanRed && traffic.playerRanRed(wPos.x, wPos.z, face)),
+              harmed: harmedPulse,
+            });
+            harmedPulse = false;
+          }
+          combat.update(menuOpen ? 0 : dt);
           if (micromobility) {
             _riderObstacles[0].x = walker.position.x;
             _riderObstacles[0].z = walker.position.z;

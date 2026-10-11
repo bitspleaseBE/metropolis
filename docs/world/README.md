@@ -33,6 +33,7 @@ Write every new page as if a newspaper reader in Antwerp would recognise the *sh
 | [trades.md](trades.md) | Diamonds, drugs, money laundering, weapons |
 | [missions.md](missions.md) | The kinds of jobs they go on (unbuilt) |
 | [streets.md](streets.md) | Street rules for the mark, corners, heat, and the step |
+| [signs.md](signs.md) | The drawings: three ticks, the police badge, and one sign per clan |
 
 ## Maps of the fiction
 

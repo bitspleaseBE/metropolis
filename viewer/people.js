@@ -26,6 +26,8 @@ const CLUSTER = {
 };
 
 // Always in the first batch, so the opening streets already show these households.
+const SERVICE = new Set(["Police_Male_03", "Police_Male_04"]);
+
 const FIRST = [
   "Hasidic_Father", "Hasidic_Mother", "Hasidic_Boy", "Hasidic_Girl",
   "Male_Adult_15", "Female_Adult_06", "Female_Child_02", "Male_Child_02_grey",
@@ -122,8 +124,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   }
 
   // First batch: the fixed households, then a spread over ages and looks.
-  const first = new Set(FIRST.filter((id) => byId.has(id)));
-  const rest = shuffle(people.filter((p) => !first.has(p.id)));
+  const first = new Set(FIRST.filter((id) => byId.has(id) && !SERVICE.has(id)));
+  const rest = shuffle(people.filter((p) => !first.has(p.id) && !SERVICE.has(p.id)));
   const need = { child: 4, senior: 2 };
   for (const p of rest) {
     if (first.size >= initial) break;
@@ -146,7 +148,7 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
 
   // Optional stream-in: fill up to `resident`, then stop. Continuous rotate/evict was uploading
   // ~10 MB textures every few seconds for the whole session and made the tab unplayable.
-  const queue = shuffle(people.filter((p) => !loaded.has(p.id)).map((p) => p.id));
+  const queue = shuffle(people.filter((p) => !loaded.has(p.id) && !SERVICE.has(p.id)).map((p) => p.id));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let retiring = null;
   (async () => {
@@ -181,7 +183,7 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   const avail = (filter) => [...loaded.values()].filter((t) => filter(t.person));
   /** Prefer people nobody is wearing right now, so streamed-in models actually show up. */
   function choose(filter, exclude) {
-    let all = avail((p) => filter(p) && !exclude.has(p.id));
+    let all = avail((p) => filter(p) && !exclude.has(p.id) && !SERVICE.has(p.id));
     if (all.length > 1) all = all.filter((t) => t !== retiring);
     if (!all.length) return null;
     const least = Math.min(...all.map((t) => t.users));
@@ -303,6 +305,22 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     return { root, mixer, action, getUp, height, naturalSpeed: p.walkSpeed * jitter, template: t };
   }
 
+  async function acquire(id) {
+    if (!byId.has(id)) return null;
+    const t = await load(id);
+    return t ? instance(t) : null;
+  }
+
+  /** First loaded match, otherwise load one person who passes `filter`. */
+  async function acquireMatching(filter) {
+    const ready = choose(filter, new Set());
+    if (ready) return instance(ready);
+    const person = people.find((p) => filter(p) && !SERVICE.has(p.id));
+    if (!person) return null;
+    const t = await load(person.id);
+    return t ? instance(t) : null;
+  }
+
   function release(inst) {
     inst.mixer.stopAllAction();
     inst.mixer.uncacheRoot(inst.root);
@@ -313,6 +331,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   return {
     household,
     instance,
+    acquire,
+    acquireMatching,
     release,
     get residentCount() {
       return loaded.size;

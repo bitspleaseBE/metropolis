@@ -101,6 +101,17 @@
       "height": 2.023,
       "model": "Ford Transit Custom",
       "generation": "2023-"
+    },
+    {
+      "id": "politie_transporter",
+      "file": "politie_transporter.glb",
+      "weight": 0,
+      "length": 4.967,
+      "width": 2.204,
+      "height": 2.141,
+      "model": "Volkswagen Transporter",
+      "generation": "T6.1 Politie",
+      "livery": true
     }
   ]
 }

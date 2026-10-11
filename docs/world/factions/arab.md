@@ -35,3 +35,11 @@ Pieter is a useful outsider for a drive across the ring — never trusted with t
 ## Territory in the fiction
 
 Borgerhout and the eastern streets; cash shops and kebab fronts wherever the map allows; the soft edge of Klein Antwerpen where a tag can announce that the three are not only an eastern problem.
+
+## Their sign
+
+`viewer/signs/clan-arab.svg` — a crescent. One glyph, the street crews only.
+
+## If you betray them
+
+A mission can call them. They send the same black sedan and four armed members, and the meter shows the crescent. Later they may come on scooters. The crescent stays. Maghrebi neighbours, shops, and mosques are not this chase.

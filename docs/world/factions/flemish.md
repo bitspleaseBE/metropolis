@@ -33,3 +33,11 @@ Mo is noise. Jacob is a puzzle they would rather not examine — a coat that mea
 ## Territory in the fiction
 
 Harbor tiles, industrial edges, Flemish cafés in Klein Antwerpen and the wider city. Their wars spill east when a box’s contents hit the street — and that is where they collide with the Arab floor.
+
+## Their sign
+
+`viewer/signs/clan-flemish.svg` — an anchor. Port, trucks, routes.
+
+## If you betray them
+
+A mission can call them. They send the same black sedan and the same four armed members as the other floors, for now, and the meter shows the anchor. Later they may come in a van. The anchor stays. Flemish Antwerp — the cafés, the ordinary jobs — is not this chase.

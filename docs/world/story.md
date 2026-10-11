@@ -58,3 +58,9 @@ The fantasy is power and loyalty under pressure — GTA with Antwerp’s real ge
 When the three win, a street knows their mark, a corner is quiet, a till is lighter, a stone has moved, a harbor man has been warned, and the police are looking at empty asphalt. When they lose, heat rises, a faction notices, and the city closes around them the way Antwerp always closes: slowly, then all at once.
 
 Walking is the stage. The jobs are the play.
+
+## Signs
+
+The three keep one mark: three ticks, `viewer/signs/mark-three.svg`. It is paint on a wall, not a wanted star.
+
+Police heat uses a sheriff badge. Each old floor has its own sign, and only that sign: a Star of David for the diamond network, an anchor for the dock families, a crescent for the street crews. The catalog is [signs.md](signs.md). A mission can send a black car flying that sign. Nothing the player does on the pavement picks a clan for them.

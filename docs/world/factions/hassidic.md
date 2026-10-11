@@ -35,3 +35,11 @@ Pieter is a driver they might hire once and forget. Mo is the kind of heat they 
 ## Territory in the fiction
 
 Antwerpen City and the diamond streets (Pelikaanstraat and the bourse edge); quiet rooms, not loud blocks. Their wars are about who sits at the table with Indian counterparties, and who is still only carrying the envelope.
+
+## Their sign
+
+`viewer/signs/clan-hassidic.svg` — a Star of David. Only this network. The wall mark of the three stays three ticks, and the police badge is not this star.
+
+## If you betray them
+
+A mission can call them. They send a black sedan with four armed members, and the meter shows their star. Later passes may change the car. The drawing stays. Neighbours, synagogues, and the ordinary diamond trade are not this chase.
