@@ -681,20 +681,33 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     }
   }
 
-  /** Nearest hard tram/bus the rider's body is inside, or null. */
+  /**
+   * True when a rider centred at (x, z) touches an oriented transit body.
+   * Pads are the bike's own half-length / half-width: a bus that clips the
+   * wheel or the bars counts, not only a hit that swallows the saddle.
+   */
+  function riderTouchesBody(ob, x, z) {
+    if (!ob?.hard || ob.hl == null) return false;
+    const dx = x - ob.x;
+    const dz = z - ob.z;
+    const otx = ob.tx || 0;
+    const otz = ob.tz || 0;
+    const along = Math.abs(dx * otx + dz * otz);
+    const lat = Math.abs(dx * otz - dz * otx);
+    // 0.32 m is a handlebar / shoulder past the saddle, so a bus that
+    // brushes the bike counts. A clear gap beside the body does not.
+    return along < (ob.hl ?? 1) + 0.35 && lat < (ob.hw ?? 1) + 0.32;
+  }
+
+  /** Nearest hard tram/bus the rider's body is touching, or null. */
   function hardHit(v, obstacles) {
     let best = null;
     let bestD = Infinity;
     for (const ob of nearObstacles(v, obstacles)) {
-      if (!ob.hard || ob.hl == null) continue;
+      if (!riderTouchesBody(ob, v.pos.x, v.pos.z)) continue;
       const dx = v.pos.x - ob.x;
       const dz = v.pos.z - ob.z;
-      const otx = ob.tx || 0;
-      const otz = ob.tz || 0;
-      const along = dx * otx + dz * otz;
-      const lat = Math.abs(dx * otz - dz * otx);
-      if (Math.abs(along) >= (ob.hl ?? 1) * 0.95 || lat >= (ob.hw ?? 1) * 0.95) continue;
-      const d = Math.abs(along) + lat;
+      const d = Math.hypot(dx, dz);
       if (d < bestD) {
         bestD = d;
         best = ob;
@@ -819,7 +832,7 @@ export async function createMicromobility(scene, THREE, opts = {}) {
 
   // Distance LOD (mirrors pedestrians.js Hot / Warm / Cold), measured from the camera:
   //   Hot  <= HOT_M   full mixer, hard-hit tests
-  //   Warm <= WARM_M  mixer at half rate, no hit tests
+  //   Warm <= WARM_M  mixer at half rate, hard-hit tests (a visible clip still crashes)
   //   Cold <= COLD_M  hidden, mixer frozen, path still advances
   //   Far  >  FAR_M   recycled onto a path near the camera (rate-limited)
   const HOT_M = 60;
@@ -919,15 +932,16 @@ export async function createMicromobility(scene, THREE, opts = {}) {
       place(v);
 
       const hot = d2 <= hot2;
-      // Still inside a tram/bus after braking → accident: fly off, maybe die (near the camera only).
-      if (hot) {
-        const hit = hardHit(v, obstacles);
-        if (hit) {
-          const closing = Math.max(v.cur, 0) + Math.max(0, Number(hit.speed) || 0);
-          if (closing >= HARD_HIT_SPEED || v.cur < 0.4) {
-            startCrash(v, hit);
-            continue;
-          }
+      // A bus / tram that clips the bike throws the rider. Visible riders (hot and
+      // warm) all count — a touch you can see has to become an accident.
+      const hit = hardHit(v, obstacles);
+      if (hit) {
+        const busV = Math.max(0, Number(hit.speed) || 0);
+        const closing = Math.max(v.cur, 0) + busV;
+        // A stopped pair can sit side by side. Fall when someone is actually moving.
+        if (closing >= HARD_HIT_SPEED || (busV >= 0.6 && v.cur < 0.4)) {
+          startCrash(v, hit);
+          continue;
         }
       }
 

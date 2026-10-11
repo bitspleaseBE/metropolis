@@ -190,6 +190,8 @@ export function createPlayerAvatar(THREE, scene) {
       rThigh: findNamed(rig, "Bip01_R_Thigh", "Bip01 R Thigh", "RightUpLeg", "mixamorigRightUpLeg"),
       lCalf: findNamed(rig, "Bip01_L_Calf", "Bip01 L Calf", "LeftLeg", "mixamorigLeftLeg"),
       rCalf: findNamed(rig, "Bip01_R_Calf", "Bip01 R Calf", "RightLeg", "mixamorigRightLeg"),
+      lFoot: findNamed(rig, "Bip01_L_Foot", "Bip01 L Foot", "LeftFoot", "mixamorigLeftFoot"),
+      rFoot: findNamed(rig, "Bip01_R_Foot", "Bip01 R Foot", "RightFoot", "mixamorigRightFoot"),
       spine: findNamed(rig, "Bip01_Spine", "Bip01 Spine", "Spine", "mixamorigSpine"),
       head: findNamed(rig, "Bip01_Head", "Bip01 Head", "Head", "mixamorigHead"),
       pelvis: findNamed(rig, "Bip01_Pelvis", "Bip01 Pelvis", "Pelvis", "mixamorigHips"),
@@ -209,6 +211,14 @@ export function createPlayerAvatar(THREE, scene) {
     if (headTrack && headBindReady) {
       _qClip.fromArray(headTrack.values, 0);
       headOffBind = Math.abs(_qClip.dot(_headBind)) < 0.5;
+    }
+    // Flat soles in the bind, body yaw still 0. Scooter IK keeps this orientation.
+    root.updateMatrixWorld(true);
+    for (const key of ["lFoot", "rFoot"]) {
+      const bone = bodyBones[key];
+      if (!bone) continue;
+      bone.userData.bindWorldQ = new THREE.Quaternion();
+      bone.getWorldQuaternion(bone.userData.bindWorldQ);
     }
   }
 
@@ -374,6 +384,121 @@ export function createPlayerAvatar(THREE, scene) {
     gripTarget(_gripR, yaw, 1, cfg);
     ccdArmIK(armBones.lUpper, armBones.lFore, armBones.lHand, _gripL);
     ccdArmIK(armBones.rUpper, armBones.rFore, armBones.rHand, _gripR);
+  }
+
+  // Two-bone leg solve. Reused so the scooter stance does not allocate per frame.
+  const _aimPos = new THREE.Vector3();
+  const _aimX = new THREE.Vector3();
+  const _aimY = new THREE.Vector3();
+  const _aimZ = new THREE.Vector3();
+  const _legHip = new THREE.Vector3();
+  const _legKnee = new THREE.Vector3();
+  const _legAnkle = new THREE.Vector3();
+  const _legPole = new THREE.Vector3();
+  const _legDir = new THREE.Vector3();
+  const _legM = new THREE.Matrix4();
+  const _yawQ = new THREE.Quaternion();
+  const _worldUp = new THREE.Vector3(0, 1, 0);
+
+  /** Point `bone`'s local +Y at `worldPoint`, twist so local +Z leans toward `poleWorld`. */
+  function aimBone(bone, worldPoint, poleWorld) {
+    const parent = bone.parent;
+    if (!parent) return;
+    parent.updateWorldMatrix(true, false);
+    bone.updateWorldMatrix(true, false);
+    _aimPos.setFromMatrixPosition(bone.matrixWorld);
+    _aimY.copy(worldPoint).sub(_aimPos);
+    if (_aimY.lengthSq() < 1e-8) return;
+    _aimY.normalize();
+    _aimZ.copy(poleWorld).sub(_aimPos);
+    _aimZ.addScaledVector(_aimY, -_aimZ.dot(_aimY));
+    if (_aimZ.lengthSq() < 1e-8) {
+      _aimZ.copy(_worldUp);
+      _aimZ.addScaledVector(_aimY, -_aimZ.dot(_aimY));
+    }
+    if (_aimZ.lengthSq() < 1e-8) return;
+    _aimZ.normalize();
+    _aimX.crossVectors(_aimY, _aimZ).normalize();
+    _aimZ.crossVectors(_aimX, _aimY).normalize();
+    _legM.makeBasis(_aimX, _aimY, _aimZ);
+    _ikWorldQ.setFromRotationMatrix(_legM);
+    parent.getWorldQuaternion(_ikParentQ);
+    bone.quaternion.copy(_ikParentQ.invert()).multiply(_ikWorldQ);
+  }
+
+  /**
+   * Hip → knee → ankle. Knee bends toward `pole` (in front of the hip) so the
+   * leg does not hyperextend. Lengths come from the current bone spacing.
+   */
+  function solveLeg(thigh, calf, foot, target, pole) {
+    if (!thigh || !calf || !foot) return;
+    thigh.updateWorldMatrix(true, true);
+    _legHip.setFromMatrixPosition(thigh.matrixWorld);
+    _legKnee.setFromMatrixPosition(calf.matrixWorld);
+    _legAnkle.setFromMatrixPosition(foot.matrixWorld);
+    const upper = Math.max(0.05, _legHip.distanceTo(_legKnee));
+    const lower = Math.max(0.05, _legKnee.distanceTo(_legAnkle));
+    _legDir.copy(target).sub(_legHip);
+    const reach = _legDir.length();
+    if (reach < 1e-4) return;
+    _legDir.multiplyScalar(1 / reach);
+    const dist = Math.max(Math.abs(upper - lower) + 0.02, Math.min((upper + lower) * 0.985, reach));
+    const along = (dist * dist + upper * upper - lower * lower) / (2 * dist);
+    const bow = Math.sqrt(Math.max(0, upper * upper - along * along));
+    _legPole.copy(pole).sub(_legHip);
+    _legPole.addScaledVector(_legDir, -_legPole.dot(_legDir));
+    if (_legPole.lengthSq() < 1e-6) {
+      _legPole.copy(_worldUp);
+      _legPole.addScaledVector(_legDir, -_legPole.dot(_legDir));
+    }
+    _legPole.normalize();
+    _legKnee.copy(_legHip).addScaledVector(_legDir, along).addScaledVector(_legPole, bow);
+    aimBone(thigh, _legKnee, pole);
+    thigh.updateMatrixWorld(true);
+    aimBone(calf, target, pole);
+    calf.updateMatrixWorld(true);
+    const bind = foot.userData.bindWorldQ;
+    if (bind) {
+      _yawQ.setFromAxisAngle(_worldUp, root.rotation.y);
+      _ikWorldQ.copy(_yawQ).multiply(bind);
+      foot.parent.getWorldQuaternion(_ikParentQ);
+      foot.quaternion.copy(_ikParentQ.invert()).multiply(_ikWorldQ);
+    }
+  }
+
+  /**
+   * NPC scooter clips plant one foot toward the stem and one toward the tail,
+   * soles on the deck. The player clip only guesses a crouch, so the legs
+   * trail off the board. Solve them onto the same stance.
+   * `deck` is { x, y, z, yaw } with y on the grip and -Z (yaw 0) toward the stem.
+   */
+  function polishScooterLegs(deck) {
+    if (!bodyBones || !deck) return;
+    const c = Math.cos(deck.yaw);
+    const s = Math.sin(deck.yaw);
+    const ankle = 0.07; // sole thickness: foot bone sits above the grip
+    // Left foot forward on the deck, right foot back. Matches the NPC stagger.
+    const feet = [
+      ["lThigh", "lCalf", "lFoot", -0.045, -0.06, -1],
+      ["rThigh", "rCalf", "rFoot", 0.045, 0.12, 1],
+    ];
+    for (const [thighK, calfK, footK, lx, lz, side] of feet) {
+      _gripL.set(deck.x + lx * c + lz * s, deck.y + ankle, deck.z - lx * s + lz * c);
+      const thigh = bodyBones[thighK];
+      if (!thigh) continue;
+      thigh.updateWorldMatrix(true, false);
+      _legHip.setFromMatrixPosition(thigh.matrixWorld);
+      const fx = -Math.sin(deck.yaw);
+      const fz = -Math.cos(deck.yaw);
+      const rx = Math.cos(deck.yaw);
+      const rz = -Math.sin(deck.yaw);
+      _legPole.set(
+        _legHip.x + fx * 0.45 + rx * side * 0.18,
+        _legHip.y - 0.05,
+        _legHip.z + fz * 0.45 + rz * side * 0.18,
+      );
+      solveLeg(thigh, bodyBones[calfK], bodyBones[footK], _gripL, _legPole);
+    }
   }
 
   /** Rocketbox Bip01_* or Mixamo mixamorig9:Head etc. */
@@ -564,13 +689,16 @@ export function createPlayerAvatar(THREE, scene) {
      * @param {number} moveSpeed  m/s forward magnitude
      * @param {number} targetYaw  body facing (Three Y)
      * @param {"walk"|"velo"|"scooter"} kind
+     * @param {{ x: number, y: number, z: number, yaw: number } | null} [deck]
+     *   Scooter grip surface in world space. Feet are solved onto it.
      */
-    update(dt, pos, moveSpeed, targetYaw, kind = "walk") {
+    update(dt, pos, moveSpeed, targetYaw, kind = "walk", deck = null) {
       if (!visual) return;
       root.position.x = pos.x;
       root.position.z = pos.z;
       // Walker stores eye height; feet sit eye−1.7 (jump lifts both).
-      const eye = 1.7;
+      // On a scooter the eye is already deck + ride height, so the soles use the grip.
+      const eye = kind === "scooter" && deck ? 1.58 : 1.7;
       root.position.y = Number.isFinite(pos.y) ? Math.max(0, pos.y - eye) : 0;
 
       const dy = Math.atan2(Math.sin(targetYaw - facing), Math.cos(targetYaw - facing));
@@ -585,7 +713,9 @@ export function createPlayerAvatar(THREE, scene) {
         else ensureClip("scooter");
       } else setAction("walk");
 
-      const airborne = kind === "walk" && root.position.y > 0.05;
+      // Pavement is 0.12 m. A few centimetres of sidewalk must not freeze the stride;
+      // only a hop clear of the kerb counts as airborne.
+      const airborne = kind === "walk" && root.position.y > 0.2;
       if (airborne) airBlend = Math.min(1, airBlend + dt * 9);
       else airBlend = Math.max(0, airBlend - dt * 6);
 
@@ -615,13 +745,17 @@ export function createPlayerAvatar(THREE, scene) {
         stabilizeHead();
       } else if (kind === "velo" || kind === "scooter") {
         visual.position.x = 0;
-        visual.position.z = 0;
+        // Scooter mesh sits 0.18 m ahead of the root. Shift onto the deck so both
+        // feet can plant under the hips instead of one leg lunging at the stem.
+        visual.position.z = kind === "scooter" && deck ? -0.14 : 0;
         // Walk's head track is still fading out. Hold the bind so that blend can't stick.
         if (headOffBind && headBindReady && bodyBones?.head) {
           bodyBones.head.quaternion.copy(_headBind);
         }
         // Ride clips don't put Rocketbox/Mixamo wrists on the bars — IK does.
-        visual.updateMatrixWorld(true);
+        // Scooter legs are solved onto the deck; the baked crouch leaves them trailing.
+        root.updateMatrixWorld(true);
+        if (kind === "scooter") polishScooterLegs(deck);
         polishRideGrips(kind, targetYaw);
       }
       root.visible = true;

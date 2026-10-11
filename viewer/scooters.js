@@ -362,6 +362,19 @@ export async function createScooters(scene, THREE, opts = {}) {
     if (Math.abs(speed) > 0.5) s.battery = Math.max(5, s.battery - dt * 0.05);
   }
 
+  /** Grip surface under the rider while a scooter is unlocked. y is the deck top. */
+  const DECK_TOP = 0.172;
+  function deckAnchor() {
+    if (!ride) return null;
+    const s = ride.s;
+    return {
+      x: s.mesh.position.x,
+      y: s.mesh.position.y + DECK_TOP,
+      z: s.mesh.position.z,
+      yaw: s.mesh.rotation.y,
+    };
+  }
+
   function getRideHud() {
     if (!ride) return { riding: false, toast: toastT > 0 ? toast : "" };
     const mm = Math.floor(ride.t / 60);
@@ -400,6 +413,7 @@ export async function createScooters(scene, THREE, opts = {}) {
     getPrompt,
     update,
     getRideHud,
+    deckAnchor,
     solids,
     setNight,
     dispose() {
