@@ -11,7 +11,9 @@
 import { shared } from "./lanes.js";
 import { createCellGrid } from "./cell-grid.js";
 
-const TRANSIT_URL = "./transit.json";
+const TRANSIT_URL =
+  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("transit.json")) ||
+  "./transit.json";
 const TRAM_COUNT = 6;
 const BUS_COUNT = 8;
 const TRAM_SPEED = 7.5;
@@ -179,7 +181,9 @@ function attachHaltsToPaths(paths, stops, THREE) {
     const halts = [];
     for (const stop of worldStops) {
       if (path.mode === "tram" || path.mode === "subway") {
-        if (stop.mode === "bus") continue;
+        if (stop.mode === "bus" || stop.mode === "train") continue;
+      } else if (path.mode === "train") {
+        if (stop.mode !== "train") continue;
       } else if (path.mode === "bus" && stop.mode !== "bus") {
         continue;
       }
@@ -222,7 +226,9 @@ function attachHaltsToPaths(paths, stops, THREE) {
 
 function lineLabel(lines, mode) {
   if (lines && lines.length) return String(lines[0]);
-  return mode === "bus" ? "bus" : "tram";
+  if (mode === "bus") return "bus";
+  if (mode === "train") return "NMBS";
+  return "tram";
 }
 
 // ---------------------------------------------------------------------------
@@ -875,20 +881,23 @@ function steerBus(v, rate, dt) {
 }
 
 function createVehicle(paths, THREE, parts, mode) {
-  const pool = paths.filter((p) =>
-    mode === "tram" ? p.mode === "tram" || p.mode === "subway" : p.mode === "bus",
-  );
+  const pool = paths.filter((p) => {
+    if (mode === "tram") return p.mode === "tram" || p.mode === "subway";
+    if (mode === "train") return p.mode === "train";
+    return p.mode === "bus";
+  });
   const use = pool.length ? pool : paths;
   const indexInUse = (Math.random() * use.length) | 0;
   const path = use[indexInUse];
   const index = paths.indexOf(path);
   const reverse = legalReverse(path, Math.random() < 0.5);
   // Leave room behind a tram for its trailing wagons to sit on the path.
-  const minS = mode === "tram" ? TRAM_TRAIL_SPAN + 1 : 1;
+  const minS = mode === "tram" || mode === "train" ? TRAM_TRAIL_SPAN + 1 : 1;
   const span = Math.max(8, path.length * 0.85 - minS);
   const s = minS + Math.random() * span;
-  const mesh = mode === "tram" ? makeTramMesh(THREE, parts) : makeBusMesh(THREE, parts);
-  const base = mode === "tram" ? TRAM_SPEED : BUS_SPEED;
+  // NMBS trains reuse the articulated tram mesh until a dedicated livery lands.
+  const mesh = mode === "bus" ? makeBusMesh(THREE, parts) : makeTramMesh(THREE, parts);
+  const base = mode === "bus" ? BUS_SPEED : mode === "train" ? TRAM_SPEED * 1.15 : TRAM_SPEED;
   const v = {
     mesh,
     mode,
@@ -1050,6 +1059,7 @@ export async function createTransit(scene, THREE, opts = {}) {
   const worldStops = attachHaltsToPaths(allPaths, data.stops || [], THREE);
   const tramPaths = allPaths.filter((p) => p.mode === "tram" || p.mode === "subway");
   const busPaths = allPaths.filter((p) => p.mode === "bus");
+  const trainPaths = allPaths.filter((p) => p.mode === "train");
   if (allPaths.length < 1) {
     console.warn("Transit disabled — no paths");
     return emptyTransit();
@@ -1058,10 +1068,11 @@ export async function createTransit(scene, THREE, opts = {}) {
   const root = new THREE.Group();
   root.name = "RuntimeTransit";
   scene.add(root);
-  // Browser: resolve next to transit.json. Headless sims have no document.baseURI.
+  // Liveries live at viewer/livery/, not under districts/<id>/. Resolving next to
+  // district transit.json 404s tram_front (and bus wraps) → black cab face.
   let liveryBase = "livery/";
   try {
-    liveryBase = new URL("livery/", new URL(url, document.baseURI || "http://local/")).href;
+    liveryBase = new URL("livery/", document.baseURI || "http://local/").href;
   } catch {
     /* keep relative */
   }
@@ -1282,6 +1293,8 @@ export async function createTransit(scene, THREE, opts = {}) {
 
   const serviceHalt = seedTramsAtServiceHalt();
   spawnFleet(busN, "bus", busPaths);
+  const trainN = Math.min(opts.trainCount ?? 2, trainPaths.length ? 3 : 0);
+  spawnFleet(trainN, "train", trainPaths);
   if (serviceHalt) {
     console.info(
       `Transit: seeded trams for ${serviceHalt.halt.name} (${serviceHalt.dist.toFixed(0)} m from spawn)`,
