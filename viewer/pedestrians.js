@@ -13,7 +13,9 @@
 import { createPeoplePool } from "./people.js";
 import { fetchJsonCached } from "./json-cache.js";
 
-const ROADS_URL = "./roads.json";
+const ROADS_URL =
+  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
+  "./roads.json";
 const JOIN_M = 5.0; // endpoints this close are the same junction
 const LATERAL_M = 0.22; // stay inside a 2 m sidewalk, prefer the building half
 const SAFE_KINDS = new Set(["sidewalk", "footway", "path", "pedestrian", "steps"]);
@@ -50,8 +52,18 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   // Same raycast helper as scooters/shops: pavement ~0.12 m, road ~0.
   // Prefer a cheap constant for far people — full-scene raycasts were ~2× per ped per frame.
   const groundAt = typeof opts.groundAt === "function" ? opts.groundAt : () => 0;
-  const footY = (x, z, baseY = 0, precise = true) =>
-    (precise ? groundAt(x, z) : PAVEMENT_Y) + baseY;
+  // Nearby people sample the mesh (pavement ~0.12, road ~0.04). A miss on a
+  // sidewalk still stands on the pavement; crossings stay at street level.
+  const footY = (x, z, baseY = 0, precise = true, kind = "sidewalk") => {
+    const onStreet = kind === "crossing";
+    let h;
+    if (!precise) h = onStreet ? 0 : PAVEMENT_Y;
+    else {
+      const sampled = groundAt(x, z);
+      h = sampled > 0.02 ? sampled : onStreet ? 0 : PAVEMENT_Y;
+    }
+    return h + baseY;
+  };
   let _lodParity = 0;
 
   const walks = opts.walks || (await loadWalks());
@@ -443,7 +455,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     }
     const x = m.routeX + (m.offX || 0);
     const z = m.routeZ + (m.offZ || 0);
-    m.mesh.position.set(x, footY(x, z, baseY, precise), z);
+    m.mesh.position.set(x, footY(x, z, baseY, precise, route.kind), z);
     const aheadS = Math.min(routeLength(route), Math.max(0, m.s + m.dir * 0.6));
     const ahead = routePosition(route, aheadS);
     const dx = ahead.x - pos.x;

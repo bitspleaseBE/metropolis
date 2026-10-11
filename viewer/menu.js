@@ -3,6 +3,7 @@
  * Full-screen plate covers the WebGL view; no login, no combat chrome.
  */
 import { PLAYERS, getStoredPlayerId, setStoredPlayerId, playerById } from "./players.js";
+import { buttonName, controlRows } from "./gamepad.js";
 
 const MAPS = [
   {
@@ -54,7 +55,7 @@ export function createMenu(hooks) {
   root.hidden = true;
   root.innerHTML = `
     <div class="cm-poster" aria-hidden="true">
-      <img class="cm-bg" src="./menu/poster-antwerp.jpg" alt="" />
+      <img class="cm-bg" data-src="./menu/poster-antwerp.jpg" alt="" />
       <div class="cm-scrim"></div>
     </div>
     <div class="cm-home">
@@ -65,8 +66,10 @@ export function createMenu(hooks) {
         <button type="button" class="cm-item" data-action="play">Play</button>
         <button type="button" class="cm-item" data-action="maps">Maps</button>
         <button type="button" class="cm-item" data-action="characters">Characters</button>
+        <button type="button" class="cm-item" data-action="controls">Controls</button>
       </nav>
       <p class="cm-status" id="cm-status">Keyboard &amp; mouse ready</p>
+      <button type="button" class="cm-hid" hidden>Connect controller</button>
     </div>
     <div class="cm-portrait-wrap" id="cm-portrait-wrap" aria-hidden="true">
       <img class="cm-portrait" id="cm-portrait" src="" alt="" />
@@ -107,6 +110,14 @@ export function createMenu(hooks) {
         <button type="button" class="cm-confirm" data-confirm>Select</button>
         <button type="button" class="cm-back" data-back>Back</button>
       </div>
+    </div>
+    <div class="cm-panel" id="cm-controls" hidden>
+      <p class="cm-eyebrow">Controls</p>
+      <h2 id="cm-controls-title">Keyboard</h2>
+      <p class="cm-controls-live" id="cm-controls-live"></p>
+      <button type="button" class="cm-hid" hidden>Connect controller</button>
+      <ul class="cm-controls-list" id="cm-controls-list"></ul>
+      <button type="button" class="cm-back" data-back>Back</button>
     </div>
     <footer class="cm-footer">
       <span><kbd>↑↓</kbd> Navigate</span>
@@ -251,7 +262,7 @@ export function createMenu(hooks) {
     const fig = document.createElement("figure");
     fig.className = "cm-card";
     fig.dataset.id = p.id;
-    fig.innerHTML = `<img src="./menu/portrait-${p.id}-full.png" alt="${p.name}" /><figcaption>${p.name}</figcaption>`;
+    fig.innerHTML = `<img data-src="./menu/portrait-${p.id}-full.png" alt="${p.name}" /><figcaption>${p.name}</figcaption>`;
     stage.append(fig);
   }
 
@@ -259,11 +270,24 @@ export function createMenu(hooks) {
   let view = "home"; // home | maps | cast
   let navIndex = 0;
   let castIndex = Math.max(0, PLAYERS.findIndex((p) => p.id === getStoredPlayerId()));
+  // Poster and portraits stay unloaded until the city file has finished, so they
+  // don't sit on the same connection as the 56 MB streets download.
+  let artReady = false;
 
   function refreshPortrait() {
     const p = playerById(getStoredPlayerId());
-    portrait.src = `./menu/portrait-${p.id}.png`;
+    portrait.dataset.src = `./menu/portrait-${p.id}.png`;
     portrait.alt = p.name;
+    if (artReady) portrait.src = portrait.dataset.src;
+  }
+
+  function loadArt() {
+    if (artReady) return;
+    artReady = true;
+    for (const img of root.querySelectorAll("img[data-src]")) {
+      if (!img.getAttribute("src")) img.src = img.dataset.src;
+    }
+    refreshPortrait();
   }
 
   function setNavSelected() {
@@ -291,11 +315,73 @@ export function createMenu(hooks) {
     hooks.onBrowse?.(p.id);
   }
 
+  const controlsTitle = root.querySelector("#cm-controls-title");
+  const controlsLive = root.querySelector("#cm-controls-live");
+  const controlsList = root.querySelector("#cm-controls-list");
+  let controlsRaf = 0;
+  let controlsLayout = undefined;
+
+  function renderControlList() {
+    const pad = hooks.gamepad;
+    const layout = pad && pad.connected() ? pad.layout : null;
+    const rows = controlRows(layout);
+    controlsTitle.textContent = layout === "playstation" ? pad.label : layout === "xbox" ? "Xbox" : layout ? "Controller" : "Keyboard";
+    controlsList.replaceChildren();
+    for (const [button, action] of rows) {
+      const li = document.createElement("li");
+      const kbd = document.createElement("kbd");
+      kbd.textContent = button;
+      const act = document.createElement("span");
+      act.textContent = action;
+      li.append(kbd, act);
+      controlsList.append(li);
+    }
+    controlsLayout = layout;
+  }
+
+  function paintControls() {
+    const pad = hooks.gamepad;
+    const g = pad ? pad.sample() : null;
+    if (!g || !g.layout) {
+      controlsLive.textContent = pad?.canConnectHid?.()
+        ? "Connect controller once. After that the sticks show up here and stay on."
+        : "Plug in a controller, then press any button. The sticks show up on this line.";
+      if (controlsLayout) renderControlList();
+      return;
+    }
+    if (g.layout !== controlsLayout) renderControlList();
+    const held = Object.entries(g.down || [])
+      .filter(([, on]) => on)
+      .map(([name]) => buttonName(g.layout, name));
+    const n = (v) => (v >= 0 ? "+" : "") + v.toFixed(2);
+    const s = g.sticks || { lx: 0, ly: 0, rx: 0, ry: 0 };
+    controlsLive.textContent = `${g.label} · L ${n(s.lx)} ${n(s.ly)} · R ${n(s.rx)} ${n(s.ry)}${held.length ? " · " + held.join(" ") : ""}`;
+  }
+
+  function stopControls() {
+    cancelAnimationFrame(controlsRaf);
+    controlsRaf = 0;
+  }
+
+  function openControls() {
+    renderControlList();
+    syncHidButton();
+    paintControls();
+    stopControls();
+    const step = () => {
+      if (view !== "controls") return;
+      paintControls();
+      controlsRaf = requestAnimationFrame(step);
+    };
+    controlsRaf = requestAnimationFrame(step);
+  }
+
   function showView(next) {
     view = next;
     root.querySelector(".cm-home").hidden = next !== "home";
     root.querySelector("#cm-maps").hidden = next !== "maps";
     root.querySelector("#cm-cast").hidden = next !== "cast";
+    root.querySelector("#cm-controls").hidden = next !== "controls";
     const plate = root.querySelector("#cm-portrait-wrap");
     if (plate) plate.hidden = next !== "home";
     if (next === "cast") setCastView();
@@ -303,13 +389,23 @@ export function createMenu(hooks) {
       mapIndex = 0;
       setMapSelected(0);
     }
+    if (next === "controls") openControls();
+    else stopControls();
   }
 
   function syncPlayLabel() {
     playBtn.textContent = hooks.hasStarted() ? "Resume" : "Play";
   }
 
+  function syncHidButton() {
+    const showBtn = !!(hooks.gamepad?.canConnectHid?.() && !hooks.gamepad.connected());
+    root.querySelectorAll(".cm-hid").forEach((b) => {
+      b.hidden = !showBtn;
+    });
+  }
+
   function show() {
+    loadArt();
     open = true;
     root.hidden = false;
     document.body.classList.add("menu-open");
@@ -317,6 +413,7 @@ export function createMenu(hooks) {
     refreshPortrait();
     showView("home");
     setNavSelected();
+    syncHidButton();
     hooks.onPause();
   }
 
@@ -324,6 +421,7 @@ export function createMenu(hooks) {
     open = false;
     root.hidden = true;
     document.body.classList.remove("menu-open");
+    stopControls();
   }
 
   async function chooseCharacter(id) {
@@ -350,6 +448,8 @@ export function createMenu(hooks) {
     } else if (action === "characters") {
       castIndex = Math.max(0, PLAYERS.findIndex((p) => p.id === getStoredPlayerId()));
       showView("cast");
+    } else if (action === "controls") {
+      showView("controls");
     }
   }
 
@@ -467,6 +567,23 @@ export function createMenu(hooks) {
     soundBtn.setAttribute("aria-pressed", on ? "false" : "true");
     soundBtn.textContent = on ? "Sound on" : "Sound off";
   }
+  root.querySelectorAll(".cm-hid").forEach((b) => {
+    b.addEventListener("click", async () => {
+      const status = root.querySelector("#cm-status");
+      try {
+        const ok = await hooks.gamepad?.connectHid?.();
+        if (ok === false && status && !hooks.gamepad?.connected()) {
+          status.textContent = "Choose the Wireless controller in the browser prompt.";
+        }
+      } catch (err) {
+        if (err?.name !== "NotAllowedError" && status) {
+          status.textContent = "Couldn't open the controller. Unplug it and try again.";
+        }
+      }
+      syncHidButton();
+    });
+  });
+
   soundBtn?.addEventListener("click", () => {
     let on = true;
     try {
@@ -491,7 +608,9 @@ export function createMenu(hooks) {
     setStatus(text) {
       const el = root.querySelector("#cm-status");
       if (el) el.textContent = text;
+      syncHidButton();
     },
     refreshPortrait,
+    loadArt,
   };
 }

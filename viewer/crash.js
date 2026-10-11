@@ -2,7 +2,8 @@
  * Coming off a scooter / bike in first person: thrown over the bars, tumble, hit the deck,
  * slide, lie there dazed, get back up hurt — or die if the impact was violent enough.
  * Health drops with impact speed and slowly comes back while alive; while hurt the screen
- * edges are red and you walk slower.
+ * edges are red and you walk slower. A killing blow drains the colour out of the world
+ * and, once you're on the ground, hands off to the Wasted card.
  */
 
 const G = 9.81;
@@ -11,7 +12,8 @@ const SLIDE_DECEL = 6.5; // m/s² of a body sliding on paving
 const RISE_S = 1.5;
 const REGEN_DELAY = 8; // s after a hit before health starts coming back
 const REGEN_RATE = 1.5; // health / s
-const DEAD_LIE_S = 4.5; // s face-down before the death callback / respawn can fire
+const DEAD_LIE_S = 4.5; // s face-down; the Wasted card usually respawns before this ends
+const DEATH_CARD_S = 0.65; // s on the paving before the Wasted title comes up
 
 const CSS = `
 #hurt { position: fixed; inset: 0; pointer-events: none; z-index: 550; opacity: 0;
@@ -36,7 +38,9 @@ export function createPlayerCrash(THREE, camera, opts = {}) {
   let sinceHit = Infinity;
   let flash = 0;
   let daze = 0;
-  let shownBlur = "";
+  /** 0–1 colour drain while dead. Lerped so the world greys out instead of popping. */
+  let grade = 0;
+  let shownFilter = "";
   let dead = false;
   let deathReported = false;
   let onDeath = null;
@@ -97,10 +101,16 @@ export function createPlayerCrash(THREE, camera, opts = {}) {
     if (!dead && sinceHit > REGEN_DELAY && health < 100) health = Math.min(100, health + REGEN_RATE * dt);
     flash = Math.max(0, flash - dt * 2.2);
     daze = Math.max(0, daze - dt * 0.35);
+    grade += ((dead ? 1 : 0) - grade) * Math.min(1, dt * 2.4);
+    if (grade < 0.01) grade = 0;
     vignette.style.opacity = String(Math.min(1, flash * 0.8 + (1 - health / 100) * 0.75 + (dead ? 0.35 : 0)));
     flashEl.style.opacity = String(Math.max(0, flash - 0.55));
-    const blur = daze > 0.02 ? `blur(${(daze * 3).toFixed(1)}px)` : "";
-    if (canvas && blur !== shownBlur) canvas.style.filter = shownBlur = blur;
+    let filter = "";
+    if (grade > 0.01) {
+      filter = `grayscale(${grade.toFixed(3)}) contrast(${(1 + grade * 0.08).toFixed(3)}) brightness(${(1 - grade * 0.22).toFixed(3)})`;
+    }
+    if (daze > 0.02) filter = `${filter} blur(${(daze * 3).toFixed(1)}px)`.trim();
+    if (canvas && filter !== shownFilter) canvas.style.filter = shownFilter = filter;
     if (!c) return false;
 
     c.t += dt;
@@ -138,16 +148,16 @@ export function createPlayerCrash(THREE, camera, opts = {}) {
       // Rolled onto your side, cheek on the paving.
       c.pitch = ease(c.pitch, 0.08, Math.min(1, dt * 3.5));
       c.roll = ease(c.roll, c.side * 1.2, Math.min(1, dt * 3.5));
+      if ((c.killed || dead) && c.phase === "lie" && !deathReported && c.t >= DEATH_CARD_S) {
+        deathReported = true;
+        if (onDeath) onDeath();
+      }
       if (c.phase === "slide" && hs < 0.05) {
         c.phase = "lie";
         c.t = 0;
       } else if (c.phase === "lie" && c.t > c.lie) {
         if (c.killed || dead) {
-          if (!deathReported) {
-            deathReported = true;
-            if (onDeath) onDeath();
-          }
-          // Stay down until respawn clears the crash.
+          // Stay down until the Wasted fade respawns and clears the crash.
           c.t = c.lie;
         } else {
           c.phase = "rise";
@@ -191,6 +201,7 @@ export function createPlayerCrash(THREE, camera, opts = {}) {
     sinceHit = Infinity;
     flash = 0;
     daze = 0;
+    grade = 0;
     c = null;
     if (pos) {
       pos.y = standEye;
@@ -198,7 +209,8 @@ export function createPlayerCrash(THREE, camera, opts = {}) {
     if (Number.isFinite(yaw)) {
       camera.quaternion.setFromEuler(euler.set(0, yaw, 0, "YXZ"));
     }
-    if (canvas) canvas.style.filter = shownBlur = "";
+    if (canvas) canvas.style.filter = shownFilter = "";
+    safeUntil = performance.now() + 2800;
     vignette.style.opacity = "0";
     flashEl.style.opacity = "0";
   }

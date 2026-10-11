@@ -15,6 +15,8 @@ viewer/*.premeshopt.glb
 !viewer/characters/clips/
 !viewer/characters/clips/*.glb
 viewer/characters/*.fbx
+# Mixamo source FBX (rebake via scripts/bake_player_locomotion.py). Clips ship as GLB.
+assets/mixamo/
 viewer/characters/players/_preview/
 viewer/characters/players/_styled/
 scripts/node_modules/
@@ -22,10 +24,13 @@ scripts/node_modules/
 assets/osm/*
 !assets/osm/harmonie.json
 assets/gtfs/
+# District packages: commit 2018 OSM + facades; ignore bulky regenerated caches.
+districts/*/cache/gtfs*.json
+districts/*/cache/aerial/
+viewer/districts/**/*.glb
+viewer/districts/**/*.premeshopt.glb
 *.blend1
 *.blend2
 .python-version
 # Rocketbox pack is huge — fetched locally, never committed.
 assets/rocketbox/
-# Local experiment; not part of Metropolis viewer.
-stremio-addon/
