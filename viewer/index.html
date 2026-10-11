@@ -2271,6 +2271,83 @@
       let cityReady = false;
       let landmarkStream = null;
 
+      // glTF has no Lambert shader, so every Principled material arrives as MeshStandardMaterial
+      // and samples the scene environment. Keep that for glass, water, gold and car paint
+      // (name test matches blender/build_city.py _tag_pbr; extras override it after a rebuild).
+      function keepCityPbr(mat) {
+        const tag = mat.userData && mat.userData.cityview_shader;
+        if (tag === "pbr") return true;
+        if (tag === "lambert") return false;
+        const n = (mat.name || "").toLowerCase();
+        return n.includes("glass") || n.includes("water") || n.includes("gold") || n.startsWith("car_");
+      }
+
+      function toLambert(mat) {
+        const lambert = new THREE.MeshLambertMaterial();
+        lambert.name = mat.name;
+        lambert.color.copy(mat.color);
+        lambert.map = mat.map || null;
+        lambert.normalMap = mat.normalMap || null;
+        if (mat.normalScale) lambert.normalScale.copy(mat.normalScale);
+        if (mat.normalMapType != null) lambert.normalMapType = mat.normalMapType;
+        lambert.emissive.copy(mat.emissive);
+        lambert.emissiveMap = mat.emissiveMap || null;
+        lambert.emissiveIntensity = mat.emissiveIntensity;
+        lambert.aoMap = mat.aoMap || null;
+        if (mat.aoMapIntensity != null) lambert.aoMapIntensity = mat.aoMapIntensity;
+        lambert.alphaMap = mat.alphaMap || null;
+        lambert.transparent = mat.transparent;
+        lambert.opacity = mat.opacity;
+        lambert.alphaTest = mat.alphaTest;
+        lambert.side = mat.side;
+        lambert.depthWrite = mat.depthWrite;
+        lambert.depthTest = mat.depthTest;
+        lambert.vertexColors = mat.vertexColors;
+        lambert.fog = mat.fog;
+        lambert.flatShading = mat.flatShading;
+        lambert.toneMapped = mat.toneMapped;
+        if (mat.polygonOffset) {
+          lambert.polygonOffset = true;
+          lambert.polygonOffsetFactor = mat.polygonOffsetFactor;
+          lambert.polygonOffsetUnits = mat.polygonOffsetUnits;
+        }
+        return lambert;
+      }
+
+      // One Lambert per shared material, before the day/night pass and the tile merge,
+      // so glow lists and batches see the cheap shader. Textures stay shared.
+      function downgradeCityMaterials(root) {
+        const cache = new Map();
+        const retired = [];
+        let pbr = 0;
+        root.traverse((obj) => {
+          if (!obj.isMesh || !obj.material) return;
+          const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+          let changed = false;
+          const next = list.map((m) => {
+            if (!m || !m.isMeshStandardMaterial) return m;
+            if (keepCityPbr(m)) {
+              if (!cache.has(m.uuid)) {
+                cache.set(m.uuid, m);
+                pbr++;
+              }
+              return m;
+            }
+            let lambert = cache.get(m.uuid);
+            if (!lambert) {
+              lambert = toLambert(m);
+              cache.set(m.uuid, lambert);
+              retired.push(m);
+            }
+            changed = true;
+            return lambert;
+          });
+          if (changed) obj.material = Array.isArray(obj.material) ? next : next[0];
+        });
+        for (const m of retired) m.dispose();
+        return { lambert: retired.length, pbr };
+      }
+
       // Merge static city meshes that share a material into ~128 m tiles. The GLB ships ~12k
       // meshes (one draw call each); after this it is a few hundred, while per-tile frustum
       // culling still drops everything behind/beside the camera. Geometry is baked in root
@@ -2355,6 +2432,8 @@
 
       async function onCityLoaded(gltf) {
           cityRoot = gltf.scene;
+          const shading = downgradeCityMaterials(cityRoot);
+          console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
           // Cheap: disable expensive features for FPS; freeze static transforms.
           // Coplanar street layers: bias is monotone with the Blender height stack
           // (Z_GROUND < Z_PARK < Z_ROAD < markings < sidewalk < curb < tram bed < rails
