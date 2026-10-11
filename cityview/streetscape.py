@@ -1265,6 +1265,7 @@ def export_roads_near_spawn(
                     "kind": kind,
                     "name": str(road.get("name") or ""),
                     "width": float(road.get("width") or 6.0),
+                    "surface": str(road.get("surface") or "asphalt"),
                     # Posted limit from OSM (null when untagged) + the limit
                     # traffic actually uses (tagged or urban default), km/h.
                     "maxspeedKmh": tagged_kmh,

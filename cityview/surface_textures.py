@@ -181,17 +181,19 @@ def sidewalk_slabs():
 
 def asphalt():
     np = _np()
-    field = 0.9 + 0.2 * fbm(71, 5, 5)
-    arr = _rgb((0.105, 0.105, 0.115), field)
+    # ~0.34 sRGB reads as worn asphalt. The old 0.10 tile was crushed to black
+    # by the viewer's filmic curve in both day and night.
+    field = 0.92 + 0.16 * fbm(71, 5, 5)
+    arr = _rgb((0.34, 0.34, 0.36), field)
     stones = speckle(73, 0.10)
-    arr = arr + stones[..., None] * 0.14
-    arr = arr + (grain(75) - 0.5)[..., None] * 0.03
+    arr = arr + stones[..., None] * 0.08
+    arr = arr + (grain(75) - 0.5)[..., None] * 0.025
     # Patched repairs: slightly different tone blotches with sharp edges.
     patch = (fbm(77, 3, 2) > 0.62).astype(float)
-    arr = _tint(arr, (0.085, 0.085, 0.095), patch, 0.45)
+    arr = _tint(arr, (0.26, 0.26, 0.28), patch, 0.4)
     # Hairline cracks.
     crack = (np.abs(fbm(79, 6, 3) - 0.5) < 0.006).astype(float)
-    arr = _tint(arr, (0.03, 0.03, 0.03), crack, 0.8)
+    arr = _tint(arr, (0.16, 0.16, 0.17), crack, 0.75)
     return arr
 
 
