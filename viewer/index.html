@@ -1959,6 +1959,8 @@
       function bustPlayer() {
         if (caught || playerCrash.dead || playerCrash.active) return;
         const started = playBusted({
+          stars: wanted.level,
+          sign: wanted.sign,
           onBlack: placeAtSpawn,
           onDone() {
             caught = false;
