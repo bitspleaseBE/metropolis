@@ -1102,7 +1102,7 @@
       import { createThirdPersonCamera } from "./third-person.js";
       import { createMenu } from "./menu.js";
       import { createHud } from "./hud.js";
-      import { playWasted } from "./wasted.js";
+      import { playWasted, playBusted } from "./wasted.js";
       import { createWanted } from "./wanted.js";
       import { createCombat } from "./combat.js";
       import { createPolice } from "./police.js";
@@ -1938,8 +1938,7 @@
         const speed = fastestOverlap(pos, 0.36);
         if (speed >= HIT_SPEED) hitByVehicle(speed);
       }
-      function respawnAtSpawn() {
-        if (!playerCrash.dead) return;
+      function placeAtSpawn() {
         const w = walkControls.getObject();
         const yaw = thirdPerson.yaw();
         w.position.copy(spawnPos);
@@ -1952,10 +1951,34 @@
         playerAvatar.setVisible(true);
         hud.setHealth(100);
       }
+      let caught = false;
       playerCrash.setOnDeath(() => {
         police?.onPlayerDown();
-        playWasted({ onBlack: respawnAtSpawn });
+        playWasted({ onBlack: placeAtSpawn });
       });
+      function bustPlayer() {
+        if (caught || playerCrash.dead || playerCrash.active) return;
+        const started = playBusted({
+          onBlack: placeAtSpawn,
+          onDone() {
+            caught = false;
+          },
+        });
+        if (!started) return;
+        caught = true;
+        const w = walkControls.getObject();
+        const yaw = playerMotion.yaw();
+        if (scooters && scooters.isRiding()) scooters.tryInteract({ x: w.position.x, z: w.position.z, yaw });
+        if (velo && velo.isRiding && velo.isRiding()) velo.tryInteract({ x: w.position.x, z: w.position.z });
+        rideEl.style.display = "none";
+        promptEl.style.display = "none";
+        playerMotion.stop();
+        keys.space = false;
+        JUMP.active = false;
+        JUMP.v = 0;
+        JUMP.y = 0;
+        police?.onPlayerDown();
+      }
       // Free-view marker (top-down framing of the walker).
       const avatar = playerAvatar.root;
 
@@ -3337,6 +3360,8 @@
             pushOutOfSolids(w.position);
             collideWorld(w.position, false);
           }
+        } else if (caught) {
+          playerMotion.stop();
         } else if (!menuOpen) {
           // Just stood up inside a bus or car: keep sliding clear so it does not
           // knock you straight back down and leave the camera rolled.
@@ -3502,7 +3527,8 @@
             police.update(simDt, {
               x: wPos.x,
               z: wPos.z,
-              dead: playerCrash.dead,
+              dead: playerCrash.dead || caught,
+              bust: bustPlayer,
               hurt: (n) => playerCrash.hurt(n),
               ranRed: !!(traffic.playerRanRed && traffic.playerRanRed(wPos.x, wPos.z, face)),
               harmed: harmedPulse,

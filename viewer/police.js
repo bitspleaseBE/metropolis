@@ -11,6 +11,7 @@ const PATROL_SPEED = 8;
 const CHASE_SPEED = 16;
 const SEE_M = 58;
 const BAIL_M = 15;
+const CATCH_M = 1.8; // an officer this close puts the cuffs on
 const SHOT_M = 24;
 const SHOT_DMG = 9;
 const CREW = {
@@ -465,6 +466,11 @@ export async function createPolice(scene, THREE, opts = {}) {
       m.root.position.y = 0;
       m.yaw = Math.atan2(dx, -dz);
       m.root.rotation.set(0, m.yaw, 0);
+      if (unit.kind === "police" && unit.responding && !player.dead && dist < CATCH_M) {
+        player.dead = true;
+        player.bust?.();
+        continue;
+      }
       m.cool -= dt;
       if (m.cool <= 0 && dist < SHOT_M && !player.dead && canSee(player.x, player.z, m.root.position.x, m.root.position.z, Math.sin(m.yaw), -Math.cos(m.yaw))) {
         m.cool = 0.85;
