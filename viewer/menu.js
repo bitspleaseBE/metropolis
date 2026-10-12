@@ -69,7 +69,6 @@ export function createMenu(hooks) {
         <button type="button" class="cm-item" data-action="controls">Controls</button>
       </nav>
       <p class="cm-status" id="cm-status">Keyboard &amp; mouse ready</p>
-      <button type="button" class="cm-hid" hidden>Connect controller</button>
     </div>
     <div class="cm-portrait-wrap" id="cm-portrait-wrap" aria-hidden="true">
       <img class="cm-portrait" id="cm-portrait" src="" alt="" />
@@ -115,14 +114,18 @@ export function createMenu(hooks) {
       <p class="cm-eyebrow">Controls</p>
       <h2 id="cm-controls-title">Keyboard</h2>
       <p class="cm-controls-live" id="cm-controls-live"></p>
-      <button type="button" class="cm-hid" hidden>Connect controller</button>
+      <p class="cm-controls-note" id="cm-controls-note"></p>
+      <div class="cm-pad-actions" id="cm-pad-actions" hidden>
+        <button type="button" class="cm-hid" id="cm-connect" hidden>Connect</button>
+        <button type="button" class="cm-hid" id="cm-disconnect" hidden>Disconnect</button>
+      </div>
       <ul class="cm-controls-list" id="cm-controls-list"></ul>
       <button type="button" class="cm-back" data-back>Back</button>
     </div>
     <footer class="cm-footer">
-      <span><kbd>↑↓</kbd> Navigate</span>
-      <span><kbd>Enter</kbd> Select</span>
-      <span><kbd>Esc</kbd> Back</span>
+      <span data-hint="nav"><kbd>↑↓</kbd> Navigate</span>
+      <span data-hint="select"><kbd>Enter</kbd> Select</span>
+      <span data-hint="back"><kbd>Esc</kbd> Back</span>
       <button type="button" class="cm-sound" id="cm-sound" aria-pressed="false" title="Sound">Sound on</button>
     </footer>
   `;
@@ -318,8 +321,16 @@ export function createMenu(hooks) {
   const controlsTitle = root.querySelector("#cm-controls-title");
   const controlsLive = root.querySelector("#cm-controls-live");
   const controlsList = root.querySelector("#cm-controls-list");
-  let controlsRaf = 0;
+  const controlsNote = root.querySelector("#cm-controls-note");
+  const padActions = root.querySelector("#cm-pad-actions");
+  const connectBtn = root.querySelector("#cm-connect");
+  const disconnectBtn = root.querySelector("#cm-disconnect");
+  const controlsBack = root.querySelector("#cm-controls .cm-back");
   let controlsLayout = undefined;
+  let controlsFocus = 0;
+  let menuRaf = 0;
+  let menuNav = { code: "", at: 0 };
+  let padButtons = { cross: false, circle: false, options: false };
 
   function renderControlList() {
     const pad = hooks.gamepad;
@@ -339,41 +350,151 @@ export function createMenu(hooks) {
     controlsLayout = layout;
   }
 
+  function controlsTargets() {
+    const items = [];
+    if (!connectBtn.hidden) items.push(connectBtn);
+    if (!disconnectBtn.hidden) items.push(disconnectBtn);
+    items.push(controlsBack);
+    return items;
+  }
+
+  function syncControlsFocus() {
+    const items = controlsTargets();
+    if (!items.length) return;
+    if (controlsFocus >= items.length) controlsFocus = 0;
+    for (const el of [connectBtn, disconnectBtn, controlsBack]) {
+      el.classList.toggle("selected", el === items[controlsFocus]);
+    }
+  }
+
+  function setHint(name, key, label) {
+    const span = root.querySelector(`[data-hint="${name}"]`);
+    if (!span) return;
+    const kbd = document.createElement("kbd");
+    kbd.textContent = key;
+    span.replaceChildren(kbd, document.createTextNode(` ${label}`));
+  }
+
+  let footerLayout = undefined;
+  function syncFooter() {
+    const layout = hooks.gamepad?.connected() ? hooks.gamepad.layout : null;
+    if (layout === footerLayout) return;
+    footerLayout = layout;
+    const hints =
+      layout === "playstation"
+        ? [
+            ["Stick", "Navigate"],
+            ["Cross", "Select"],
+            ["Circle", "Back"],
+          ]
+        : layout === "xbox" || layout === "generic"
+          ? [
+              ["Stick", "Navigate"],
+              ["A", "Select"],
+              ["B", "Back"],
+            ]
+          : [
+              ["↑↓", "Navigate"],
+              ["Enter", "Select"],
+              ["Esc", "Back"],
+            ];
+    ["nav", "select", "back"].forEach((name, i) => setHint(name, hints[i][0], hints[i][1]));
+  }
+
+  function syncPadChrome() {
+    const pad = hooks.gamepad;
+    const on = !!pad?.connected?.();
+    const found = !!pad?.detected?.();
+    connectBtn.hidden = !(found && !on);
+    disconnectBtn.hidden = !on;
+    padActions.hidden = connectBtn.hidden && disconnectBtn.hidden;
+    syncControlsFocus();
+    syncFooter();
+  }
+
   function paintControls() {
     const pad = hooks.gamepad;
     const g = pad ? pad.sample() : null;
+    syncPadChrome();
     if (!g || !g.layout) {
-      controlsLive.textContent = pad?.canConnectHid?.()
-        ? "Connect controller once. After that the sticks show up here and stay on."
-        : "Plug in a controller, then press any button. The sticks show up on this line.";
+      if (pad?.detected?.()) {
+        controlsLive.textContent = `${pad.detectedLabel()} plugged in`;
+        controlsNote.textContent = "Connect it to move the menu with the stick.";
+      } else {
+        controlsLive.textContent = "No controller detected";
+        controlsNote.textContent = "Plug one in. This page updates when the computer sees it.";
+      }
       if (controlsLayout) renderControlList();
       return;
     }
-    if (g.layout !== controlsLayout) renderControlList();
+    if (g.layout !== controlsLayout) {
+      controlsFocus = 0;
+      renderControlList();
+      syncControlsFocus();
+    }
     const held = Object.entries(g.down || [])
       .filter(([, on]) => on)
       .map(([name]) => buttonName(g.layout, name));
     const n = (v) => (v >= 0 ? "+" : "") + v.toFixed(2);
     const s = g.sticks || { lx: 0, ly: 0, rx: 0, ry: 0 };
-    controlsLive.textContent = `${g.label} · L ${n(s.lx)} ${n(s.ly)} · R ${n(s.rx)} ${n(s.ry)}${held.length ? " · " + held.join(" ") : ""}`;
+    controlsLive.textContent = `${g.label} connected · L ${n(s.lx)} ${n(s.ly)} · R ${n(s.rx)} ${n(s.ry)}${held.length ? " · " + held.join(" ") : ""}`;
+    const idle = Math.abs(s.lx) < 0.02 && Math.abs(s.ly) < 0.02 && Math.abs(s.rx) < 0.02 && Math.abs(s.ry) < 0.02 && !held.length;
+    controlsNote.textContent = idle
+      ? "Push a stick. If the numbers stay at 0.00, press the PS button in the middle of the controller."
+      : "Left stick and D-pad move the highlight. Cross selects. Circle goes back.";
   }
 
-  function stopControls() {
-    cancelAnimationFrame(controlsRaf);
-    controlsRaf = 0;
+  function stopMenuLoop() {
+    cancelAnimationFrame(menuRaf);
+    menuRaf = 0;
+  }
+
+  function steerFromPad(sample) {
+    const g = sample || hooks.gamepad?.sample?.();
+    if (!open || !g?.layout) return;
+    const now = performance.now();
+    const vertical = g.pressed.down ? "ArrowDown" : g.pressed.up ? "ArrowUp" : g.move.s ? "ArrowDown" : g.move.w ? "ArrowUp" : "";
+    const horizontal = g.pressed.right ? "ArrowRight" : g.pressed.left ? "ArrowLeft" : g.move.d ? "ArrowRight" : g.move.a ? "ArrowLeft" : "";
+    const code = vertical || horizontal;
+    const edge = !!(g.pressed.up || g.pressed.down || g.pressed.left || g.pressed.right);
+    if (!code) menuNav.code = "";
+    else if (edge || code !== menuNav.code || now - menuNav.at > 180) {
+      menuNav = { code, at: now };
+      command(code);
+    }
+    if (!open) return;
+    if (g.pressed.cross && !padButtons.cross) command("Enter");
+    if (!open) return;
+    if ((g.pressed.circle || g.pressed.options) && !(padButtons.circle || padButtons.options)) command("Escape");
+    padButtons = {
+      cross: !!g.pressed.cross,
+      circle: !!g.pressed.circle,
+      options: !!g.pressed.options,
+    };
+  }
+
+  function ensureMenuLoop() {
+    if (menuRaf) return;
+    const step = () => {
+      if (!open) {
+        menuRaf = 0;
+        return;
+      }
+      steerFromPad();
+      if (!open) {
+        menuRaf = 0;
+        return;
+      }
+      if (view === "controls") paintControls();
+      menuRaf = requestAnimationFrame(step);
+    };
+    menuRaf = requestAnimationFrame(step);
   }
 
   function openControls() {
+    controlsFocus = 0;
     renderControlList();
-    syncHidButton();
     paintControls();
-    stopControls();
-    const step = () => {
-      if (view !== "controls") return;
-      paintControls();
-      controlsRaf = requestAnimationFrame(step);
-    };
-    controlsRaf = requestAnimationFrame(step);
   }
 
   function showView(next) {
@@ -390,18 +511,10 @@ export function createMenu(hooks) {
       setMapSelected(0);
     }
     if (next === "controls") openControls();
-    else stopControls();
   }
 
   function syncPlayLabel() {
     playBtn.textContent = hooks.hasStarted() ? "Resume" : "Play";
-  }
-
-  function syncHidButton() {
-    const showBtn = !!(hooks.gamepad?.canConnectHid?.() && !hooks.gamepad.connected());
-    root.querySelectorAll(".cm-hid").forEach((b) => {
-      b.hidden = !showBtn;
-    });
   }
 
   function show() {
@@ -413,7 +526,8 @@ export function createMenu(hooks) {
     refreshPortrait();
     showView("home");
     setNavSelected();
-    syncHidButton();
+    syncPadChrome();
+    ensureMenuLoop();
     hooks.onPause();
   }
 
@@ -421,7 +535,7 @@ export function createMenu(hooks) {
     open = false;
     root.hidden = true;
     document.body.classList.remove("menu-open");
-    stopControls();
+    stopMenuLoop();
   }
 
   async function chooseCharacter(id) {
@@ -502,10 +616,9 @@ export function createMenu(hooks) {
     setCastView();
   });
 
-  function onKey(e) {
-    if (!open) return;
-    if (e.code === "Escape") {
-      e.preventDefault();
+  function command(code) {
+    if (!open || !code) return;
+    if (code === "Escape") {
       if (view !== "home") showView("home");
       else if (hooks.hasStarted()) {
         hide();
@@ -514,43 +627,49 @@ export function createMenu(hooks) {
       return;
     }
     if (view === "home") {
-      if (e.code === "ArrowDown") {
-        e.preventDefault();
+      if (code === "ArrowDown") {
         navIndex = Math.min(navItems.length - 1, navIndex + 1);
         setNavSelected();
-      } else if (e.code === "ArrowUp") {
-        e.preventDefault();
+      } else if (code === "ArrowUp") {
         navIndex = Math.max(0, navIndex - 1);
         setNavSelected();
-      } else if (e.code === "Enter") {
-        e.preventDefault();
+      } else if (code === "Enter") {
         activateNav();
       }
     } else if (view === "maps") {
-      if (e.code === "ArrowDown") {
-        e.preventDefault();
-        setMapSelected(mapIndex + 1);
-      } else if (e.code === "ArrowUp") {
-        e.preventDefault();
-        setMapSelected(mapIndex - 1);
-      } else if (e.code === "Enter") {
-        e.preventDefault();
-        activateMap();
-      }
+      if (code === "ArrowDown") setMapSelected(mapIndex + 1);
+      else if (code === "ArrowUp") setMapSelected(mapIndex - 1);
+      else if (code === "Enter") activateMap();
     } else if (view === "cast") {
-      if (e.code === "ArrowLeft") {
-        e.preventDefault();
+      if (code === "ArrowLeft") {
         castIndex = (castIndex - 1 + PLAYERS.length) % PLAYERS.length;
         setCastView();
-      } else if (e.code === "ArrowRight") {
-        e.preventDefault();
+      } else if (code === "ArrowRight") {
         castIndex = (castIndex + 1) % PLAYERS.length;
         setCastView();
-      } else if (e.code === "Enter") {
-        e.preventDefault();
+      } else if (code === "Enter") {
         chooseCharacter(PLAYERS[castIndex].id);
       }
+    } else if (view === "controls") {
+      const items = controlsTargets();
+      if (!items.length) return;
+      if (code === "ArrowDown" || code === "ArrowRight") {
+        controlsFocus = (controlsFocus + 1) % items.length;
+        syncControlsFocus();
+      } else if (code === "ArrowUp" || code === "ArrowLeft") {
+        controlsFocus = (controlsFocus - 1 + items.length) % items.length;
+        syncControlsFocus();
+      } else if (code === "Enter") {
+        items[controlsFocus]?.click();
+      }
     }
+  }
+
+  function onKey(e) {
+    if (!open) return;
+    if (!["Escape", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Enter"].includes(e.code)) return;
+    e.preventDefault();
+    command(e.code);
   }
 
   window.addEventListener("keydown", onKey);
@@ -567,21 +686,27 @@ export function createMenu(hooks) {
     soundBtn.setAttribute("aria-pressed", on ? "false" : "true");
     soundBtn.textContent = on ? "Sound on" : "Sound off";
   }
-  root.querySelectorAll(".cm-hid").forEach((b) => {
-    b.addEventListener("click", async () => {
-      const status = root.querySelector("#cm-status");
-      try {
-        const ok = await hooks.gamepad?.connectHid?.();
-        if (ok === false && status && !hooks.gamepad?.connected()) {
-          status.textContent = "Choose the Wireless controller in the browser prompt.";
-        }
-      } catch (err) {
-        if (err?.name !== "NotAllowedError" && status) {
-          status.textContent = "Couldn't open the controller. Unplug it and try again.";
-        }
+  connectBtn.addEventListener("click", async () => {
+    try {
+      const ok = await hooks.gamepad?.connect?.();
+      if (ok === false) {
+        controlsLive.textContent = "Couldn't open the controller";
+        controlsNote.textContent = "Unplug it and try again.";
       }
-      syncHidButton();
-    });
+    } catch (err) {
+      if (err?.name !== "NotAllowedError") {
+        controlsLive.textContent = "Couldn't open the controller";
+        controlsNote.textContent = "Unplug it and try again.";
+      }
+    }
+    controlsFocus = 0;
+    syncPadChrome();
+  });
+  disconnectBtn.addEventListener("click", async () => {
+    await hooks.gamepad?.disconnectPad?.();
+    controlsFocus = 0;
+    syncPadChrome();
+    paintControls();
   });
 
   soundBtn?.addEventListener("click", () => {
@@ -608,8 +733,10 @@ export function createMenu(hooks) {
     setStatus(text) {
       const el = root.querySelector("#cm-status");
       if (el) el.textContent = text;
-      syncHidButton();
+      syncPadChrome();
     },
+    command,
+    steer: steerFromPad,
     refreshPortrait,
     loadArt,
   };

@@ -550,7 +550,27 @@
         cursor: pointer;
       }
       #city-menu .cm-hid:hover { background: #fff; }
-      #city-menu .cm-panel .cm-hid { margin: 0 0 16px; }
+      #city-menu .cm-pad-actions { display: flex; gap: 10px; margin: 0 0 16px; }
+      #city-menu .cm-pad-actions[hidden] { display: none; }
+      #city-menu .cm-pad-actions .cm-hid { margin: 0; }
+      #city-menu #cm-disconnect {
+        background: transparent;
+        color: #fff;
+        border: 1px solid #ffffff55;
+      }
+      #city-menu #cm-controls .cm-back.selected,
+      #city-menu .cm-hid.selected {
+        background: #ff2bd6;
+        color: #fff;
+        border-color: #ff2bd6;
+        box-shadow: 0 0 18px #ff2bd688;
+      }
+      #city-menu .cm-controls-note {
+        margin: -8px 0 16px;
+        min-height: 1.4em;
+        font: 14px/1.45 system-ui, sans-serif;
+        color: #e0e7ed;
+      }
       #city-menu .cm-footer {
         position: absolute;
         bottom: 14px;
@@ -2119,24 +2139,27 @@
       }
 
       function controlStatus() {
-        if (gamepad.connected()) return "Game controller ready";
+        if (gamepad.connected() && gamepad.receiving()) return "Game controller ready";
+        if (gamepad.connected()) return "Controller plugged in · no stick data";
+        if (gamepad.detected()) return `${gamepad.detectedLabel()} plugged in`;
         if (TOUCH) return "Touch controls ready · Best in landscape";
         return "Keyboard & mouse ready";
       }
 
-      function offerController() {
-        const pending = gamepad.canConnectHid() && !gamepad.connected();
-        hud.offerController(pending ? () => gamepad.connectHid() : null);
+      let shownStatus = "";
+      function publishStatus() {
+        const text = controlStatus();
+        if (!menu || text === shownStatus) return;
+        shownStatus = text;
+        menu.setStatus(text);
       }
 
       gamepad.onChange((info) => {
         hud.setHelpKind(info ? info.layout : TOUCH ? "touch" : "keyboard");
         if (info) hud.showHelp(8000);
-        offerController();
-        if (menu) menu.setStatus(controlStatus());
+        publishStatus();
         syncHints();
       });
-      offerController();
 
       function setMode(next) {
         if (transit.isRiding && transit.isRiding()) return;
@@ -3133,7 +3156,7 @@
           thirdPerson.setYaw(playerMotion.yaw());
           thirdPerson.snap(walkControls.getObject().position);
           gamepad.poll();
-          menu.setStatus(controlStatus());
+          publishStatus();
           menu.show();
           setTimeout(() => document.getElementById("hud")?.classList.add("gone"), 9000);
           requestAnimationFrame(() => {
@@ -3258,22 +3281,6 @@
         }
       }
 
-      let menuNav = { code: "", at: 0 };
-      function steerMenu(g) {
-        const now = performance.now();
-        const vertical = g.pressed.down ? "ArrowDown" : g.pressed.up ? "ArrowUp" : g.move.s ? "ArrowDown" : g.move.w ? "ArrowUp" : "";
-        const horizontal = g.pressed.right ? "ArrowRight" : g.pressed.left ? "ArrowLeft" : g.move.d ? "ArrowRight" : g.move.a ? "ArrowLeft" : "";
-        const code = vertical || horizontal;
-        const edge = !!(g.pressed.up || g.pressed.down || g.pressed.left || g.pressed.right);
-        if (!code) menuNav.code = "";
-        else if (code !== menuNav.code || edge || now - menuNav.at > 180) {
-          menuNav = { code, at: now };
-          tap(code);
-        }
-        if (g.pressed.cross) tap("Enter");
-        if (g.pressed.circle || g.pressed.options) tap("Escape");
-      }
-
       function applyGamepad(dt) {
         const g = gamepad.sample();
         if (!g.layout) {
@@ -3281,7 +3288,6 @@
           return;
         }
         if (menu && menu.open) {
-          steerMenu(g);
           releasePadHeld();
           return;
         }
@@ -3339,6 +3345,7 @@
         prevTime = time;
         // One read per frame. A second poll in the same frame clears button edges.
         gamepad.poll();
+        if (menu && menu.open) publishStatus();
         if (!cityReady) {
           // Loading screen is up: don't burn GPU/CPU on an empty scene.
           requestAnimationFrame(tick);
