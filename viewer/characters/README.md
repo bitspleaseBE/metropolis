@@ -69,3 +69,12 @@ Re-run after rebuilding people:
 blender --background --python scripts/bake_rocketbox_getup.py                  # all
 blender --background --python scripts/bake_rocketbox_getup.py -- Male_Adult_15 # some
 ```
+
+Bike and step riders reuse the same people with Mixamo Riding / Scooter clips retargeted
+into `people/ride/<id>.glb` and `people/step/<id>.glb`. `viewer/micromobility.js` prefers
+these over the Mixamo Remy/Amy bodies.
+
+```bash
+blender --background --python scripts/bake_rocketbox_riders.py                 # all
+blender --background --python scripts/bake_rocketbox_riders.py -- ride Hasidic_Father
+```

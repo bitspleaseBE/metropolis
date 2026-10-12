@@ -1615,6 +1615,11 @@
       function fillRiderObstacles(walker) {
         _riderObstacles.length = 0;
         _riderObstacles.push({ x: walker.position.x, z: walker.position.z, r: 0.45 });
+        const peds = pedestrians?.roadPeople?.() || [];
+        for (let i = 0; i < peds.length; i++) {
+          const p = peds[i];
+          _riderObstacles.push({ x: p.x, z: p.z, r: p.r || 0.35 });
+        }
         const fleet = transit.vehicles || [];
         for (let i = 0; i < fleet.length; i++) {
           const v = fleet[i];
@@ -3058,11 +3063,19 @@
           if (pedestrians.setCrossingGate && traffic.pedMayCross) {
             pedestrians.setCrossingGate((id) => traffic.pedMayCross(id));
           }
+          if (traffic.setPedestrians && pedestrians.roadPeople) {
+            traffic.setPedestrians(() => pedestrians.roadPeople());
+          }
+          if (traffic.setOnHitPed && pedestrians.hitTest) {
+            traffic.setOnHitPed((x, z, vx, vz, r) => pedestrians.hitTest(x, z, vx, vz, r));
+          }
           micromobility = await createMicromobility(scene, THREE, {
             count: 28,
             firstCount: 6,
             district: typeof window !== "undefined" ? window.__DISTRICT : null,
             hour: gameHour,
+            day: gameDay,
+            spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             people: pedestrians?.people,
           });
           velo = await createVelo(scene, THREE);
