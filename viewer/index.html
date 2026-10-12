@@ -3069,6 +3069,28 @@
           if (traffic.setOnHitPed && pedestrians.hitTest) {
             traffic.setOnHitPed((x, z, vx, vz, r) => pedestrians.hitTest(x, z, vx, vz, r));
           }
+          // Walkers slide around parked and moving cars / buses / trams.
+          if (pedestrians.setVehicles) {
+            pedestrians.setVehicles(() => {
+              _vehicleSolids.length = 0;
+              for (const c of traffic.cars || []) {
+                if (!c?.pos || !c.tan) continue;
+                _vehicleSolids.push({ pos: c.pos, tan: c.tan, hl: 2.15, hw: 0.9 });
+              }
+              for (const v of transit.vehicles || []) {
+                if (!v?.pos || !v.tan || v.phase === "gone") continue;
+                const tram = v.mode === "tram";
+                _vehicleSolids.push({
+                  pos: v.pos,
+                  tan: v.tan,
+                  hl: tram ? 15.5 : 6.6,
+                  hw: tram ? 1.2 : 1.25,
+                });
+              }
+              for (const s of parkedCarSolids) _vehicleSolids.push(s);
+              return _vehicleSolids;
+            });
+          }
           micromobility = await createMicromobility(scene, THREE, {
             count: 28,
             firstCount: 6,

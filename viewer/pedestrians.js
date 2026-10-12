@@ -51,8 +51,45 @@ const COLD_M = 180; // hide mesh, kinematics only
 const INDOOR_CHECK_M = 0.6; // re-test the footprint blocker after this much walking
 const SPLIT_STEP_M = 1.0; // indoor sampling step along a route
 const PAVEMENT_Y = 0.12; // sidewalk default when we skip groundAt raycasts
+const PED_R = 0.32; // body radius for car / bus avoidance
+const CAR_LOOK_M = 2.8; // steer around a vehicle this far ahead on the path
 
 const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/** Push `pos` out of an oriented vehicle box (same math as props-collide). */
+function pushBox(pos, cx, cz, ax, az, hl, hw, r) {
+  const dx = pos.x - cx;
+  const dz = pos.z - cz;
+  const a = dx * ax + dz * az;
+  const b = dx * -az + dz * ax;
+  const pa = hl + r - Math.abs(a);
+  const pb = hw + r - Math.abs(b);
+  if (pa <= 0 || pb <= 0) return false;
+  // Prefer the shallow axis so walkers slide around the long side of a car.
+  if (pa < pb) {
+    const s = Math.sign(a) || 1;
+    pos.x += ax * pa * s;
+    pos.z += az * pa * s;
+  } else {
+    const s = Math.sign(b) || 1;
+    pos.x += -az * pb * s;
+    pos.z += ax * pb * s;
+  }
+  return true;
+}
+
+function vehicleOverlaps(x, z, v, r) {
+  const dx = x - v.pos.x;
+  const dz = z - v.pos.z;
+  const reach = (v.hl || 2) + r;
+  if (dx * dx + dz * dz > reach * reach) return false;
+  const len = Math.hypot(v.tan.x, v.tan.z) || 1;
+  const ax = v.tan.x / len;
+  const az = v.tan.z / len;
+  const a = dx * ax + dz * az;
+  const b = dx * -az + dz * ax;
+  return Math.abs(a) < (v.hl || 2) + r && Math.abs(b) < (v.hw || 0.9) + r;
+}
 
 export async function createPedestrians(scene, THREE, opts = {}) {
   const COUNT = opts.count || 40;
@@ -116,6 +153,97 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   }
   /** `(routeId) => boolean` — false means wait at the kerb (red ped light). */
   let crossingOk = () => true;
+  /** `() => [{ pos:{x,z}, tan:{x,z}, hl, hw }]` — parked + moving cars / buses / trams. */
+  let vehicleProvider = () => [];
+  const _avoidPos = { x: 0, z: 0 };
+
+  function pushOutOfVehicles(pos, r = PED_R) {
+    const vehicles = vehicleProvider();
+    if (!vehicles?.length) return false;
+    let hit = false;
+    for (let i = 0; i < vehicles.length; i++) {
+      const v = vehicles[i];
+      if (!v?.pos || !v.tan) continue;
+      const dx = pos.x - v.pos.x;
+      const dz = pos.z - v.pos.z;
+      const reach = (v.hl || 2) + r;
+      if (dx * dx + dz * dz > reach * reach) continue;
+      const len = Math.hypot(v.tan.x, v.tan.z) || 1;
+      hit = pushBox(pos, v.pos.x, v.pos.z, v.tan.x / len, v.tan.z / len, v.hl || 2, v.hw || 0.9, r) || hit;
+    }
+    return hit;
+  }
+
+  /**
+   * If a car sits on the path ahead, ease a lateral steer so the walker goes around
+   * instead of pressing into the bumper until the OBB push slides them.
+   */
+  function steerAroundVehicles(m, hx, hz) {
+    const vehicles = vehicleProvider();
+    if (!vehicles?.length) {
+      m.carSteerX = (m.carSteerX || 0) * 0.85;
+      m.carSteerZ = (m.carSteerZ || 0) * 0.85;
+      return;
+    }
+    const fl = Math.hypot(hx, hz) || 1;
+    const fx = hx / fl;
+    const fz = hz / fl;
+    const lx = -fz;
+    const lz = fx;
+    const ax = (m.routeX || m.mesh.position.x) + fx * CAR_LOOK_M;
+    const az = (m.routeZ || m.mesh.position.z) + fz * CAR_LOOK_M;
+    let wantX = 0;
+    let wantZ = 0;
+    for (let i = 0; i < vehicles.length; i++) {
+      const v = vehicles[i];
+      if (!v?.pos || !v.tan) continue;
+      const here = vehicleOverlaps(m.routeX || m.mesh.position.x, m.routeZ || m.mesh.position.z, v, PED_R);
+      const ahead = vehicleOverlaps(ax, az, v, PED_R + 0.2);
+      if (!here && !ahead) continue;
+      // Walk to the clearer flank of the car (relative to travel).
+      const dx = (m.routeX || m.mesh.position.x) - v.pos.x;
+      const dz = (m.routeZ || m.mesh.position.z) - v.pos.z;
+      const side = dx * lx + dz * lz;
+      const sign = side >= 0 ? 1 : -1;
+      const clear = (v.hw || 0.9) + PED_R + 0.35;
+      wantX += lx * sign * clear;
+      wantZ += lz * sign * clear;
+    }
+    if (wantX || wantZ) {
+      // Cap steer so they stay near the pavement ribbon.
+      const w = Math.hypot(wantX, wantZ) || 1;
+      const cap = 1.6;
+      if (w > cap) {
+        wantX = (wantX / w) * cap;
+        wantZ = (wantZ / w) * cap;
+      }
+      m.carSteerX = (m.carSteerX || 0) * 0.7 + wantX * 0.3;
+      m.carSteerZ = (m.carSteerZ || 0) * 0.7 + wantZ * 0.3;
+    } else {
+      m.carSteerX = (m.carSteerX || 0) * 0.85;
+      m.carSteerZ = (m.carSteerZ || 0) * 0.85;
+      if (Math.abs(m.carSteerX) < 0.02) m.carSteerX = 0;
+      if (Math.abs(m.carSteerZ) < 0.02) m.carSteerZ = 0;
+    }
+  }
+
+  /** Apply steer + hard OBB push so the mesh never sits inside a car. */
+  function applyVehicleAvoidance(m, hx, hz) {
+    steerAroundVehicles(m, hx, hz);
+    _avoidPos.x = m.mesh.position.x + (m.carSteerX || 0);
+    _avoidPos.z = m.mesh.position.z + (m.carSteerZ || 0);
+    pushOutOfVehicles(_avoidPos, PED_R);
+    m.mesh.position.x = _avoidPos.x;
+    m.mesh.position.z = _avoidPos.z;
+    // Face along the path, with a nudge toward the bypass when steering hard.
+    const sx = m.carSteerX || 0;
+    const sz = m.carSteerZ || 0;
+    if (sx * sx + sz * sz > 0.04) {
+      const fx = hx + sx * 0.35;
+      const fz = hz + sz * 0.35;
+      if (fx * fx + fz * fz > 1e-4) m.mesh.rotation.y = Math.atan2(fx, fz);
+    }
+  }
 
   const PROFILES = [
     {
@@ -1018,6 +1146,14 @@ export async function createPedestrians(scene, THREE, opts = {}) {
       m.mesh.position.z = m.routeZ + (m.offZ || 0);
     }
 
+    // Go around parked / moving cars instead of walking through them.
+    if (!m.down) {
+      // placeMember yaw is atan2(dx, dz) → travel is (sin y, cos y).
+      const hx = m.headingX != null ? m.headingX : Math.sin(m.mesh.rotation.y);
+      const hz = m.headingZ != null ? m.headingZ : Math.cos(m.mesh.rotation.y);
+      applyVehicleAvoidance(m, hx, hz);
+    }
+
     if (m.mesh.userData.mixer) {
       m.animHold = (m.animHold || 0) + dt;
       const cadence = precise ? 1 : d2 <= warm2 ? 2 : 3;
@@ -1152,6 +1288,10 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     setClock(h, d) {
       if (Number.isFinite(h)) gameHour = h;
       if (Number.isFinite(d)) gameDay = d;
+    },
+    /** `() => [{ pos, tan, hl, hw }]` — cars / buses / trams walkers must go around. */
+    setVehicles(fn) {
+      vehicleProvider = typeof fn === "function" ? fn : () => [];
     },
     streamVariety,
   };
