@@ -1,9 +1,14 @@
 /**
  * Playable cast for Klein Antwerpen. Separate from sidewalk Mixamo civilians
  * in characters.js — these three bodies never enter the pedestrian pool.
+ *
+ * Movement changes (clips, gait, strikes) also update viewer/movement.html.
+ * See .cursor/rules/movement-gallery.mdc.
  */
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+import { VELO_FWD, VELO_RIDE } from "./velo.js";
+import { leanToBars } from "./ride-lean.js";
 
 export const PLAYERS = [
   {
@@ -69,12 +74,12 @@ export function preloadPlayer(id = getStoredPlayerId()) {
 }
 
 /** Native metres/second of each Mixamo loop, so playback matches the feet. */
-const CLIP_SPEED = { idle: 0, walk: 1.5, jog: 1.9, run: 5.43, ride: 4.2 };
+const CLIP_SPEED = { idle: 0, walk: 1.08, jog: 2.48, run: 5.43, ride: 4.2 };
 
 /**
  * Third-person player avatar: walk / ride / scooter clips, with grip IK on wheels.
  */
-export function createPlayerAvatar(THREE, scene) {
+export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   let root = new THREE.Group();
   root.name = "player-avatar";
   scene.add(root);
@@ -120,12 +125,21 @@ export function createPlayerAvatar(THREE, scene) {
   /** Walk head keys ~180° off the bind (Pieter). Crossfading them spins the neck. */
   let headOffBind = false;
   let headTrack = null;
+  /** Finger rotations from the baked Punch fist, for wrapping the bars. */
+  let gripPose = [];
+  const GRIP_CURL = 0.8;
 
-  // Grip targets match viewer/scooters.js + viewer/velo.js (bike scale 1.55).
+  // Scooter grips match viewer/scooters.js. Velo points come from velo.glb (VELO_RIDE).
+  // The ride Velo sits VELO_FWD ahead of the root (placeRideVelo in viewer/velo.js).
   const GRIP = {
-    scooter: { fwd: 0.18, y: 1.17, z: -0.26, x: 0.22 },
-    velo: { fwd: 0.15, y: 0.67 * 1.55, z: -0.3 * 1.55, x: 0.2 * 1.55 },
+    // Bar height above the ground, and above the deck top the root stands on while riding.
+    scooter: { fwd: 0.18, y: 1.167, z: -0.26, x: 0.22 },
+    scooterOnDeck: { fwd: 0.18, y: 0.995, z: -0.26, x: 0.22 },
+    velo: { fwd: VELO_FWD, y: 0, z: 0, x: 0 },
   };
+  const _seatCfg = { fwd: VELO_FWD, y: 0, z: 0, x: 0 };
+  const _seatW = new THREE.Vector3();
+  let visualBaseY = 0;
   const _gripL = new THREE.Vector3();
   const _gripR = new THREE.Vector3();
   const _ikA = new THREE.Vector3();
@@ -205,6 +219,8 @@ export function createPlayerAvatar(THREE, scene) {
       lFoot: findNamed(rig, "Bip01_L_Foot", "Bip01 L Foot", "LeftFoot", "mixamorigLeftFoot"),
       rFoot: findNamed(rig, "Bip01_R_Foot", "Bip01 R Foot", "RightFoot", "mixamorigRightFoot"),
       spine: findNamed(rig, "Bip01_Spine", "Bip01 Spine", "Spine", "mixamorigSpine"),
+      spine1: findNamed(rig, "Bip01_Spine1", "Bip01 Spine1", "Spine1", "mixamorigSpine1"),
+      spine2: findNamed(rig, "Bip01_Spine2", "Bip01 Spine2", "Spine2", "mixamorigSpine2"),
       head: findNamed(rig, "Bip01_Head", "Bip01 Head", "Head", "mixamorigHead"),
       pelvis: findNamed(rig, "Bip01_Pelvis", "Bip01 Pelvis", "Pelvis", "mixamorigHips"),
     };
@@ -388,19 +404,79 @@ export function createPlayerAvatar(THREE, scene) {
     }
   }
 
-  function polishRideGrips(kind, yaw) {
+  function polishRideGrips(kind, yaw, deck = null) {
     if (!armBones || (kind !== "velo" && kind !== "scooter")) return;
-    const cfg = GRIP[kind];
+    const cfg = kind === "scooter" && deck ? GRIP.scooterOnDeck : GRIP[kind];
     if (!cfg) return;
+    if (kind === "velo") {
+      cfg.y = VELO_RIDE.bar.y;
+      cfg.z = VELO_RIDE.bar.z;
+      cfg.x = VELO_RIDE.grip;
+    }
     gripTarget(_gripL, yaw, -1, cfg);
     gripTarget(_gripR, yaw, 1, cfg);
     ccdArmIK(armBones.lUpper, armBones.lFore, armBones.lHand, _gripL);
     ccdArmIK(armBones.rUpper, armBones.rFore, armBones.rHand, _gripR);
   }
 
+  /** The ride clips leave the fingers straight. Close them most of the way to the punch fist. */
+  function closeGrip() {
+    const w = GRIP_CURL * (actions[current]?.getEffectiveWeight() ?? 1);
+    for (const { bone, q } of gripPose) bone.quaternion.slerp(q, w);
+  }
+
+  const _leanAxis = new THREE.Vector3();
+
+  /** Bend the riding clip's upright torso forward until the hands can reach the Velo bars. */
+  function leanOnVelo(yaw) {
+    if (!armBones || !bodyBones) return;
+    const cfg = GRIP.velo;
+    cfg.y = VELO_RIDE.bar.y;
+    cfg.z = VELO_RIDE.bar.z;
+    cfg.x = VELO_RIDE.grip;
+    gripTarget(_gripL, yaw, -1, cfg);
+    gripTarget(_gripR, yaw, 1, cfg);
+    _leanAxis.set(-Math.cos(yaw), 0, Math.sin(yaw));
+    leanToBars(
+      THREE,
+      {
+        spine: [bodyBones.pelvis, bodyBones.spine, bodyBones.spine1, bodyBones.spine2],
+        head: bodyBones.head,
+        arms: [
+          [armBones.lUpper, armBones.lFore, armBones.lHand],
+          [armBones.rUpper, armBones.rFore, armBones.rHand],
+        ],
+      },
+      [_gripL, _gripR],
+      _leanAxis,
+    );
+  }
+
+  /** Taller riders stand too upright for the step bars. Bend above the pelvis so the planted legs stay put. */
+  function leanOnScooter(yaw, deck) {
+    if (!armBones || !bodyBones) return;
+    const cfg = deck ? GRIP.scooterOnDeck : GRIP.scooter;
+    gripTarget(_gripL, yaw, -1, cfg);
+    gripTarget(_gripR, yaw, 1, cfg);
+    _leanAxis.set(-Math.cos(yaw), 0, Math.sin(yaw));
+    leanToBars(
+      THREE,
+      {
+        spine: [bodyBones.spine, bodyBones.spine1, bodyBones.spine2],
+        head: bodyBones.head,
+        arms: [
+          [armBones.lUpper, armBones.lFore, armBones.lHand],
+          [armBones.rUpper, armBones.rFore, armBones.rHand],
+        ],
+      },
+      [_gripL, _gripR],
+      _leanAxis,
+      { max: 0.6 },
+    );
+  }
+
   // Two-bone leg solve. Reused so the scooter stance does not allocate per frame.
   const _aimPos = new THREE.Vector3();
-  const _aimX = new THREE.Vector3();
   const _aimY = new THREE.Vector3();
   const _aimZ = new THREE.Vector3();
   const _legHip = new THREE.Vector3();
@@ -408,32 +484,24 @@ export function createPlayerAvatar(THREE, scene) {
   const _legAnkle = new THREE.Vector3();
   const _legPole = new THREE.Vector3();
   const _legDir = new THREE.Vector3();
-  const _legM = new THREE.Matrix4();
   const _yawQ = new THREE.Quaternion();
   const _worldUp = new THREE.Vector3(0, 1, 0);
 
-  /** Point `bone`'s local +Y at `worldPoint`, twist so local +Z leans toward `poleWorld`. */
-  function aimBone(bone, worldPoint, poleWorld) {
+  /**
+   * Swing `bone` so `child` lands on the line to `worldPoint`. Pieter's legs run
+   * along local +Y, but Mo's and Jacob's Biped legs run along +X, so no fixed axis.
+   */
+  function aimBone(bone, child, worldPoint) {
     const parent = bone.parent;
     if (!parent) return;
-    parent.updateWorldMatrix(true, false);
-    bone.updateWorldMatrix(true, false);
+    bone.updateWorldMatrix(true, true);
     _aimPos.setFromMatrixPosition(bone.matrixWorld);
-    _aimY.copy(worldPoint).sub(_aimPos);
-    if (_aimY.lengthSq() < 1e-8) return;
-    _aimY.normalize();
-    _aimZ.copy(poleWorld).sub(_aimPos);
-    _aimZ.addScaledVector(_aimY, -_aimZ.dot(_aimY));
-    if (_aimZ.lengthSq() < 1e-8) {
-      _aimZ.copy(_worldUp);
-      _aimZ.addScaledVector(_aimY, -_aimZ.dot(_aimY));
-    }
-    if (_aimZ.lengthSq() < 1e-8) return;
-    _aimZ.normalize();
-    _aimX.crossVectors(_aimY, _aimZ).normalize();
-    _aimZ.crossVectors(_aimX, _aimY).normalize();
-    _legM.makeBasis(_aimX, _aimY, _aimZ);
-    _ikWorldQ.setFromRotationMatrix(_legM);
+    _aimY.setFromMatrixPosition(child.matrixWorld).sub(_aimPos);
+    _aimZ.copy(worldPoint).sub(_aimPos);
+    if (_aimY.lengthSq() < 1e-8 || _aimZ.lengthSq() < 1e-8) return;
+    _ikQ.setFromUnitVectors(_aimY.normalize(), _aimZ.normalize());
+    bone.getWorldQuaternion(_ikWorldQ);
+    _ikWorldQ.premultiply(_ikQ);
     parent.getWorldQuaternion(_ikParentQ);
     bone.quaternion.copy(_ikParentQ.invert()).multiply(_ikWorldQ);
   }
@@ -465,9 +533,9 @@ export function createPlayerAvatar(THREE, scene) {
     }
     _legPole.normalize();
     _legKnee.copy(_legHip).addScaledVector(_legDir, along).addScaledVector(_legPole, bow);
-    aimBone(thigh, _legKnee, pole);
+    aimBone(thigh, calf, _legKnee);
     thigh.updateMatrixWorld(true);
-    aimBone(calf, target, pole);
+    aimBone(calf, foot, target);
     calf.updateMatrixWorld(true);
     const bind = foot.userData.bindWorldQ;
     if (bind) {
@@ -488,22 +556,22 @@ export function createPlayerAvatar(THREE, scene) {
     const t = actions.ride ? actions.ride.time : 0;
     pedal = ((t % dur) + dur) % dur / dur;
     const ang = pedal * Math.PI * 2;
-    const bx = root.position.x - Math.sin(yaw) * 0.15;
-    const bz = root.position.z - Math.cos(yaw) * 0.15;
-    const SCALE = 1.55;
-    const R = 0.11;
-    const ankle = 0.09 / SCALE;
+    const bx = root.position.x - Math.sin(yaw) * VELO_FWD;
+    const bz = root.position.z - Math.cos(yaw) * VELO_FWD;
+    const R = VELO_RIDE.crankR;
+    const crank = VELO_RIDE.crank;
+    const ankle = 0.09;
     const c = Math.cos(yaw);
     const s = Math.sin(yaw);
     const feet = [
-      ["lThigh", "lCalf", "lFoot", -0.055, 0],
-      ["rThigh", "rCalf", "rFoot", 0.055, Math.PI],
+      ["lThigh", "lCalf", "lFoot", -1, 0],
+      ["rThigh", "rCalf", "rFoot", 1, Math.PI],
     ];
-    for (const [thighK, calfK, footK, lat, extra] of feet) {
+    for (const [thighK, calfK, footK, side, extra] of feet) {
       const a = ang + extra;
-      const lx = lat * SCALE;
-      const ly = (0.2 - R * Math.sin(a) + ankle) * SCALE;
-      const lz = (0.02 - R * Math.cos(a)) * SCALE;
+      const lx = crank.x + side * VELO_RIDE.pedalX;
+      const ly = crank.y - R * Math.sin(a) + ankle;
+      const lz = crank.z - R * Math.cos(a);
       _gripL.set(bx + c * lx + s * lz, ly, bz - s * lx + c * lz);
       const thigh = bodyBones[thighK];
       if (!thigh) continue;
@@ -516,6 +584,22 @@ export function createPlayerAvatar(THREE, scene) {
       );
       solveLeg(thigh, bodyBones[calfK], bodyBones[footK], _gripL, _legPole);
     }
+  }
+
+  /** Shift the body so the pelvis rests on the Velo saddle, the same rule as movement.html. */
+  function seatOnVelo(yaw) {
+    const pelvis = bodyBones?.pelvis;
+    if (!pelvis || !visual) return;
+    _seatCfg.y = VELO_RIDE.saddle.y + 0.06;
+    _seatCfg.z = VELO_RIDE.saddle.z;
+    _seatCfg.x = VELO_RIDE.saddle.x;
+    gripTarget(_seatW, yaw, 1, _seatCfg);
+    root.updateMatrixWorld(true);
+    _vBone.setFromMatrixPosition(pelvis.matrixWorld);
+    root.worldToLocal(_vBone);
+    root.worldToLocal(_seatW);
+    visual.position.add(_seatW.sub(_vBone));
+    root.updateMatrixWorld(true);
   }
 
   /**
@@ -682,6 +766,7 @@ export function createPlayerAvatar(THREE, scene) {
       const box = new THREE.Box3().setFromObject(visual);
       if (Number.isFinite(box.min.y)) visual.position.y -= box.min.y;
     }
+    visualBaseY = visual.position.y;
 
     mixer = new THREE.AnimationMixer(visual);
     mixer.addEventListener("finished", (e) => {
@@ -689,11 +774,9 @@ export function createPlayerAvatar(THREE, scene) {
       const next = meleeQueue;
       melee = null;
       meleeQueue = null;
-      current = null;
-      if (next && actions[next]) {
-        melee = next;
-        setAction(next, 0.05, true, true);
-      }
+      // Keep `current` on the strike: the clamped clip holds full weight until
+      // the next setAction fades it out.
+      if (next && actions[next]) playStrike(next, 0.12);
     });
 
     let moves = null;
@@ -732,6 +815,16 @@ export function createPlayerAvatar(THREE, scene) {
     add("kick", "Kick", false);
     add("ride", "Riding", true);
     mocap = !!(actions.idle && actions.walk && actions.jog && actions.run);
+    gripPose = [];
+    const fistClip = byName.get("Punch");
+    for (const track of fistClip?.tracks || []) {
+      const m = /^(Bip01_[LR]_Finger\d+)\.quaternion$/.exec(track.name);
+      const bone = m && visual.getObjectByName(m[1]);
+      if (!bone) continue;
+      const q = new THREE.Quaternion();
+      sampleTrackQuat(track, fistClip.duration * 0.5, q);
+      gripPose.push({ bone, q });
+    }
 
     if (!actions.walk) {
       const walkClipRaw =
@@ -750,8 +843,11 @@ export function createPlayerAvatar(THREE, scene) {
     root.add(visual);
     cacheArmBones(visual);
     playerId = id;
-    // A ride clip that resolved against the previous body must be fetched again.
+    // Fetch the ride clips now, so the first frames on a scooter don't show the walk.
     clipLoads = { ride: null, scooter: null };
+    if (!actions.ride) ensureClip("ride");
+    ensureClip("scooter");
+    await Promise.all(Object.values(clipLoads).filter(Boolean));
   }
 
   function setAction(name, fade = 0.16, once = false, force = false) {
@@ -773,6 +869,17 @@ export function createPlayerAvatar(THREE, scene) {
     headReady = false;
   }
 
+  // Trimmed Mixamo boxing: jab-cross, then a hook, then a checked kick.
+  // Near real time. The next hit blends in before the last one returns to guard.
+  const STRIKE_RATE = { punch: 1.08, cross: 1.05, kick: 1.08 };
+
+  function playStrike(name, fade) {
+    melee = name;
+    setAction(name, fade, true, true);
+    const act = actions[name];
+    if (act) act.setEffectiveTimeScale(STRIKE_RATE[name] || 1.08);
+  }
+
   function strike(kind) {
     if (!mocap || !visual) return;
     if (current === "ride" || current === "scooter" || jumpLatch) return;
@@ -781,20 +888,20 @@ export function createPlayerAvatar(THREE, scene) {
     if (melee) {
       const act = actions[melee];
       const dur = act?.getClip()?.duration || 1;
-      if (kind === "punch" && act && act.time > dur * 0.42) {
-        meleeQueue = melee === "punch" && actions.cross ? "cross" : "punch";
+      if (act && act.time > dur * 0.22) {
+        if (kind === "kick" && actions.kick) meleeQueue = "kick";
+        else meleeQueue = melee === "punch" && actions.cross ? "cross" : "punch";
       }
       return;
     }
     meleeQueue = null;
-    melee = actions[want] ? want : "cross";
-    setAction(melee, 0.07, true, true);
+    playStrike(actions[want] ? want : "cross", 0.1);
   }
 
   function gaitFor(speed) {
     const s = Math.abs(speed);
     if (s < 0.28) return "idle";
-    if (s < 2.4) return "walk";
+    if (s < 1.7) return "walk";
     if (s < 5.2) return "jog";
     return "run";
   }
@@ -818,7 +925,7 @@ export function createPlayerAvatar(THREE, scene) {
     ready: () => start(),
     async setPlayer(id) {
       if (id === playerId && visual) return;
-      setStoredPlayerId(id);
+      if (remember) setStoredPlayerId(id);
       playerId = id;
       built = true;
       ready = build(id);
@@ -863,8 +970,16 @@ export function createPlayerAvatar(THREE, scene) {
         if (actions.scooter) setAction("scooter", 0.2);
         else ensureClip("scooter");
       } else if (melee && actions[melee]) {
-        setAction(melee, 0.07, true);
-        actions[melee].setEffectiveTimeScale(1);
+        const act = actions[melee];
+        const dur = act.getClip()?.duration || 1;
+        if (meleeQueue && act.time > dur * 0.62) {
+          const next = meleeQueue;
+          meleeQueue = null;
+          playStrike(next, 0.16);
+        } else {
+          setAction(melee, 0.1, true);
+          act.setEffectiveTimeScale(STRIKE_RATE[melee] || 1.08);
+        }
       } else if (airborne && actions.jump) {
         if (!jumpLatch) {
           jumpLatch = true;
@@ -873,10 +988,7 @@ export function createPlayerAvatar(THREE, scene) {
         // The Mixamo hop is ~2.2s; the fence-clear is closer to 1.2s.
         actions.jump.setEffectiveTimeScale(1.75);
       } else if (mocap) {
-        if (jumpLatch) {
-          jumpLatch = false;
-          current = null;
-        }
+        if (jumpLatch) jumpLatch = false;
         const gait = gaitFor(moveSpeed);
         const name = actions[gait] ? gait : "walk";
         setAction(name, 0.18);
@@ -909,6 +1021,7 @@ export function createPlayerAvatar(THREE, scene) {
       if (mixer) mixer.update(dt);
       // Walk clips re-assert the tiny FBX armature scale after mixer.update.
       normalizeImportScale(visual);
+      visual.position.y = visualBaseY;
       const gaitNow = current === "idle" || current === "walk" || current === "jog" || current === "run";
       if (!mocap && current === "walk" && actions.walk) {
         pinWalkPelvis();
@@ -935,9 +1048,17 @@ export function createPlayerAvatar(THREE, scene) {
         // Ride clips don't put Rocketbox/Mixamo wrists on the bars — IK does.
         // Scooter legs are solved onto the deck; the baked crouch leaves them trailing.
         root.updateMatrixWorld(true);
-        if (kind === "scooter") polishScooterLegs(deck);
-        if (kind === "velo") polishVeloLegs(targetYaw);
-        polishRideGrips(kind, targetYaw);
+        if (kind === "scooter") {
+          polishScooterLegs(deck);
+          leanOnScooter(targetYaw, deck);
+        }
+        if (kind === "velo") {
+          seatOnVelo(targetYaw);
+          leanOnVelo(targetYaw);
+          polishVeloLegs(targetYaw);
+        }
+        polishRideGrips(kind, targetYaw, deck);
+        closeGrip();
       }
       root.visible = true;
     },

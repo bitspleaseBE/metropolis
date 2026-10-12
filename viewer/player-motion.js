@@ -6,6 +6,9 @@
  * can't strafe a bike) and S brakes, then rolls back slowly.
  *
  * `getYaw` / `setYaw` come from the look camera (mouse). The player root only stores position.
+ *
+ * Speed and gait changes also update viewer/movement.html.
+ * See .cursor/rules/movement-gallery.mdc.
  */
 export const MOVE = {
   // Shift multiplies walk to a clear jog (~7.4 m/s); rides keep a milder boost.
@@ -13,6 +16,28 @@ export const MOVE = {
   velo: { speed: 8.6, boost: 1.3, accel: 3.8, brake: 7, eye: 1.62, turn: 1.5, reverse: 1.2 },
   scooter: { speed: 7.6, boost: 1.0, accel: 4.2, brake: 7.5, eye: 1.62, turn: 1.8, reverse: 1.0 },
 };
+
+/** Space: fence-height hop, a short hang, then you just fall. `hop` is the minimum ground speed. */
+export const JUMP = { strength: 6.2, g: -16, hang: 1.4, hangG: 0.55, hop: 2.8 };
+
+/** A new hop state: { v, y, active }. */
+export function makeJump() {
+  return { v: 0, y: 0, active: false };
+}
+
+/** Advance a hop by dt. Returns true on the frame it lands. */
+export function stepJump(j, dt) {
+  if (!j.active) return false;
+  // Lighter gravity near the apex so the hop hangs instead of peaking like a spike.
+  const g = Math.abs(j.v) < JUMP.hang ? JUMP.g * JUMP.hangG : JUMP.g;
+  j.v += g * dt;
+  j.y += j.v * dt;
+  if (j.y > 0) return false;
+  j.y = 0;
+  j.v = 0;
+  j.active = false;
+  return true;
+}
 
 function approach(v, target, up, down, dt) {
   const speedingUp = Math.abs(target) > Math.abs(v) && target * v >= 0;

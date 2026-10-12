@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<!--
+  Dev check for cast and crowd movement, including the Velo, the bicycle, the bakfiets, and the step.
+  Keep this page in step with viewer/players.js, viewer/people.js, viewer/pedestrians.js, and viewer/micromobility.js.
+  See .cursor/rules/movement-gallery.mdc.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Movement — cast and crowd</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #12141a; color: #e8eaef; font: 14px/1.4 ui-sans-serif, system-ui, sans-serif; }
+      body { display: grid; grid-template-columns: 260px 1fr 280px; height: 100%; }
+      aside, #report { overflow: auto; padding: 12px 14px 24px; background: #1a1d26; }
+      #report { border-left: 1px solid #2c313c; }
+      h1 { font-size: 15px; font-weight: 650; margin: 0 0 4px; }
+      p.note { margin: 0 0 12px; color: #9aa3b2; font-size: 12px; }
+      h2 { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #8b93a3; margin: 16px 0 6px; }
+      button, .row { display: block; width: 100%; text-align: left; background: transparent; color: inherit; border: 0; border-radius: 6px; padding: 6px 8px; font: inherit; cursor: pointer; }
+      button:hover, .row:hover { background: #262b36; }
+      button.on, .row.on { background: #2a3344; color: #fff; }
+      #stage { position: relative; }
+      #stage canvas { display: block; width: 100%; height: 100%; }
+      #clips { position: absolute; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+      #clips button { width: auto; background: rgba(20, 22, 28, 0.8); border: 1px solid #3a4150; }
+      #clips button.on { background: #3d6df0; border-color: #3d6df0; }
+      #status { position: absolute; left: 12px; bottom: 12px; right: 12px; color: #d5dbe6; font-size: 13px; text-shadow: 0 1px 2px #000; }
+      .pass { color: #8ddeaf; }
+      .fail { color: #f0a0a0; }
+      #check { margin-top: 8px; background: #2c3342; }
+      li { list-style: none; }
+      ul { margin: 0; padding: 0; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <aside>
+      <h1>Movement</h1>
+      <p class="note">Click a person. Drag the view to turn around them, and scroll to zoom. The cast is the game's own avatar, driven at the game's speeds over a scrolling grid. The Velo and the step are the game's vehicles at their real size. Crowd riders show the bicycle, the bakfiets, and the step.</p>
+      <button id="check" type="button">Check cast and crowd</button>
+      <h2>Cast</h2>
+      <ul id="cast"></ul>
+      <h2>Bicycle and step</h2>
+      <ul id="wheels"></ul>
+      <h2>Crowd</h2>
+      <ul id="crowd"></ul>
+    </aside>
+    <div id="stage">
+      <div id="clips"></div>
+      <div id="status">Loading…</div>
+    </div>
+    <aside id="report">
+      <h1>Check</h1>
+      <p class="note" id="summary">Not run yet.</p>
+      <ul id="results"></ul>
+    </aside>
+    <script type="module">
+      import * as THREE from "three";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+      import { makeVeloBike, placeRideVelo, preloadVeloModel } from "./velo.js";
+      import { leanToBars } from "./ride-lean.js";
+      import { makeBicycleMesh, makeCargoMesh, makeScooterMesh } from "./micromobility.js";
+      import { createPlayerAvatar } from "./players.js";
+      import { makeShareScooter, placeRideScooter, scooterDeck } from "./scooters.js";
+      import { JUMP, MOVE, makeJump, stepJump } from "./player-motion.js";
+
+      const CAST = ["pieter", "mo", "jacob"];
+      // The cast is the game's own avatar (viewer/players.js) driven like index.html drives it:
+      // the same speeds, strikes, hop, Velo, and share scooter. The ground scrolls at the speed,
+      // so a sliding foot shows. Speeds come from viewer/player-motion.js.
+      const DRIVE = {
+        Idle: { speed: 0 },
+        Walk: { speed: 1.3 },
+        Jog: { speed: MOVE.walk.speed },
+        Run: { speed: MOVE.walk.speed * MOVE.walk.boost },
+        Jump: { speed: JUMP.hop, jump: true },
+        Punch: { speed: 0, strike: "punch" },
+        Kick: { speed: 0, strike: "kick" },
+        Velo: { speed: MOVE.velo.speed * 0.75, kind: "velo" },
+        Step: { speed: MOVE.scooter.speed * 0.75, kind: "scooter" },
+      };
+      const CAST_CLIPS = Object.keys(DRIVE);
+      const CAST_YAW = Math.PI; // the avatar faces −Z at yaw 0; turn it toward the camera
+      const RIDERS = ["Amy", "Remy", "James", "Michelle", "Aj"];
+      const BONE = {
+        pelvis: ["bip01pelvis", "hips"],
+        head: ["bip01head", "head"],
+        lHand: ["bip01lhand", "lefthand"],
+        rHand: ["bip01rhand", "righthand"],
+        lFoot: ["bip01lfoot", "leftfoot"],
+        rFoot: ["bip01rfoot", "rightfoot"],
+        lThigh: ["bip01lthigh", "leftupleg"],
+        rThigh: ["bip01rthigh", "rightupleg"],
+        lCalf: ["bip01lcalf", "leftleg"],
+        rCalf: ["bip01rcalf", "rightleg"],
+        lArm: ["bip01lupperarm", "leftarm"],
+        rArm: ["bip01rupperarm", "rightarm"],
+        lFore: ["bip01lforearm", "leftforearm"],
+        rFore: ["bip01rforearm", "rightforearm"],
+        spine: ["bip01spine", "spine"],
+        spine1: ["bip01spine1", "spine1"],
+        spine2: ["bip01spine2", "spine2"],
+        neck: ["bip01neck", "neck"],
+      };
+      const loader = new GLTFLoader();
+      const statusEl = document.getElementById("status");
+      const clipsEl = document.getElementById("clips");
+      const resultsEl = document.getElementById("results");
+      const summaryEl = document.getElementById("summary");
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(document.getElementById("stage").clientWidth, document.getElementById("stage").clientHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.35;
+      document.getElementById("stage").appendChild(renderer.domElement);
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1c2430);
+      const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 50);
+      scene.add(camera);
+      // Drag turns the view around the figure. Scroll zooms. Nothing spins on its own.
+      const orbit = {
+        yaw: 0.55,
+        pitch: 0.18,
+        dist: 3.3,
+        target: new THREE.Vector3(0, 0.9, 0),
+        dragging: false,
+        lx: 0,
+        ly: 0,
+      };
+      function applyOrbit() {
+        const cp = Math.cos(orbit.pitch);
+        camera.position.set(
+          orbit.target.x + Math.sin(orbit.yaw) * cp * orbit.dist,
+          orbit.target.y + Math.sin(orbit.pitch) * orbit.dist,
+          orbit.target.z + Math.cos(orbit.yaw) * cp * orbit.dist,
+        );
+        camera.lookAt(orbit.target);
+      }
+      applyOrbit();
+      const stageCanvas = renderer.domElement;
+      stageCanvas.style.cursor = "grab";
+      stageCanvas.style.touchAction = "none";
+      stageCanvas.addEventListener("pointerdown", (e) => {
+        orbit.dragging = true;
+        orbit.lx = e.clientX;
+        orbit.ly = e.clientY;
+        stageCanvas.style.cursor = "grabbing";
+        stageCanvas.setPointerCapture(e.pointerId);
+      });
+      stageCanvas.addEventListener("pointermove", (e) => {
+        if (!orbit.dragging) return;
+        const dx = e.clientX - orbit.lx;
+        const dy = e.clientY - orbit.ly;
+        orbit.lx = e.clientX;
+        orbit.ly = e.clientY;
+        orbit.yaw -= dx * 0.008;
+        orbit.pitch = Math.max(-0.35, Math.min(1.15, orbit.pitch + dy * 0.006));
+      });
+      const endDrag = () => {
+        orbit.dragging = false;
+        stageCanvas.style.cursor = "grab";
+      };
+      stageCanvas.addEventListener("pointerup", endDrag);
+      stageCanvas.addEventListener("pointercancel", endDrag);
+      stageCanvas.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const next = orbit.dist * (e.deltaY > 0 ? 1.08 : 0.92);
+        orbit.dist = Math.max(0.35, Math.min(9, next));
+      }, { passive: false });
+      scene.add(new THREE.HemisphereLight(0xe7eef8, 0xb5aa9a, 1.25));
+      scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+      const sun = new THREE.DirectionalLight(0xfff6ea, 2.6);
+      sun.position.set(4, 8, 3);
+      scene.add(sun);
+      const fill = new THREE.DirectionalLight(0xd5e2f2, 1.6);
+      fill.position.set(-4, 3, -3);
+      scene.add(fill);
+      const camLight = new THREE.DirectionalLight(0xffffff, 1.35);
+      camLight.position.set(0.6, 1.4, 2.2);
+      camera.add(camLight);
+      const ground = new THREE.Mesh(
+        new THREE.CircleGeometry(4, 40),
+        new THREE.MeshStandardMaterial({ color: 0x4a5568, roughness: 0.92 })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      scene.add(ground);
+      // Lines on the ground travel at the cast's speed, like the street under the game player.
+      const GRID_CELL = 0.5;
+      const grid = new THREE.GridHelper(8, 8 / GRID_CELL, 0x8392a8, 0x5d6a7e);
+      grid.position.y = 0.002;
+      scene.add(grid);
+
+      // Real vehicles from the game, at their own size. Nothing here is scaled to the clip.
+      await preloadVeloModel();
+      const bicycle = makeBicycleMesh(THREE);
+      const bakfiets = makeCargoMesh(THREE);
+      const step = makeScooterMesh(THREE);
+      for (const m of [bicycle, bakfiets, step]) m.visible = false;
+      scene.add(bicycle, bakfiets, step);
+      const VEHICLE = { Bicycle: bicycle, Bakfiets: bakfiets, Step: step };
+
+      // The cast rides the game's Velo and share scooter, placed by the game's own helpers.
+      const castVelo = makeVeloBike(THREE);
+      const castScooter = makeShareScooter(THREE);
+      castScooter.userData.kickstand.visible = false;
+      for (const m of [castVelo, castScooter]) m.visible = false;
+      scene.add(castVelo, castScooter);
+      const avatar = createPlayerAvatar(THREE, scene, { remember: false });
+      avatar.setVisible(false);
+      const drive = { name: "Idle", t: 0, travel: 0, jump: makeJump(), rest: 0, presses: 0 };
+
+      /** One game frame for the cast: vehicle first, then the avatar, as index.html does. */
+      function driveCast(dt) {
+        const spec = DRIVE[drive.name] || DRIVE.Idle;
+        const kind = spec.kind || "walk";
+        const speed = spec.speed;
+        drive.t += dt;
+        drive.travel += speed * dt;
+        const pos = { x: 0, y: MOVE.walk.eye, z: 0 };
+        let deck = null;
+        castVelo.visible = kind === "velo";
+        castScooter.visible = kind === "scooter";
+        if (kind === "velo") {
+          pos.y = MOVE.velo.eye;
+          placeRideVelo(castVelo, dt, { x: 0, z: 0, yaw: CAST_YAW, moving: true, speed, pedal: avatar.pedalPhase() });
+        } else if (kind === "scooter") {
+          placeRideScooter(castScooter, dt, { x: 0, z: 0, yaw: CAST_YAW, speed, turn: 0 }, 0);
+          deck = scooterDeck(castScooter);
+          pos.y = deck.y + 1.58;
+        }
+        if (spec.jump) {
+          if (!drive.jump.active && (drive.rest -= dt) <= 0) {
+            drive.jump.v = JUMP.strength;
+            drive.jump.active = true;
+          }
+          if (stepJump(drive.jump, dt)) drive.rest = 0.7;
+          pos.y += drive.jump.y;
+        }
+        if (spec.strike) {
+          // Like a player: a jab, then a cross pressed mid-jab; a kick on its own. Then a breath.
+          if (!avatar.striking && drive.presses === 0 && (drive.rest -= dt) <= 0) {
+            avatar.strike(spec.strike);
+            drive.presses = 1;
+            drive.pressAt = drive.t;
+          } else if (spec.strike === "punch" && drive.presses === 1 && drive.t - drive.pressAt > 0.35) {
+            avatar.strike("punch");
+            drive.presses = 2;
+          } else if (drive.presses && !avatar.striking) {
+            drive.presses = 0;
+            drive.rest = 0.9;
+          }
+        }
+        avatar.update(dt, pos, speed, CAST_YAW, kind, deck);
+        grid.position.z = -(drive.travel % GRID_CELL);
+      }
+
+      function setDrive(name) {
+        Object.assign(drive, { name, t: 0, rest: 0.25, presses: 0, jump: makeJump() });
+      }
+
+      let current = null;
+      let clipName = "Walk";
+      const clock = new THREE.Clock();
+
+      function dropScale(clip) {
+        if (!clip?.tracks?.length) return clip || null;
+        const tracks = clip.tracks.filter((t) => !t.name.endsWith(".scale"));
+        return tracks.length === clip.tracks.length ? clip : new THREE.AnimationClip(clip.name, clip.duration, tracks);
+      }
+
+      function normBone(name) {
+        return name.toLowerCase().replace(/^mixamorig[:_]?/, "").replace(/[\s_]/g, "");
+      }
+
+      function findBone(root, key) {
+        const want = BONE[key];
+        if (!want) return null;
+        let found = null;
+        root.traverse((o) => {
+          if (found || !o.isBone) return;
+          if (want.includes(normBone(o.name))) found = o;
+        });
+        return found;
+      }
+
+      function fit(root) {
+        root.traverse((o) => {
+          if ((o.name === "Bip01" || o.name === "Armature") && o.scale.x > 0 && o.scale.x < 0.001) {
+            o.scale.setScalar(0.01);
+          }
+          if (o.isMesh) {
+            o.frustumCulled = false;
+            const n = (o.name || "").toLowerCase();
+            if (n.includes("ico") || n.includes("sphere")) o.visible = false;
+          }
+        });
+        root.updateMatrixWorld(true);
+        const head = findBone(root, "head");
+        const foot = findBone(root, "lFoot");
+        let h = 0;
+        if (head && foot) {
+          head.updateWorldMatrix(true, false);
+          foot.updateWorldMatrix(true, false);
+          h = Math.abs(head.matrixWorld.elements[13] - foot.matrixWorld.elements[13]);
+        }
+        if (h < 0.2) {
+          const box = new THREE.Box3().setFromObject(root);
+          h = box.max.y - box.min.y;
+        }
+        if (h > 0.01) root.scale.multiplyScalar(1.72 / h);
+        root.updateMatrixWorld(true);
+        if (foot) {
+          foot.updateWorldMatrix(true, false);
+          root.position.y -= foot.matrixWorld.elements[13];
+        }
+        root.userData.groundY = root.position.y;
+        root.updateMatrixWorld(true);
+        const bindFeet = {};
+        for (const key of ["lFoot", "rFoot"]) {
+          const b = findBone(root, key);
+          if (b) bindFeet[key] = b.getWorldQuaternion(new THREE.Quaternion());
+        }
+        root.userData.bindFeet = bindFeet;
+      }
+
+      function rel(bone, pelvis) {
+        bone.updateWorldMatrix(true, false);
+        pelvis.updateWorldMatrix(true, false);
+        const a = bone.matrixWorld.elements;
+        const b = pelvis.matrixWorld.elements;
+        return [a[12] - b[12], a[13] - b[13], a[14] - b[14]];
+      }
+
+      /** How far the limbs travel over the clip. A bind pose stays under a centimetre. */
+      function measure(root, mixer, seconds) {
+        const pelvis = findBone(root, "pelvis");
+        const bones = {
+          lArm: findBone(root, "lArm"),
+          rArm: findBone(root, "rArm"),
+          lThigh: findBone(root, "lThigh"),
+          rThigh: findBone(root, "rThigh"),
+          lHand: findBone(root, "lHand"),
+          rHand: findBone(root, "rHand"),
+          lFoot: findBone(root, "lFoot"),
+          rFoot: findBone(root, "rFoot"),
+        };
+        if (!pelvis) return { ok: false, reason: "no pelvis" };
+        const origin = {};
+        for (const [k, b] of Object.entries(bones)) if (b) origin[k] = rel(b, pelvis);
+        const travel = Object.fromEntries(Object.keys(origin).map((k) => [k, 0]));
+        let reach = Infinity;
+        const steps = Math.max(8, Math.round(seconds * 30));
+        const dt = seconds / steps;
+        for (let i = 0; i < steps; i++) {
+          mixer.update(dt);
+          for (const [k, b] of Object.entries(bones)) {
+            if (!b) continue;
+            const p = rel(b, pelvis);
+            const o = origin[k];
+            const d = Math.hypot(p[0] - o[0], p[1] - o[1], p[2] - o[2]);
+            if (d > travel[k]) travel[k] = d;
+            if (k === "lFoot" || k === "rFoot") reach = Math.min(reach, Math.hypot(p[0], p[1], p[2]));
+          }
+        }
+        const arm = Math.max(travel.lArm || 0, travel.rArm || 0);
+        const leg = Math.max(travel.lThigh || 0, travel.rThigh || 0);
+        const hand = Math.max(travel.lHand || 0, travel.rHand || 0);
+        const foot = Math.max(travel.lFoot || 0, travel.rFoot || 0);
+        return { ok: true, arm, leg, hand, foot, reach: Number.isFinite(reach) ? reach : 0 };
+      }
+
+      function verdict(name, m) {
+        if (!m.ok) return { pass: false, text: m.reason };
+        if (name === "Idle") {
+          const pass = m.arm < 0.35 && m.leg < 0.25;
+          return { pass, text: `idle hold, arms ${(m.arm * 100).toFixed(0)} cm` };
+        }
+        if (name === "Punch") {
+          const pass = m.hand >= 0.2;
+          return { pass, text: `hand ${(m.hand * 100).toFixed(0)} cm` };
+        }
+        if (name === "Kick") {
+          const pass = m.foot >= 0.25;
+          return { pass, text: `foot ${(m.foot * 100).toFixed(0)} cm` };
+        }
+        if (name === "Velo" || name === "Bicycle" || name === "Bakfiets") {
+          const pass = m.foot >= 0.12;
+          return { pass, text: `pedal, feet ${(m.foot * 100).toFixed(0)} cm` };
+        }
+        if (name === "Step") {
+          // The step is a held crouch on the deck. A bind pose keeps the leg straight.
+          const pass = m.reach > 0.35 && m.reach < 0.95;
+          return { pass, text: `deck stance, leg ${(m.reach * 100).toFixed(0)} cm` };
+        }
+        // The thigh bone sits at the hip, so it barely travels. The foot and the hand do.
+        const pass = m.hand >= 0.12 && m.foot >= 0.2;
+        return {
+          pass,
+          text: `hands ${(m.hand * 100).toFixed(0)} cm, feet ${(m.foot * 100).toFixed(0)} cm`,
+        };
+      }
+
+      function clearStage() {
+        avatar.setVisible(false);
+        castVelo.visible = false;
+        castScooter.visible = false;
+        grid.position.z = 0;
+        for (const mesh of Object.values(VEHICLE)) mesh.visible = false;
+        if (!current) return;
+        if (current.root) scene.remove(current.root);
+        current.mixer?.stopAllAction();
+        current = null;
+      }
+
+      const _aimY = new THREE.Vector3();
+      const _aimZ = new THREE.Vector3();
+      const _qA = new THREE.Quaternion();
+      const _qB = new THREE.Quaternion();
+      const _up = new THREE.Vector3(0, 1, 0);
+
+      /** Swing `bone` so `child` lands on the line to `worldPoint`. Legs run along +Y (Pieter) or +X (Mo, Jacob). */
+      function aimBone(bone, child, worldPoint) {
+        const parent = bone.parent;
+        if (!parent) return;
+        bone.updateWorldMatrix(true, true);
+        const origin = new THREE.Vector3().setFromMatrixPosition(bone.matrixWorld);
+        _aimY.setFromMatrixPosition(child.matrixWorld).sub(origin);
+        _aimZ.copy(worldPoint).sub(origin);
+        if (_aimY.lengthSq() < 1e-8 || _aimZ.lengthSq() < 1e-8) return;
+        _qA.setFromUnitVectors(_aimY.normalize(), _aimZ.normalize());
+        bone.getWorldQuaternion(_qB);
+        _qA.multiply(_qB);
+        parent.getWorldQuaternion(_qB);
+        bone.quaternion.copy(_qB.invert()).multiply(_qA);
+        bone.updateMatrix();
+        bone.updateMatrixWorld(true);
+      }
+
+      function solveLeg(thigh, calf, foot, target, pole, flat) {
+        if (!thigh || !calf || !foot) return;
+        thigh.updateWorldMatrix(true, true);
+        const hip = new THREE.Vector3().setFromMatrixPosition(thigh.matrixWorld);
+        const knee = new THREE.Vector3().setFromMatrixPosition(calf.matrixWorld);
+        const ankle = new THREE.Vector3().setFromMatrixPosition(foot.matrixWorld);
+        const upper = Math.max(0.05, hip.distanceTo(knee));
+        const lower = Math.max(0.05, knee.distanceTo(ankle));
+        const dir = target.clone().sub(hip);
+        const reach = dir.length();
+        if (reach < 1e-4) return;
+        dir.multiplyScalar(1 / reach);
+        const dist = Math.max(Math.abs(upper - lower) + 0.02, Math.min((upper + lower) * 0.985, reach));
+        const along = (dist * dist + upper * upper - lower * lower) / (2 * dist);
+        const bow = Math.sqrt(Math.max(0, upper * upper - along * along));
+        const poleDir = pole.clone().sub(hip);
+        poleDir.addScaledVector(dir, -poleDir.dot(dir));
+        if (poleDir.lengthSq() < 1e-6) poleDir.copy(_up);
+        poleDir.normalize();
+        const kneeAt = hip.clone().addScaledVector(dir, along).addScaledVector(poleDir, bow);
+        aimBone(thigh, calf, kneeAt);
+        aimBone(calf, foot, target);
+        if (flat) {
+          calf.updateMatrixWorld(true);
+          parentQuat(foot, flat);
+        }
+      }
+
+      function parentQuat(bone, worldQuat) {
+        bone.parent.getWorldQuaternion(_qB);
+        bone.quaternion.copy(_qB.invert()).multiply(worldQuat);
+        bone.updateMatrix();
+        bone.updateMatrixWorld(true);
+      }
+
+      function solveArm(upper, fore, hand, target) {
+        if (!upper?.parent || !fore || !hand) return;
+        const from = new THREE.Vector3();
+        const toEnd = new THREE.Vector3();
+        const toTarget = new THREE.Vector3();
+        const turn = new THREE.Quaternion();
+        const parentQ = new THREE.Quaternion();
+        const worldQ = new THREE.Quaternion();
+        for (let iter = 0; iter < 8; iter++) {
+          for (const bone of [fore, upper]) {
+            bone.updateWorldMatrix(true, true);
+            hand.updateWorldMatrix(true, false);
+            from.setFromMatrixPosition(bone.matrixWorld);
+            toEnd.setFromMatrixPosition(hand.matrixWorld).sub(from);
+            if (toEnd.lengthSq() < 1e-10) continue;
+            toEnd.normalize();
+            toTarget.copy(target).sub(from);
+            if (toTarget.lengthSq() < 1e-10) continue;
+            toTarget.normalize();
+            turn.setFromUnitVectors(toEnd, toTarget);
+            bone.parent.getWorldQuaternion(parentQ);
+            bone.getWorldQuaternion(worldQ);
+            worldQ.premultiply(turn);
+            bone.quaternion.copy(parentQ.invert()).multiply(worldQ);
+            bone.updateMatrix();
+            bone.updateMatrixWorld(true);
+          }
+        }
+      }
+
+      function vehiclePoint(mesh, local) {
+        return mesh.localToWorld(local.clone());
+      }
+
+      /** Rider faces world +Z, so their left is world +X. Vehicles do not all share that axis. */
+      function riderFrame(mesh) {
+        mesh.updateMatrixWorld(true);
+        const origin = mesh.localToWorld(new THREE.Vector3());
+        const x = mesh.localToWorld(new THREE.Vector3(1, 0, 0)).sub(origin);
+        const z = mesh.localToWorld(new THREE.Vector3(0, 0, 1)).sub(origin);
+        return { left: x.x >= 0 ? 1 : -1, fwd: z.z >= 0 ? 1 : -1 };
+      }
+
+      /** Put the pelvis on this vehicle's own saddle. The mesh is not resized. */
+      function pinPelvis(root, mesh) {
+        const pelvis = findBone(root, "pelvis");
+        const seat = mesh.userData.seat;
+        if (!pelvis || !seat || seat.kind === "step") return;
+        root.updateMatrixWorld(true);
+        mesh.updateMatrixWorld(true);
+        pelvis.updateWorldMatrix(true, false);
+        const world = vehiclePoint(mesh, seat.saddle);
+        root.position.x += world.x - pelvis.matrixWorld.elements[12];
+        root.position.y += world.y + 0.06 - pelvis.matrixWorld.elements[13];
+        root.position.z += world.z - pelvis.matrixWorld.elements[14];
+      }
+
+      /** Feet on this vehicle's cranks or deck, hands on its bars. The mesh is not resized. */
+      function ridePose(root, name, phase) {
+        const mesh = VEHICLE[name];
+        if (!mesh?.visible) return;
+        const seat = mesh.userData.seat;
+        if (!seat) return;
+        root.rotation.x = 0;
+        pinPelvis(root, mesh);
+        mesh.updateMatrixWorld(true);
+        const frame = riderFrame(mesh);
+        const gripAt = (side) => {
+          const at = seat.bar.clone();
+          at.x += side * frame.left * seat.grip;
+          return vehiclePoint(mesh, at);
+        };
+        if (seat.kind === "step") {
+          const shoulder = findBone(root, "lArm");
+          let lean = 0;
+          for (let i = 0; i < 5 && shoulder; i++) {
+            root.rotation.x = lean;
+            pinPelvis(root, mesh);
+            const grip = vehiclePoint(mesh, seat.bar);
+            shoulder.updateWorldMatrix(true, false);
+            const dist = new THREE.Vector3().setFromMatrixPosition(shoulder.matrixWorld).distanceTo(grip);
+            const short = dist - 0.42;
+            if (short <= 0.02) break;
+            lean = Math.min(0.55, lean + short * 1.2);
+          }
+        } else {
+          // Same spine lean as the game (viewer/players.js). Riders face +Z, so up × forward is +X.
+          leanToBars(
+            THREE,
+            {
+              spine: ["pelvis", "spine", "spine1", "spine2"].map((k) => findBone(root, k)),
+              head: findBone(root, "head"),
+              arms: [
+                ["lArm", "lFore", "lHand"].map((k) => findBone(root, k)),
+                ["rArm", "rFore", "rHand"].map((k) => findBone(root, k)),
+              ],
+            },
+            [gripAt(1), gripAt(-1)],
+            new THREE.Vector3(1, 0, 0)
+          );
+        }
+        mesh.updateMatrixWorld(true);
+        const flat = root.userData.bindFeet || {};
+        if (seat.kind === "step") {
+          const feet = [
+            ["lFoot", "lThigh", "lCalf", 0.05, 0.1],
+            ["rFoot", "rThigh", "rCalf", -0.05, -0.08],
+          ];
+          for (const [foot, thigh, calf, x, z] of feet) {
+            const at = seat.deck.clone();
+            at.x += x * frame.left;
+            at.z += z;
+            at.y += 0.04;
+            const pole = vehiclePoint(mesh, at.clone().add(new THREE.Vector3(0, 0.2, 0.3)));
+            solveLeg(findBone(root, thigh), findBone(root, calf), findBone(root, foot), vehiclePoint(mesh, at), pole, flat[foot]);
+          }
+        } else {
+          const barWorld = vehiclePoint(mesh, seat.bar);
+          const feet = [
+            ["lFoot", "lThigh", "lCalf", 1, 0],
+            ["rFoot", "rThigh", "rCalf", -1, Math.PI],
+          ];
+          const half = seat.pedalX ?? 0.09;
+          for (const [foot, thigh, calf, side, extra] of feet) {
+            const a = phase + extra;
+            const at = seat.crank.clone();
+            at.x += side * frame.left * half;
+            at.y += -seat.crankR * Math.sin(a);
+            at.z += frame.fwd * seat.crankR * Math.cos(a);
+            const target = vehiclePoint(mesh, at);
+            target.y += 0.09;
+            const pole = target.clone().lerp(barWorld, 0.35);
+            pole.y += 0.2;
+            solveLeg(findBone(root, thigh), findBone(root, calf), findBone(root, foot), target, pole, flat[foot]);
+          }
+          // Left pedal starts forward and travels downward. The Velo spins its own
+          // crank. The micromobility bikes keep their left pedal on the crank's −Y.
+          if (mesh.userData.setPedal) mesh.userData.setPedal(phase);
+          else if (mesh.userData.crank) mesh.userData.crank.rotation.x = frame.fwd * (phase - Math.PI / 2);
+        }
+        for (const [hand, arm, fore, side] of [
+          ["lHand", "lArm", "lFore", 1],
+          ["rHand", "rArm", "rFore", -1],
+        ]) {
+          solveArm(findBone(root, arm), findBone(root, fore), findBone(root, hand), gripAt(side));
+        }
+      }
+
+      function seat(root, name) {
+        for (const mesh of Object.values(VEHICLE)) mesh.visible = false;
+        root.rotation.set(0, 0, 0);
+        root.position.set(0, root.userData.groundY || 0, 0);
+        const mesh = VEHICLE[name];
+        if (!mesh) return;
+        mesh.visible = true;
+        const pelvis = findBone(root, "pelvis");
+        if (!pelvis) return;
+        root.updateMatrixWorld(true);
+        pelvis.updateWorldMatrix(true, false);
+        const seat = mesh.userData.seat;
+        const spot = seat.kind === "step" ? seat.deck : seat.saddle;
+        const world = vehiclePoint(mesh, spot);
+        const py = pelvis.matrixWorld.elements[13];
+        const pz = pelvis.matrixWorld.elements[14];
+        if (seat.kind === "step") {
+          root.position.y += world.y + 0.02;
+          root.position.z += world.z - pz;
+        } else {
+          root.position.y += world.y + 0.07 - py;
+          root.position.z += world.z - pz;
+        }
+      }
+
+      function show(root, mixer, action) {
+        clearStage();
+        scene.add(root);
+        action.reset().setEffectiveWeight(1).play();
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        action.clampWhenFinished = false;
+        mixer.update(0);
+        seat(root, clipName);
+        current = { root, mixer, action };
+        ridePose(root, clipName, 0);
+      }
+
+      async function loadClip(url) {
+        try {
+          const gltf = await loader.loadAsync(url);
+          return dropScale(gltf.animations[0]);
+        } catch {
+          return null;
+        }
+      }
+
+      async function loadCast(id) {
+        await avatar.setPlayer(id);
+        return { kind: "cast", id };
+      }
+
+      /** The cast avatar starts each clip from standing, then settles for a moment. */
+      function startCast(name) {
+        clearStage();
+        setDrive(name);
+        avatar.update(0, { x: 0, y: MOVE.walk.eye, z: 0 }, 0, CAST_YAW, "walk");
+        for (let i = 0; i < 24; i++) driveCast(1 / 60);
+        avatar.setVisible(true);
+        current = { kind: "cast" };
+      }
+
+      function playCast(model) {
+        if (!CAST_CLIPS.includes(clipName)) clipName = "Walk";
+        orbit.target.set(0, DRIVE[clipName].kind ? 1.0 : 0.9, 0);
+        clipsEl.replaceChildren(
+          ...CAST_CLIPS.map((n) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.textContent = n;
+            b.className = n === clipName ? "on" : "";
+            b.onclick = () => {
+              clipName = n;
+              playCast(model);
+            };
+            return b;
+          })
+        );
+        const v = verdict(clipName, measureCast(clipName));
+        startCast(clipName);
+        statusEl.replaceChildren();
+        const mark = document.createElement("span");
+        mark.className = v.pass ? "pass" : "fail";
+        mark.textContent = v.pass ? "Natural" : "Stiff";
+        const sp = DRIVE[clipName].speed;
+        statusEl.append(mark, ` — ${clipName}${sp ? ` at ${sp.toFixed(1)} m/s` : ""}: ${v.text}`);
+      }
+
+      /** Run the game avatar through one clip off-screen and measure how far the limbs travel. */
+      function measureCast(name) {
+        setDrive(name);
+        avatar.update(0, { x: 0, y: MOVE.walk.eye, z: 0 }, 0, CAST_YAW, "walk");
+        for (let i = 0; i < 30; i++) driveCast(1 / 60);
+        const seconds = name === "Idle" ? 1.2 : name === "Punch" || name === "Kick" ? 2.4 : name === "Jump" ? 1.6 : 1.5;
+        return measure(avatar.root, { update: driveCast }, seconds);
+      }
+
+      async function loadRider(name) {
+        const [body, riding, scooter] = await Promise.all([
+          loader.loadAsync(`characters/${name}_Walking.glb`),
+          loadClip(`characters/clips/${name}_Riding.glb`),
+          loadClip(`characters/clips/${name}_Scooter.glb`),
+        ]);
+        const root = cloneSkeleton(body.scene);
+        fit(root);
+        const mixer = new THREE.AnimationMixer(root);
+        const clips = new Map();
+        if (riding) {
+          clips.set("Bicycle", riding);
+          clips.set("Bakfiets", riding);
+        }
+        if (scooter) clips.set("Step", scooter);
+        return { root, mixer, clips, kind: "rider" };
+      }
+
+      async function loadCrowd(file) {
+        const gltf = await loader.loadAsync(`characters/people/${file}`);
+        const root = cloneSkeleton(gltf.scene);
+        fit(root);
+        const mixer = new THREE.AnimationMixer(root);
+        const clip = dropScale(gltf.animations[0]);
+        const clips = new Map(clip ? [[clip.name || "Walk", clip]] : []);
+        return { root, mixer, clips, kind: "crowd" };
+      }
+
+      function playLoaded(model) {
+        if (model.kind === "cast") return playCast(model);
+        const order = ["Bicycle", "Bakfiets", "Step"];
+        const names = order.filter((n) => model.clips.has(n));
+        if (!names.includes(clipName)) clipName = names[0] || "Walk";
+        orbit.target.set(0, 0.9, clipName === "Bakfiets" ? 0.3 : 0);
+        clipsEl.replaceChildren(
+          ...names.map((n) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.textContent = n;
+            b.className = n === clipName ? "on" : "";
+            b.onclick = () => {
+              clipName = n;
+              playLoaded(model);
+            };
+            return b;
+          })
+        );
+        const clip = model.clips.get(clipName);
+        if (!clip) {
+          statusEl.textContent = "No clip";
+          return;
+        }
+        const action = model.mixer.clipAction(clip);
+        show(model.root, model.mixer, action);
+        const m = measure(model.root, model.mixer, Math.min(clip.duration, clipName === "Idle" ? 1.2 : clip.duration));
+        const v = verdict(clipName, m);
+        statusEl.replaceChildren();
+        const mark = document.createElement("span");
+        mark.className = v.pass ? "pass" : "fail";
+        mark.textContent = v.pass ? "Natural" : "Stiff";
+        statusEl.append(mark, ` — ${clipName}: ${v.text}`);
+        action.reset().play();
+        model.mixer.update(0);
+        ridePose(model.root, clipName, 0);
+      }
+
+      const castList = document.getElementById("cast");
+      const crowdList = document.getElementById("crowd");
+      const wheelsList = document.getElementById("wheels");
+      let selectedBtn = null;
+      function select(btn, loaderFn) {
+        if (selectedBtn) selectedBtn.classList.remove("on");
+        selectedBtn = btn;
+        btn.classList.add("on");
+        statusEl.textContent = "Loading…";
+        loaderFn()
+          .then(playLoaded)
+          .catch((err) => {
+            statusEl.textContent = String(err.message || err);
+          });
+      }
+
+      for (const id of CAST) {
+        const li = document.createElement("li");
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = id[0].toUpperCase() + id.slice(1);
+        b.onclick = () => select(b, () => loadCast(id));
+        li.appendChild(b);
+        castList.appendChild(li);
+        if (id === "pieter") select(b, () => loadCast(id));
+      }
+
+      for (const name of RIDERS) {
+        const li = document.createElement("li");
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = name;
+        b.onclick = () => {
+          clipName = "Bicycle";
+          select(b, () => loadRider(name));
+        };
+        li.appendChild(b);
+        wheelsList.appendChild(li);
+      }
+
+      const manifest = await fetch("characters/people/manifest.json").then((r) => r.json());
+      for (const person of manifest.people) {
+        const li = document.createElement("li");
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = person.id.replaceAll("_", " ");
+        b.onclick = () => {
+          clipName = "Walk";
+          select(b, () => loadCrowd(person.file));
+        };
+        li.appendChild(b);
+        crowdList.appendChild(li);
+      }
+
+      function addResult(label, pass, text) {
+        const li = document.createElement("li");
+        li.className = "row " + (pass ? "pass" : "fail");
+        li.textContent = `${pass ? "ok" : "stiff"}  ${label} — ${text}`;
+        resultsEl.appendChild(li);
+      }
+
+      async function checkAll() {
+        resultsEl.replaceChildren();
+        summaryEl.textContent = "Checking…";
+        const rows = [];
+        const shownCast = current?.kind === "cast" ? avatar.playerId : null;
+        current = null;
+        for (const id of CAST) {
+          await loadCast(id);
+          for (const name of CAST_CLIPS) {
+            const v = verdict(name, measureCast(name));
+            rows.push({ label: `${id} ${name}`, ...v });
+            addResult(`${id} ${name}`, v.pass, v.text);
+          }
+        }
+        if (shownCast) {
+          await loadCast(shownCast);
+          startCast(clipName);
+        } else {
+          avatar.setVisible(false);
+        }
+        for (const name of RIDERS) {
+          try {
+            const model = await loadRider(name);
+            for (const clipName of ["Bicycle", "Step"]) {
+              const clip = model.clips.get(clipName);
+              if (!clip) {
+                rows.push({ label: `${name} ${clipName}`, pass: false, text: "missing clip" });
+                addResult(`${name} ${clipName}`, false, "missing clip");
+                continue;
+              }
+              const action = model.mixer.clipAction(clip);
+              action.reset().setEffectiveWeight(1).play();
+              model.mixer.update(0);
+              const m = measure(model.root, model.mixer, Math.min(clip.duration, 1.4));
+              action.stop();
+              const v = verdict(clipName, m);
+              rows.push({ label: `${name} ${clipName}`, ...v });
+              addResult(`${name} ${clipName}`, v.pass, v.text);
+            }
+          } catch (err) {
+            rows.push({ label: name, pass: false, text: String(err.message || err) });
+            addResult(name, false, String(err.message || err));
+          }
+        }
+        for (const person of manifest.people) {
+          try {
+            const model = await loadCrowd(person.file);
+            const clip = [...model.clips.values()][0];
+            if (!clip) {
+              rows.push({ label: person.id, pass: false, text: "no clip" });
+              addResult(person.id, false, "no clip");
+              continue;
+            }
+            const action = model.mixer.clipAction(clip);
+            action.reset().play();
+            model.mixer.update(0);
+            const m = measure(model.root, model.mixer, Math.min(clip.duration, 1.4));
+            const v = verdict("Walk", m);
+            rows.push({ label: person.id, ...v });
+            addResult(person.id, v.pass, v.text);
+          } catch (err) {
+            rows.push({ label: person.id, pass: false, text: String(err.message || err) });
+            addResult(person.id, false, String(err.message || err));
+          }
+        }
+        const failed = rows.filter((r) => !r.pass);
+        summaryEl.textContent = failed.length
+          ? `${failed.length} stiff of ${rows.length}`
+          : `${rows.length} clips move the cast, the crowd, the Velo, and the step`;
+        window.__motionReport = { ok: failed.length === 0, failed, total: rows.length };
+        return window.__motionReport;
+      }
+
+      document.getElementById("check").onclick = () => checkAll();
+      window.__checkMotion = checkAll;
+
+      function frame() {
+        requestAnimationFrame(frame);
+        const dt = Math.min(clock.getDelta(), 0.05);
+        if (current?.kind === "cast") {
+          driveCast(dt);
+        } else if (current) {
+          current.mixer.update(dt);
+          const mesh = VEHICLE[clipName];
+          if (mesh?.visible) {
+            const dur = current.action.getClip()?.duration || 1;
+            const phase = (((current.action.time % dur) + dur) % dur / dur) * Math.PI * 2;
+            ridePose(current.root, clipName, phase);
+            const wheels = mesh.userData.wheels || [];
+            const sign = mesh.userData.wheelSign || 1;
+            for (const w of wheels) w.rotation.x -= dt * 8 * sign;
+          }
+        }
+        const w = document.getElementById("stage").clientWidth;
+        const h = document.getElementById("stage").clientHeight;
+        if (renderer.domElement.width !== Math.floor(w * renderer.getPixelRatio())) {
+          renderer.setSize(w, h);
+          camera.aspect = w / Math.max(h, 1);
+          camera.updateProjectionMatrix();
+        }
+        applyOrbit();
+        renderer.render(scene, camera);
+      }
+      frame();
+    </script>
+  </body>
+</html>

@@ -5,6 +5,9 @@
  * pool keeps a share resident: a balanced first batch for the opening spawns, then the rest
  * streams in behind it and replaces walkers once they are out of sight. Households are put
  * together from the manifest's `look` tags so families, couples and friends look plausible.
+ *
+ * Walk-clip changes also update viewer/movement.html.
+ * See .cursor/rules/movement-gallery.mdc.
  */
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
@@ -12,6 +15,14 @@ import { fitHumanoid } from "./humanoid-fit.js";
 
 const DIR = new URL("./characters/people/", import.meta.url);
 const loader = new GLTFLoader();
+
+/** Identity scale keys on a centimetre armature pin the skin to the bind pose. */
+function dropScaleTracks(THREE, clip) {
+  if (!clip?.tracks?.length) return clip || null;
+  const tracks = clip.tracks.filter((t) => !t.name.endsWith(".scale"));
+  if (tracks.length === clip.tracks.length) return clip;
+  return new THREE.AnimationClip(clip.name, clip.duration, tracks);
+}
 
 // Looks that plausibly share a household; anything else pairs within its own look.
 const CLUSTER = {
@@ -87,8 +98,10 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
         const t = {
           person,
           scene: gltf.scene,
-          clip: gltf.animations[0] || null,
-          getUp: getUpGltf?.animations[0] || null,
+          // Scale tracks are identity and, on a 0.01 armature, fight the skin so
+          // the body stays in the bind pose (arms out, legs straight).
+          clip: dropScaleTracks(THREE, gltf.animations[0]),
+          getUp: dropScaleTracks(THREE, getUpGltf?.animations[0]),
           users: 0,
           lastUsed: 0,
           since: performance.now(),
@@ -293,6 +306,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
       action = mixer.clipAction(t.clip);
       action.play();
       action.time = Math.random() * t.clip.duration;
+      // Apply a walk frame now. Until the mixer steps, the skin sits in the bind pose.
+      mixer.update(0);
     }
     let getUp = null;
     if (t.getUp) {

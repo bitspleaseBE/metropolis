@@ -1096,7 +1096,7 @@
       import { createShops } from "./shops.js";
       import { createTerraces } from "./terraces.js";
       import { createPropCollider } from "./props-collide.js";
-      import { createPlayerMotion } from "./player-motion.js";
+      import { createPlayerMotion, JUMP as JUMP_CFG, makeJump, stepJump } from "./player-motion.js";
       import { createPlayerCrash } from "./crash.js";
       import { createPlayerAvatar, preloadPlayer } from "./players.js";
       import { createThirdPersonCamera } from "./third-person.js";
@@ -1529,7 +1529,7 @@
       }
       let touch = null;
       // GTA hop: enough to clear a low fence, a little hang at the top, then you just drop.
-      const JUMP = { v: 0, y: 0, g: -16, strength: 6.2, active: false, held: false };
+      const JUMP = { ...makeJump(), held: false };
       let prevTime = performance.now();
       let cityRoot = null;
       let spawnPos = new THREE.Vector3(-2.921, eyeHeight, -0.261);
@@ -1715,7 +1715,9 @@
           for (const v of micromobility.vehicles) {
             if (!v?.pos) continue;
             const spd = v.crash ? Math.hypot(v.crash.vx || 0, v.crash.vz || 0) : v.cur || 0;
-            circle(v.pos.x, v.pos.z, 0.62, spd);
+            if (v.hl && !v.crash) {
+              box(v.pos.x + v.tan.x * v.nose, v.pos.z + v.tan.z * v.nose, v.tan.x, v.tan.z, v.hl, 0.36, spd);
+            } else circle(v.pos.x, v.pos.z, 0.62, spd);
           }
         }
         return best;
@@ -1733,7 +1735,13 @@
           pos.z = cz + (dz / d) * R;
           playerMotion.bump(0.6);
         };
-        if (micromobility) for (const v of micromobility.vehicles) push(v.pos.x, v.pos.z, 0.85);
+        if (micromobility) {
+          for (const v of micromobility.vehicles) {
+            push(v.pos.x, v.pos.z, 0.85);
+            // The cargo box runs well ahead of the rider.
+            if (v.hl && !v.crash) push(v.pos.x + v.tan.x * 1.0, v.pos.z + v.tan.z * 1.0, 0.75);
+          }
+        }
         if (scooters) for (const s of scooters.solids()) push(s.x, s.z, s.r + 0.3);
         if (outdoors) outdoors.ensureOutdoors(pos);
       }
@@ -3383,20 +3391,9 @@
             JUMP.y = 0;
           } else {
             if (keys.space && !JUMP.held && !JUMP.active) {
-              JUMP.v = JUMP.strength;
+              JUMP.v = JUMP_CFG.strength;
               JUMP.active = true;
-              playerMotion.hop(2.8);
-            }
-            if (JUMP.active) {
-              // Lighter gravity near the apex so the hop hangs instead of peaking like a spike.
-              const g = Math.abs(JUMP.v) < 1.4 ? JUMP.g * 0.55 : JUMP.g;
-              JUMP.v += g * dt;
-              JUMP.y += JUMP.v * dt;
-              if (JUMP.y <= 0) {
-                JUMP.y = 0;
-                JUMP.v = 0;
-                JUMP.active = false;
-              }
+              playerMotion.hop(JUMP_CFG.hop);
             }
           }
           JUMP.held = !!keys.space;
@@ -3426,6 +3423,7 @@
             if (!onScooter && !ridingVelo) pushOutOfSolids(w.position);
             collideWorld(w.position, onScooter || ridingVelo);
             if ((onScooter || ridingVelo) && dt > 0) {
+            stepJump(JUMP, dt);
               const yaw = playerMotion.yaw();
               const rideSpeed = playerMotion.speed;
               let impact = Math.hypot(w.position.x - _afterWall.x, w.position.z - _afterWall.z) / dt;
