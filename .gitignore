@@ -31,7 +31,9 @@ districts/*/cache/aerial/
 districts/*/references/*/
 # Review packs: LATEST.md + proofs are committed; timestamped runs are local history.
 districts/*/review/2*/
-viewer/districts/**/*.glb
+# District packages ship core.glb + chunks/ + landmarks/ for Pages.
+# city.glb is a byte-identical copy of core.glb from `district build` — skip it.
+viewer/districts/**/city.glb
 viewer/districts/**/*.premeshopt.glb
 *.blend1
 *.blend2
