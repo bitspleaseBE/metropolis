@@ -627,7 +627,15 @@ def district_build(
 
 
 def district_republish_shops(district_id: str) -> Path:
-    """Rewrite viewer/districts/<id>/shops.json from cached OSM + places + overrides (no Blender)."""
+    """Rewrite viewer/districts/<id>/shops.json from cached OSM + places + overrides (no Blender).
+
+    Also culls ``props.json`` colliders to ``VIEWER_PROP_RADIUS_M`` around spawn when that
+    file already exists (far solids live in the streamed GLB).
+    """
+    import math
+
+    from cityview.props import VIEWER_PROP_RADIUS_M
+
     paths = district_paths(district_id)
     doc = load_district(district_id)
     origin = tuple(doc["origin"])
@@ -639,6 +647,27 @@ def district_republish_shops(district_id: str) -> Path:
     dest = paths.viewer / "shops.json"
     dest.write_text(json.dumps(shops) + "\n")
     print(f"Wrote {dest} ({len(shops['shops'])} shopfronts)")
+
+    props_path = paths.viewer / "props.json"
+    if props_path.exists() and spawn:
+        sx, sy = float(spawn["x"]), float(spawn["y"])
+        r = VIEWER_PROP_RADIUS_M
+
+        def near(x: float, y: float) -> bool:
+            return math.hypot(x - sx, y - sy) <= r
+
+        props = json.loads(props_path.read_text())
+        before = sum(len(props.get(k) or []) for k in ("trunks", "boxes", "segments"))
+        props["trunks"] = [t for t in (props.get("trunks") or []) if near(float(t[0]), float(t[1]))]
+        props["boxes"] = [b for b in (props.get("boxes") or []) if near(float(b[0]), float(b[1]))]
+        props["segments"] = [
+            s
+            for s in (props.get("segments") or [])
+            if near(float(s[0]), float(s[1])) or near(float(s[2]), float(s[3]))
+        ]
+        after = sum(len(props[k]) for k in ("trunks", "boxes", "segments"))
+        props_path.write_text(json.dumps(props) + "\n")
+        print(f"Wrote {props_path} ({after} colliders, was {before}, ≤{r:.0f} m)")
     return dest
 
 

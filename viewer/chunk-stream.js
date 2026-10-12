@@ -3,6 +3,10 @@
  *
  * Same hysteresis as landmark-stream (220 m load / 310 m unload). Free-view
  * overview keeps every chunk resident; walking clears the latch.
+ *
+ * Loads are queued (one at a time) with a frame yield between attaches so
+ * Meshopt scene build cannot stack with the walk loop. Pair with
+ * MeshoptDecoder.useWorkers() so WASM decode itself leaves the main thread.
  */
 
 import {
@@ -43,6 +47,8 @@ function resolveUrl(file) {
   return file.startsWith("./") ? file : "./" + file;
 }
 
+const yieldFrame = () => new Promise((r) => requestAnimationFrame(r));
+
 /**
  * @param {object} opts
  * @param {*} opts.THREE
@@ -70,15 +76,48 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
   scene.add(root);
 
   const resident = new Map();
+  /** @type {typeof items} */
+  const queue = [];
+  let busy = false;
   let overview = false;
+  let camX = 0;
+  let camZ = 0;
 
   function entry(id) {
     let st = resident.get(id);
     if (!st) {
-      st = { gen: 0, group: null, loading: false, failed: false };
+      st = { gen: 0, group: null, loading: false, failed: false, queued: false };
       resident.set(id, st);
     }
     return st;
+  }
+
+  function enqueue(item) {
+    const st = entry(item.id);
+    if (st.group || st.loading || st.failed || st.queued) return;
+    st.queued = true;
+    queue.push(item);
+    void pump();
+  }
+
+  async function pump() {
+    if (busy) return;
+    busy = true;
+    try {
+      while (queue.length) {
+        const item = queue.shift();
+        const st = entry(item.id);
+        st.queued = false;
+        const loaded = !!st.group;
+        if (!chunkWanted({ x: camX, z: camZ, overview, loaded }, item)) continue;
+        await loadOne(item);
+        // Let the walk loop paint before the next GLB parse/attach.
+        await yieldFrame();
+      }
+    } finally {
+      busy = false;
+      if (queue.length) void pump();
+    }
   }
 
   async function loadOne(item) {
@@ -121,6 +160,9 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
     const st = entry(item.id);
     st.gen += 1;
     st.loading = false;
+    st.queued = false;
+    const qi = queue.findIndex((q) => q.id === item.id);
+    if (qi >= 0) queue.splice(qi, 1);
     if (st.group) {
       onChunkUnloaded?.(st.group);
       disposeObject(st.group);
@@ -130,19 +172,29 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
 
   function update(x, z, mode, height) {
     if (!items.length) return;
+    camX = x;
+    camZ = z;
     overview = overviewLatched(mode, height, overview);
     for (const item of items) {
       const st = resident.get(item.id);
       const loaded = !!(st && st.group);
       const want = chunkWanted({ x, z, overview, loaded }, item);
-      if (want) loadOne(item);
-      else if (loaded || (st && st.loading)) unloadOne(item);
+      if (want) enqueue(item);
+      else if (loaded || (st && (st.loading || st.queued))) unloadOne(item);
     }
   }
 
-  function prime(x, z) {
-    const near = items.filter((item) => Math.hypot(item.x - x, item.z - z) <= LOAD_M);
-    return Promise.all(near.map((item) => loadOne(item)));
+  async function prime(x, z) {
+    camX = x;
+    camZ = z;
+    const near = items
+      .filter((item) => Math.hypot(item.x - x, item.z - z) <= LOAD_M)
+      .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z));
+    for (const item of near) enqueue(item);
+    // Drain the queue (and any walk-triggered enqueues that arrive meanwhile).
+    while (busy || queue.length) {
+      await yieldFrame();
+    }
   }
 
   /** Expand play bounds from chunk centres (Three XZ). */

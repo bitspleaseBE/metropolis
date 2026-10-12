@@ -520,8 +520,15 @@ def district_shop_inputs(paths) -> dict[str, Any]:
     return out
 
 
+# How far from spawn shops stay in the walker package. Beyond this the historic
+# centre has thousands of POIs that crush GPU time for little gameplay value.
+VIEWER_SHOP_RADIUS_M = 450.0
+
+
 def export_shops_for_viewer(
-    shops: list[dict[str, Any]], spawn: dict[str, Any] | None, radius: float = 1500.0
+    shops: list[dict[str, Any]],
+    spawn: dict[str, Any] | None,
+    radius: float = VIEWER_SHOP_RADIUS_M,
 ) -> dict[str, Any]:
     sx = float(spawn["x"]) if spawn else 0.0
     sy = float(spawn["y"]) if spawn else 0.0

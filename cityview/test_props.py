@@ -36,6 +36,20 @@ class PropsExportTest(unittest.TestCase):
         )
         self.assertEqual(out["segments"], [[0.0, 0.0, 10.0, 0.0, 0.3]])
 
+    def test_default_radius_drops_far_trunks(self):
+        layout = {
+            "trees": [
+                {"x": 10, "y": 0, "height": 10, "radius": 3},
+                {"x": 2000, "y": 0, "height": 10, "radius": 3},
+            ],
+            "benches": [],
+            "clutter": [],
+            "barriers": [],
+        }
+        out = export_props_for_viewer(layout, {"x": 0, "y": 0})
+        self.assertEqual(len(out["trunks"]), 1)
+        self.assertEqual(out["trunks"][0][:2], [10.0, 0.0])
+
 
 if __name__ == "__main__":
     unittest.main()
