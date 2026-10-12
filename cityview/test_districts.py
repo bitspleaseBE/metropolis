@@ -187,9 +187,12 @@ class TestDistrictChunks(unittest.TestCase):
         self.assertEqual(assign_object("bldg_1", 10, 10, spawn_xy=spawn), "core")
         self.assertEqual(assign_object("road_main", 900, 900, spawn_xy=spawn), "core")
         self.assertEqual(assign_object("rooftop_brick", 900, 900, spawn_xy=spawn), "core")
-        outer = assign_object("bldg_far", 900, 100, spawn_xy=spawn, core_r=320)
+        # Default CORE_R is 160 m — a block at 200 m is already a streamed cell.
+        outer = assign_object("bldg_far", 200, 0, spawn_xy=spawn)
         self.assertIsInstance(outer, tuple)
-        self.assertEqual(outer, (3, 0))
+        self.assertEqual(outer, (0, 0))
+        still_far = assign_object("bldg_far", 900, 100, spawn_xy=spawn, core_r=320)
+        self.assertEqual(still_far, (3, 0))
 
     def test_manifest_shape(self):
         from cityview.district_chunks import build_chunks_manifest, empty_chunks_manifest

@@ -123,7 +123,13 @@ class PlanTests(unittest.TestCase):
         q = overpass_query(51.19, 4.40, 51.21, 4.42)
         for kind in bw.BARRIER_KIND:
             self.assertIn(kind, q)
-        for needle in ('node["barrier"="bollard"]', "waste_basket", 'node["emergency"="fire_hydrant"]'):
+        for needle in (
+            'node["barrier"="bollard"]',
+            "waste_basket",
+            'node["emergency"="fire_hydrant"]',
+            "playground",
+            'way["amenity"="parking"]',
+        ):
             self.assertIn(needle, q)
 
 

@@ -87,7 +87,7 @@ for (const id of DISTRICTS) {
     console.log(`  spawn: (${spawn.data.x}, ${spawn.data.y})`);
 
     // Sanity: at least one cell centre should be outside core_r of spawn (Blender XY).
-    const coreR = catalog.core_r || 320;
+    const coreR = catalog.core_r || 160;
     const far = catalog.chunks.filter((ch) => {
       const dx = ch.cx - spawn.data.x;
       const dy = ch.cy - spawn.data.y;

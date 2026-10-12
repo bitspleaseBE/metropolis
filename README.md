@@ -111,7 +111,7 @@ After each build, open [`docs/district-agent.md`](docs/district-agent.md) and `d
 
 `district add` discovers tram / bus / train / Velo / water / port from OSM and only enables the stages that apply. OpenStreetMap fetch tries every Overpass mirror, then tiles the official `/map` API when a bbox exceeds the 50k-node limit (the old single-call fallback returned HTTP 400 on Antwerpen 2000).
 
-Every district Blender export writes `core.glb` (spawn neighbourhood, first paint), `chunks/c_*.glb` (256 m cells beyond ~320 m of spawn), and `chunks.json`. The walk viewer loads the core first and streams cells / landmark GLBs as you walk. Packages always include `chunks.json` (possibly with an empty `chunks` list for small tiles).
+Every district Blender export writes `core.glb` (spawn neighbourhood, first paint), `chunks/c_*.glb` (256 m cells beyond ~160 m of spawn), and `chunks.json`. The walk viewer loads the core first and streams nearby cells in the background (does not block Play); landmark GLBs stream as you walk. Packages always include `chunks.json` (possibly with an empty `chunks` list for small tiles).
 
 The walk viewer loads `?district=2018-harmonie` by default. At a modelled edge listed in [`districts/index.json`](districts/index.json) (Nationale Bank / Leopoldplaats between 2018 and 2000) a prompt offers the neighbouring district.
 

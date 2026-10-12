@@ -111,7 +111,10 @@ def overpass_query(south: float, west: float, north: float, east: float) -> str:
   way["building"]({bbox});
   way["leisure"="park"]({bbox});
   way["leisure"="garden"]({bbox});
-  way["landuse"="grass"]({bbox});
+  way["leisure"~"^(playground|pitch|schoolyard|dog_park|outdoor_seating|swimming_pool)$"]({bbox});
+  way["amenity"="parking"]({bbox});
+  way["landuse"~"^(grass|village_green|garages|construction|forest)$"]({bbox});
+  way["natural"="wood"]({bbox});
   way["natural"="water"]({bbox});
   way["waterway"="riverbank"]({bbox});
   way["waterway"="dock"]({bbox});
@@ -239,6 +242,40 @@ def _pedestrian_crossing_kind(tags: dict[str, str]) -> str | None:
     if tags.get("railway") in {"crossing", "tram_crossing", "level_crossing"}:
         return "rail"
     return None
+
+
+def _parse_cycle_lanes(tags: dict[str, str], road_oneway: int) -> dict[str, dict[str, Any]]:
+    """OSM cycleway / cycleway:left / cycleway:right → left/right lane metadata.
+
+    ``contraflow`` is set when bikes may ride against the car one-way (common on
+    Belgian residential streets tagged ``cycleway:left=opposite_lane``).
+    """
+    out: dict[str, dict[str, Any]] = {}
+
+    def _side(raw: str | None, side: str) -> None:
+        if not raw or raw in {"no", "none"}:
+            return
+        contra = "opposite" in raw
+        # Lane direction along the way: with traffic unless contraflow.
+        oneway = road_oneway if road_oneway else 0
+        if contra and road_oneway:
+            oneway = -road_oneway
+        out[side] = {"oneway": oneway, "contraflow": contra, "tag": raw}
+
+    both = tags.get("cycleway")
+    if both and both not in {"no", "none"}:
+        if tags.get("cycleway:left") or tags.get("cycleway:right"):
+            pass  # prefer explicit sides
+        else:
+            _side(both, "both")
+    _side(tags.get("cycleway:left") or tags.get("cycleway:both"), "L")
+    _side(tags.get("cycleway:right") or tags.get("cycleway:both"), "R")
+    # Shared ``cycleway=lane`` with no side → both sides of a two-way street.
+    if "both" in out and "L" not in out and "R" not in out:
+        meta = out.pop("both")
+        out["L"] = dict(meta)
+        out["R"] = dict(meta)
+    return out
 
 
 def _split_refs(raw: str | None) -> list[str]:
@@ -1207,6 +1244,10 @@ def layout_from_osm(
             }
             if access_tags:
                 road["tags"] = access_tags
+            # Cycle lanes on the carriageway (exported separately as cycleways).
+            cycle_lanes = _parse_cycle_lanes(tags, road["oneway"])
+            if cycle_lanes:
+                road["cycleLanes"] = cycle_lanes
             roads.append(road)
 
     multipolygon_stats = add_relation_buildings(buildings, rels, ways, nodes, origin, style_policy)

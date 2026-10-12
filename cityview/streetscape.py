@@ -1106,11 +1106,20 @@ def _crossing_walks(
         right = [round(px - nx * inset, 2), round(py - ny * inset, 2)]
         if _dist(left[0], left[1], right[0], right[1]) < 2.0:
             continue
+        # Signalised when OSM says so, or a traffic-signal node sits on the zebra.
+        signal = str(cross.get("kind") or "") == "signals"
+        if not signal:
+            for sig in layout.get("signals") or []:
+                if _dist(cx, cy, float(sig.get("x") or 0), float(sig.get("y") or 0)) < 8.0:
+                    signal = True
+                    break
         out.append(
             {
                 "id": f"cross{cross.get('id')}",
                 "kind": "crossing",
                 "safe": False,
+                "signal": signal,
+                "width": SIDEWALK_W,
                 "points": [left, right],
             }
         )
@@ -1153,11 +1162,15 @@ def export_walks_near_spawn(
         if length < 4.0:
             continue
         if kind in WALK_WAY_KINDS:
-            # Street-front plazas ok when near a carriageway; footways/paths also
-            # get clipped where they cross asphalt. Every run is then split at
-            # indoor samples (hard rule: no exported point inside a footprint).
+            # Pedestrian plazas (Groenplaats etc.) are destinations, not yard stubs —
+            # keep them even far from a carriageway. Footways/paths still need a
+            # nearby street so courtyard cuts are dropped. Every run is then split
+            # at indoor samples (hard rule: no exported point inside a footprint).
             runs = [pts] if kind == "pedestrian" else _safe_sidewalk_runs(pts, roads, ri)
-            final = _finalize_walk_runs(runs, roads, index, require_street=True)
+            final = _finalize_walk_runs(
+                runs, roads, index, require_street=(kind != "pedestrian")
+            )
+            walk_w = float(road.get("width") or SIDEWALK_W)
             for run_i, run in enumerate(final):
                 scored.append(
                     (
@@ -1166,6 +1179,7 @@ def export_walks_near_spawn(
                             "id": f"w{road.get('id')}" + (f"_{run_i}" if run_i else ""),
                             "kind": kind,
                             "safe": True,
+                            "width": walk_w,
                             "points": run,
                         },
                     )
@@ -1196,6 +1210,7 @@ def export_walks_near_spawn(
                             "kind": "sidewalk",
                             "safe": True,
                             "side": side,
+                            "width": SIDEWALK_W,
                             "points": run,
                         },
                     )
@@ -1213,6 +1228,7 @@ def export_walks_near_spawn(
                             "kind": "pedestrian",
                             "safe": True,
                             "side": "C",
+                            "width": SIDEWALK_W,
                             "points": run,
                         },
                     )
@@ -1224,6 +1240,98 @@ def export_walks_near_spawn(
         scored.append((_dist(sx, sy, cross["points"][0][0], cross["points"][0][1]), cross))
     scored.sort(key=lambda item: item[0])
     return [item[1] for item in scored[:max_walks]]
+
+
+def export_cycleways_near_spawn(
+    layout: dict[str, Any],
+    spawn: dict[str, Any] | None,
+    *,
+    radius: float = 280.0,
+    max_ways: int = 80,
+) -> list[dict[str, Any]]:
+    """Dedicated OSM cycleways and lane tags for the micromobility graph.
+
+    Riders use these geometries when present; otherwise they ride the kerb-side
+    bike offset on driveable roads. Never mixed with pedestrian walks.
+    """
+    sx = float(spawn["x"]) if spawn else 0.0
+    sy = float(spawn["y"]) if spawn else 0.0
+    scored: list[tuple[float, dict[str, Any]]] = []
+    for road in layout.get("roads") or []:
+        kind = str(road.get("kind") or "").lower()
+        pts = road.get("points") or []
+        if len(pts) < 2:
+            continue
+        dmin = min(_dist(sx, sy, float(p[0]), float(p[1])) for p in pts)
+        if dmin > radius:
+            continue
+        # Standalone cycleway / shared path tagged for bikes.
+        if kind == "cycleway":
+            scored.append(
+                (
+                    dmin,
+                    {
+                        "id": f"cw{road.get('id')}",
+                        "kind": "cycleway",
+                        "side": None,
+                        "width": float(road.get("width") or 2.4),
+                        "oneway": _direction_code(road.get("oneway")),
+                        "points": [[float(p[0]), float(p[1])] for p in pts],
+                    },
+                )
+            )
+            continue
+        # Lane tags on a motor road: cycleway / cycleway:left / cycleway:right.
+        lanes = road.get("cycleLanes") or {}
+        if not lanes and kind in DRIVEABLE_ROAD_KINDS:
+            continue
+        half = float(road.get("width") or 6.0) * 0.5
+        bike_off = half + 0.35
+        for side, meta in lanes.items():
+            if side not in {"L", "R", "both"}:
+                continue
+            sign = 1.0 if side == "L" else -1.0
+            if side == "both":
+                for both_side, both_sign in (("L", 1.0), ("R", -1.0)):
+                    offset = _offset_polyline(
+                        [[float(p[0]), float(p[1])] for p in pts], both_sign * bike_off
+                    )
+                    if len(offset) < 2:
+                        continue
+                    scored.append(
+                        (
+                            dmin,
+                            {
+                                "id": f"cl{road.get('id')}_{both_side}",
+                                "kind": "lane",
+                                "side": both_side,
+                                "width": 1.5,
+                                "oneway": int(meta.get("oneway", road.get("oneway") or 0)),
+                                "contraflow": bool(meta.get("contraflow")),
+                                "points": [[round(p[0], 2), round(p[1], 2)] for p in offset],
+                            },
+                        )
+                    )
+                continue
+            offset = _offset_polyline([[float(p[0]), float(p[1])] for p in pts], sign * bike_off)
+            if len(offset) < 2:
+                continue
+            scored.append(
+                (
+                    dmin,
+                    {
+                        "id": f"cl{road.get('id')}_{side}",
+                        "kind": "lane",
+                        "side": side,
+                        "width": 1.5,
+                        "oneway": int(meta.get("oneway", road.get("oneway") or 0)),
+                        "contraflow": bool(meta.get("contraflow")),
+                        "points": [[round(p[0], 2), round(p[1], 2)] for p in offset],
+                    },
+                )
+            )
+    scored.sort(key=lambda item: item[0])
+    return [item[1] for item in scored[:max_ways]]
 
 
 def export_roads_near_spawn(
@@ -1296,11 +1404,13 @@ def export_roads_near_spawn(
     mark_dual_carriageways(chosen_roads)
 
     walks = export_walks_near_spawn(layout, spawn, radius=min(radius, 220.0))
+    cycleways = export_cycleways_near_spawn(layout, spawn, radius=radius)
     return {
         "spawn": {"x": sx, "y": sy},
         "radius": radius,
         "roads": chosen_roads,
         "walks": walks,
+        "cycleways": cycleways,
         "signals": signals,
         "cycleSeconds": 30,
     }
