@@ -1,0 +1,1317 @@
+{
+  "district_id": "2000-antwerpen",
+  "spawn": {
+    "label": "Groenplaats",
+    "lat": 51.21897,
+    "lon": 4.40165
+  },
+  "count": 43,
+  "buildings": [
+    {
+      "name": "Onze-Lieve-Vrouwekathedraal",
+      "osm_id": 26495164,
+      "osm_type": "way",
+      "role": "cathedral",
+      "score": null,
+      "wikidata": "Q5901",
+      "heritage": true,
+      "building": "cathedral",
+      "amenity": "place_of_worship",
+      "historic": "cathedral",
+      "lat": 51.22037079122138,
+      "lon": 4.401354010305344,
+      "xy": [
+        76.976,
+        79.676
+      ],
+      "spawn_distance_m": 156.2,
+      "expected_custom": "olv_cathedral",
+      "manifest_custom": "olv_cathedral",
+      "mesh_status": "manifest_custom",
+      "notes": "Gothic from Groenplaats \u2014 not a classical temple colonnade.",
+      "refs": {
+        "inventaris": "https://inventaris.onroerenderfgoed.be/erfgoedobjecten/4183",
+        "wikidata": "https://www.wikidata.org/wiki/Q5901"
+      },
+      "canonical": true,
+      "wikidata_label": {
+        "label_en": "Onze-Lieve-Vrouwekathedraal",
+        "label_nl": "Onze-Lieve-Vrouwekathedraal",
+        "description_en": "Roman-Catholic cathedral in Antwerp, Belgium",
+        "description_nl": "kerkgebouw en museum in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Stadhuis Antwerpen",
+      "osm_id": 22966134,
+      "osm_type": "way",
+      "role": "city_hall",
+      "score": null,
+      "wikidata": "Q2005868",
+      "heritage": true,
+      "building": "government",
+      "amenity": "townhall",
+      "historic": "townhall",
+      "lat": 51.22129266111111,
+      "lon": 4.399297288888889,
+      "xy": [
+        -66.427,
+        181.58
+      ],
+      "spawn_distance_m": 304.7,
+      "expected_custom": "stadhuis",
+      "manifest_custom": "stadhuis",
+      "mesh_status": "manifest_custom",
+      "notes": "Renaissance city hall on Grote Markt west side.",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2005868"
+      },
+      "canonical": true,
+      "wikidata_label": {
+        "label_en": "Antwerp City Hall",
+        "label_nl": "Stadhuis van Antwerpen",
+        "description_en": "city hall of Antwerp, Belgium",
+        "description_nl": "bouwwerk in Antwerpen (stad)"
+      }
+    },
+    {
+      "name": "Het Steen",
+      "osm_id": 29067925,
+      "osm_type": "way",
+      "role": "castle",
+      "score": null,
+      "wikidata": "Q1014126",
+      "heritage": true,
+      "building": "castle",
+      "amenity": null,
+      "historic": "castle",
+      "lat": 51.22272038965517,
+      "lon": 4.397394144827586,
+      "xy": [
+        -199.121,
+        339.401
+      ],
+      "spawn_distance_m": 509.8,
+      "expected_custom": "het_steen",
+      "manifest_custom": "het_steen",
+      "mesh_status": "manifest_custom",
+      "notes": "Medieval gatehouse on the Scheldt \u2014 silhouette from the quay.",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1014126"
+      },
+      "canonical": true,
+      "wikidata_label": {
+        "label_en": "Het Steen",
+        "label_nl": "Het Steen",
+        "description_en": "fortress in Antwerp, Belgium",
+        "description_nl": "fort in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Brabo fountain",
+      "osm_id": 900000001,
+      "osm_type": "node",
+      "role": "monument",
+      "score": null,
+      "wikidata": "Q3911365",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.22111,
+      "lon": 4.39972,
+      "xy": [
+        -36.954,
+        161.388
+      ],
+      "spawn_distance_m": 272.2,
+      "expected_custom": "brabo_fountain",
+      "manifest_custom": "brabo_fountain",
+      "mesh_status": "manifest_custom",
+      "notes": "Brabo on Grote Markt; synthetic node (not in OSM extract as memorial).",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q3911365"
+      },
+      "canonical": true,
+      "wikidata_label": {
+        "label_en": "Brabo Fountain",
+        "label_nl": "Brabofontein",
+        "description_en": "fountain in Antwerp, Belgium",
+        "description_nl": "fontein op de Grote Markt in Antwerpen"
+      }
+    },
+    {
+      "name": "Huis Spaengien (Grote Markt guild terrace)",
+      "osm_id": 496929324,
+      "osm_type": "way",
+      "role": "guild_terrace",
+      "score": null,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2217116,
+      "lon": 4.399869871428572,
+      "xy": [
+        -26.504,
+        227.889
+      ],
+      "spawn_distance_m": 327.5,
+      "expected_custom": "grote_markt_terrace",
+      "manifest_custom": "grote_markt_terrace",
+      "mesh_status": "manifest_custom",
+      "notes": "Representative guild-house terrace facing Grote Markt.",
+      "refs": {},
+      "canonical": true
+    },
+    {
+      "name": "Groenplaats kiosk (false positive)",
+      "osm_id": null,
+      "osm_type": null,
+      "role": "not_present",
+      "score": null,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "There is no Groenplaats kiosk mesh in the 2000 manifest. Ghost pins came from the viewer loading root landmarks.json (2018 Albertpark kiosk). Fix: district-scoped minimap landmarksUrl.",
+      "refs": {},
+      "canonical": true
+    },
+    {
+      "name": "Onze-Lieve-Vrouw van Gratiekerk",
+      "osm_id": 232921429,
+      "osm_type": "way",
+      "role": "",
+      "score": 217.8,
+      "wikidata": "Q28530528",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": "church",
+      "lat": 51.21409413181818,
+      "lon": 4.412666731818182,
+      "xy": [
+        865.741,
+        -614.146
+      ],
+      "spawn_distance_m": 938.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q28530528"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Kerk Onze-Lieve-Vrouw van Gratie",
+        "label_nl": "Kerk Onze-Lieve-Vrouw van Gratie",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Onze-Lieve-Vrouw Geboorte",
+      "osm_id": 497461472,
+      "osm_type": "way",
+      "role": "",
+      "score": 215.1,
+      "wikidata": "Q107388201",
+      "heritage": true,
+      "building": "chapel",
+      "amenity": "place_of_worship",
+      "historic": "chapel",
+      "lat": 51.218125414285716,
+      "lon": 4.403438635714286,
+      "xy": [
+        222.324,
+        -168.528
+      ],
+      "spawn_distance_m": 155.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107388201"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Onze-Lieve-Vrouw Geboortekapel",
+        "label_nl": "Onze-Lieve-Vrouw Geboortekapel",
+        "description_en": "chapel in Antwerp, Belgium",
+        "description_nl": "kapel in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Nationale Bank",
+      "osm_id": 12470557,
+      "osm_type": "relation",
+      "role": "",
+      "score": 150.6,
+      "wikidata": "Q88535463",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "building",
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q88535463"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "National Bank of Belgium",
+        "label_nl": "Nationale Bank van Belgi\u00eb",
+        "description_en": "former bank building in Antwerp, Belgium",
+        "description_nl": "voormalig bankgebouw in Antwerpen"
+      }
+    },
+    {
+      "name": "Instituut Onze-Lieve-Vrouw Middelares",
+      "osm_id": 232933575,
+      "osm_type": "way",
+      "role": "",
+      "score": 145.0,
+      "wikidata": null,
+      "heritage": true,
+      "building": "school",
+      "amenity": "school",
+      "historic": null,
+      "lat": 51.220522721428566,
+      "lon": 4.412549392857143,
+      "xy": [
+        857.56,
+        96.471
+      ],
+      "spawn_distance_m": 779.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Sint-Carolus Borromeuskerk",
+      "osm_id": 39886923,
+      "osm_type": "way",
+      "role": "",
+      "score": 125.9,
+      "wikidata": "Q1415440",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": "church",
+      "lat": 51.22098518709678,
+      "lon": 4.4046529258064515,
+      "xy": [
+        306.989,
+        147.592
+      ],
+      "spawn_distance_m": 305.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1415440"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Carolus Borromeuskerk",
+        "label_nl": "Sint-Carolus Borromeuskerk",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Zusters Karmelietessen",
+      "osm_id": 3127795,
+      "osm_type": "relation",
+      "role": "",
+      "score": 123.8,
+      "wikidata": "Q48203316",
+      "heritage": true,
+      "building": "chapel",
+      "amenity": "place_of_worship",
+      "historic": "monastery",
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q48203316"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Carmel convent of Antwerp",
+        "label_nl": "Karmelietessenklooster (Antwerpen)",
+        "description_en": "",
+        "description_nl": "klooster in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Walburgiskerk",
+      "osm_id": 233040913,
+      "osm_type": "way",
+      "role": "",
+      "score": 122.7,
+      "wikidata": "Q2686991",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": "church",
+      "lat": 51.210403910714284,
+      "lon": 4.3959973678571425,
+      "xy": [
+        -296.51,
+        -1022.063
+      ],
+      "spawn_distance_m": 1025.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2686991"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "St Walburga Church",
+        "label_nl": "Sint-Walburgiskerk",
+        "description_en": "former church in Antwerp, demolished in 1817 at the Steenplein, Belgium",
+        "description_nl": "voormalig kerkgebouw in Antwerpen, afgebroken in 1817 ter plaatse van het Steenplein, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Antoniuskerk",
+      "osm_id": 116481762,
+      "osm_type": "way",
+      "role": "",
+      "score": 122.5,
+      "wikidata": "Q16069295",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": "church",
+      "lat": 51.225117468354426,
+      "lon": 4.413039793670887,
+      "xy": [
+        891.753,
+        604.374
+      ],
+      "spawn_distance_m": 1045.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q16069295"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Antoniuskerk",
+        "label_nl": "Sint-Antoniuskerk",
+        "description_en": "church in Antwerpen, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Jacobskerk",
+      "osm_id": 40092556,
+      "osm_type": "way",
+      "role": "",
+      "score": 122.2,
+      "wikidata": "Q1083704",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.220150378231295,
+      "lon": 4.410466325170068,
+      "xy": [
+        712.321,
+        55.312
+      ],
+      "spawn_distance_m": 628.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1083704"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "St. James' Church, Antwerp",
+        "label_nl": "Sint-Jacobskerk",
+        "description_en": "church building in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Andrieskerk",
+      "osm_id": 232914449,
+      "osm_type": "way",
+      "role": "",
+      "score": 122.1,
+      "wikidata": "Q2802159",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.216495994936714,
+      "lon": 4.397876910126582,
+      "xy": [
+        -165.461,
+        -348.644
+      ],
+      "spawn_distance_m": 379.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2802159"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "St. Andrew's Church, Antwerp",
+        "label_nl": "Sint-Andrieskerk",
+        "description_en": "church building in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Pauluskerk",
+      "osm_id": 116149697,
+      "osm_type": "way",
+      "role": "",
+      "score": 121.7,
+      "wikidata": "Q2272511",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": "church",
+      "lat": 51.22388510215054,
+      "lon": 4.401297522580645,
+      "xy": [
+        73.037,
+        468.148
+      ],
+      "spawn_distance_m": 543.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2272511"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "St. Paul's Church",
+        "label_nl": "Sint-Pauluskerk",
+        "description_en": "Catholic church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Joriskerk",
+      "osm_id": 232926614,
+      "osm_type": "way",
+      "role": "",
+      "score": 120.9,
+      "wikidata": "Q2278872",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.21264227592592,
+      "lon": 4.404873442592593,
+      "xy": [
+        322.364,
+        -774.634
+      ],
+      "spawn_distance_m": 734.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2278872"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Joriskerk",
+        "label_nl": "Sint-Joriskerk",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Annakapel",
+      "osm_id": 496126617,
+      "osm_type": "way",
+      "role": "",
+      "score": 120.7,
+      "wikidata": "Q107382995",
+      "heritage": true,
+      "building": "chapel",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.2217729,
+      "lon": 4.4073711666666675,
+      "xy": [
+        496.515,
+        234.665
+      ],
+      "spawn_distance_m": 505.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107382995"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Saint Anne Chapel Antwerp",
+        "label_nl": "Sint-Annakapel",
+        "description_en": "chapel in Antwerp, Belgium",
+        "description_nl": "kapel in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Steenplein 2020",
+      "osm_id": 662325582,
+      "osm_type": "way",
+      "role": "",
+      "score": 116.0,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.22164525925926,
+      "lon": 4.396717544444444,
+      "xy": [
+        -246.296,
+        220.556
+      ],
+      "spawn_distance_m": 453.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Protestants Evangelische kerk",
+      "osm_id": 232933576,
+      "osm_type": "way",
+      "role": "",
+      "score": 106.8,
+      "wikidata": "Q2183335",
+      "heritage": true,
+      "building": "school",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.22368363382353,
+      "lon": 4.412205295588235,
+      "xy": [
+        833.568,
+        445.878
+      ],
+      "spawn_distance_m": 901.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2183335"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Brabantsche Olijfberg",
+        "label_nl": "Brabantsche Olijfberg",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Mechelsesteenweg",
+      "osm_id": 8414722,
+      "osm_type": "way",
+      "role": "",
+      "score": 106.4,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.21161813333333,
+      "lon": 4.4076126,
+      "xy": [
+        513.348,
+        -887.843
+      ],
+      "spawn_distance_m": 912.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Steenhouwersvest",
+      "osm_id": 18905696,
+      "osm_type": "way",
+      "role": "",
+      "score": 106.4,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.217816,
+      "lon": 4.3996796,
+      "xy": [
+        -39.77,
+        -202.73
+      ],
+      "spawn_distance_m": 187.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Steenbergstraat",
+      "osm_id": 26407876,
+      "osm_type": "way",
+      "role": "",
+      "score": 106.0,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2146883,
+      "lon": 4.39796144,
+      "xy": [
+        -159.567,
+        -548.466
+      ],
+      "spawn_distance_m": 538.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Monument voor de gesneuvelde zeelieden",
+      "osm_id": 2396084430,
+      "osm_type": "node",
+      "role": "",
+      "score": 105.2,
+      "wikidata": "Q56550290",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "memorial",
+      "lat": 51.2280636,
+      "lon": 4.400477,
+      "xy": [
+        15.827,
+        930.039
+      ],
+      "spawn_distance_m": 1008.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q56550290"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "",
+        "label_nl": "Monument voor de gesneuvelde zeelieden",
+        "description_en": "monument at Tavernierkaai, Antwerp, Belgium",
+        "description_nl": "gedenkmonument aan Tavernierkaai, Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Steenplein",
+      "osm_id": 445101734,
+      "osm_type": "way",
+      "role": "",
+      "score": 104.0,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.22175034375,
+      "lon": 4.396708125,
+      "xy": [
+        -246.953,
+        232.172
+      ],
+      "spawn_distance_m": 461.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Sint-Annatunnel",
+      "osm_id": 147447606,
+      "osm_type": "way",
+      "role": "",
+      "score": 101.0,
+      "wikidata": "Q691988",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.219492579999994,
+      "lon": 4.39287132,
+      "xy": [
+        -514.469,
+        -17.401
+      ],
+      "spawn_distance_m": 614.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q691988"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Annatunnel",
+        "label_nl": "Sint-Annatunnel",
+        "description_en": "tunnel in Antwerp, Belgium",
+        "description_nl": "voetgangers- en fietstunnel in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Onze-Lieve-Vrouwencollege",
+      "osm_id": 232921430,
+      "osm_type": "way",
+      "role": "",
+      "score": 100.6,
+      "wikidata": null,
+      "heritage": false,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.213790063157894,
+      "lon": 4.412588910526316,
+      "xy": [
+        860.315,
+        -647.757
+      ],
+      "spawn_distance_m": 953.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Kattendijkdok",
+      "osm_id": 319261272,
+      "osm_type": "way",
+      "role": "",
+      "score": 100.2,
+      "wikidata": "Q1809382",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23765233493976,
+      "lon": 4.406202512650602,
+      "xy": [
+        415.032,
+        1989.978
+      ],
+      "spawn_distance_m": 2089.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1809382"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Kattendijkdok",
+        "label_nl": "Kattendijkdok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Gerechtshof",
+      "osm_id": 192642420,
+      "osm_type": "way",
+      "role": "",
+      "score": 99.4,
+      "wikidata": "Q33100193",
+      "heritage": true,
+      "building": "yes",
+      "amenity": "courthouse",
+      "historic": "building",
+      "lat": 51.20868169315069,
+      "lon": 4.403882697260274,
+      "xy": [
+        253.285,
+        -1212.437
+      ],
+      "spawn_distance_m": 1147.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q33100193"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Oud gerechtsgebouw Antwerpen",
+        "label_nl": "Oud gerechtsgebouw Antwerpen",
+        "description_en": "building in Antwerp, Belgium",
+        "description_nl": "gerechtsgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "M HKA - Museum van Hedendaagse Kunst Antwerpen",
+      "osm_id": 47359481,
+      "osm_type": "way",
+      "role": "",
+      "score": 99.2,
+      "wikidata": "Q1573755",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "building",
+      "lat": 51.211270853225805,
+      "lon": 4.3898843080645165,
+      "xy": [
+        -722.735,
+        -926.231
+      ],
+      "spawn_distance_m": 1182.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1573755"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "M HKA - Museum van Hedendaagse Kunst Antwerpen",
+        "label_nl": "M HKA - Museum van Hedendaagse Kunst Antwerpen",
+        "description_en": "art museum in Antwerp, Belgium",
+        "description_nl": "museum van hedendaagse kunst in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Mercator-Orteliushuis",
+      "osm_id": 3127633,
+      "osm_type": "relation",
+      "role": "",
+      "score": 98.4,
+      "wikidata": "Q65512565",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "castle",
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q65512565"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Mercator-Orteliushuis",
+        "label_nl": "Mercator-Orteliushuis",
+        "description_en": "building in Antwerp, Belgium",
+        "description_nl": "gebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Paleis op de Meir",
+      "osm_id": 902468,
+      "osm_type": "relation",
+      "role": "",
+      "score": 96.8,
+      "wikidata": "Q775797",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "castle",
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q775797"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Paleis op de Meir",
+        "label_nl": "Paleis op de Meir",
+        "description_en": "palace in city of Antwerp",
+        "description_nl": "bouwwerk in Antwerpen (stad)"
+      }
+    },
+    {
+      "name": "Kathedraaltuin",
+      "osm_id": 785514951,
+      "osm_type": "way",
+      "role": "",
+      "score": 96.0,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": "garden",
+      "lat": 51.2201360137931,
+      "lon": 4.402254848275862,
+      "xy": [
+        139.786,
+        53.724
+      ],
+      "spawn_distance_m": 135.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Delbekehuis",
+      "osm_id": 496126599,
+      "osm_type": "way",
+      "role": "",
+      "score": 94.6,
+      "wikidata": "Q33100296",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "castle",
+      "lat": 51.22207353076923,
+      "lon": 4.406364353846154,
+      "xy": [
+        426.316,
+        267.897
+      ],
+      "spawn_distance_m": 475.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q33100296"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Delbekehuis",
+        "label_nl": "Delbekehuis",
+        "description_en": "Historical building in Antwerp",
+        "description_nl": "woonhuis in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Augustinuskerk",
+      "osm_id": 232768394,
+      "osm_type": "way",
+      "role": "",
+      "score": 92.9,
+      "wikidata": "Q23580548",
+      "heritage": true,
+      "building": "church",
+      "amenity": null,
+      "historic": "church",
+      "lat": 51.21628625128205,
+      "lon": 4.402010443589743,
+      "xy": [
+        122.745,
+        -371.829
+      ],
+      "spawn_distance_m": 297.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q23580548"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Augustinuskerk",
+        "label_nl": "Sint-Augustinuskerk",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Plantin-Moretusmuseum",
+      "osm_id": 3428464,
+      "osm_type": "relation",
+      "role": "",
+      "score": 88.4,
+      "wikidata": "Q595802",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "building",
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q595802"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Museum Plantin-Moretus",
+        "label_nl": "Museum Plantin-Moretus",
+        "description_en": "museum in Antwerp, Belgium",
+        "description_nl": "museum in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Toegangsgebouw Sint-Annatunnel",
+      "osm_id": 60582816,
+      "osm_type": "way",
+      "role": "",
+      "score": 87.1,
+      "wikidata": null,
+      "heritage": true,
+      "building": "public",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.22067222941176,
+      "lon": 4.388319917647059,
+      "xy": [
+        -831.81,
+        112.997
+      ],
+      "spawn_distance_m": 948.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "ponton aan het Steen > Kruibeke & Hemiksem",
+      "osm_id": 1522808130,
+      "osm_type": "way",
+      "role": "",
+      "score": 87.0,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.221646283333335,
+      "lon": 4.395732783333333,
+      "xy": [
+        -314.957,
+        220.669
+      ],
+      "spawn_distance_m": 507.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "osm-494993846",
+      "osm_id": 494993846,
+      "osm_type": "way",
+      "role": "",
+      "score": 85.1,
+      "wikidata": "Q10669705",
+      "heritage": true,
+      "building": "church",
+      "amenity": "events_venue",
+      "historic": null,
+      "lat": 51.22679683333333,
+      "lon": 4.413888726666666,
+      "xy": [
+        950.944,
+        790.011
+      ],
+      "spawn_distance_m": 1215.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q10669705"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Noorse Zeemanskerk",
+        "label_nl": "Noorse Zeemanskerk",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen"
+      }
+    },
+    {
+      "name": "Vleeshuis",
+      "osm_id": 179882624,
+      "osm_type": "way",
+      "role": "",
+      "score": 83.8,
+      "wikidata": "Q2801959",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.22268508352941,
+      "lon": 4.399246084705882,
+      "xy": [
+        -69.997,
+        335.498
+      ],
+      "spawn_distance_m": 443.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2801959"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Vleeshuis",
+        "label_nl": "Vleeshuis",
+        "description_en": "Building in in Antwerp, Belgium",
+        "description_nl": "Gebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Museum aan de Stroom",
+      "osm_id": 25364883,
+      "osm_type": "way",
+      "role": "",
+      "score": 83.4,
+      "wikidata": "Q104723730",
+      "heritage": false,
+      "building": "civic",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.22899653333334,
+      "lon": 4.40481,
+      "xy": [
+        317.94,
+        1033.166
+      ],
+      "spawn_distance_m": 1130.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q104723730"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Museum aan de Stroom (building)",
+        "label_nl": "Museum Aan de Stroom (Gebouw)",
+        "description_en": "museum building in Antwerp, Belgium",
+        "description_nl": "museumgebouw in Antwerpen"
+      }
+    },
+    {
+      "name": "Willemdok",
+      "osm_id": 44100103,
+      "osm_type": "way",
+      "role": "",
+      "score": 83.3,
+      "wikidata": "Q2365563",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "yes",
+      "lat": 51.22938634166667,
+      "lon": 4.4078615333333335,
+      "xy": [
+        530.705,
+        1076.255
+      ],
+      "spawn_distance_m": 1230.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2365563"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Willemdok",
+        "label_nl": "Willemdok",
+        "description_en": "dock in Antwerp, Belgium",
+        "description_nl": "dok in Antwerpen, Belgi\u00eb"
+      }
+    }
+  ]
+}

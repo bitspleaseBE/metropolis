@@ -120,12 +120,22 @@
       "file": "landmarks/7345816.glb"
     },
     {
+      "id": "12470557",
+      "name": "Nationale Bank van Belgi\u00eb",
+      "kind": "civic",
+      "x": -239.52,
+      "y": 1136.91,
+      "file": "landmarks/12470557.glb"
+    },
+    {
       "id": "2396262252",
       "name": "Monument Peter Benoit",
       "kind": "memorial",
       "x": 22.99,
       "y": -59.65,
-      "file": "landmarks/2396262252.glb"
+      "file": "landmarks/2396262252.glb",
+      "stream": true,
+      "custom": "benoit_monument"
     }
   ]
 }

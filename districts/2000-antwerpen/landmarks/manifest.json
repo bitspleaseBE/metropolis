@@ -1,0 +1,120 @@
+{
+  "by_id": {
+    "26495164": {
+      "id": "26495164",
+      "name": "Onze-Lieve-Vrouwekathedraal",
+      "kind": "church",
+      "custom": "olv_cathedral",
+      "levels": 1,
+      "height_m": 30.0,
+      "roof_height_m": 12.0,
+      "anchor": [51.2204, 4.4003],
+      "stream": true,
+      "attribution": "Mesh kit — Inventaris / Commons references",
+      "source_url": "https://inventaris.onroerenderfgoed.be/erfgoedobjecten/4183"
+    },
+    "22966134": {
+      "id": "22966134",
+      "name": "Stadhuis Antwerpen",
+      "kind": "civic",
+      "custom": "stadhuis",
+      "levels": 4,
+      "height_m": 22.0,
+      "roof_height_m": 6.0,
+      "anchor": [51.2212, 4.3995],
+      "stream": true,
+      "attribution": "Mesh kit — Renaissance city hall"
+    },
+    "29067925": {
+      "id": "29067925",
+      "name": "Het Steen",
+      "kind": "castle",
+      "custom": "het_steen",
+      "levels": 2,
+      "height_m": 16.0,
+      "roof_height_m": 4.0,
+      "anchor": [51.2227, 4.3973],
+      "stream": true,
+      "attribution": "Mesh kit — medieval gatehouse"
+    },
+    "496929324": {
+      "id": "496929324",
+      "name": "Huis Spaengien",
+      "kind": "civic",
+      "custom": "grote_markt_terrace",
+      "levels": 4,
+      "height_m": 16.0,
+      "roof_height_m": 4.0,
+      "anchor": [51.22171, 4.39987],
+      "stream": true,
+      "params": { "houses": 4 },
+      "attribution": "Guild-house terrace facing Grote Markt"
+    }
+  },
+  "by_name": {
+    "onze lieve vrouwekathedraal": {
+      "id": "26495164",
+      "name": "Onze-Lieve-Vrouwekathedraal",
+      "kind": "church",
+      "custom": "olv_cathedral",
+      "height_m": 30.0,
+      "stream": true
+    },
+    "stadhuis antwerpen": {
+      "id": "22966134",
+      "name": "Stadhuis Antwerpen",
+      "kind": "civic",
+      "custom": "stadhuis",
+      "height_m": 22.0,
+      "stream": true
+    },
+    "stadhuis": {
+      "id": "22966134",
+      "name": "Stadhuis Antwerpen",
+      "kind": "civic",
+      "custom": "stadhuis",
+      "height_m": 22.0,
+      "stream": true
+    },
+    "het steen": {
+      "id": "29067925",
+      "name": "Het Steen",
+      "kind": "castle",
+      "custom": "het_steen",
+      "height_m": 16.0,
+      "stream": true
+    },
+    "huis spaengien": {
+      "id": "496929324",
+      "name": "Huis Spaengien",
+      "kind": "civic",
+      "custom": "grote_markt_terrace",
+      "height_m": 16.0,
+      "stream": true
+    },
+    "brabo": {
+      "id": "900000001",
+      "name": "Brabo fountain",
+      "kind": "memorial",
+      "custom": "brabo_fountain",
+      "stream": true
+    }
+  },
+  "nodes": {
+    "900000001": {
+      "id": "900000001",
+      "name": "Brabo fountain",
+      "kind": "memorial",
+      "custom": "brabo_fountain",
+      "lat": 51.22111,
+      "lon": 4.39972,
+      "facing": [51.2212, 4.3995],
+      "stream": true,
+      "source_url": "https://www.wikidata.org/wiki/Q896265",
+      "attribution": "Brabo fountain — Grote Markt (synthetic node; not in OSM memorial extract)"
+    }
+  },
+  "_notes": {
+    "groenplaats_kiosk": "No kiosk mesh for Groenplaats. Ghost pins were Harmonie Albertpark kiosk from root viewer/landmarks.json — use district-scoped landmarksUrl."
+  }
+}

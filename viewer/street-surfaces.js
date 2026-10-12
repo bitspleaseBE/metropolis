@@ -1,13 +1,14 @@
 /**
- * The baked asphalt tile is ~10% grey, and ACES crushes that to black in both
- * day and night. Lift it so the carriageway reads as asphalt, and swap stone
- * streets (OSM sett / cobble / paving stones) onto a cobble tile.
+ * The baked asphalt tile is ~10% grey. Brightening that photo stretches its
+ * noise into long streaks, so the carriageway gets a quiet generated tile
+ * instead. Stone streets (old residential / living streets only) swap onto
+ * a cobble tile.
  *
- * Road UVs are world-metres / 4 m, so the cobble canvas is one 4 m repeat.
+ * Road UVs are world-metres / 4 m, so each canvas is one 4 m repeat.
  */
 
-/** Mean texel the lifted asphalt should sit near (0–255). Dark grey, not black. */
-export const ASPHALT_MEAN = 96;
+/** Mean texel the asphalt tile should sit near (0–255). Dark grey, not black. */
+export const ASPHALT_MEAN = 108;
 
 export function cobbleTexture(THREE) {
   const S = 256;
@@ -40,34 +41,42 @@ export function cobbleTexture(THREE) {
   return tex;
 }
 
-/** Scale a near-black albedo up in place so every material sharing the image lifts together. */
-export function liftDarkTexture(tex, targetMean = ASPHALT_MEAN) {
-  const img = tex && tex.image;
-  if (!img || !img.width || !img.height) return false;
+function hash2(x, y) {
+  let n = Math.imul(x, 374761393) + Math.imul(y, 668265263);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+
+/** Even grey with fine aggregate. Low contrast, so the 4 m repeat does not streak. */
+export function quietAsphaltCanvas() {
+  const S = 256;
   const canvas = document.createElement("canvas");
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return false;
-  ctx.drawImage(img, 0, 0);
-  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  canvas.width = S;
+  canvas.height = S;
+  const ctx = canvas.getContext("2d");
+  const image = ctx.createImageData(S, S);
   const data = image.data;
-  let sum = 0;
-  let samples = 0;
-  for (let i = 0; i < data.length; i += 16) {
-    sum += data[i] + data[i + 1] + data[i + 2];
-    samples++;
-  }
-  const mean = sum / (samples * 3) || 1;
-  if (mean >= targetMean * 0.85) return false;
-  const scale = Math.min(5, targetMean / mean);
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] = Math.min(255, Math.round(data[i] * scale));
-    data[i + 1] = Math.min(255, Math.round(data[i + 1] * scale));
-    data[i + 2] = Math.min(255, Math.round(data[i + 2] * scale));
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const grain = hash2(x, y);
+      const patch = hash2(x >> 4, y >> 4);
+      const shade = ASPHALT_MEAN + (grain - 0.5) * 14 + (patch - 0.5) * 8;
+      const g = Math.max(0, Math.min(255, Math.round(shade)));
+      const i = (y * S + x) * 4;
+      data[i] = g;
+      data[i + 1] = g;
+      data[i + 2] = Math.max(0, g - 2);
+      data[i + 3] = 255;
+    }
   }
   ctx.putImageData(image, 0, 0);
-  tex.image = canvas;
+  return canvas;
+}
+
+/** Replace a shared albedo in place so every material using it updates together. */
+export function paintQuietAsphalt(tex) {
+  if (!tex) return false;
+  tex.image = quietAsphaltCanvas();
   tex.needsUpdate = true;
   return true;
 }
@@ -99,7 +108,8 @@ export function applyStreetSurfaces(root, THREE, surfaces) {
   });
   let lifted = false;
   if (asphaltMat && asphaltMat.map) {
-    lifted = liftDarkTexture(asphaltMat.map);
+    lifted = paintQuietAsphalt(asphaltMat.map);
+    if (asphaltMat.color) asphaltMat.color.set(0xffffff);
     asphaltMat.needsUpdate = true;
   }
   if (!asphaltMat) return { cobble: 0, lifted };

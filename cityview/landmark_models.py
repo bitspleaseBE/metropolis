@@ -65,6 +65,11 @@ TRI_BUDGET = {
     "bonifacius": 35000,
     "heilig_hart": 40000,
     "heilig_hart_klooster": 28000,
+    "nationale_bank": 45000,
+    "olv_cathedral": 80000,
+    "stadhuis": 50000,
+    "het_steen": 35000,
+    "grote_markt_terrace": 40000,
 }
 
 
@@ -979,6 +984,10 @@ def build_benoit_monument(node: dict) -> Mesh:
 
 
 from cityview.landmark_facades import BUILDERS as _FACADE_BUILDERS  # noqa: E402
+from cityview.landmark_civic import (  # noqa: E402
+    BUILDERS as _CIVIC_BUILDERS,
+    NODE_BUILDERS as _CIVIC_NODE_BUILDERS,
+)
 
 BUILDERS = {
     "zas_vincentius": build_zas_vincentius,
@@ -988,8 +997,9 @@ BUILDERS = {
     "gulden_spoor_gate": build_gulden_spoor_gate,
     "albertpark_kiosk": build_albertpark_kiosk,
     **_FACADE_BUILDERS,
+    **_CIVIC_BUILDERS,
 }
-NODE_BUILDERS = {"benoit_monument": build_benoit_monument}
+NODE_BUILDERS = {"benoit_monument": build_benoit_monument, **_CIVIC_NODE_BUILDERS}
 
 
 def build_landmark(bldg: dict) -> Mesh | None:

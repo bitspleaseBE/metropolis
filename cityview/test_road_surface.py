@@ -11,13 +11,30 @@ class CarriagewayMaterialTests(unittest.TestCase):
         self.assertEqual(carriageway_material({"highway": "residential"}), "asphalt")
         self.assertEqual(carriageway_material({"highway": "tertiary", "surface": "concrete"}), "asphalt")
 
-    def test_stone_tags_are_cobble(self):
+    def test_stone_tags_are_cobble_on_small_streets(self):
         for surface in ("sett", "cobblestone", "paving_stones", "pebblestone", "paving_stones:30"):
             self.assertEqual(
                 carriageway_material({"highway": "residential", "surface": surface}),
                 "cobble",
                 surface,
             )
+        self.assertEqual(
+            carriageway_material({"highway": "service", "surface": "sett"}),
+            "cobble",
+        )
+
+    def test_main_roads_cycleways_and_footways_stay_asphalt(self):
+        # The bike lane in the middle of Mechelsesteenweg is paving_stones.
+        for tags in (
+            {"highway": "cycleway", "surface": "paving_stones"},
+            {"highway": "footway", "surface": "paving_stones"},
+            {"highway": "path", "surface": "sett"},
+            {"highway": "secondary", "surface": "paving_stones"},
+            {"highway": "tertiary", "surface": "sett"},
+            {"highway": "tertiary", "surface": "paving_stones"},
+            {"highway": "primary", "surface": "sett"},
+        ):
+            self.assertEqual(carriageway_material(tags), "asphalt", tags)
 
     def test_untagged_living_street_and_pedestrian_are_cobble(self):
         self.assertEqual(carriageway_material({"highway": "living_street"}), "cobble")

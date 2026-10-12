@@ -1,0 +1,58 @@
+{
+  "type": "FeatureCollection",
+  "name": "be_postcodes_antwerp_simplified",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "postcode": "2000",
+        "municipality": "Antwerpen",
+        "note": "Simplified Antwerpen 2000 (historisch centrum + Scheldekaaien). Not an official Statbel extract; sufficient for OSM clip + district discovery."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [4.3855, 51.2085],
+            [4.3920, 51.2068],
+            [4.3985, 51.2072],
+            [4.4055, 51.2095],
+            [4.4120, 51.2120],
+            [4.4165, 51.2165],
+            [4.4180, 51.2215],
+            [4.4160, 51.2265],
+            [4.4120, 51.2305],
+            [4.4050, 51.2325],
+            [4.3970, 51.2310],
+            [4.3900, 51.2280],
+            [4.3850, 51.2235],
+            [4.3825, 51.2180],
+            [4.3835, 51.2130],
+            [4.3855, 51.2085]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "postcode": "2018",
+        "municipality": "Antwerpen",
+        "note": "Simplified Antwerpen 2018 belt (Harmonie / Klein Antwerpen / Zuid approach). The playable Harmonie tile uses a tighter bbox extended to the Nationale Bank."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [4.4000, 51.1940],
+            [4.4220, 51.1940],
+            [4.4220, 51.2145],
+            [4.4000, 51.2145],
+            [4.4000, 51.1940]
+          ]
+        ]
+      }
+    }
+  ]
+}

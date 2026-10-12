@@ -174,18 +174,30 @@ def landmark_nodes(
     doc = manifest or load_manifest()
     out: list[dict[str, Any]] = []
     for key, entry in sorted((doc.get("nodes") or {}).items()):
-        node = nodes.get(int(key))
-        if not node or not isinstance(entry, dict) or not entry.get("custom"):
+        if not isinstance(entry, dict) or not entry.get("custom"):
             continue
-        x, y = project(float(node["lat"]), float(node["lon"]), origin[0], origin[1])
+        node = nodes.get(int(key))
+        lat = lon = None
+        if node and "lat" in node:
+            lat, lon = float(node["lat"]), float(node["lon"])
+        elif entry.get("lat") is not None and entry.get("lon") is not None:
+            # Synthetic / missing-from-extract monuments (e.g. Brabo on Grote Markt).
+            lat, lon = float(entry["lat"]), float(entry["lon"])
+        elif isinstance(entry.get("anchor"), (list, tuple)) and len(entry["anchor"]) >= 2:
+            lat, lon = float(entry["anchor"][0]), float(entry["anchor"][1])
+        if lat is None:
+            continue
+        x, y = project(lat, lon, origin[0], origin[1])
         out.append(
             {
                 "id": int(key),
                 "x": round(x, 3),
                 "y": round(y, 3),
-                "name": entry.get("name") or (node.get("tags") or {}).get("name") or "",
+                "name": entry.get("name")
+                or ((node.get("tags") or {}).get("name") if node else "")
+                or "",
                 "custom": entry["custom"],
-                "facing_xy": _anchor_xy({"anchor": entry.get("facing")}, origin),
+                "facing_xy": _anchor_xy({"anchor": entry.get("facing") or entry.get("anchor")}, origin),
                 "params": _project_params(entry.get("params") or {}, origin),
             }
         )
@@ -260,6 +272,8 @@ def viewer_landmark_index(layout: dict[str, Any]) -> dict[str, Any]:
                 "x": round(float(node["x"]), 2),
                 "y": round(float(node["y"]), 2),
                 "file": f"landmarks/{node.get('id')}.glb",
+                "stream": True,
+                "custom": node.get("custom"),
             }
         )
     origin = layout.get("origin") or [51.2017, 4.4114]

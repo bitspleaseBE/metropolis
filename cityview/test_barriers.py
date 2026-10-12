@@ -117,6 +117,15 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(lay["barriers"], [])
         self.assertIn("0 runs", bw.summarize(plan))
 
+    def test_overpass_query_fetches_barriers_and_clutter(self):
+        from cityview.osm import overpass_query
+
+        q = overpass_query(51.19, 4.40, 51.21, 4.42)
+        for kind in bw.BARRIER_KIND:
+            self.assertIn(kind, q)
+        for needle in ('node["barrier"="bollard"]', "waste_basket", 'node["emergency"="fire_hydrant"]'):
+            self.assertIn(needle, q)
+
 
 if __name__ == "__main__":
     unittest.main()

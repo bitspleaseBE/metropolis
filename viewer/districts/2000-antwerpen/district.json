@@ -1,0 +1,667 @@
+{
+  "id": "2000-antwerpen",
+  "title": "Antwerpen \u00b7 2000",
+  "postcode": "2000",
+  "description": "Historisch centrum, Meir, Grote Markt, Scheldekaaien.",
+  "bbox": [
+    51.2068,
+    4.3825,
+    51.2325,
+    4.418
+  ],
+  "boundary": [
+    [
+      4.3855,
+      51.2085
+    ],
+    [
+      4.392,
+      51.2068
+    ],
+    [
+      4.3985,
+      51.2072
+    ],
+    [
+      4.4055,
+      51.2095
+    ],
+    [
+      4.412,
+      51.212
+    ],
+    [
+      4.4165,
+      51.2165
+    ],
+    [
+      4.418,
+      51.2215
+    ],
+    [
+      4.416,
+      51.2265
+    ],
+    [
+      4.412,
+      51.2305
+    ],
+    [
+      4.405,
+      51.2325
+    ],
+    [
+      4.397,
+      51.231
+    ],
+    [
+      4.39,
+      51.228
+    ],
+    [
+      4.385,
+      51.2235
+    ],
+    [
+      4.3825,
+      51.218
+    ],
+    [
+      4.3835,
+      51.213
+    ],
+    [
+      4.3855,
+      51.2085
+    ]
+  ],
+  "origin": [
+    51.21965,
+    4.40025
+  ],
+  "style_policy": "historic",
+  "spawn": {
+    "label": "Groenplaats",
+    "lat": 51.21897,
+    "lon": 4.40165,
+    "eye_height": 1.7,
+    "yaw": 2.0624094604789436,
+    "snap_road": false
+  },
+  "seam": {
+    "nationale_bank": {
+      "lat": 51.21167078571428,
+      "lon": 4.4083106
+    },
+    "role": "south_gate",
+    "owned_by": "2018-harmonie"
+  },
+  "profile": {
+    "summary": "Scheldt quays, historic core, trams, trains",
+    "modes": {
+      "tram": true,
+      "premetro": true,
+      "bus": true,
+      "velo": true,
+      "train": true,
+      "water": true,
+      "port": false
+    },
+    "velo_stations_hint": 69,
+    "building_eras": {
+      "brick_townhouse": 9774,
+      "other": 378,
+      "neoclassical": 66,
+      "baroque_civic": 28,
+      "art_nouveau": 20,
+      "art_deco": 7
+    },
+    "materials": {
+      "stone": 1,
+      "wood": 1,
+      "limestone": 1,
+      "concrete": 1
+    },
+    "roof_mix": {},
+    "shops": [
+      "Albert Heijn",
+      "Carrefour Express",
+      "Carrefour Market",
+      "Delhaize",
+      "Shamra",
+      "De Broers van Julienne",
+      "Vitrin",
+      "Fiskebar",
+      "Pelgrimhuis launge",
+      "Lombardia",
+      "Zaowang",
+      "St. Simonne",
+      "McDonald's",
+      "De Smulpaep",
+      "Antwerp Kebab",
+      "'t Stadsbroodje",
+      "Sp\u00e4ti",
+      "Elfde Gebod",
+      "Novo S.L.B.",
+      "Berlin",
+      "Pita Uniek",
+      "Cihan",
+      "Quetzal",
+      "Maritime",
+      "Huis De Colvenier",
+      "De Pottekijker",
+      "De Peerdestal",
+      "Cappuccino du sud",
+      "De Arme Duivel",
+      "Arte",
+      "Mistral",
+      "Ciro's",
+      "De Lantaren",
+      "A La Marine",
+      "Minato",
+      "Muradim",
+      "Pita Durum",
+      "Pita Pizza Waterpoort",
+      "Pizzaria",
+      "Ninja"
+    ],
+    "landmarks": [
+      {
+        "osm_id": 26495164,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouwekathedraal",
+        "score": 337.6,
+        "heritage": true,
+        "wikidata": "Q5901",
+        "building": "cathedral",
+        "amenity": "place_of_worship",
+        "historic": "cathedral"
+      },
+      {
+        "osm_id": 232921429,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouw van Gratiekerk",
+        "score": 217.8,
+        "heritage": true,
+        "wikidata": "Q28530528",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": "church"
+      },
+      {
+        "osm_id": 497461472,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouw Geboorte",
+        "score": 215.1,
+        "heritage": true,
+        "wikidata": "Q107388201",
+        "building": "chapel",
+        "amenity": "place_of_worship",
+        "historic": "chapel"
+      },
+      {
+        "osm_id": 29067925,
+        "osm_type": "way",
+        "name": "Het Steen",
+        "score": 198.9,
+        "heritage": true,
+        "wikidata": "Q1014126",
+        "building": "castle",
+        "amenity": null,
+        "historic": "castle"
+      },
+      {
+        "osm_id": 22966134,
+        "osm_type": "way",
+        "name": "Stadhuis Antwerpen",
+        "score": 187.7,
+        "heritage": true,
+        "wikidata": "Q2005868",
+        "building": "government",
+        "amenity": "townhall",
+        "historic": "townhall"
+      },
+      {
+        "osm_id": 12470557,
+        "osm_type": "relation",
+        "name": "Nationale Bank",
+        "score": 150.6,
+        "heritage": true,
+        "wikidata": "Q88535463",
+        "building": "yes",
+        "amenity": null,
+        "historic": "building"
+      },
+      {
+        "osm_id": 232933575,
+        "osm_type": "way",
+        "name": "Instituut Onze-Lieve-Vrouw Middelares",
+        "score": 145.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": "school",
+        "amenity": "school",
+        "historic": null
+      },
+      {
+        "osm_id": 39886923,
+        "osm_type": "way",
+        "name": "Sint-Carolus Borromeuskerk",
+        "score": 125.9,
+        "heritage": true,
+        "wikidata": "Q1415440",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": "church"
+      },
+      {
+        "osm_id": 3127795,
+        "osm_type": "relation",
+        "name": "Zusters Karmelietessen",
+        "score": 123.8,
+        "heritage": true,
+        "wikidata": "Q48203316",
+        "building": "chapel",
+        "amenity": "place_of_worship",
+        "historic": "monastery"
+      },
+      {
+        "osm_id": 233040913,
+        "osm_type": "way",
+        "name": "Sint-Walburgiskerk",
+        "score": 122.7,
+        "heritage": true,
+        "wikidata": "Q2686991",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": "church"
+      },
+      {
+        "osm_id": 116481762,
+        "osm_type": "way",
+        "name": "Sint-Antoniuskerk",
+        "score": 122.5,
+        "heritage": true,
+        "wikidata": "Q16069295",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": "church"
+      },
+      {
+        "osm_id": 40092556,
+        "osm_type": "way",
+        "name": "Sint-Jacobskerk",
+        "score": 122.2,
+        "heritage": true,
+        "wikidata": "Q1083704",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 232914449,
+        "osm_type": "way",
+        "name": "Sint-Andrieskerk",
+        "score": 122.1,
+        "heritage": true,
+        "wikidata": "Q2802159",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 116149697,
+        "osm_type": "way",
+        "name": "Sint-Pauluskerk",
+        "score": 121.7,
+        "heritage": true,
+        "wikidata": "Q2272511",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": "church"
+      },
+      {
+        "osm_id": 232926614,
+        "osm_type": "way",
+        "name": "Sint-Joriskerk",
+        "score": 120.9,
+        "heritage": true,
+        "wikidata": "Q2278872",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 496126617,
+        "osm_type": "way",
+        "name": "Sint-Annakapel",
+        "score": 120.7,
+        "heritage": true,
+        "wikidata": "Q107382995",
+        "building": "chapel",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 662325582,
+        "osm_type": "way",
+        "name": "Steenplein 2020",
+        "score": 116.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 232933576,
+        "osm_type": "way",
+        "name": "Protestants Evangelische kerk",
+        "score": 106.8,
+        "heritage": true,
+        "wikidata": "Q2183335",
+        "building": "school",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 8414722,
+        "osm_type": "way",
+        "name": "Mechelsesteenweg",
+        "score": 106.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 18905696,
+        "osm_type": "way",
+        "name": "Steenhouwersvest",
+        "score": 106.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 26407876,
+        "osm_type": "way",
+        "name": "Steenbergstraat",
+        "score": 106.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 2396084430,
+        "osm_type": "node",
+        "name": "Monument voor de gesneuvelde zeelieden",
+        "score": 105.2,
+        "heritage": true,
+        "wikidata": "Q56550290",
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 445101734,
+        "osm_type": "way",
+        "name": "Steenplein",
+        "score": 104.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 147447606,
+        "osm_type": "way",
+        "name": "Sint-Annatunnel",
+        "score": 101.0,
+        "heritage": true,
+        "wikidata": "Q691988",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 232921430,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouwencollege",
+        "score": 100.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 319261272,
+        "osm_type": "way",
+        "name": "Kattendijkdok",
+        "score": 100.2,
+        "heritage": true,
+        "wikidata": "Q1809382",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 192642420,
+        "osm_type": "way",
+        "name": "Gerechtshof",
+        "score": 99.4,
+        "heritage": true,
+        "wikidata": "Q33100193",
+        "building": "yes",
+        "amenity": "courthouse",
+        "historic": "building"
+      },
+      {
+        "osm_id": 47359481,
+        "osm_type": "way",
+        "name": "M HKA - Museum van Hedendaagse Kunst Antwerpen",
+        "score": 99.2,
+        "heritage": true,
+        "wikidata": "Q1573755",
+        "building": "yes",
+        "amenity": null,
+        "historic": "building"
+      },
+      {
+        "osm_id": 3127633,
+        "osm_type": "relation",
+        "name": "Mercator-Orteliushuis",
+        "score": 98.4,
+        "heritage": true,
+        "wikidata": "Q65512565",
+        "building": "yes",
+        "amenity": null,
+        "historic": "castle"
+      },
+      {
+        "osm_id": 902468,
+        "osm_type": "relation",
+        "name": "Paleis op de Meir",
+        "score": 96.8,
+        "heritage": true,
+        "wikidata": "Q775797",
+        "building": "yes",
+        "amenity": null,
+        "historic": "castle"
+      },
+      {
+        "osm_id": 785514951,
+        "osm_type": "way",
+        "name": "Kathedraaltuin",
+        "score": 96.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "garden"
+      },
+      {
+        "osm_id": 496126599,
+        "osm_type": "way",
+        "name": "Delbekehuis",
+        "score": 94.6,
+        "heritage": true,
+        "wikidata": "Q33100296",
+        "building": "yes",
+        "amenity": null,
+        "historic": "castle"
+      },
+      {
+        "osm_id": 232768394,
+        "osm_type": "way",
+        "name": "Sint-Augustinuskerk",
+        "score": 92.9,
+        "heritage": true,
+        "wikidata": "Q23580548",
+        "building": "church",
+        "amenity": null,
+        "historic": "church"
+      },
+      {
+        "osm_id": 3428464,
+        "osm_type": "relation",
+        "name": "Plantin-Moretusmuseum",
+        "score": 88.4,
+        "heritage": true,
+        "wikidata": "Q595802",
+        "building": "yes",
+        "amenity": null,
+        "historic": "building"
+      },
+      {
+        "osm_id": 60582816,
+        "osm_type": "way",
+        "name": "Toegangsgebouw Sint-Annatunnel",
+        "score": 87.1,
+        "heritage": true,
+        "wikidata": null,
+        "building": "public",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1522808130,
+        "osm_type": "way",
+        "name": "ponton aan het Steen > Kruibeke & Hemiksem",
+        "score": 87.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 494993846,
+        "osm_type": "way",
+        "name": "osm-494993846",
+        "score": 85.1,
+        "heritage": true,
+        "wikidata": "Q10669705",
+        "building": "church",
+        "amenity": "events_venue",
+        "historic": null
+      },
+      {
+        "osm_id": 179882624,
+        "osm_type": "way",
+        "name": "Vleeshuis",
+        "score": 83.8,
+        "heritage": true,
+        "wikidata": "Q2801959",
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 25364883,
+        "osm_type": "way",
+        "name": "Museum aan de Stroom",
+        "score": 83.4,
+        "heritage": false,
+        "wikidata": "Q104723730",
+        "building": "civic",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 44100103,
+        "osm_type": "way",
+        "name": "Willemdok",
+        "score": 83.3,
+        "heritage": true,
+        "wikidata": "Q2365563",
+        "building": null,
+        "amenity": null,
+        "historic": "yes"
+      }
+    ],
+    "facade_brief": {
+      "styles": [
+        "baroque_civic",
+        "stepped_gable",
+        "neck_gable",
+        "brick_sandstone_band",
+        "narrow_plot",
+        "neo_flemish",
+        "art_nouveau",
+        "art_deco",
+        "warehouse_quay"
+      ],
+      "eras": [
+        "brick_townhouse",
+        "other",
+        "neoclassical",
+        "baroque_civic",
+        "art_nouveau"
+      ],
+      "materials": [
+        "stone",
+        "wood",
+        "limestone",
+        "concrete"
+      ],
+      "notes": "District-local elevations only. Do not reuse another district's facade files. Variety from frontage width, gable type, storey bands, shop inserts, roof tint."
+    },
+    "stages": {
+      "osm": true,
+      "gtfs_delijn": true,
+      "gtfs_nmbs": true,
+      "velo": true,
+      "trees": true,
+      "benches": true,
+      "aerial": true,
+      "facades": true,
+      "monuments": true,
+      "port_props": false,
+      "train_meshes": true
+    },
+    "building_count": 10273,
+    "highway_count": 3609
+  },
+  "stages": {
+    "osm": true,
+    "gtfs_delijn": true,
+    "gtfs_nmbs": true,
+    "velo": true,
+    "trees": true,
+    "benches": true,
+    "aerial": true,
+    "facades": true,
+    "monuments": true,
+    "port_props": false,
+    "train_meshes": true
+  },
+  "viewer_glb": "city.glb"
+}

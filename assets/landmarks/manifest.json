@@ -13,7 +13,7 @@
       ],
       "massing": "neo_gothic_tower_left",
       "source_url": "https://commons.wikimedia.org/wiki/File:Antwerpen_Gr%C3%A9trystraat_-_103291_-_onroerenderfgoed.jpg",
-      "attribution": "Agentschap Onroerend Erfgoed / Wikimedia Commons — De Braey 1906–1909",
+      "attribution": "Agentschap Onroerend Erfgoed / Wikimedia Commons \u2014 De Braey 1906\u20131909",
       "custom": "bonifacius",
       "anchor": [
         51.2025249,
@@ -184,7 +184,7 @@
     "503176291": {
       "custom": "gulden_spoor_gate",
       "kind": "gatehouse",
-      "name": "In de Gulden Spoor – poortgebouw",
+      "name": "In de Gulden Spoor \u2013 poortgebouw",
       "levels": 2,
       "height_m": 8.0,
       "roof_height_m": 6.4,
@@ -216,7 +216,7 @@
       "roof_height_m": 4.2,
       "roof_shape": "gabled",
       "source_url": "https://inventaris.onroerenderfgoed.be/erfgoedobjecten/6850",
-      "attribution": "Inventaris Onroerend Erfgoed — Thielens 1902, mosaics Verbuecken"
+      "attribution": "Inventaris Onroerend Erfgoed \u2014 Thielens 1902, mosaics Verbuecken"
     },
     "501637650": {
       "id": "501637650",
@@ -232,7 +232,7 @@
       "roof_height_m": 3.6,
       "roof_shape": "gabled",
       "source_url": "https://inventaris.onroerenderfgoed.be/erfgoedobjecten/7453",
-      "attribution": "Inventaris Onroerend Erfgoed — Thielens 1898"
+      "attribution": "Inventaris Onroerend Erfgoed \u2014 Thielens 1898"
     },
     "501637651": {
       "id": "501637651",
@@ -248,7 +248,7 @@
       "roof_height_m": 3.8,
       "roof_shape": "mansard",
       "source_url": "https://inventaris.onroerenderfgoed.be/erfgoedobjecten/7455",
-      "attribution": "Inventaris Onroerend Erfgoed — Thielens 1901"
+      "attribution": "Inventaris Onroerend Erfgoed \u2014 Thielens 1901"
     },
     "501637652": {
       "id": "501637652",
@@ -264,7 +264,7 @@
       "roof_height_m": 3.4,
       "roof_shape": "gabled",
       "source_url": "https://inventaris.onroerenderfgoed.be/erfgoedobjecten/7456",
-      "attribution": "Inventaris Onroerend Erfgoed — Thielens 1901"
+      "attribution": "Inventaris Onroerend Erfgoed \u2014 Thielens 1901"
     },
     "432190363": {
       "id": "432190363",
@@ -280,7 +280,23 @@
       "roof_height_m": 3.2,
       "roof_shape": "hipped",
       "source_url": "https://inventaris.onroerenderfgoed.be/erfgoedobjecten/10902",
-      "attribution": "Inventaris Onroerend Erfgoed — Bilmeyer & Van Riel 1879–1889"
+      "attribution": "Inventaris Onroerend Erfgoed \u2014 Bilmeyer & Van Riel 1879\u20131889"
+    },
+    "12470557": {
+      "id": "12470557",
+      "name": "Nationale Bank van Belgi\u00eb",
+      "kind": "civic",
+      "custom": "nationale_bank",
+      "levels": 5,
+      "height_m": 18.5,
+      "roof_height_m": 1.5,
+      "anchor": [
+        51.21167,
+        4.40831
+      ],
+      "source_url": "https://www.openstreetmap.org/relation/12470557",
+      "attribution": "Nationale Bank / Leopoldplaats \u2014 mesh kit massing",
+      "stream": true
     }
   },
   "by_name": {
@@ -343,6 +359,38 @@
       "massing": "hospital_default",
       "source_url": "https://commons.wikimedia.org/wiki/File:Coronaspandoek_AZ_Monica,_Florent_Pauwelslei_1,_2100_Deurne,_asset_fJROMEXcufwhRMSHimnvVERN.jpg",
       "attribution": "Wikimedia Commons"
+    },
+    "nationale bank": {
+      "id": "12470557",
+      "name": "Nationale Bank van Belgi\u00eb",
+      "kind": "civic",
+      "custom": "nationale_bank",
+      "levels": 5,
+      "height_m": 18.5,
+      "roof_height_m": 1.5,
+      "anchor": [
+        51.21167,
+        4.40831
+      ],
+      "source_url": "https://www.openstreetmap.org/relation/12470557",
+      "attribution": "Nationale Bank / Leopoldplaats \u2014 mesh kit massing",
+      "stream": true
+    },
+    "nationale bank van belgie": {
+      "id": "12470557",
+      "name": "Nationale Bank van Belgi\u00eb",
+      "kind": "civic",
+      "custom": "nationale_bank",
+      "levels": 5,
+      "height_m": 18.5,
+      "roof_height_m": 1.5,
+      "anchor": [
+        51.21167,
+        4.40831
+      ],
+      "source_url": "https://www.openstreetmap.org/relation/12470557",
+      "attribution": "Nationale Bank / Leopoldplaats \u2014 mesh kit massing",
+      "stream": true
     }
   },
   "nodes": {

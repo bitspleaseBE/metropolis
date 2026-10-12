@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from cityview.geo import project
-from cityview.paths import TREES_CACHE
+from cityview.paths import TREES_CACHE, is_allowed_cache_json
 from cityview.railclear import BED_HALF_SUBWAY, CLEAR_FURNITURE, CLEAR_TREE, RailIndex
 from cityview.roadclear import TRUNK_MARGIN, RoadIndex, snap_off_carriageway
 
@@ -251,11 +251,13 @@ def fetch_osm_trees(
 
 
 def _checked_cache_path(path: Path) -> Path:
-    """Tree caches live under assets/trees/*.json — nothing else is read or written."""
+    """Tree caches live under assets/trees/*.json or districts/*/cache/."""
     resolved = Path(path).resolve()
-    root = TREES_CACHE.resolve()
-    if resolved.suffix != ".json" or root not in resolved.parents:
-        raise ValueError(f"tree cache must be a .json file under {root}")
+    if not is_allowed_cache_json(resolved, TREES_CACHE):
+        raise ValueError(
+            f"tree cache must be a .json file under {TREES_CACHE.resolve()} "
+            f"or districts/*/cache/"
+        )
     return resolved
 
 
@@ -504,6 +506,82 @@ def fit_height_to_crown(height: float, radius: float, shape: str) -> float:
     return max(3.5, min(height, 2.4 + ratio * radius))
 
 
+# Plaza tree layout is not hard-coded per square. Agents match Digitaal Vlaanderen
+# orthophoto crops (see cityview/plaza_aerial.py + review pack) and write
+# ``districts/<id>/vegetation_overrides.json``; ``apply_vegetation_overrides`` applies it.
+
+
+def load_vegetation_overrides(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
+        return {}
+    try:
+        doc = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def apply_vegetation_overrides(
+    trees: list[dict[str, Any]],
+    overrides: dict[str, Any] | None,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Apply agent-authored plaza edits from vegetation_overrides.json.
+
+    Each plaza entry uses ``mode``:
+    - ``clear`` — drop every tree whose trunk is inside ``polygon``
+    - ``replace_inside`` — clear inside ``polygon``, then insert ``trees``
+    """
+    stats = {"override_dropped": 0, "override_added": 0, "override_plazas": 0}
+    plazas = (overrides or {}).get("plazas") or []
+    if not plazas:
+        return trees, stats
+
+    out = list(trees)
+    for plaza in plazas:
+        ring = plaza.get("polygon") or plaza.get("ring") or []
+        ring_f = [[float(p[0]), float(p[1])] for p in ring if len(p) >= 2]
+        if len(ring_f) < 3:
+            continue
+        mode = str(plaza.get("mode") or "replace_inside")
+        before = len(out)
+        out = [t for t in out if not _point_in_ring(float(t["x"]), float(t["y"]), ring_f)]
+        stats["override_dropped"] += before - len(out)
+        stats["override_plazas"] += 1
+        if mode == "clear":
+            continue
+        for rec in plaza.get("trees") or []:
+            try:
+                x, y = float(rec["x"]), float(rec["y"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            tree = {
+                "x": round(x, 2),
+                "y": round(y, 2),
+                "source": str(rec.get("source") or "aerial_edit"),
+            }
+            tree.update(
+                tree_traits(
+                    {
+                        "species": rec.get("species") or "",
+                        "genus": rec.get("genus") or "",
+                        "leaf_type": rec.get("leaf_type") or "",
+                        "girth_cm": rec.get("girth_cm") or rec.get("circumference_cm"),
+                        "height": rec.get("height"),
+                        "crown": rec.get("crown"),
+                    },
+                    x,
+                    y,
+                )
+            )
+            if rec.get("radius") is not None:
+                tree["radius"] = float(rec["radius"])
+            if rec.get("height") is not None:
+                tree["height"] = float(rec["height"])
+            out.append(tree)
+            stats["override_added"] += 1
+    return out, stats
+
+
 # ---------------------------------------------------------------- merge + fill
 
 
@@ -590,6 +668,7 @@ def plan_trees(
     payload: dict[str, Any] | None,
     origin: tuple[float, float],
     bbox: tuple[float, float, float, float] | None = None,
+    overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return ``{"trees": [...], "bushes": [...], "stats": {...}}`` in local metres."""
     payload = payload or {}
@@ -731,6 +810,10 @@ def plan_trees(
             bush_grid.add(x, y)
             stats["bushes"] += 1
 
+    ov = overrides if overrides is not None else layout.get("vegetation_overrides")
+    trees, ov_stats = apply_vegetation_overrides(trees, ov if isinstance(ov, dict) else None)
+    stats.update(ov_stats)
+
     return {"trees": trees, "bushes": bushes, "stats": stats}
 
 
@@ -740,6 +823,7 @@ def attach_trees(
     origin: tuple[float, float],
     cache_path: Path,
     refresh: bool = False,
+    overrides_path: Path | None = None,
 ) -> dict[str, Any]:
     """Fetch/cached sources, plan placement and store results on ``layout``."""
     try:
@@ -749,7 +833,14 @@ def attach_trees(
         payload = {}
     for err in payload.get("errors") or []:
         print(f"WARNING: tree source error: {err}")
-    plan = plan_trees(layout, payload, origin, bbox)
+    ov_path = overrides_path
+    if ov_path is None and cache_path is not None:
+        # districts/<id>/cache/trees.json → districts/<id>/vegetation_overrides.json
+        candidate = cache_path.parent.parent / "vegetation_overrides.json"
+        if candidate.exists():
+            ov_path = candidate
+    overrides = load_vegetation_overrides(ov_path)
+    plan = plan_trees(layout, payload, origin, bbox, overrides=overrides)
     layout["trees"] = plan["trees"]
     layout["bushes"] = plan["bushes"]
     layout["tree_stats"] = plan["stats"]

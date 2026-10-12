@@ -16,7 +16,7 @@ from typing import Any, Iterable
 
 from cityview.facade_kit import TARGET_HOUSE_M, TOWER_HOUSE_M, TOWER_LEVELS
 from cityview.geo import project
-from cityview.shop_brands import normalize_shop_brand, shopfront_style
+from cityview.shop_brands import awning_for, front_for, normalize_shop_brand, shopfront_style
 
 # OSM tag value → viewer category (colour + icon + default hours).
 AMENITY_CATS = {
@@ -27,6 +27,7 @@ AMENITY_CATS = {
     "fast_food": "horeca",
     "ice_cream": "horeca",
     "biergarten": "horeca",
+    "nightclub": "horeca",
     "bank": "service",
     "pharmacy": "pharmacy",
     "dentist": "care",
@@ -62,7 +63,7 @@ DEFAULT_HOURS: dict[str, list[list[tuple[float, float]]]] = {
     "care": [[]] + [[(8.0, 18.0)]] * 5 + [[]],
 }
 
-FACADE_SEARCH_M = 14.0  # a shop node farther than this from any façade is dropped
+FACADE_SEARCH_M = 18.0  # dense historic cores (Meir / Groenplaats) need a little slack
 STREET_BONUS_M = 12.0  # a street-facing wall wins over a nearer side / courtyard wall
 MIN_SPACING_M = 3.2  # two signs on one façade keep this far apart
 SIGN_MAX_W = 5.6  # keep under one photo-façade house (~6.4 m)
@@ -313,23 +314,126 @@ def has_terrace(tags: dict[str, str], kind: str, category: str) -> bool:
     return seating == "yes" or (category == "horeca" and kind in TERRACE_KINDS)
 
 
+def _poi_lat_lon(
+    el: dict[str, Any], nodes_by_id: dict[int, dict[str, Any]]
+) -> tuple[float, float] | None:
+    """Lat/lon for a shop POI node, or way centroid / entrance node."""
+    if el.get("type") == "node" and "lat" in el:
+        return float(el["lat"]), float(el["lon"])
+    if isinstance(el.get("center"), dict):
+        return float(el["center"]["lat"]), float(el["center"]["lon"])
+    if el.get("type") != "way":
+        return None
+    tags = el.get("tags") or {}
+    # Prefer an explicit entrance node when mapped.
+    for nid in el.get("nodes") or []:
+        n = nodes_by_id.get(int(nid))
+        if not n or "lat" not in n:
+            continue
+        nt = n.get("tags") or {}
+        if nt.get("entrance") in {"yes", "main", "shop"}:
+            return float(n["lat"]), float(n["lon"])
+    coords = []
+    for nid in el.get("nodes") or []:
+        n = nodes_by_id.get(int(nid))
+        if n and "lat" in n:
+            coords.append((float(n["lat"]), float(n["lon"])))
+    if not coords:
+        return None
+    # Closed ways: drop duplicate closing node for a cleaner centroid.
+    if len(coords) > 2 and coords[0] == coords[-1]:
+        coords = coords[:-1]
+    return (
+        sum(c[0] for c in coords) / len(coords),
+        sum(c[1] for c in coords) / len(coords),
+    )
+
+
+OVERRIDE_KEYS = ("name", "fascia", "accent", "glass", "frame", "front", "awning", "terrace", "mood")
+
+
+def load_shop_overrides(path) -> dict[str, Any]:
+    """``shop_overrides.json``: per-place looks authored from picture references.
+
+    ``{"by_osm": {"node/123": {...}}, "by_name": {"den engel": {...}}}`` with any of
+    ``name, fascia, accent, glass, frame ([r,g,b] 0..1; frame = window joinery when it
+    differs from the board), front, awning ({colour, stripe} | false), terrace, mood``;
+    extra keys (``ref``, ``note``) are documentation.
+    """
+    try:
+        import json
+
+        data = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _override_for(overrides: dict[str, Any], el: dict[str, Any]) -> dict[str, Any] | None:
+    if not overrides:
+        return None
+    hit = (overrides.get("by_osm") or {}).get(f"{el.get('type')}/{el.get('id')}")
+    if hit is None:
+        name = ((el.get("tags") or {}).get("name") or "").strip().lower()
+        hit = (overrides.get("by_name") or {}).get(name) if name else None
+    return hit if isinstance(hit, dict) else None
+
+
+def _merge_elements(osm: dict[str, Any], places: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Geometry-cache elements + the places stage (places win: fuller tags)."""
+    by_key: dict[tuple[str, int], dict[str, Any]] = {}
+    for e in osm.get("elements") or []:
+        if "id" in e:
+            by_key[(str(e.get("type")), int(e["id"]))] = e
+    for p in places or []:
+        by_key[(str(p.get("type")), int(p["id"]))] = p
+    return list(by_key.values())
+
+
 def plan_shops(
-    osm: dict[str, Any], layout: dict[str, Any], origin: tuple[float, float]
+    osm: dict[str, Any],
+    layout: dict[str, Any],
+    origin: tuple[float, float],
+    *,
+    places: list[dict[str, Any]] | None = None,
+    overrides: dict[str, Any] | None = None,
+    refs: dict[tuple[str, int], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    """Shopfront records (Blender XY) for every shop node that snaps onto a façade."""
+    """Shopfront records (Blender XY) for every shop node/way that snaps onto a façade.
+
+    ``places`` (``places.places_as_elements``) adds every named shop / horeca the
+    geometry download skipped; ``overrides`` re-colours specific places from photos;
+    ``refs`` (``place_refs.references_by_osm``) flags places that have a reference.
+    """
     index = _BuildingIndex(layout.get("buildings") or [])
     placed: list[dict[str, Any]] = []
     per_edge: dict[Any, list[float]] = {}
-    nodes = [e for e in osm.get("elements") or [] if e.get("type") == "node" and e.get("tags")]
+    elements = _merge_elements(osm, places)
+    nodes_by_id = {int(e["id"]): e for e in elements if e.get("type") == "node" and "id" in e}
+    pois = [
+        e
+        for e in elements
+        if e.get("type") in {"node", "way"} and e.get("tags") and category_for(e["tags"]) is not None
+    ]
     # Named places first so they win a crowded façade.
-    nodes.sort(key=lambda e: (not e["tags"].get("name"), int(e["id"])))
-    for node in nodes:
-        tags = node["tags"]
+    pois.sort(key=lambda e: (not e["tags"].get("name"), e.get("type") != "node", int(e["id"])))
+    seen_names: dict[str, list[tuple[float, float]]] = {}
+    for el in pois:
+        tags = el["tags"]
         cat = category_for(tags)
-        if cat is None or "lat" not in node:
+        if cat is None:
+            continue
+        lat_lon = _poi_lat_lon(el, nodes_by_id)
+        if lat_lon is None:
             continue
         kind, category = cat
-        x, y = project(float(node["lat"]), float(node["lon"]), origin[0], origin[1])
+        x, y = project(lat_lon[0], lat_lon[1], origin[0], origin[1])
+        # Same place mapped as a node and as its building way: keep the first.
+        name_key = (tags.get("name") or "").strip().lower()
+        if name_key:
+            if any(math.hypot(x - ox, y - oy) < 20.0 for ox, oy in seen_names.get(name_key, ())):
+                continue
+            seen_names.setdefault(name_key, []).append((x, y))
         snap = snap_to_facade(x, y, index)
         if snap is None:
             continue
@@ -339,10 +443,10 @@ def plan_shops(
             continue
         taken.append(along)
         hours = parse_opening_hours(tags.get("opening_hours"))
-        style = shopfront_style(tags, kind, category, int(node["id"]))
+        style = shopfront_style(tags, kind, category, int(el["id"]))
         brand = normalize_shop_brand(tags) or style.get("brand")
         rec = {
-            "id": int(node["id"]),
+            "id": int(el["id"]),
             "name": (tags.get("name") or tags.get("brand") or "").strip()[:28],
             "kind": kind,
             "cat": category,
@@ -361,15 +465,59 @@ def plan_shops(
         }
         if brand:
             rec["brand"] = brand
-        if snap["street"] and has_terrace(tags, kind, category):
+        terrace = bool(snap["street"] and has_terrace(tags, kind, category))
+        front = style.get("front") or front_for(tags, kind, category)
+        awning = awning_for(front, kind, style["fascia"], style["accent"], int(el["id"]), terrace)
+        ov = _override_for(overrides or {}, el)
+        if ov:
+            for key in OVERRIDE_KEYS:
+                if key not in ov:
+                    continue
+                if key == "name":
+                    rec["name"] = str(ov["name"])[:28]
+                elif key in {"fascia", "accent", "glass", "frame"}:
+                    rec[key] = [round(float(c), 3) for c in ov[key][:3]]
+                elif key == "front":
+                    front = str(ov["front"])
+                elif key == "awning":
+                    awning = ov["awning"] or None
+                elif key == "terrace":
+                    terrace = bool(ov["terrace"])
+                elif key == "mood":
+                    rec["mood"] = str(ov["mood"])
+            rec["override"] = True
+        if terrace:
             rec["terrace"] = True
-        # Banks and cafés get a ground-floor shopfront panel under the fascia.
-        if style.get("mood") in {"bank", "cafe"} or brand in {
-            "belfius", "kbc", "crelan", "bpost", "ing", "argenta", "bnp",
-        }:
+        # Street-facing places get a ground-floor shopfront under the fascia.
+        if snap["street"] or front == "bank":
             rec["shopfront"] = True
+            rec["front"] = front
+            if awning:
+                rec["awning"] = awning
+        if refs and (str(el.get("type")), int(el["id"])) in refs:
+            rec["ref"] = refs[(str(el.get("type")), int(el["id"]))].get("slug")
         placed.append(rec)
     return placed
+
+
+def district_shop_inputs(paths) -> dict[str, Any]:
+    """``plan_shops`` keyword inputs from a district package (places, overrides, refs)."""
+    import json
+
+    from cityview.place_refs import references_by_osm
+    from cityview.places import places_as_elements
+
+    out: dict[str, Any] = {}
+    places_path = paths.cache / "places.json"
+    if places_path.exists():
+        out["places"] = places_as_elements(json.loads(places_path.read_text()))
+    ov_path = paths.root / "shop_overrides.json"
+    if ov_path.exists():
+        out["overrides"] = load_shop_overrides(ov_path)
+    refs_path = paths.root / "references" / "index.json"
+    if refs_path.exists():
+        out["refs"] = references_by_osm(json.loads(refs_path.read_text()))
+    return out
 
 
 def export_shops_for_viewer(

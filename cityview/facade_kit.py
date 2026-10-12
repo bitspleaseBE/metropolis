@@ -46,6 +46,30 @@ TEXTURES_DIRNAME = "textures"
 FACADE_SRC_DIR = "generated/facades"
 WALL_SRC_DIR = "generated/walls"
 
+# Set by the district pipeline so each package uses its own elevations/atlas.
+# When ACTIVE_ATLAS_DIR is set, band/window JSON and the packed atlas live there.
+ACTIVE_ATLAS_DIR: "Path | None" = None  # type: ignore[name-defined]
+DISTRICT_FACADE_ELEVATIONS: "Path | None" = None  # type: ignore[name-defined]
+DISTRICT_FACADE_ATLAS: "Path | None" = None  # type: ignore[name-defined]
+
+
+def atlas_dir():
+    """Directory holding facade_atlas.jpg (+ bands/windows JSON). District or shared."""
+    from pathlib import Path
+
+    if ACTIVE_ATLAS_DIR is not None:
+        return Path(ACTIVE_ATLAS_DIR)
+    return Path(__file__).resolve().parent.parent / "assets" / TEXTURES_DIRNAME
+
+
+def elevations_dir():
+    """Directory holding facade_NN.jpg sources."""
+    from pathlib import Path
+
+    if DISTRICT_FACADE_ELEVATIONS is not None:
+        return Path(DISTRICT_FACADE_ELEVATIONS)
+    return Path(__file__).resolve().parent.parent / "assets" / FACADE_SRC_DIR
+
 # Real-world size model: one storey ~3.2 m plus ~0.6 m of plinth + cornice.
 STOREY_M = 3.2
 EXTRA_M = 0.6
@@ -399,7 +423,7 @@ def band_layout() -> dict[str, Any]:
         import json
         from pathlib import Path
 
-        path = Path(__file__).resolve().parent.parent / "assets" / TEXTURES_DIRNAME / BANDS_FILE
+        path = atlas_dir() / BANDS_FILE
         try:
             _BAND_DOC = json.loads(path.read_text())
         except (OSError, ValueError):
@@ -552,9 +576,8 @@ def window_layout() -> dict[str, Any]:
     global _WINDOW_DOC
     if _WINDOW_DOC is None:
         import json
-        from pathlib import Path
 
-        path = Path(__file__).resolve().parent.parent / "assets" / TEXTURES_DIRNAME / WINDOWS_FILE
+        path = atlas_dir() / WINDOWS_FILE
         try:
             _WINDOW_DOC = json.loads(path.read_text())
         except (OSError, ValueError):

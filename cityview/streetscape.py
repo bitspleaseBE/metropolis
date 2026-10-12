@@ -1581,7 +1581,15 @@ def spawn_from_place(
     bx, by = project(lat, lon, origin[0], origin[1])
     eye = float(spawn.get("eye_height", 1.7))
     roads = layout.get("roads") or []
-    if "yaw" in spawn:
+    # Plazas / parks: keep the WGS84 point (do not pull onto a carriageway).
+    snap_road = bool(spawn.get("snap_road", True))
+    if not snap_road:
+        x, y = bx, by
+        if "yaw" in spawn:
+            yaw = float(spawn["yaw"])
+        else:
+            _sx, _sy, yaw = nearest_road_pose(bx, by, roads)
+    elif "yaw" in spawn:
         x, y, _auto_yaw = nearest_road_pose(bx, by, roads)
         yaw = float(spawn["yaw"])
     else:

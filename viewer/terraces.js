@@ -140,7 +140,8 @@ export function createTerraces(scene, THREE, records, opts = {}) {
             const pz = pair ? (t.z + pair.z) / 2 : t.z;
             q.identity();
             v.set(px, t.gy + part.y, pz);
-            meshes[p].setMatrixAt(slot.parasol, m4.compose(v, q, out ? s1 : s0));
+            // A shop awning already shades the tables; a parasol would poke through it.
+            meshes[p].setMatrixAt(slot.parasol, m4.compose(v, q, out && !site.r.awning ? s1 : s0));
           }
         }
         slot.table++;

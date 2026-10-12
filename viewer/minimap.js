@@ -145,10 +145,11 @@ export function createMinimap(THREE, opts = {}) {
     ctx2d.setLineDash([]);
   }
 
-  /** Gold diamond pins for heritage landmarks (landmarks.json, Blender XY). */
+  /** Gold diamond pins for heritage landmarks (district landmarks.json, Blender XY). */
   async function paintLandmarkPins(ctx2d, mapPoint, size = 4) {
     try {
-      const res = await fetch(opts.landmarksUrl || "./landmarks.json");
+      const url = opts.landmarksUrl || "./landmarks.json";
+      const res = await fetchJsonCached(url);
       if (!res.ok) return;
       const data = await res.json();
       for (const lm of data.landmarks || []) {
@@ -168,6 +169,26 @@ export function createMinimap(THREE, opts = {}) {
       }
     } catch {
       /* landmarks optional */
+    }
+  }
+
+  /** Soft shop dots on the full map only (radar stays clean). */
+  async function paintShopBlips(ctx2d, mapPoint, size = 2.2) {
+    if (!opts.shopsUrl) return;
+    try {
+      const res = await fetchJsonCached(opts.shopsUrl);
+      if (!res.ok) return;
+      const data = await res.json();
+      ctx2d.fillStyle = "rgba(255, 180, 90, 0.55)";
+      for (const s of data.shops || []) {
+        if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) continue;
+        const p = mapPoint(s.x, -s.y);
+        ctx2d.beginPath();
+        ctx2d.arc(p.u, p.v, size, 0, Math.PI * 2);
+        ctx2d.fill();
+      }
+    } catch {
+      /* shops optional */
     }
   }
 
@@ -243,6 +264,7 @@ export function createMinimap(THREE, opts = {}) {
       paintWalkLayer(bgCtx, data.walks || []);
       await paintTransitLayer(bgCtx, (x, z) => toPixel(x, z));
       await paintLandmarkPins(bgCtx, (x, z) => toPixel(x, z), 4);
+      await paintShopBlips(bgCtx, (x, z) => toPixel(x, z), 2.2);
       // Spawn marker (white ring so it doesn't read as a tram halt)
       const sp = toPixel(SPAWN.x, SPAWN.z);
       bgCtx.fillStyle = "#ffffff";

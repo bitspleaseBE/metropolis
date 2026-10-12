@@ -61,7 +61,10 @@ CLIMBERS: dict[tuple[int, int], dict] = {}
 CLIMBER_STATS = {"plants": 0, "leaves": 0}
 
 # Photo-derived facade imagery (committed by cityview.facade_textures).
+# Wall / surface tiles stay in TEXTURES_DIR; FACADE_ATLAS_DIR may point at a
+# district package (job facade_atlas_dir) for the packed elevation atlas only.
 TEXTURES_DIR = Path(_REPO_ROOT) / "assets" / facade_kit.TEXTURES_DIRNAME
+FACADE_ATLAS_DIR = TEXTURES_DIR
 TYPES_DOC: dict | None = None
 FACADE_PHOTO_MAT = None  # shared atlas material, set in build()
 # Block interiors (yards, gardens, shade) and parks seen from above are dark olive-grey in the
@@ -881,6 +884,9 @@ def _rooftop_box(mat, size, center, yaw: float) -> None:
     key = mat.name
     if key not in ROOFTOP_BM:
         ROOFTOP_BM[key] = (bmesh.new(), mat)
+    # Chimneys are flushed later as one mesh, so the pavement lift has to be
+    # in the vertices — object.location is still at the origin when this runs.
+    center = (center[0], center[1], center[2] + kerbs.PAVEMENT_TOP)
     m = (
         Matrix.Translation(Vector(center))
         @ Matrix.Rotation(yaw, 4, "Z")
@@ -2280,8 +2286,9 @@ def make_landmark_materials(surface_mat_fn, church_mats: dict) -> dict:
         # The brown tile is too dark to tint pale. Cream is the yellow brick cooled; yellow is the yellow tile itself.
         "brick_cream": (textured("lm_brick_cream", wall_img("brick_yellow"), (0.78, 0.76, 0.7, 1.0), 0.88, tint=(0.78, 0.8, 0.78)), tile("brick_yellow")),
         "brick_yellow": (textured("lm_brick_yellow", wall_img("brick_yellow"), (0.86, 0.7, 0.38, 1.0), 0.9, tint=(1.0, 0.92, 0.62)), tile("brick_yellow")),
-        "stone_white": (textured("lm_stone_white", stone_img, (0.86, 0.84, 0.79, 1.0), 0.78, tint=(1.0, 1.0, 0.98)), tile("stone_buff")),
-        "stone_grey": (textured("lm_stone_grey", stone_img, (0.62, 0.62, 0.6, 1.0), 0.85, tint=(0.8, 0.82, 0.82)), tile("stone_buff")),
+        # Warm bone limestone (Handschoenmarkt OLV reference) + cooler recessed grey.
+        "stone_white": (textured("lm_stone_white", stone_img, (0.82, 0.78, 0.70, 1.0), 0.82, tint=(1.0, 0.98, 0.94)), tile("stone_buff")),
+        "stone_grey": (textured("lm_stone_grey", stone_img, (0.55, 0.52, 0.48, 1.0), 0.88, tint=(0.88, 0.86, 0.82)), tile("stone_buff")),
         "bluestone": (surface_mat_fn("curb", "lm_bluestone", (0.3, 0.31, 0.33, 1.0), 0.86, tint=(0.62, 0.66, 0.72)), float(surface_kit.surface_tile_m("curb"))),
         "render_white": (textured("lm_render_white", plaster_img, (0.9, 0.89, 0.86, 1.0), 0.86, tint=(1.0, 0.99, 0.96)), tile("plaster_white")),
         "render_cream": (textured("lm_render_cream", stucco_img, (0.86, 0.8, 0.68, 1.0), 0.86, tint=(1.0, 0.97, 0.9)), tile("stucco_cream")),
@@ -3160,6 +3167,41 @@ def add_kerb_prism(
     return obj
 
 
+def _raise_to_pavement(objs) -> None:
+    """Sit building meshes on the pavement so the doorstep is the sidewalk, not a trench."""
+    dz = kerbs.PAVEMENT_TOP
+    for obj in objs:
+        if getattr(obj, "type", None) != "MESH":
+            continue
+        obj.location.z += dz
+
+
+def add_frontage_sidewalk(
+    name: str,
+    inner: list[list[float]],
+    outer: list[list[float]],
+    mat: bpy.types.Material,
+    z: float,
+    uv_tile_m: float | None,
+) -> bpy.types.Object | None:
+    built = kerbs.sidewalk_strip(inner, outer, z, uv_tile_m or 2.4)
+    if built is None:
+        return None
+    verts, faces, uvs = built
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    uv_layer = mesh.uv_layers.new(name="UVMap")
+    li = 0
+    for poly in mesh.polygons:
+        for loop in poly.loop_indices:
+            uv_layer.data[loop].uv = uvs[li]
+            li += 1
+    obj = bpy.data.objects.new(name, mesh)
+    assign(link(obj), mat)
+    return obj
+
+
 def add_sidewalks_and_curbs(
     roads: list,
     sidewalk_mat,
@@ -3167,15 +3209,21 @@ def add_sidewalks_and_curbs(
     spawn_xy: tuple[float, float] | None,
     sidewalk_tile_m: float | None = None,
     curb_tile_m: float | None = None,
+    buildings: list | None = None,
 ) -> int:
-    """Raised pavement ribbons + stone kerbs. Prefer roads near the human spawn for FPS.
+    """Raised pavement up to each façade + stone kerbs. Prefer roads near the human spawn for FPS.
 
-    Kerbs and pavements are cut where another carriageway joins (a dropped-kerb
-    mouth) so a side street is never walled off by the main road's kerb.
+    The outer edge follows the building line (tucked under the façade) so the
+    tiles meet the doorstep. Kerbs and pavements are cut where another
+    carriageway joins (a dropped-kerb mouth).
     """
     count = 0
-    sidewalk_w = 2.0
     carriageways = kerbs.CarriagewayIndex(roads)
+    footprints = kerbs.FootprintIndex((b.get("ring") or []) for b in (buildings or []))
+
+    def on_rail(x: float, y: float) -> bool:
+        return bool(RAILS) and RAILS.within(x, y, railclear.CLEAR_SIDEWALK)
+
     for i, road in enumerate(roads):
         kind = road.get("kind") or "residential"
         if kind in {"footway", "path", "cycleway", "steps"}:
@@ -3189,20 +3237,20 @@ def add_sidewalks_and_curbs(
                 continue
         half = float(road.get("width") or 6.0) * 0.5
         for side, sign in (("L", 1.0), ("R", -1.0)):
-            walk = offset_polyline(pts, sign * (half + sidewalk_w * 0.5))
+            runs = kerbs.frontage_sidewalk_runs(
+                pts, half, sign, footprints, carriageways, i, extra_blocked=on_rail
+            )
+            for ri, (inner, outer) in enumerate(runs):
+                if add_frontage_sidewalk(
+                    f"sidewalk_frontage_{i}_{side}_{ri}",
+                    inner,
+                    outer,
+                    sidewalk_mat,
+                    Z_SIDEWALK,
+                    sidewalk_tile_m,
+                ):
+                    count += 1
             curb = offset_polyline(pts, sign * (half + 0.12))
-            # Never lay pavement/kerb over a tram bed (shared tram streets).
-            for ri, rail_run in enumerate(railclear.clear_runs(walk, RAILS, railclear.CLEAR_SIDEWALK)):
-                for ji, run in enumerate(kerbs.split_at_carriageways(rail_run, carriageways, i, 0.0)):
-                    if add_road(
-                        f"sidewalk_{i}_{side}_{ri}_{ji}",
-                        run,
-                        sidewalk_w,
-                        sidewalk_mat,
-                        z=Z_SIDEWALK,
-                        uv_tile_m=sidewalk_tile_m,
-                    ):
-                        count += 1
             # Road lies to the right of a ribbon offset to the left (sign +1), and vice versa.
             for ri, rail_run in enumerate(railclear.clear_runs(curb, RAILS, railclear.CLEAR_CURB)):
                 for ji, run in enumerate(kerbs.split_at_carriageways(rail_run, carriageways, i, -0.1)):
@@ -4046,15 +4094,15 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     STATS["reveals"] = 0
     STATS["downpipes"] = 0
     STATS["photo_edges"] = 0
-    atlas_img = load_texture(TEXTURES_DIR / facade_kit.ATLAS_FILE)
+    atlas_img = load_texture(FACADE_ATLAS_DIR / facade_kit.ATLAS_FILE)
     FACADE_PHOTO_MAT = (
         textured("facade_photo_atlas", atlas_img, (0.6, 0.55, 0.45, 1.0), rough=0.9, extend="EXTEND")
         if atlas_img is not None
         else None
     )
     if FACADE_PHOTO_MAT is not None:
-        add_normal_map(FACADE_PHOTO_MAT, TEXTURES_DIR / facade_kit.NORMAL_FILE, strength=NORMAL_MAP_STRENGTH)
-        add_emissive_map(FACADE_PHOTO_MAT, TEXTURES_DIR / facade_kit.EMISSIVE_FILE)
+        add_normal_map(FACADE_PHOTO_MAT, FACADE_ATLAS_DIR / facade_kit.NORMAL_FILE, strength=NORMAL_MAP_STRENGTH)
+        add_emissive_map(FACADE_PHOTO_MAT, FACADE_ATLAS_DIR / facade_kit.EMISSIVE_FILE)
     print(f"Facade photo atlas: {'loaded' if atlas_img is not None else 'MISSING'}")
     RAILS = RailIndex.from_layout(layout)
     print(f"Surface rail segments: {len(RAILS.segments)}")
@@ -4323,6 +4371,7 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
         spawn_xy,
         sidewalk_tile_m=surface_kit.surface_tile_m("sidewalk"),
         curb_tile_m=surface_kit.surface_tile_m("curb"),
+        buildings=layout.get("buildings") or [],
     )
     print(f"Sidewalk/curb strips: {walks}")
 
@@ -4421,11 +4470,15 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     ROOF_STATS.update({"measured": 0, "fallback": 0})
     for bldg in layout.get("buildings") or []:
         if not _wants_stream(bldg):
+            before = set(bpy.data.objects)
             add_building(bldg, mats, spawn_xy=spawn_xy)
+            _raise_to_pavement(_fresh_objects(before))
             continue
         # Ordinary building stays in the city so the plot is never a hole or a
         # blank plinth. The detailed mesh is peeled into landmarks/<id>.glb.
+        before = set(bpy.data.objects)
         add_building(bldg, mats, spawn_xy=spawn_xy, standin=True)
+        _raise_to_pavement(_fresh_objects(before))
         before = set(bpy.data.objects)
         lm = bldg.get("landmark") or {}
         detailed = False
@@ -4439,6 +4492,7 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
         fresh = _fresh_objects(before)
         if fresh:
             STREAMED[str(bldg["id"])] = fresh
+        _raise_to_pavement(fresh)
     for node in layout.get("landmark_nodes") or []:
         before = set(bpy.data.objects)
         kit = landmark_models.build_node_landmark(node)
@@ -4450,6 +4504,7 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
                 pad = landmark_kit.Mesh()
                 landmark_kit.wbox(pad, float(node["x"]), float(node["y"]), 0.0, 3.2, 1.4, 0.28, 0.0, "stone_grey")
                 add_kit_mesh(f"lmhold_{node['id']}", pad, mats["landmark"])
+        _raise_to_pavement(_fresh_objects(before))
     print(f"Hand-modelled landmarks: {LANDMARK_STATS['objects']} objects, {LANDMARK_STATS['tris']} tris")
     print(f"Rooftop detail: {ROOFTOP_STATS}, merged into {flush_rooftop()} meshes")
     print(f"Mansard dormers: {DORMER_STATS['dormers']}; textured roof families: {sorted((mats.get('roof_tex') or {}))}")
@@ -4477,11 +4532,13 @@ def peel_streamed_landmarks(output_dir: Path) -> None:
         objs = [o for o in objs if getattr(o, "name", None) in bpy.data.objects]
         if not objs:
             continue
-        for obj in bpy.context.view_layer.objects:
-            obj.select_set(False)
-        for obj in objs:
+        bpy.ops.object.select_all(action="DESELECT")
+        live = [o for o in objs if o is not None and o.name in bpy.data.objects]
+        if not live:
+            continue
+        for obj in live:
             obj.select_set(True)
-        bpy.context.view_layer.objects.active = objs[0]
+        bpy.context.view_layer.objects.active = live[0]
         path = dest / f"{lid}.glb"
         bpy.ops.export_scene.gltf(
             filepath=str(path),
@@ -4495,17 +4552,139 @@ def peel_streamed_landmarks(output_dir: Path) -> None:
             export_cameras=False,
         )
         print(f"Wrote {path} ({path.stat().st_size / 1e6:.2f} MB)")
-        for obj in objs:
+        for obj in live:
             bpy.data.objects.remove(obj, do_unlink=True)
 
 
-def export_outputs(output_dir: Path, name: str, do_render: bool) -> None:
+def _spawn_xy_from_layout(layout: dict | None) -> tuple[float, float] | None:
+    if not layout:
+        return None
+    spawn = layout.get("spawn") or {}
+    try:
+        return (float(spawn["x"]), float(spawn["y"]))
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def peel_spatial_chunks(
+    output_dir: Path,
+    spawn_xy: tuple[float, float] | None,
+    *,
+    cell_m: float | None = None,
+    core_r: float | None = None,
+) -> dict:
+    """Peel outer meshes into ``chunks/c_ix_iy.glb``; leave core in the scene.
+
+    Always writes ``chunks.json`` (possibly with an empty chunk list).
+    """
+    from cityview.district_chunks import (
+        CELL_M,
+        CORE_R,
+        assign_object,
+        build_chunks_manifest,
+        write_chunks_manifest,
+    )
+
+    from mathutils import Vector
+
+    cell_m = float(cell_m if cell_m is not None else CELL_M)
+    core_r = float(core_r if core_r is not None else CORE_R)
+    buckets: dict[tuple[int, int], list] = {}
+
+    def _world_xy(obj) -> tuple[float, float]:
+        # Mesh origins are often at the world origin with geometry offset — use
+        # the world-space bounding-box centre so cells match real placement.
+        try:
+            corners = [obj.matrix_world @ Vector(c) for c in obj.bound_box]
+            if corners:
+                return (
+                    sum(c.x for c in corners) / len(corners),
+                    sum(c.y for c in corners) / len(corners),
+                )
+        except (AttributeError, TypeError, ValueError):
+            pass
+        mw = obj.matrix_world.translation
+        return (float(mw.x), float(mw.y))
+
+    for obj in list(bpy.data.objects):
+        if obj.type not in {"MESH", "EMPTY", "CURVE"}:
+            continue
+        # Cameras stay in core via name prefixes; skip other non-exportables.
+        if obj.type == "CAMERA":
+            continue
+        x, y = _world_xy(obj)
+        key = assign_object(obj.name, x, y, spawn_xy=spawn_xy, cell_m=cell_m, core_r=core_r)
+        if key == "core":
+            continue
+        buckets.setdefault(key, []).append(obj)
+
+    dest = output_dir / "chunks"
+    if dest.exists():
+        for old in dest.glob("*.glb"):
+            old.unlink()
+    dest.mkdir(parents=True, exist_ok=True)
+
+    exported_cells: list[tuple[int, int]] = []
+    for (ix, iy), objs in sorted(buckets.items()):
+        objs = [o for o in objs if o.name in bpy.data.objects]
+        if not objs:
+            continue
+        bpy.ops.object.select_all(action="DESELECT")
+        for obj in objs:
+            if obj is None or obj.name not in bpy.data.objects:
+                continue
+            obj.select_set(True)
+        live = [o for o in objs if o is not None and o.name in bpy.data.objects]
+        if not live:
+            continue
+        bpy.context.view_layer.objects.active = live[0]
+        path = dest / f"c_{ix}_{iy}.glb"
+        bpy.ops.export_scene.gltf(
+            filepath=str(path),
+            export_format="GLB",
+            use_selection=True,
+            export_texcoords=True,
+            export_normals=True,
+            export_materials="EXPORT",
+            export_extras=True,  # material cityview_shader → glTF extras
+            export_image_format="JPEG",
+            export_jpeg_quality=85,
+            export_yup=True,
+            export_cameras=False,
+        )
+        print(f"Wrote {path} ({path.stat().st_size / 1e6:.2f} MB, {len(live)} objs)")
+        exported_cells.append((ix, iy))
+        for obj in live:
+            bpy.data.objects.remove(obj, do_unlink=True)
+
+    manifest = build_chunks_manifest(
+        exported_cells, cell_m=cell_m, core_r=core_r, core_file="core.glb"
+    )
+    write_chunks_manifest(output_dir / "chunks.json", manifest)
+    print(
+        f"Spatial chunks: {len(exported_cells)} cells "
+        f"(cell={cell_m:.0f} m, core_r={core_r:.0f} m)"
+    )
+    return manifest
+
+
+def export_outputs(
+    output_dir: Path,
+    name: str,
+    do_render: bool,
+    *,
+    layout: dict | None = None,
+    spawn_xy: tuple[float, float] | None = None,
+) -> None:
     blend = output_dir / f"{name}.blend"
-    glb = output_dir / f"{name}.glb"
+    core_glb = output_dir / "core.glb"
+    scene_glb = output_dir / f"{name}.glb"
     bpy.ops.wm.save_as_mainfile(filepath=str(blend))
     peel_streamed_landmarks(output_dir)
+    sx = spawn_xy if spawn_xy is not None else _spawn_xy_from_layout(layout)
+    peel_spatial_chunks(output_dir, sx)
     bpy.ops.export_scene.gltf(
-        filepath=str(glb),
+        filepath=str(core_glb),
         export_format="GLB",
         export_texcoords=True,
         export_normals=True,
@@ -4516,6 +4695,10 @@ def export_outputs(output_dir: Path, name: str, do_render: bool) -> None:
         export_cameras=True,
         export_yup=True,
     )
+    # Compat: publish + legacy paths still look for {scene_name}.glb.
+    import shutil as _shutil
+
+    _shutil.copy2(core_glb, scene_glb)
     if do_render:
         scene = bpy.context.scene
         try:
@@ -4543,14 +4726,29 @@ def export_outputs(output_dir: Path, name: str, do_render: bool) -> None:
             bpy.ops.render.render(write_still=True)
             print(f"Wrote {aerial}")
     print(f"Wrote {blend}")
-    print(f"Wrote {glb}")
+    print(f"Wrote {core_glb}")
+    print(f"Wrote {scene_glb} (copy of core)")
 
 
 def main() -> None:
+    global FACADE_ATLAS_DIR
     args = parse_args()
     job = json.loads(Path(args.job).read_text())
     output_dir = Path(job["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
+    atlas_dir = job.get("facade_atlas_dir")
+    if atlas_dir and Path(atlas_dir).is_dir() and (Path(atlas_dir) / facade_kit.ATLAS_FILE).exists():
+        FACADE_ATLAS_DIR = Path(atlas_dir)
+        facade_kit.ACTIVE_ATLAS_DIR = Path(atlas_dir)
+        print(f"District facade atlas: {FACADE_ATLAS_DIR}")
+    lm_dir = job.get("landmarks_dir")
+    if lm_dir and Path(lm_dir).is_dir():
+        import cityview.landmarks as _lm
+
+        _lm.LANDMARKS_DIR = Path(lm_dir)
+        _lm.MANIFEST_PATH = Path(lm_dir) / "manifest.json"
+        _lm.clear_manifest_cache()
+        print(f"District landmarks: {_lm.MANIFEST_PATH}")
     layout = job.get("layout")
     if not layout:
         layout = json.loads(Path(job["layout_path"]).read_text())
@@ -4561,9 +4759,60 @@ def main() -> None:
         types_path = job.get("building_types_path") or layout.get("building_types_path")
         if types_path and Path(types_path).exists():
             types_doc = json.loads(Path(types_path).read_text())
+    # Migration-only: reopen an existing .blend and re-peel chunks without rebuild.
+    if job.get("chunks_only"):
+        blend_path = Path(job["blend_path"])
+        bpy.ops.wm.open_mainfile(filepath=str(blend_path))
+        # Drop detailed landmark meshes that already have sidecar GLBs (blend was
+        # saved before peel_streamed_landmarks ran).
+        lm_dir = output_dir / "landmarks"
+        if lm_dir.is_dir():
+            lids = {p.stem for p in lm_dir.glob("*.glb")}
+            for obj in list(bpy.data.objects):
+                name = obj.name or ""
+                for lid in lids:
+                    if name == f"bldg_{lid}" or name.startswith(f"bldg_{lid}_") or name == f"lm_{lid}":
+                        bpy.data.objects.remove(obj, do_unlink=True)
+                        break
+                else:
+                    continue
+        peel_spatial_chunks(output_dir, _spawn_xy_from_layout(layout))
+        core_glb = output_dir / "core.glb"
+        scene_name = job.get("scene_name", "antwerp_city")
+        scene_glb = output_dir / f"{scene_name}.glb"
+        bpy.ops.export_scene.gltf(
+            filepath=str(core_glb),
+            export_format="GLB",
+            export_texcoords=True,
+            export_normals=True,
+            export_materials="EXPORT",
+            export_extras=True,  # material cityview_shader → glTF extras
+            export_image_format="JPEG",
+            export_jpeg_quality=85,
+            export_cameras=True,
+            export_yup=True,
+        )
+        import shutil as _shutil
+
+        _shutil.copy2(core_glb, scene_glb)
+        print(f"Wrote {core_glb}")
+        print(f"Wrote {scene_glb} (copy of core)")
+        return
     build(layout, types_doc=types_doc)
-    export_outputs(output_dir, job.get("scene_name", "antwerp_city"), job.get("render", True))
+    export_outputs(
+        output_dir,
+        job.get("scene_name", "antwerp_city"),
+        job.get("render", True),
+        layout=layout,
+        spawn_xy=_spawn_xy_from_layout(layout),
+    )
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+        raise SystemExit(1) from None
