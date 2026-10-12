@@ -186,12 +186,13 @@ export function createMenu(hooks) {
     if (!mapRoads || !map?.playable) return;
     const key = map.district || map.id;
     if (roadsPaintedFor === key) return;
-    const roadsUrl = map.district
-      ? `./districts/${map.district}/roads.json`
-      : (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
-        "./roads.json";
+    const pkgUrl = map.district ? `./districts/${map.district}/roads.json` : null;
+    const fallbackUrl =
+      (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
+      "./roads.json";
     try {
-      const res = await fetch(roadsUrl);
+      let res = pkgUrl ? await fetch(pkgUrl) : null;
+      if (!res || !res.ok) res = await fetch(fallbackUrl);
       if (!res.ok) return;
       const data = await res.json();
       const roads = data.roads || [];

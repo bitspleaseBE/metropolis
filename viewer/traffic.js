@@ -49,9 +49,13 @@ const STANDSTILL_GAP = 1.6; // bumper gap kept to the leader / stop line
 const STOP_LINE_SETBACK = CAR_LEN * 0.5 + 0.4;
 const TURN_SPEED = 5.0; // m/s through sharp junction turns
 const TRANSIT_PATIENCE_SEC = 100; // longer than any halt dwell
-const ROADS_URL =
-  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
-  "./roads.json";
+/** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
+function roadsUrl() {
+  return (
+    (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
+    "./roads.json"
+  );
+}
 const PLAYER_PATIENCE_SEC = 15; // player or pedestrian in the lane: wait, then clear the car
 const HEAD_ON_DOT = -0.5; // oncoming-ish headings share the braking distance
 const HEAD_ON_RESPAWN_SEC = 3; // the lower-priority car of a nose-to-nose deadlock is cleared quickly
@@ -806,7 +810,7 @@ export async function createTraffic(scene, THREE, opts = {}) {
   // Fixed same-origin data file (no caller-supplied URL).
   let data;
   try {
-    const res = await fetchJsonCached(ROADS_URL);
+    const res = await fetchJsonCached(roadsUrl());
     if (!res.ok) throw new Error(`roads.json ${res.status}`);
     data = await res.json();
   } catch (err) {

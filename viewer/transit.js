@@ -11,9 +11,13 @@
 import { shared } from "./lanes.js";
 import { createCellGrid } from "./cell-grid.js";
 
-const TRANSIT_URL =
-  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("transit.json")) ||
-  "./transit.json";
+/** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
+function transitUrl() {
+  return (
+    (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("transit.json")) ||
+    "./transit.json"
+  );
+}
 const TRAM_COUNT = 6;
 const BUS_COUNT = 8;
 const TRAM_SPEED = 7.5;
@@ -1044,7 +1048,7 @@ function placeVehicle(v, paths, THREE) {
  */
 export async function createTransit(scene, THREE, opts = {}) {
   // Fixed same-origin data file (no caller-supplied URL).
-  const url = TRANSIT_URL;
+  const url = transitUrl();
   let data;
   try {
     const res = await fetch(url);
