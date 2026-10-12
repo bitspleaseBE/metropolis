@@ -3,6 +3,11 @@
  *
  * URL: ?district=2018-harmonie (default from districts/index.json).
  * Assets resolve under ./districts/<id>/ with legacy ./ fallbacks.
+ *
+ * `base` stays "./" until a built package is confirmed. Module top-level code can
+ * call districtUrl() during import (before ready resolves); an optimistic
+ * districts/ path would 404 on Pages, where GLBs are git-ignored and only the
+ * legacy klein_antwerpen.glb + root JSON ship.
  */
 (function () {
   const params = new URLSearchParams(location.search);
@@ -10,7 +15,8 @@
 
   window.__DISTRICT = {
     id: requested || "2018-harmonie",
-    base: "",
+    // Safe default: legacy viewer root. Upgraded only after core.glb is present.
+    base: "./",
     title: "Klein Antwerpen · Harmonie",
     summary: "",
     edges: [],
@@ -23,7 +29,7 @@
   }
 
   // District GLBs are built locally and git-ignored; Pages ships JSON-only packages.
-  // A package without its core.glb is not playable.
+  // A package without its core.glb is not playable as a district (use legacy root).
   const builtCache = new Map();
   function districtBuilt(id) {
     if (!builtCache.has(id)) {
@@ -53,9 +59,11 @@
     window.__DISTRICT.index = index;
     const fallbackId = (index && index.default) || "2018-harmonie";
     let id = requested || fallbackId;
-    window.__DISTRICT.base = baseFor(id);
-    // Unbuilt package (e.g. Pages): the legacy Klein Antwerpen city at the viewer root.
-    if (!(await districtBuilt(id))) {
+
+    if (await districtBuilt(id)) {
+      window.__DISTRICT.base = baseFor(id);
+    } else {
+      // Unbuilt package (e.g. Pages): Klein Antwerpen at the viewer root.
       let legacy = false;
       try {
         legacy = (await fetch("./spawn.json", { method: "HEAD" })).ok;
@@ -63,10 +71,14 @@
         legacy = true;
       }
       if (legacy) {
-        id = fallbackId;
+        id = requested ? id : fallbackId;
         window.__DISTRICT.base = "./";
+      } else {
+        // No root spawn either — still point at the package JSON for tooling.
+        window.__DISTRICT.base = baseFor(id);
       }
     }
+
     window.__DISTRICT.id = id;
     if (index && Array.isArray(index.districts)) {
       const meta = index.districts.find((d) => d.id === id);

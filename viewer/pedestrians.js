@@ -16,9 +16,13 @@
 import { createPeoplePool } from "./people.js";
 import { fetchJsonCached } from "./json-cache.js";
 
-const ROADS_URL =
-  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
-  "./roads.json";
+/** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
+function roadsUrl() {
+  return (
+    (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
+    "./roads.json"
+  );
+}
 const JOIN_M = 5.0; // endpoints this close are the same junction
 const LATERAL_M = 0.22; // stay inside a 2 m sidewalk, prefer the building half
 const SAFE_KINDS = new Set(["sidewalk", "footway", "path", "pedestrian", "steps"]);
@@ -1022,7 +1026,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
 
 async function loadWalks() {
   try {
-    const res = await fetchJsonCached(ROADS_URL);
+    const res = await fetchJsonCached(roadsUrl());
     if (!res.ok) return [];
     const data = await res.json();
     return data.walks || [];

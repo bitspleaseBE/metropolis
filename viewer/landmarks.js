@@ -3,16 +3,20 @@
  * (Blender XY → Three XZ with z = −y). Used for GTA-style captions and map pins.
  */
 
-const LANDMARKS_URL =
-  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("landmarks.json")) ||
-  "./landmarks.json";
+/** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
+function landmarksUrl() {
+  return (
+    (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("landmarks.json")) ||
+    "./landmarks.json"
+  );
+}
 const REACH_M = 28;
 
 export async function createLandmarkLocator(opts = {}) {
   const reach = opts.reach ?? REACH_M;
   let pois = [];
   try {
-    const res = await fetch(LANDMARKS_URL);
+    const res = await fetch(landmarksUrl());
     if (res.ok) {
       const data = await res.json();
       pois = (data.landmarks || [])

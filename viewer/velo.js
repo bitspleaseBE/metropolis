@@ -5,9 +5,13 @@
  * spawns the bike you ride, so stations are not doubled with runtime meshes.
  */
 
-const VELO_URL =
-  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("velo.json")) ||
-  "./velo.json";
+/** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
+function veloUrl() {
+  return (
+    (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("velo.json")) ||
+    "./velo.json"
+  );
+}
 const BOARD_DIST = 4.0; // m to the rail (not only the centre point)
 const CAPTION_DIST = 6.0; // slightly wider for GTA-style area captions
 const BIKE_SPEED = 8.6; // ~31 km/h cruise (MOVE.velo.speed); the viewer owns acceleration
@@ -173,10 +177,10 @@ export async function createVelo(scene, THREE) {
   let doc = { stations: [] };
   const model = preloadVeloModel();
   try {
-    const res = await fetch(VELO_URL);
+    const res = await fetch(veloUrl());
     if (res.ok) doc = await res.json();
   } catch (e) {
-    console.warn("[metropolis] velo: could not load", VELO_URL, e);
+    console.warn("[metropolis] velo: could not load", veloUrl(), e);
   }
   await model;
 

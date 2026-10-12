@@ -3083,15 +3083,20 @@
           setupDistrictBounds(cityRoot);
           // District origin for border-gate projection (copied into viewer package).
           try {
-            const ores = await fetch(
-              "./districts/" + (districtMeta.id || "2018-harmonie") + "/district.json",
-            );
-            if (ores.ok) {
+            const id = districtMeta.id || "2018-harmonie";
+            const candidates = [
+              typeof window.districtUrl === "function" ? window.districtUrl("district.json") : null,
+              "./districts/" + id + "/district.json",
+            ].filter(Boolean);
+            for (const url of candidates) {
+              const ores = await fetch(url);
+              if (!ores.ok) continue;
               const ddoc = await ores.json();
               if (ddoc.origin) {
                 _districtOrigin.lat = ddoc.origin[0];
                 _districtOrigin.lon = ddoc.origin[1];
               }
+              break;
             }
           } catch (_) {
             /* keep defaults */

@@ -10,9 +10,13 @@
  * (the nearest ~180 boards get lettering, the rest show their board colour).
  */
 
-const URL_SHOPS =
-  (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("shops.json")) ||
-  "./shops.json";
+/** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
+function shopsUrl() {
+  return (
+    (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("shops.json")) ||
+    "./shops.json"
+  );
+}
 const ATLAS_W = 2048;
 const ATLAS_H = 3072;
 const SLOT_W = 512;
@@ -277,7 +281,7 @@ const linRgb = (rgb) => [lin(Math.min(1, rgb[0])), lin(Math.min(1, rgb[1])), lin
 export async function createShops(scene, THREE, opts = {}) {
   let data;
   try {
-    const res = await fetch(URL_SHOPS);
+    const res = await fetch(shopsUrl());
     if (!res.ok) throw new Error(String(res.status));
     data = await res.json();
   } catch (err) {
