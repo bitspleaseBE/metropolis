@@ -2,7 +2,14 @@ import unittest
 
 from cityview.geo import project
 from cityview.shop_brands import normalize_shop_brand, shopfront_style
-from cityview.shops import category_for, has_terrace, house_bays, parse_opening_hours, plan_shops
+from cityview.shops import (
+    category_for,
+    export_shops_for_viewer,
+    has_terrace,
+    house_bays,
+    parse_opening_hours,
+    plan_shops,
+)
 
 ORIGIN = (51.2017, 4.4114)
 
@@ -173,6 +180,17 @@ class ShopPlanTests(unittest.TestCase):
         self.assertEqual(engel["front"], "bar")
         self.assertEqual(by_id[22]["front"], "boutique")
         self.assertEqual(by_id[22]["brand"], "zara")
+
+
+class ViewerShopExportTests(unittest.TestCase):
+    def test_export_keeps_shops_near_spawn(self):
+        shops = [
+            {"id": 1, "x": 10.0, "y": 0.0, "name": "near"},
+            {"id": 2, "x": 900.0, "y": 0.0, "name": "far"},
+        ]
+        out = export_shops_for_viewer(shops, {"x": 0.0, "y": 0.0}, radius=100.0)
+        self.assertEqual([s["id"] for s in out["shops"]], [1])
+        self.assertIn("OpenStreetMap", out["attribution"])
 
 
 if __name__ == "__main__":

@@ -36,6 +36,9 @@ const FRONT_H = 2.85; // kerb to fascia underside
 const BLADE = 0.62;
 const POOL_DEPTH = 3.2;
 const REACH = 7; // m: "what's this shop" prompt range
+// Full glass / awning / light-pool detail only near spawn (or opts.near). Farther
+// shops keep a coloured fascia + blade — enough to read the street without ~7× geometry.
+const FRONT_DETAIL_M = 200;
 const DAY = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 const STYLE = {
@@ -439,6 +442,12 @@ export async function createShops(scene, THREE, opts = {}) {
     return [start, frontPos.length / 3 - start];
   }
 
+  const nearX = Number.isFinite(opts.near?.x) ? opts.near.x : 0;
+  const nearZ = Number.isFinite(opts.near?.z) ? opts.near.z : 0;
+  const detailM = Number.isFinite(opts.frontDetailM) ? opts.frontDetailM : FRONT_DETAIL_M;
+  const detailM2 = detailM * detailM;
+  let detailed = 0;
+
   for (let i = 0; i < shops.length; i++) {
     const shop = shops[i];
     const fx = shop.x;
@@ -448,7 +457,10 @@ export async function createShops(scene, THREE, opts = {}) {
     // Viewer's right-hand direction when facing the façade, so text reads left→right.
     const tx = nz;
     const tz = -nx;
-    const g = groundAt(fx + nx * 1.2, fz + nz * 1.2);
+    const wantDetail =
+      shop.shopfront && (fx - nearX) * (fx - nearX) + (fz - nearZ) * (fz - nearZ) <= detailM2;
+    // Far fascias skip ground rays — pavement height defaults to 0.
+    const g = wantDetail ? groundAt(fx + nx * 1.2, fz + nz * 1.2) : 0;
     const gy = Number.isFinite(g) ? g : 0;
     // One house bay wide — never spill onto the neighbour's elevation.
     const boardW = shop.houseW ? Math.min(shop.w, shop.houseW * 0.9) : shop.w;
@@ -465,7 +477,8 @@ export async function createShops(scene, THREE, opts = {}) {
       BLANK_UV, 0,
     );
     for (let k = 0; k < 4; k++) fasciaCol.push(board[0], board[1], board[2]);
-    const front = shop.shopfront ? buildFront(shop, fx, fz, nx, nz, tx, tz, gy, boardW) : [0, 0];
+    const front = wantDetail ? buildFront(shop, fx, fz, nx, nz, tx, tz, gy, boardW) : [0, 0];
+    if (wantDetail) detailed += 1;
     // Blade sign at the right end of the fascia, sticking out over the pavement (both faces).
     const bx = fx + tx * (half - 0.15) + nx * (0.3 + BLADE / 2);
     const bz = fz + tz * (half - 0.15) + nz * (0.3 + BLADE / 2);
@@ -478,34 +491,37 @@ export async function createShops(scene, THREE, opts = {}) {
         V(bx - nx * b, by - b, bz - nz * b),
         V(bx + nx * b, by - b, bz + nz * b),
         V(bx + nx * b, by + b, bz + nz * b),
-        V(bx - nx * b, by + b, bz - nz * b),
+        V(bx - nx * b, by + b, bz + nz * b),
       ],
       iu, 0,
     );
     for (let k = 0; k < 4; k++) fasciaCol.push(1, 1, 1);
-    // Light pool on the pavement in front of the shop window.
-    const pw = Math.min(shop.w * 0.95, 5.5) / 2;
-    // The pool must sit on the raised footway, not the façade strip in front of the door.
-    let top = gy;
-    for (const depth of [0.6, 1.6, 2.8]) {
-      for (const side of [-0.8, 0, 0.8]) {
-        const h = groundAt(fx + nx * depth + tx * pw * side, fz + nz * depth + tz * pw * side);
-        if (Number.isFinite(h) && h < gy + 0.2) top = Math.max(top, h); // kerb yes, doorsteps no
+    let pBase = -1;
+    if (wantDetail) {
+      // Light pool on the pavement in front of the shop window.
+      const pw = Math.min(shop.w * 0.95, 5.5) / 2;
+      // The pool must sit on the raised footway, not the façade strip in front of the door.
+      let top = gy;
+      for (const depth of [0.6, 1.6, 2.8]) {
+        for (const side of [-0.8, 0, 0.8]) {
+          const h = groundAt(fx + nx * depth + tx * pw * side, fz + nz * depth + tz * pw * side);
+          if (Number.isFinite(h) && h < gy + 0.2) top = Math.max(top, h); // kerb yes, doorsteps no
+        }
       }
+      const py = top + 0.03;
+      pBase = poolPos.length / 3;
+      quad(
+        poolPos, poolUv, poolIdx, null,
+        [
+          V(fx - tx * pw + nx * 0.1, py, fz - tz * pw + nz * 0.1),
+          V(fx + tx * pw + nx * 0.1, py, fz + tz * pw + nz * 0.1),
+          V(fx + tx * pw + nx * POOL_DEPTH, py, fz + tz * pw + nz * POOL_DEPTH),
+          V(fx - tx * pw + nx * POOL_DEPTH, py, fz - tz * pw + nz * POOL_DEPTH),
+        ],
+        [0, 1, 1, 0], 0,
+      );
+      for (let k = 0; k < 4; k++) poolCol.push(0, 0, 0);
     }
-    const py = top + 0.03;
-    const pBase = poolPos.length / 3;
-    quad(
-      poolPos, poolUv, poolIdx, null,
-      [
-        V(fx - tx * pw + nx * 0.1, py, fz - tz * pw + nz * 0.1),
-        V(fx + tx * pw + nx * 0.1, py, fz + tz * pw + nz * 0.1),
-        V(fx + tx * pw + nx * POOL_DEPTH, py, fz + tz * pw + nz * POOL_DEPTH),
-        V(fx - tx * pw + nx * POOL_DEPTH, py, fz - tz * pw + nz * POOL_DEPTH),
-      ],
-      [0, 1, 1, 0], 0,
-    );
-    for (let k = 0; k < 4; k++) poolCol.push(0, 0, 0);
     records.push({
       ...shop, fx, fz, nx, nz, gy, vBase, vCount: 8, pBase, open: null,
       board, aspect: boardW / FASCIA_H, slot: 0, frontStart: front[0], frontCount: front[1],
@@ -513,6 +529,9 @@ export async function createShops(scene, THREE, opts = {}) {
     if (opts.yieldEvery && (i + 1) % (opts.yieldEvery * 4) === 0) {
       await new Promise((r) => requestAnimationFrame(r));
     }
+  }
+  if (detailed < shops.length) {
+    console.info(`[metropolis] shops: ${detailed}/${shops.length} with full fronts (≤${detailM} m)`);
   }
 
   const atlas = new THREE.CanvasTexture(canvas);
@@ -708,9 +727,11 @@ export async function createShops(scene, THREE, opts = {}) {
   }
 
   function paintPools() {
+    if (!colAttr) return;
     const k = glow * 0.8;
     const warm = [1.0 * k, 0.68 * k, 0.34 * k];
     for (const r of records) {
+      if (r.pBase < 0) continue;
       for (let v = 0; v < 4; v++) {
         const o = (r.pBase + v) * 3;
         colAttr.array[o] = r.open ? warm[0] : 0;

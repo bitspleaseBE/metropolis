@@ -3216,6 +3216,7 @@
             groundAt,
             anisotropy: renderer.capabilities.getMaxAnisotropy(),
             yieldEvery: 8,
+            near: { x: spawnPos.x, z: spawnPos.z },
           });
           if (!shops) return;
           shops.update(gameHour, gameDay);

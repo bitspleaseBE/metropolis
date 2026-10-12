@@ -140,9 +140,16 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
     }
   }
 
-  function prime(x, z) {
-    const near = items.filter((item) => Math.hypot(item.x - x, item.z - z) <= LOAD_M);
-    return Promise.all(near.map((item) => loadOne(item)));
+  async function prime(x, z) {
+    const near = items
+      .filter((item) => Math.hypot(item.x - x, item.z - z) <= LOAD_M)
+      .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z));
+    // Sequential + rAF yield so Meshopt decode does not pin the main thread
+    // (was dropping walk FPS into single digits while many chunks decoded at once).
+    for (const item of near) {
+      await loadOne(item);
+      await new Promise((r) => requestAnimationFrame(r));
+    }
   }
 
   /** Expand play bounds from chunk centres (Three XZ). */

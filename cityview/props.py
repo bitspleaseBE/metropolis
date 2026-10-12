@@ -29,8 +29,15 @@ def trunk_radius(height: float, crown_radius: float) -> float:
     return max(0.09, min(0.36, 0.07 + 0.016 * height, 0.06 + 0.07 * crown_radius))
 
 
+# Match VIEWER_SHOP_RADIUS_M — far trunks/benches are in the streamed GLB already;
+# the collider list only needs the playable neighbourhood.
+VIEWER_PROP_RADIUS_M = 450.0
+
+
 def export_props_for_viewer(
-    layout: dict[str, Any], spawn: dict[str, Any] | None = None, radius: float = 1500.0
+    layout: dict[str, Any],
+    spawn: dict[str, Any] | None = None,
+    radius: float = VIEWER_PROP_RADIUS_M,
 ) -> dict[str, Any]:
     sx = float(spawn["x"]) if spawn else 0.0
     sy = float(spawn["y"]) if spawn else 0.0
