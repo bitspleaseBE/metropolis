@@ -3122,6 +3122,16 @@
             const cres = await fetch(chunksUrl);
             if (cres.ok) {
               const catalog = await cres.json();
+              // Coalesce ground-mesh rebuilds — one per chunk was scanning the
+              // whole city root on every attach and amplified the prime hitch.
+              let groundRefreshTimer = 0;
+              const scheduleGroundRefresh = () => {
+                if (groundRefreshTimer) return;
+                groundRefreshTimer = setTimeout(() => {
+                  groundRefreshTimer = 0;
+                  refreshGroundMeshes();
+                }, 120);
+              };
               chunkStream = createChunkStream({
                 THREE,
                 scene,
@@ -3129,9 +3139,9 @@
                 catalog,
                 onChunkLoaded: (chunkRoot) => {
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
-                  refreshGroundMeshes();
+                  scheduleGroundRefresh();
                 },
-                onChunkUnloaded: () => refreshGroundMeshes(),
+                onChunkUnloaded: () => scheduleGroundRefresh(),
               });
               if (playBounds && chunkStream.expandBounds) {
                 playBounds = chunkStream.expandBounds(playBounds);
@@ -3242,6 +3252,11 @@
           setLoad(0.82, "Unpacking the streets");
           await nextFrame();
           await MeshoptDecoder.ready;
+          // Decode EXT_meshopt_compression off the main thread. Without workers,
+          // each chunk's WASM decode pins the walk loop (7 FPS until priming ends).
+          if (typeof MeshoptDecoder.useWorkers === "function") {
+            MeshoptDecoder.useWorkers(2);
+          }
           const gltf = await loader.parseAsync(buf, "./");
           await onCityLoaded(gltf);
         } catch (err) {
