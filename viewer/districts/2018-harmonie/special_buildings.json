@@ -633,6 +633,39 @@
       "canonical": false
     },
     {
+      "name": "Thomas More Hogeschool",
+      "osm_id": 2396262251,
+      "osm_type": "node",
+      "role": "",
+      "score": 73.8,
+      "wikidata": "Q1957778",
+      "heritage": true,
+      "building": null,
+      "amenity": "college",
+      "historic": null,
+      "lat": 51.2068503,
+      "lon": 4.4045999,
+      "xy": [
+        -474.314,
+        569.314
+      ],
+      "spawn_distance_m": 738.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1957778"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Catholic Flemish High School",
+        "label_nl": "Katholieke Vlaamse Hogeschool",
+        "description_en": "",
+        "description_nl": "school in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
       "name": "Feestzaal Harmonie",
       "osm_id": 231220414,
       "osm_type": "way",
@@ -830,6 +863,39 @@
       "notes": "",
       "refs": {},
       "canonical": false
+    },
+    {
+      "name": "Ballerina",
+      "osm_id": 4810650015,
+      "osm_type": "node",
+      "role": "",
+      "score": 68.6,
+      "wikidata": "Q130729989",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1988401,
+      "lon": 4.4116314,
+      "xy": [
+        16.14,
+        -316.133
+      ],
+      "spawn_distance_m": 317.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q130729989"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Ballet dancer",
+        "label_nl": "Ballerina",
+        "description_en": "sculpture in Antwerp, Belgium",
+        "description_nl": "sculptuur in Antwerpen"
+      }
     },
     {
       "name": "osm-6681855660",
@@ -1136,56 +1202,6 @@
         438.319
       ],
       "spawn_distance_m": 443.2,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {},
-      "canonical": false
-    },
-    {
-      "name": "Eclectische groepsbebouwing",
-      "osm_id": 512812539,
-      "osm_type": "way",
-      "role": "",
-      "score": 50.8,
-      "wikidata": null,
-      "heritage": true,
-      "building": "yes",
-      "amenity": null,
-      "historic": null,
-      "lat": 51.197356533333334,
-      "lon": 4.416041966666667,
-      "xy": [
-        323.782,
-        -480.127
-      ],
-      "spawn_distance_m": 581.0,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {},
-      "canonical": false
-    },
-    {
-      "name": "Beit Hakneset Hasafaradi Jotsei Geruzia",
-      "osm_id": 5022942969,
-      "osm_type": "node",
-      "role": "",
-      "score": 45.6,
-      "wikidata": null,
-      "heritage": false,
-      "building": "synagogue",
-      "amenity": "place_of_worship",
-      "historic": null,
-      "lat": 51.2063161,
-      "lon": 4.4150128,
-      "xy": [
-        251.996,
-        510.264
-      ],
-      "spawn_distance_m": 570.2,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",

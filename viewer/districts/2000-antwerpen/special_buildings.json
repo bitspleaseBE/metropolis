@@ -309,6 +309,81 @@
       "canonical": false
     },
     {
+      "name": "Beeld Onze-Lieve-Vrouw-Hemelvaart",
+      "osm_id": 2409413865,
+      "osm_type": "node",
+      "role": "",
+      "score": 143.2,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "yes",
+      "lat": 51.2195591,
+      "lon": 4.4008899,
+      "xy": [
+        44.616,
+        -10.048
+      ],
+      "spawn_distance_m": 84.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Onze-Lieve-Vrouw van Bijstand",
+      "osm_id": 2412353657,
+      "osm_type": "node",
+      "role": "",
+      "score": 141.6,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "yes",
+      "lat": 51.2155704,
+      "lon": 4.397378,
+      "xy": [
+        -200.247,
+        -450.959
+      ],
+      "spawn_distance_m": 479.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Onze-Lieve-Vrouw Lichtmis",
+      "osm_id": 2412353656,
+      "osm_type": "node",
+      "role": "",
+      "score": 140.0,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "yes",
+      "lat": 51.2163533,
+      "lon": 4.4013543,
+      "xy": [
+        76.996,
+        -364.417
+      ],
+      "spawn_distance_m": 290.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
       "name": "Sint-Carolus Borromeuskerk",
       "osm_id": 39886923,
       "osm_type": "way",
@@ -885,6 +960,31 @@
       }
     },
     {
+      "name": "Onze-Lieve-Vrouw met Kind",
+      "osm_id": 11150730054,
+      "osm_type": "node",
+      "role": "",
+      "score": 100.0,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2223184,
+      "lon": 4.4146279,
+      "xy": [
+        1002.482,
+        294.965
+      ],
+      "spawn_distance_m": 977.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
       "name": "Gerechtshof",
       "osm_id": 192642420,
       "osm_type": "way",
@@ -1036,6 +1136,39 @@
       "canonical": false
     },
     {
+      "name": "Schelde Vrij",
+      "osm_id": 233040911,
+      "osm_type": "way",
+      "role": "",
+      "score": 94.8,
+      "wikidata": "Q83213604",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "memorial",
+      "lat": 51.21038883999999,
+      "lon": 4.397433,
+      "xy": [
+        -196.412,
+        -1023.729
+      ],
+      "spawn_distance_m": 993.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q83213604"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Monument Schelde Vrij",
+        "label_nl": "Schelde Vrij",
+        "description_en": "monument in Antwerp, Belgium",
+        "description_nl": ""
+      }
+    },
+    {
       "name": "Delbekehuis",
       "osm_id": 496126599,
       "osm_type": "way",
@@ -1155,163 +1288,6 @@
       "notes": "",
       "refs": {},
       "canonical": false
-    },
-    {
-      "name": "ponton aan het Steen > Kruibeke & Hemiksem",
-      "osm_id": 1522808130,
-      "osm_type": "way",
-      "role": "",
-      "score": 87.0,
-      "wikidata": null,
-      "heritage": false,
-      "building": null,
-      "amenity": null,
-      "historic": null,
-      "lat": 51.221646283333335,
-      "lon": 4.395732783333333,
-      "xy": [
-        -314.957,
-        220.669
-      ],
-      "spawn_distance_m": 507.7,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {},
-      "canonical": false
-    },
-    {
-      "name": "osm-494993846",
-      "osm_id": 494993846,
-      "osm_type": "way",
-      "role": "",
-      "score": 85.1,
-      "wikidata": "Q10669705",
-      "heritage": true,
-      "building": "church",
-      "amenity": "events_venue",
-      "historic": null,
-      "lat": 51.22679683333333,
-      "lon": 4.413888726666666,
-      "xy": [
-        950.944,
-        790.011
-      ],
-      "spawn_distance_m": 1215.2,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q10669705"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "Noorse Zeemanskerk",
-        "label_nl": "Noorse Zeemanskerk",
-        "description_en": "church in Antwerp, Belgium",
-        "description_nl": "kerkgebouw in Antwerpen"
-      }
-    },
-    {
-      "name": "Vleeshuis",
-      "osm_id": 179882624,
-      "osm_type": "way",
-      "role": "",
-      "score": 83.8,
-      "wikidata": "Q2801959",
-      "heritage": true,
-      "building": "yes",
-      "amenity": null,
-      "historic": null,
-      "lat": 51.22268508352941,
-      "lon": 4.399246084705882,
-      "xy": [
-        -69.997,
-        335.498
-      ],
-      "spawn_distance_m": 443.6,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2801959"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "Vleeshuis",
-        "label_nl": "Vleeshuis",
-        "description_en": "Building in in Antwerp, Belgium",
-        "description_nl": "Gebouw in Antwerpen, Belgi\u00eb"
-      }
-    },
-    {
-      "name": "Museum aan de Stroom",
-      "osm_id": 25364883,
-      "osm_type": "way",
-      "role": "",
-      "score": 83.4,
-      "wikidata": "Q104723730",
-      "heritage": false,
-      "building": "civic",
-      "amenity": null,
-      "historic": null,
-      "lat": 51.22899653333334,
-      "lon": 4.40481,
-      "xy": [
-        317.94,
-        1033.166
-      ],
-      "spawn_distance_m": 1130.0,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q104723730"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "Museum aan de Stroom (building)",
-        "label_nl": "Museum Aan de Stroom (Gebouw)",
-        "description_en": "museum building in Antwerp, Belgium",
-        "description_nl": "museumgebouw in Antwerpen"
-      }
-    },
-    {
-      "name": "Willemdok",
-      "osm_id": 44100103,
-      "osm_type": "way",
-      "role": "",
-      "score": 83.3,
-      "wikidata": "Q2365563",
-      "heritage": true,
-      "building": null,
-      "amenity": null,
-      "historic": "yes",
-      "lat": 51.22938634166667,
-      "lon": 4.4078615333333335,
-      "xy": [
-        530.705,
-        1076.255
-      ],
-      "spawn_distance_m": 1230.2,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2365563"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "Willemdok",
-        "label_nl": "Willemdok",
-        "description_en": "dock in Antwerp, Belgium",
-        "description_nl": "dok in Antwerpen, Belgi\u00eb"
-      }
     }
   ]
 }

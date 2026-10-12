@@ -3224,9 +3224,19 @@ def add_sidewalks_and_curbs(
     def on_rail(x: float, y: float) -> bool:
         return bool(RAILS) and RAILS.within(x, y, railclear.CLEAR_SIDEWALK)
 
+    # Match cityview.kerbs.NON_CARRIAGEWAY + viewer pavement-frontage: plazas and
+    # tracks are walkable strips, not streets that need raised kerbs.
+    skip_kinds = set(kerbs.NON_CARRIAGEWAY)
+
+    # Viewer export marks dual pairs; Blender needs the same flag so median kerbs
+    # are not built around plazas like Groenplaats.
+    from cityview.directions import mark_dual_carriageways
+
+    mark_dual_carriageways(roads)
+
     for i, road in enumerate(roads):
         kind = road.get("kind") or "residential"
-        if kind in {"footway", "path", "cycleway", "steps"}:
+        if kind in skip_kinds:
             continue
         pts = road.get("points") or []
         if len(pts) < 2:
@@ -3236,7 +3246,16 @@ def add_sidewalks_and_curbs(
             if math.hypot(mid[0] - spawn_xy[0], mid[1] - spawn_xy[1]) > 320.0:
                 continue
         half = float(road.get("width") or 6.0) * 0.5
-        for side, sign in (("L", 1.0), ("R", -1.0)):
+        # Dual one-way pairs: only the building-side kerb. The median faces the
+        # tram bed / plaza and reads as a wall across the junction (Groenplaats).
+        sides: list[tuple[str, float]] = [("L", 1.0), ("R", -1.0)]
+        if road.get("dualCarriageway"):
+            try:
+                ow = int(road.get("oneway") or 0)
+            except (TypeError, ValueError):
+                ow = 0
+            sides = [("L", 1.0)] if ow == -1 else [("R", -1.0)]
+        for side, sign in sides:
             runs = kerbs.frontage_sidewalk_runs(
                 pts, half, sign, footprints, carriageways, i, extra_blocked=on_rail
             )

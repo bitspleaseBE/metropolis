@@ -1577,7 +1577,8 @@
         root.traverse((obj) => {
           if (!obj.isMesh) return;
           const n = obj.name || "";
-          if (!/(sidewalk|road_|park_|curb|ground)/i.test(n)) return;
+          // tram_ / courtyard_ / rail_: walkable surface height (plaza rings, play areas).
+          if (!/(sidewalk|road_|park_|curb|ground|tram_|courtyard_|rail_)/i.test(n)) return;
           const geo = obj.geometry;
           if (!geo) return;
           if (!geo.boundingBox) geo.computeBoundingBox();
@@ -1908,8 +1909,9 @@
         const dx = -Math.sin(yaw);
         const dz = -Math.cos(yaw);
         const peopleHit = pedestrians?.strike ? pedestrians.strike(w.x, w.z, dx, dz, range, damage, single) : [];
+        const ridersHit = micromobility?.strike ? micromobility.strike(w.x, w.z, dx, dz, range, damage, single) : [];
         if (police?.hit) police.hit(w.x, w.z, dx, dz, range, damage, single);
-        if (peopleHit.length) harmedPulse = true;
+        if (peopleHit.length || ridersHit.length) harmedPulse = true;
       }
       const combat = createCombat(THREE, {
         bones: () => playerAvatar.bones,
@@ -2989,11 +2991,21 @@
             spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             playBounds: playBounds || { minX: -500, maxX: 200, minZ: -800, maxZ: 100 },
             groundAt,
+            camera,
+            district: typeof window !== "undefined" ? window.__DISTRICT : null,
+            hour: gameHour,
+            day: gameDay,
           });
           if (pedestrians.setCrossingGate && traffic.pedMayCross) {
             pedestrians.setCrossingGate((id) => traffic.pedMayCross(id));
           }
-          micromobility = await createMicromobility(scene, THREE, { count: 28, firstCount: 6 });
+          micromobility = await createMicromobility(scene, THREE, {
+            count: 28,
+            firstCount: 6,
+            district: typeof window !== "undefined" ? window.__DISTRICT : null,
+            hour: gameHour,
+            people: pedestrians?.people,
+          });
           velo = await createVelo(scene, THREE);
           scooters = await createScooters(scene, THREE, {
             spawnCenter: { x: spawnPos.x, z: spawnPos.z },
@@ -3124,7 +3136,12 @@
               if (playBounds && chunkStream.expandBounds) {
                 playBounds = chunkStream.expandBounds(playBounds);
               }
-              await chunkStream.prime(spawnPos.x, spawnPos.z);
+              // Core is already on screen — stream nearby cells in the background.
+              void chunkStream.prime(spawnPos.x, spawnPos.z).then(() => {
+                console.info(
+                  `[metropolis] chunks: ${chunkStream.items.length} cells primed near spawn`,
+                );
+              });
               console.info(
                 `[metropolis] chunks: ${chunkStream.items.length} cells (core first paint)`,
               );
@@ -3555,7 +3572,10 @@
             chunkStream?.update(walker.position.x, walker.position.z, mode, streamH);
             landmarkStream?.update(walker.position.x, walker.position.z, mode, streamH);
           }
-          if (pedestrians) pedestrians.update(simDt);
+          if (pedestrians) {
+            pedestrians.setClock?.(gameHour, gameDay);
+            pedestrians.update(simDt);
+          }
           if (police) {
             const face = playerMotion.yaw();
             police.update(simDt, {
@@ -3571,6 +3591,7 @@
           }
           combat.update(menuOpen ? 0 : dt);
           if (micromobility) {
+            micromobility.setClock?.(gameHour);
             fillRiderObstacles(walker);
             micromobility.update(simDt, _riderObstacles);
           }

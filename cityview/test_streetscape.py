@@ -203,6 +203,18 @@ class WalkExportTests(unittest.TestCase):
         sw = [w for w in walks if w["kind"] == "sidewalk"]
         self.assertTrue(any(abs(w["points"][0][1]) > 2.5 for w in sw))
 
+    def test_plaza_pedestrian_kept_far_from_carriageway(self):
+        # Groenplaats-style: pedestrian strips in the square centre, street ~40 m out.
+        layout = {
+            "roads": [
+                {"id": 1, "kind": "tertiary", "width": 7.0, "points": [[0.0, 40.0], [80.0, 40.0]]},
+                {"id": 2, "kind": "pedestrian", "width": 8.0, "points": [[10.0, 0.0], [70.0, 0.0]]},
+            ]
+        }
+        walks = export_walks_near_spawn(layout, {"x": 40.0, "y": 0.0}, radius=100.0)
+        plaza = [w for w in walks if w["kind"] == "pedestrian"]
+        self.assertTrue(plaza, "plaza pedestrian ways must export without a nearby street")
+
     def test_living_street_uses_sidewalks_not_centreline(self):
         layout = {
             "roads": [
@@ -225,8 +237,57 @@ class WalkExportTests(unittest.TestCase):
         crosses = [w for w in walks if w["kind"] == "crossing"]
         self.assertEqual(len(crosses), 1)
         self.assertFalse(crosses[0]["safe"])
+        self.assertFalse(crosses[0].get("signal"))
+        self.assertEqual(crosses[0]["width"], 2.0)
         y0, y1 = crosses[0]["points"][0][1], crosses[0]["points"][1][1]
         self.assertGreater(abs(y0 - y1), 6.0)
+
+    def test_walks_have_width_and_signalised_crossings(self):
+        layout = {
+            "roads": [
+                {"id": 1, "kind": "residential", "width": 8.0, "points": [[0.0, 0.0], [40.0, 0.0]]},
+                {"id": 2, "kind": "footway", "width": 2.2, "points": [[0.0, 5.0], [40.0, 5.0]]},
+                {"id": 3, "kind": "cycleway", "width": 2.4, "oneway": 1, "points": [[0.0, -4.0], [40.0, -4.0]]},
+            ],
+            "crossings": [{"id": 50, "x": 20.0, "y": 0.0, "kind": "signals"}],
+            "signals": [{"id": 51, "x": 20.0, "y": 0.5, "kind": "traffic_signals"}],
+        }
+        walks = export_walks_near_spawn(layout, {"x": 20.0, "y": 0.0}, radius=50.0)
+        self.assertTrue(walks)
+        self.assertTrue(all("width" in w and w["width"] > 0 for w in walks))
+        crosses = [w for w in walks if w["kind"] == "crossing"]
+        self.assertTrue(crosses)
+        self.assertTrue(all(c.get("signal") for c in crosses))
+        # Every crossing end should land on / next to a sidewalk ribbon (not mid-road).
+        sidewalks = [w for w in walks if w["kind"] in {"sidewalk", "footway", "path", "pedestrian"}]
+        self.assertTrue(sidewalks)
+
+        def _near_walk(end, walk, tol=3.0):
+            pts = walk["points"]
+            for i in range(len(pts) - 1):
+                ax, ay = pts[i]
+                bx, by = pts[i + 1]
+                dx, dy = bx - ax, by - ay
+                len2 = dx * dx + dy * dy or 1.0
+                t = max(0.0, min(1.0, ((end[0] - ax) * dx + (end[1] - ay) * dy) / len2))
+                px, py = ax + t * dx, ay + t * dy
+                if ((end[0] - px) ** 2 + (end[1] - py) ** 2) ** 0.5 < tol:
+                    return True
+            return False
+
+        for c in crosses:
+            for end in c["points"]:
+                self.assertTrue(
+                    any(_near_walk(end, w) for w in sidewalks),
+                    f"crossing end {end} far from sidewalks",
+                )
+        from cityview.streetscape import export_cycleways_near_spawn, export_roads_near_spawn
+
+        cws = export_cycleways_near_spawn(layout, {"x": 20.0, "y": 0.0}, radius=50.0)
+        self.assertTrue(any(c["kind"] == "cycleway" for c in cws))
+        payload = export_roads_near_spawn(layout, {"x": 20.0, "y": 0.0}, radius=80.0)
+        self.assertIn("cycleways", payload)
+        self.assertTrue(payload["cycleways"])
 
     def test_skips_building_passage_footways(self):
         layout = {

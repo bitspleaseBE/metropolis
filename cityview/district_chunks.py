@@ -13,7 +13,9 @@ from pathlib import Path
 from typing import Any, Iterable
 
 CELL_M = 256.0
-CORE_R = 320.0
+# Spawn neighbourhood in core.glb (first paint). Keep this tight so Pages loads
+# fast; cells beyond stream in as you walk (see viewer/chunk-stream.js).
+CORE_R = 160.0
 
 # Always stay in the core GLB: roads/ground must be present for first paint and
 # district-wide merges cannot be attributed to a single cell.

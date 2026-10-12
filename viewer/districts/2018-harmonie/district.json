@@ -62,7 +62,7 @@
     },
     "velo_stations_hint": 9,
     "building_eras": {
-      "brick_townhouse": 5100,
+      "brick_townhouse": 5103,
       "other": 149,
       "neoclassical": 4,
       "art_nouveau": 3,
@@ -337,6 +337,17 @@
         "historic": "memorial"
       },
       {
+        "osm_id": 2396262251,
+        "osm_type": "node",
+        "name": "Thomas More Hogeschool",
+        "score": 73.8,
+        "heritage": true,
+        "wikidata": "Q1957778",
+        "building": null,
+        "amenity": "college",
+        "historic": null
+      },
+      {
         "osm_id": 231220414,
         "osm_type": "way",
         "name": "Feestzaal Harmonie",
@@ -412,6 +423,17 @@
         "building": null,
         "amenity": null,
         "historic": "memorial"
+      },
+      {
+        "osm_id": 4810650015,
+        "osm_type": "node",
+        "name": "Ballerina",
+        "score": 68.6,
+        "heritage": true,
+        "wikidata": "Q130729989",
+        "building": null,
+        "amenity": null,
+        "historic": null
       },
       {
         "osm_id": 6681855660,
@@ -533,28 +555,6 @@
         "building": null,
         "amenity": "hospital",
         "historic": null
-      },
-      {
-        "osm_id": 512812539,
-        "osm_type": "way",
-        "name": "Eclectische groepsbebouwing",
-        "score": 50.8,
-        "heritage": true,
-        "wikidata": null,
-        "building": "yes",
-        "amenity": null,
-        "historic": null
-      },
-      {
-        "osm_id": 5022942969,
-        "osm_type": "node",
-        "name": "Beit Hakneset Hasafaradi Jotsei Geruzia",
-        "score": 45.6,
-        "heritage": false,
-        "wikidata": null,
-        "building": "synagogue",
-        "amenity": "place_of_worship",
-        "historic": null
       }
     ],
     "facade_brief": {
@@ -594,8 +594,8 @@
       "port_props": false,
       "train_meshes": false
     },
-    "building_count": 5258,
-    "highway_count": 1698
+    "building_count": 5261,
+    "highway_count": 1705
   },
   "stages": {
     "osm": true,
@@ -611,5 +611,47 @@
     "train_meshes": false
   },
   "viewer_glb": "city.glb",
-  "legacy_viewer_glb": "klein_antwerpen.glb"
+  "legacy_viewer_glb": "klein_antwerpen.glb",
+  "population": {
+    "looks": {
+      "european": 0.3,
+      "slavic": 0.03,
+      "mediterranean": 0.04,
+      "african": 0.06,
+      "african_street": 0.04,
+      "asian": 0.03,
+      "muslim": 0.12,
+      "arab": 0.04,
+      "arab_young": 0.04,
+      "hasidic": 0.28,
+      "other": 0.02
+    },
+    "hotspots": [
+      {
+        "label": "centraal",
+        "lat": 51.2172,
+        "lon": 4.4211,
+        "radiusM": 280,
+        "looks": {
+          "arab": 1.8,
+          "arab_young": 2.2,
+          "african": 1.6,
+          "african_street": 1.8,
+          "hasidic": 0.7
+        }
+      },
+      {
+        "label": "diamonds",
+        "lat": 51.2125,
+        "lon": 4.4185,
+        "radiusM": 220,
+        "looks": {
+          "hasidic": 2.4,
+          "muslim": 0.6,
+          "arab": 0.5,
+          "european": 0.7
+        }
+      }
+    ]
+  }
 }

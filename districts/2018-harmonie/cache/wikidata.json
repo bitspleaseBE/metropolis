@@ -136,5 +136,17 @@
     "label_nl": "Monument voor Peter Benoit",
     "description_en": "memorial at Mechelsesteenweg, Antwerp, Belgium",
     "description_nl": "monument in Antwerpen (Mechelsesteenweg)"
+  },
+  "Q1957778": {
+    "label_en": "Catholic Flemish High School",
+    "label_nl": "Katholieke Vlaamse Hogeschool",
+    "description_en": "",
+    "description_nl": "school in Antwerpen, Belgi\u00eb"
+  },
+  "Q130729989": {
+    "label_en": "Ballet dancer",
+    "label_nl": "Ballerina",
+    "description_en": "sculpture in Antwerp, Belgium",
+    "description_nl": "sculptuur in Antwerpen"
   }
 }
