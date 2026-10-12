@@ -100,10 +100,13 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     if (loaded.has(id)) return loaded.get(id);
     if (loading.has(id)) return loading.get(id);
     const person = byId.get(id);
-    // The get-up (scripts/bake_rocketbox_getup.py) is optional: without it they tip up stiffly.
+    // Optional clips: get-up (scripts/bake_rocketbox_getup.py), ride/step
+    // (scripts/bake_rocketbox_riders.py). Missing files leave stiff tip-up / Mixamo fallback.
     const getUpGltf = loader.loadAsync(new URL(`getup/${id}.glb`, DIR).href).catch(() => null);
-    const p = Promise.all([loader.loadAsync(new URL(person.file, DIR).href), getUpGltf])
-      .then(([gltf, getUpGltf]) => {
+    const rideGltf = loader.loadAsync(new URL(`ride/${id}.glb`, DIR).href).catch(() => null);
+    const stepGltf = loader.loadAsync(new URL(`step/${id}.glb`, DIR).href).catch(() => null);
+    const p = Promise.all([loader.loadAsync(new URL(person.file, DIR).href), getUpGltf, rideGltf, stepGltf])
+      .then(([gltf, getUpGltf, rideGltf, stepGltf]) => {
         gltf.scene.traverse((o) => {
           if (!o.isMesh) return;
           o.castShadow = true;
@@ -119,6 +122,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
           // the body stays in the bind pose (arms out, legs straight).
           clip: dropScaleTracks(THREE, gltf.animations[0]),
           getUp: dropScaleTracks(THREE, getUpGltf?.animations[0]),
+          ride: dropScaleTracks(THREE, rideGltf?.animations[0]),
+          step: dropScaleTracks(THREE, stepGltf?.animations[0]),
           users: 0,
           lastUsed: 0,
           since: performance.now(),
@@ -224,22 +229,38 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   const grown = (p) => p.age !== "child";
   const child = (p) => p.age === "child";
 
-  /** Templates for one household walking together. */
-  function household() {
+  /**
+   * Templates for one household walking together.
+   * @param {{ look?: string, weights?: Record<string, number> }} [opts]
+   *   `look` biases the first adult; `weights` overrides HOUSEHOLDS kind weights
+   *   (from population.householdWeights).
+   */
+  function household(opts = {}) {
     const used = new Set();
     const take = (filter) => {
       const t = choose(filter, used);
       if (t) used.add(t.person.id);
       return t;
     };
+    const wantLook = opts.look || null;
+    const wantCluster = wantLook ? CLUSTER[wantLook] || wantLook : null;
     const kind = (() => {
-      let r = Math.random() * HOUSEHOLDS.reduce((s, h) => s + h.w, 0);
-      for (const h of HOUSEHOLDS) if ((r -= h.w) < 0) return h.kind;
-      return "single";
+      const table = opts.weights
+        ? Object.entries(opts.weights)
+            .filter(([, w]) => w > 0)
+            .map(([k, w]) => ({ kind: k, w }))
+        : HOUSEHOLDS;
+      if (!table.length) return "single";
+      let r = Math.random() * table.reduce((s, h) => s + h.w, 0);
+      for (const h of table) if ((r -= h.w) < 0) return h.kind;
+      return table[0].kind;
     })();
     const out = [];
     const pair = (look) => {
-      const a = take((p) => adult(p) && (!look || cluster(p) === look));
+      const prefer = look || wantCluster;
+      const a =
+        take((p) => adult(p) && (!prefer || cluster(p) === prefer)) ||
+        take((p) => adult(p) && (!prefer || sharesHousehold(p, prefer)));
       if (!a) return null;
       out.push(a);
       const b = take((p) => adult(p) && p.sex !== a.person.sex && sharesHousehold(p, a.person));
@@ -316,16 +337,17 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   }
 
   /**
-   * A walking clone of `t`: { root, mixer, action, getUp, height, naturalSpeed }. naturalSpeed
-   * is the pace (m/s) at which the clip's feet do not slide, after scaling to `height`. getUp
-   * (null without a baked clip) is a stopped, play-once scramble from lying face down to standing.
+   * A walking clone of `t`: { root, mixer, action, getUp, height, naturalSpeed, hipsY }.
+   * naturalSpeed is the pace (m/s) at which the clip's feet do not slide, after scaling
+   * to `height`. getUp (null without a baked clip) is a stopped, play-once scramble from
+   * lying face down to standing.
    */
   function instance(t) {
     const p = t.person;
     const jitter = p.age === "child" ? 0.8 + Math.random() * 0.2 : 0.95 + Math.random() * 0.08;
     const height = p.height * jitter;
     const root = cloneSkeleton(t.scene);
-    fitHumanoid(THREE, root, height);
+    const hipsY = fitHumanoid(THREE, root, height);
     const mixer = new THREE.AnimationMixer(root);
     let action = null;
     if (t.clip) {
@@ -343,7 +365,54 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     }
     t.users++;
     t.lastUsed = performance.now();
-    return { root, mixer, action, getUp, height, naturalSpeed: p.walkSpeed * jitter, template: t };
+    return {
+      root,
+      mixer,
+      action,
+      getUp,
+      height,
+      hipsY,
+      naturalSpeed: p.walkSpeed * jitter,
+      template: t,
+    };
+  }
+
+  /** Sync pick among loaded templates (micromobility spawn). */
+  function pickTemplate(filter = () => true) {
+    return choose(filter, new Set());
+  }
+
+  function templateHas(id, kind) {
+    const t = loaded.get(id);
+    if (!t) return false;
+    if (kind === "ride") return !!t.ride;
+    if (kind === "step") return !!t.step;
+    if (kind === "getUp") return !!t.getUp;
+    return !!t.clip;
+  }
+
+  /**
+   * Clone seated/standing on a bike or step. Plays the baked ride/step clip when present;
+   * otherwise falls back to the walk clip (Mixamo path in micromobility is preferred then).
+   */
+  function instanceRide(t, kind = "ride") {
+    const inst = instance(t);
+    const clip = kind === "step" ? t.step : t.ride;
+    if (!clip) return inst;
+    if (inst.action) {
+      inst.action.stop();
+      inst.action.setEffectiveWeight(0);
+    }
+    const action = inst.mixer.clipAction(clip);
+    action.setLoop(THREE.LoopRepeat, Infinity);
+    action.enabled = true;
+    action.setEffectiveWeight(1);
+    action.play();
+    action.time = Math.random() * clip.duration;
+    inst.mixer.update(0);
+    inst.action = action;
+    inst.rideKind = kind;
+    return inst;
   }
 
   async function acquire(id) {
@@ -372,6 +441,9 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   return {
     household,
     instance,
+    instanceRide,
+    pickTemplate,
+    templateHas,
     acquire,
     acquireMatching,
     release,

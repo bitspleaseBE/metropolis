@@ -15,6 +15,10 @@
  */
 import { createPeoplePool } from "./people.js";
 import { fetchJsonCached } from "./json-cache.js";
+import { walksToRoutes, buildPedGraph } from "./npc/ped-graph.js";
+import { collectPois, planTrip } from "./npc/trips.js";
+import { assignTrip, advanceTrip } from "./npc/ped-trip.js";
+import { createPopulation } from "./npc/population.js";
 
 /** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
 function roadsUrl() {
@@ -47,15 +51,56 @@ const COLD_M = 180; // hide mesh, kinematics only
 const INDOOR_CHECK_M = 0.6; // re-test the footprint blocker after this much walking
 const SPLIT_STEP_M = 1.0; // indoor sampling step along a route
 const PAVEMENT_Y = 0.12; // sidewalk default when we skip groundAt raycasts
+const PED_R = 0.32; // body radius for car / bus avoidance
+const CAR_LOOK_M = 2.8; // steer around a vehicle this far ahead on the path
 
 const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
+/** Push `pos` out of an oriented vehicle box (same math as props-collide). */
+function pushBox(pos, cx, cz, ax, az, hl, hw, r) {
+  const dx = pos.x - cx;
+  const dz = pos.z - cz;
+  const a = dx * ax + dz * az;
+  const b = dx * -az + dz * ax;
+  const pa = hl + r - Math.abs(a);
+  const pb = hw + r - Math.abs(b);
+  if (pa <= 0 || pb <= 0) return false;
+  // Prefer the shallow axis so walkers slide around the long side of a car.
+  if (pa < pb) {
+    const s = Math.sign(a) || 1;
+    pos.x += ax * pa * s;
+    pos.z += az * pa * s;
+  } else {
+    const s = Math.sign(b) || 1;
+    pos.x += -az * pb * s;
+    pos.z += ax * pb * s;
+  }
+  return true;
+}
+
+function vehicleOverlaps(x, z, v, r) {
+  const dx = x - v.pos.x;
+  const dz = z - v.pos.z;
+  const reach = (v.hl || 2) + r;
+  if (dx * dx + dz * dz > reach * reach) return false;
+  const len = Math.hypot(v.tan.x, v.tan.z) || 1;
+  const ax = v.tan.x / len;
+  const az = v.tan.z / len;
+  const a = dx * ax + dz * az;
+  const b = dx * -az + dz * ax;
+  return Math.abs(a) < (v.hl || 2) + r && Math.abs(b) < (v.hw || 0.9) + r;
+}
+
 export async function createPedestrians(scene, THREE, opts = {}) {
   const COUNT = opts.count || 40;
+  const FIRST = Math.min(COUNT, opts.firstCount ?? COUNT);
   const SPAWN_CENTER = opts.spawnCenter || { x: -218.5, z: -432.1 };
   const WALK_SPEED = 1.25; // m/s
   const BOBBLE_AMP = 0.02;
   const BOBBLE_FREQ = 9.0;
+  const population = createPopulation(opts.district || (typeof window !== "undefined" && window.__DISTRICT) || {});
+  let gameHour = Number.isFinite(opts.hour) ? opts.hour : 12;
+  let gameDay = Number.isFinite(opts.day) ? opts.day : 5;
   // Same raycast helper as scooters/shops: pavement ~0.12 m, road ~0.
   // Prefer a cheap constant for far people — full-scene raycasts were ~2× per ped per frame.
   const groundAt = typeof opts.groundAt === "function" ? opts.groundAt : () => 0;
@@ -76,6 +121,30 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   const walks = opts.walks || (await loadWalks());
   const walkRoutes = buildWalkRoutes(walks, SPAWN_CENTER);
   const graph = buildGraph(walkRoutes);
+  // A* trip graph (npc/ped-graph) — same walks, richer routing + POI goals.
+  let pedGraph = buildPedGraph(walksToRoutes(walks));
+  let shopList = [];
+  let stopList = [];
+  let pois = [];
+  try {
+    const [shopsRes, transitRes] = await Promise.all([
+      fetchJsonCached(
+        (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("shops.json")) ||
+          "./shops.json",
+      ),
+      fetchJsonCached(
+        (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("transit.json")) ||
+          "./transit.json",
+      ),
+    ]);
+    const shopsDoc = shopsRes.ok ? await shopsRes.json() : { shops: [] };
+    const transitDoc = transitRes.ok ? await transitRes.json() : { stops: [] };
+    shopList = shopsDoc.shops || [];
+    stopList = transitDoc.stops || [];
+    pois = collectPois({ shops: shopList, stops: stopList, pedGraph });
+  } catch (err) {
+    console.warn("[cityview] pedestrians: POI load failed", err);
+  }
   let pool = null;
   try {
     pool = await createPeoplePool(THREE, opts.people);
@@ -84,6 +153,97 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   }
   /** `(routeId) => boolean` — false means wait at the kerb (red ped light). */
   let crossingOk = () => true;
+  /** `() => [{ pos:{x,z}, tan:{x,z}, hl, hw }]` — parked + moving cars / buses / trams. */
+  let vehicleProvider = () => [];
+  const _avoidPos = { x: 0, z: 0 };
+
+  function pushOutOfVehicles(pos, r = PED_R) {
+    const vehicles = vehicleProvider();
+    if (!vehicles?.length) return false;
+    let hit = false;
+    for (let i = 0; i < vehicles.length; i++) {
+      const v = vehicles[i];
+      if (!v?.pos || !v.tan) continue;
+      const dx = pos.x - v.pos.x;
+      const dz = pos.z - v.pos.z;
+      const reach = (v.hl || 2) + r;
+      if (dx * dx + dz * dz > reach * reach) continue;
+      const len = Math.hypot(v.tan.x, v.tan.z) || 1;
+      hit = pushBox(pos, v.pos.x, v.pos.z, v.tan.x / len, v.tan.z / len, v.hl || 2, v.hw || 0.9, r) || hit;
+    }
+    return hit;
+  }
+
+  /**
+   * If a car sits on the path ahead, ease a lateral steer so the walker goes around
+   * instead of pressing into the bumper until the OBB push slides them.
+   */
+  function steerAroundVehicles(m, hx, hz) {
+    const vehicles = vehicleProvider();
+    if (!vehicles?.length) {
+      m.carSteerX = (m.carSteerX || 0) * 0.85;
+      m.carSteerZ = (m.carSteerZ || 0) * 0.85;
+      return;
+    }
+    const fl = Math.hypot(hx, hz) || 1;
+    const fx = hx / fl;
+    const fz = hz / fl;
+    const lx = -fz;
+    const lz = fx;
+    const ax = (m.routeX || m.mesh.position.x) + fx * CAR_LOOK_M;
+    const az = (m.routeZ || m.mesh.position.z) + fz * CAR_LOOK_M;
+    let wantX = 0;
+    let wantZ = 0;
+    for (let i = 0; i < vehicles.length; i++) {
+      const v = vehicles[i];
+      if (!v?.pos || !v.tan) continue;
+      const here = vehicleOverlaps(m.routeX || m.mesh.position.x, m.routeZ || m.mesh.position.z, v, PED_R);
+      const ahead = vehicleOverlaps(ax, az, v, PED_R + 0.2);
+      if (!here && !ahead) continue;
+      // Walk to the clearer flank of the car (relative to travel).
+      const dx = (m.routeX || m.mesh.position.x) - v.pos.x;
+      const dz = (m.routeZ || m.mesh.position.z) - v.pos.z;
+      const side = dx * lx + dz * lz;
+      const sign = side >= 0 ? 1 : -1;
+      const clear = (v.hw || 0.9) + PED_R + 0.35;
+      wantX += lx * sign * clear;
+      wantZ += lz * sign * clear;
+    }
+    if (wantX || wantZ) {
+      // Cap steer so they stay near the pavement ribbon.
+      const w = Math.hypot(wantX, wantZ) || 1;
+      const cap = 1.6;
+      if (w > cap) {
+        wantX = (wantX / w) * cap;
+        wantZ = (wantZ / w) * cap;
+      }
+      m.carSteerX = (m.carSteerX || 0) * 0.7 + wantX * 0.3;
+      m.carSteerZ = (m.carSteerZ || 0) * 0.7 + wantZ * 0.3;
+    } else {
+      m.carSteerX = (m.carSteerX || 0) * 0.85;
+      m.carSteerZ = (m.carSteerZ || 0) * 0.85;
+      if (Math.abs(m.carSteerX) < 0.02) m.carSteerX = 0;
+      if (Math.abs(m.carSteerZ) < 0.02) m.carSteerZ = 0;
+    }
+  }
+
+  /** Apply steer + hard OBB push so the mesh never sits inside a car. */
+  function applyVehicleAvoidance(m, hx, hz) {
+    steerAroundVehicles(m, hx, hz);
+    _avoidPos.x = m.mesh.position.x + (m.carSteerX || 0);
+    _avoidPos.z = m.mesh.position.z + (m.carSteerZ || 0);
+    pushOutOfVehicles(_avoidPos, PED_R);
+    m.mesh.position.x = _avoidPos.x;
+    m.mesh.position.z = _avoidPos.z;
+    // Face along the path, with a nudge toward the bypass when steering hard.
+    const sx = m.carSteerX || 0;
+    const sz = m.carSteerZ || 0;
+    if (sx * sx + sz * sz > 0.04) {
+      const fx = hx + sx * 0.35;
+      const fz = hz + sz * 0.35;
+      if (fx * fx + fz * fz > 1e-4) m.mesh.rotation.y = Math.atan2(fx, fz);
+    }
+  }
 
   const PROFILES = [
     {
@@ -349,7 +509,11 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     const members = [];
     let kind = "stand-ins";
     if (pool) {
-      const hh = pool.household();
+      const look = population.pickLook(SPAWN_CENTER.x, SPAWN_CENTER.z);
+      const hh = pool.household({
+        look,
+        weights: population.householdWeights(look, gameHour),
+      });
       kind = hh.kind;
       const meshes = hh.members.map((t, mi) => makePerson(t, groupId, mi));
       // One pace for the household; each walk cycle is retimed so feet match the ground.
@@ -377,7 +541,25 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         members.push(member(makeProceduralHumanoid(mProf, groupId, mi), startS + along, side, speed, mProf));
       }
     }
-    return { members, routeIdx, route, kind, side0 };
+    const g = { members, routeIdx, route, kind, side0, trip: null, tripS: 0, tripGraph: null };
+    // Prefer a ~2 min POI trip when the graph can route it; else keep junction wandering.
+    if (pedGraph?.nodes?.length) {
+      const camObj = opts.camera;
+      const cam = camObj?.position
+        ? { x: camObj.position.x, z: camObj.position.z }
+        : { x: SPAWN_CENTER.x, z: SPAWN_CENTER.z };
+      const trip = planTrip({
+        pedGraph,
+        pois,
+        hour: gameHour,
+        day: gameDay,
+        mode: "walk",
+        from: at ? null : null,
+        camera: cam,
+      });
+      if (trip) assignTrip(g, trip, pedGraph);
+    }
+    return g;
   }
 
   function releaseGroup(g) {
@@ -416,10 +598,29 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   let blockerOn = false;
   let onKilled = () => {};
 
-  for (let i = 0; i < COUNT; i++) {
+  for (let i = 0; i < FIRST; i++) {
     const g = spawnGroup(PROFILES, spawnPool, i);
     for (const m of g.members) root.add(m.mesh);
     groups.push(g);
+  }
+
+  let varietyStarted = false;
+  function streamVariety() {
+    if (varietyStarted) return;
+    varietyStarted = true;
+    let left = COUNT - groups.length;
+    const step = () => {
+      if (left <= 0) return;
+      const g = spawnGroup(PROFILES, spawnPool, groups.length);
+      for (const m of g.members) {
+        root.add(m.mesh);
+        if (!m.down) placeMember(m);
+      }
+      groups.push(g);
+      left--;
+      if (left > 0) setTimeout(step, 180);
+    };
+    if (left > 0) setTimeout(step, 180);
   }
 
   for (const g of groups) {
@@ -537,6 +738,9 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     for (const r of sp) spawnPool.push(r);
     graph.clear();
     for (const [k, v] of buildGraph(walkRoutes)) graph.set(k, v);
+    // Trip graph follows the outdoor-trimmed walks.
+    pedGraph = buildPedGraph(walkRoutes);
+    pois = collectPois({ shops: shopList, stops: stopList, pedGraph });
 
     // Re-seat walkers: same source route and arc position if a piece still covers it.
     const seat = (m) => {
@@ -880,6 +1084,98 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     return m.dir > 0 ? m.s < 1.4 : m.s > rLen - 1.4;
   }
 
+  function placeMemberFromTrip(m, dt = 0, precise = true) {
+    const baseY = m.mesh.userData.baseY || 0;
+    const x = (m.routeX || 0) + (m.offX || 0);
+    const z = (m.routeZ || 0) + (m.offZ || 0);
+    const kind = m.onCrossing ? "crossing" : "sidewalk";
+    m.mesh.position.set(x, footY(x, z, baseY, precise, kind), z);
+    if (m.headingX != null && m.headingZ != null) {
+      const yaw = Math.atan2(m.headingX, m.headingZ);
+      if (dt > 0 && (m.recover > 0 || m.turning)) {
+        m.mesh.rotation.y += wrapAngle(yaw - m.mesh.rotation.y) * Math.min(1, dt * 4);
+        m.turning = Math.abs(wrapAngle(yaw - m.mesh.rotation.y)) > 0.05;
+      } else {
+        m.mesh.rotation.y = yaw;
+      }
+    }
+  }
+
+  function replanGroup(g) {
+    if (!pedGraph?.nodes?.length) {
+      g.trip = null;
+      return;
+    }
+    const lead = g.members[0];
+    const from = lead ? { x: lead.routeX || lead.mesh.position.x, z: lead.routeZ || lead.mesh.position.z } : null;
+    const cam = camera?.position
+      ? { x: camera.position.x, z: camera.position.z }
+      : { x: SPAWN_CENTER.x, z: SPAWN_CENTER.z };
+    const trip = planTrip({
+      pedGraph,
+      pois,
+      hour: gameHour,
+      day: gameDay,
+      mode: "walk",
+      from,
+      camera: cam,
+    });
+    if (trip) assignTrip(g, trip, pedGraph);
+    else g.trip = null;
+  }
+
+  function updateMemberLod(m, dt, cx, cz, hot2, warm2, cold2, useTrip) {
+    const dx = (m.routeX ?? m.mesh.position.x) - cx;
+    const dz = (m.routeZ ?? m.mesh.position.z) - cz;
+    const d2 = dx * dx + dz * dz;
+    if (d2 > cold2) {
+      m.mesh.visible = false;
+      if (!useTrip) placeMemberCheap(m);
+      return;
+    }
+    m.mesh.visible = true;
+    const precise = d2 <= hot2;
+    if (useTrip) placeMemberFromTrip(m, dt, precise);
+    else placeMember(m, dt, precise);
+
+    if (m.offX || m.offZ) {
+      const keep = Math.max(0, 1 - dt * 0.8);
+      m.offX = Math.abs(m.offX * keep) < 0.01 ? 0 : m.offX * keep;
+      m.offZ = Math.abs(m.offZ * keep) < 0.01 ? 0 : m.offZ * keep;
+      m.mesh.position.x = m.routeX + (m.offX || 0);
+      m.mesh.position.z = m.routeZ + (m.offZ || 0);
+    }
+
+    // Go around parked / moving cars instead of walking through them.
+    if (!m.down) {
+      // placeMember yaw is atan2(dx, dz) → travel is (sin y, cos y).
+      const hx = m.headingX != null ? m.headingX : Math.sin(m.mesh.rotation.y);
+      const hz = m.headingZ != null ? m.headingZ : Math.cos(m.mesh.rotation.y);
+      applyVehicleAvoidance(m, hx, hz);
+    }
+
+    if (m.mesh.userData.mixer) {
+      m.animHold = (m.animHold || 0) + dt;
+      const cadence = precise ? 1 : d2 <= warm2 ? 2 : 3;
+      m.animSkip = (m.animSkip || 0) + 1;
+      if (m.animSkip >= cadence) {
+        m.mesh.userData.mixer.update(m.animHold);
+        m.animHold = 0;
+        m.animSkip = 0;
+      }
+    } else if (precise) {
+      m.phase += dt * m.speed * BOBBLE_FREQ;
+      m.mesh.position.y += BOBBLE_AMP * Math.abs(Math.sin(m.phase));
+      const swingAmt = 0.2 * Math.sin(m.phase);
+      for (let ci = 0; ci < m.mesh.children.length; ci++) {
+        const child = m.mesh.children[ci];
+        if (Math.abs(child.position.x) > 0.2 && child.position.y > 0.6) {
+          child.rotation.z = child.position.x > 0 ? -swingAmt : swingAmt;
+        }
+      }
+    }
+  }
+
   function update(dt) {
     if (!(dt > 0)) return;
     if ((redressIn -= dt) <= 0) {
@@ -894,6 +1190,20 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     const warm2 = WARM_M * WARM_M;
     const cold2 = COLD_M * COLD_M;
     for (const g of groups) {
+      const onTrip = !!(g.trip?.path && g.tripGraph);
+      if (onTrip) {
+        const lead = g.members[0];
+        const speed = lead?.speed || WALK_SPEED;
+        const result = advanceTrip(g, dt, { crossingOk, speed });
+        if (result === "done") replanGroup(g);
+        for (const m of g.members) {
+          if (m.down && updateDown(m, dt)) continue;
+          if (m.recover > 0) recoverStep(m, dt);
+          setWalkAnim(m, !m.waiting && result !== "wait");
+          updateMemberLod(m, dt, cx, cz, hot2, warm2, cold2, true);
+        }
+        continue;
+      }
       for (const m of g.members) {
         if (m.down && updateDown(m, dt)) continue;
         if (m.recover > 0) recoverStep(m, dt);
@@ -908,53 +1218,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         } else {
           setWalkAnim(m, false);
         }
-
-        const dx = (m.routeX ?? m.mesh.position.x) - cx;
-        const dz = (m.routeZ ?? m.mesh.position.z) - cz;
-        const d2 = dx * dx + dz * dz;
-        if (d2 > cold2) {
-          m.mesh.visible = false;
-          // Keep route position cheaply updated so they reappear in the right place.
-          placeMemberCheap(m);
-          continue;
-        }
-        m.mesh.visible = true;
-        const precise = d2 <= hot2;
-        placeMember(m, dt, precise);
-
-        if (m.offX || m.offZ) {
-          const keep = Math.max(0, 1 - dt * 0.8);
-          m.offX = Math.abs(m.offX * keep) < 0.01 ? 0 : m.offX * keep;
-          m.offZ = Math.abs(m.offZ * keep) < 0.01 ? 0 : m.offZ * keep;
-          m.mesh.position.x = m.routeX + (m.offX || 0);
-          m.mesh.position.z = m.routeZ + (m.offZ || 0);
-        }
-
-        // placeMember already set Y — do not raycast again.
-        if (m.mesh.userData.mixer) {
-          // Anyone still on screen keeps the walk. Further out the mixer steps
-          // less often, and the skipped time is applied so the stride does not
-          // slow down. Skipping the mixer entirely left them in the bind pose.
-          m.animHold = (m.animHold || 0) + dt;
-          const cadence = precise ? 1 : d2 <= warm2 ? 2 : 3;
-          m.animSkip = (m.animSkip || 0) + 1;
-          if (m.animSkip >= cadence) {
-            m.mesh.userData.mixer.update(m.animHold);
-            m.animHold = 0;
-            m.animSkip = 0;
-          }
-        } else if (precise) {
-          m.phase += dt * m.speed * BOBBLE_FREQ;
-          // placeMember (precise) already sampled the ground this frame and reset Y: just add the bob.
-          m.mesh.position.y += BOBBLE_AMP * Math.abs(Math.sin(m.phase));
-          const swingAmt = 0.2 * Math.sin(m.phase);
-          for (let ci = 0; ci < m.mesh.children.length; ci++) {
-            const child = m.mesh.children[ci];
-            if (Math.abs(child.position.x) > 0.2 && child.position.y > 0.6) {
-              child.rotation.z = child.position.x > 0 ? -swingAmt : swingAmt;
-            }
-          }
-        }
+        updateMemberLod(m, dt, cx, cz, hot2, warm2, cold2, false);
       }
     }
     cullExcessBodies();
@@ -1021,6 +1285,15 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     setCrossingGate(fn) {
       crossingOk = typeof fn === "function" ? fn : () => true;
     },
+    setClock(h, d) {
+      if (Number.isFinite(h)) gameHour = h;
+      if (Number.isFinite(d)) gameDay = d;
+    },
+    /** `() => [{ pos, tan, hl, hw }]` — cars / buses / trams walkers must go around. */
+    setVehicles(fn) {
+      vehicleProvider = typeof fn === "function" ? fn : () => [];
+    },
+    streamVariety,
   };
 }
 

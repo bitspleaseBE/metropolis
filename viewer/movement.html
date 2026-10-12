@@ -745,19 +745,29 @@
         return { root, mixer, clips, kind: "rider" };
       }
 
-      async function loadCrowd(file) {
-        const gltf = await loader.loadAsync(`characters/people/${file}`);
+      async function loadCrowd(file, id) {
+        const personId = id || file.replace(/\.glb$/i, "");
+        const [gltf, ride, step] = await Promise.all([
+          loader.loadAsync(`characters/people/${file}`),
+          loadClip(`characters/people/ride/${personId}.glb`),
+          loadClip(`characters/people/step/${personId}.glb`),
+        ]);
         const root = cloneSkeleton(gltf.scene);
         fit(root);
         const mixer = new THREE.AnimationMixer(root);
         const clip = dropScale(gltf.animations[0]);
-        const clips = new Map(clip ? [[clip.name || "Walk", clip]] : []);
+        const clips = new Map(clip ? [["Walk", clip]] : []);
+        if (ride) {
+          clips.set("Bicycle", ride);
+          clips.set("Bakfiets", ride);
+        }
+        if (step) clips.set("Step", step);
         return { root, mixer, clips, kind: "crowd" };
       }
 
       function playLoaded(model) {
         if (model.kind === "cast") return playCast(model);
-        const order = ["Bicycle", "Bakfiets", "Step"];
+        const order = ["Walk", "Bicycle", "Bakfiets", "Step"];
         const names = order.filter((n) => model.clips.has(n));
         if (!names.includes(clipName)) clipName = names[0] || "Walk";
         orbit.target.set(0, 0.9, clipName === "Bakfiets" ? 0.3 : 0);
@@ -841,7 +851,7 @@
         b.textContent = person.id.replaceAll("_", " ");
         b.onclick = () => {
           clipName = "Walk";
-          select(b, () => loadCrowd(person.file));
+          select(b, () => loadCrowd(person.file, person.id));
         };
         li.appendChild(b);
         crowdList.appendChild(li);

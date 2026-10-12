@@ -1615,6 +1615,11 @@
       function fillRiderObstacles(walker) {
         _riderObstacles.length = 0;
         _riderObstacles.push({ x: walker.position.x, z: walker.position.z, r: 0.45 });
+        const peds = pedestrians?.roadPeople?.() || [];
+        for (let i = 0; i < peds.length; i++) {
+          const p = peds[i];
+          _riderObstacles.push({ x: p.x, z: p.z, r: p.r || 0.35 });
+        }
         const fleet = transit.vehicles || [];
         for (let i = 0; i < fleet.length; i++) {
           const v = fleet[i];
@@ -3058,11 +3063,41 @@
           if (pedestrians.setCrossingGate && traffic.pedMayCross) {
             pedestrians.setCrossingGate((id) => traffic.pedMayCross(id));
           }
+          if (traffic.setPedestrians && pedestrians.roadPeople) {
+            traffic.setPedestrians(() => pedestrians.roadPeople());
+          }
+          if (traffic.setOnHitPed && pedestrians.hitTest) {
+            traffic.setOnHitPed((x, z, vx, vz, r) => pedestrians.hitTest(x, z, vx, vz, r));
+          }
+          // Walkers slide around parked and moving cars / buses / trams.
+          if (pedestrians.setVehicles) {
+            pedestrians.setVehicles(() => {
+              _vehicleSolids.length = 0;
+              for (const c of traffic.cars || []) {
+                if (!c?.pos || !c.tan) continue;
+                _vehicleSolids.push({ pos: c.pos, tan: c.tan, hl: 2.15, hw: 0.9 });
+              }
+              for (const v of transit.vehicles || []) {
+                if (!v?.pos || !v.tan || v.phase === "gone") continue;
+                const tram = v.mode === "tram";
+                _vehicleSolids.push({
+                  pos: v.pos,
+                  tan: v.tan,
+                  hl: tram ? 15.5 : 6.6,
+                  hw: tram ? 1.2 : 1.25,
+                });
+              }
+              for (const s of parkedCarSolids) _vehicleSolids.push(s);
+              return _vehicleSolids;
+            });
+          }
           micromobility = await createMicromobility(scene, THREE, {
             count: 28,
             firstCount: 6,
             district: typeof window !== "undefined" ? window.__DISTRICT : null,
             hour: gameHour,
+            day: gameDay,
+            spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             people: pedestrians?.people,
           });
           velo = await createVelo(scene, THREE);
