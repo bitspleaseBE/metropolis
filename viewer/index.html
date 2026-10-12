@@ -1051,6 +1051,15 @@
     <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/environments/RoomEnvironment.js" crossorigin />
     <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/utils/BufferGeometryUtils.js" crossorigin />
     <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/utils/SkeletonUtils.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/EffectComposer.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/RenderPass.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/UnrealBloomPass.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/ShaderPass.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/OutputPass.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/GTAOPass.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/loaders/RGBELoader.js" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/examples/jsm/objects/Sky.js" crossorigin />
+    <link rel="modulepreload" href="./visual-quality.js" />
     <link rel="modulepreload" href="./traffic.js" />
     <link rel="modulepreload" href="./transit.js" />
     <link rel="modulepreload" href="./pedestrians.js" />
@@ -1106,6 +1115,7 @@
       import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
       import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
       import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+      import { createVisualQuality, resolveQuality, storeQuality } from "./visual-quality.js";
       import { createTraffic } from "./traffic.js";
       import { createTransit } from "./transit.js";
       import { createPedestrians } from "./pedestrians.js";
@@ -1231,7 +1241,10 @@
       renderer.toneMappingExposure = 1.28; // brighter, more dynamic range
       document.body.appendChild(renderer.domElement);
 
+      // Quality tier: high unlocks shadows, composer, sky IBL, etc. Low = classic path.
+      const QUALITY = resolveQuality();
       // Cheap IBL so glass/metal catch sky instead of looking like flat stickers.
+      // High tier swaps this for HDRI / physical-sky PMREM after init.
       const pmrem = new THREE.PMREMGenerator(renderer);
       const roomEnv = new RoomEnvironment();
       scene.environment = pmrem.fromScene(roomEnv, 0.04).texture;
@@ -1261,6 +1274,22 @@
       );
       sunHaze.position.copy(sunMesh.position);
       scene.add(sunHaze);
+
+      const visuals = createVisualQuality({
+        THREE,
+        renderer,
+        scene,
+        camera,
+        sun,
+        sunMesh,
+        sunHaze,
+        quality: QUALITY,
+      });
+      // Kick off HDRI / composer / sky on high; low leaves RoomEnvironment alone.
+      const visualsReady = visuals.init().catch((err) => {
+        console.warn("[metropolis] visual quality init failed", err);
+      });
+
       // ---- Day / night -------------------------------------------------------------
       // `tod` eases 0 (sunny day) → 1 (night). Everything below is a pure function of it:
       // sky, fog, sun/moon + ambient light, façade window glow, street lamps (emissive heads
@@ -1277,6 +1306,8 @@
       const CLEAR_DAY = new THREE.Color(SKY);
       const SUN_DAY_POS = new THREE.Vector3(220, 320, -160);
       const MOON_POS = new THREE.Vector3(-260, 300, 180);
+      /** World-space sun/moon aim for shadows + sky — never the shadow-offset light position. */
+      const _sunAim = new THREE.Vector3(220, 320, -160);
       const _tmpCol = new THREE.Color();
       const smooth = (a, b, x) => {
         const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
@@ -1328,7 +1359,9 @@
       for (let i = 0; i < LAMP_LIGHTS; i++) {
         const l = new THREE.PointLight(0xffc27a, 0, 56, 1.15);
         l.visible = false;
-        l.userData.on = 0; // 1 when this light is parked on a lamp near the walker
+        l.userData.on = 0; // smoothed 0..1
+        l.userData.targetOn = 0;
+        l.userData.headIdx = -1; // sticky lamp head index
         scene.add(l);
         lampLights.push(l);
       }
@@ -1382,6 +1415,16 @@
         get motion() { return playerMotion; },
         get thirdPerson() { return thirdPerson; },
         get pixelRatio() { return pixelRatio; },
+        get quality() { return visuals.quality; },
+        setQuality(q) {
+          storeQuality(q === "high" ? "high" : "low");
+          location.search = (() => {
+            const p = new URLSearchParams(location.search);
+            p.set("q", q === "high" ? "high" : "low");
+            return p.toString();
+          })();
+        },
+        visuals,
       };
 
       function applyTimeOfDay(t) {
@@ -1390,6 +1433,8 @@
         const dusk = Math.max(0, 1 - Math.abs(t - 0.45) / 0.45); // warm band mid-transition
         paintSky(t);
         skyTex.needsUpdate = true;
+        // Always keep the painted sky — high-tier used to null this and left a white void.
+        scene.background = skyTex;
 
         // Fog + clear colour follow the horizon.
         _tmpCol.set(FOG_COLOR).lerp(FOG_DUSK, dusk * 0.6).lerp(FOG_NIGHT, smooth(0.3, 0.9, t));
@@ -1397,32 +1442,43 @@
         renderer.setClearColor(_tmpCol, 1);
         scene.fog.density = baseFogDensity * (1 + 0.06 * night);
 
-        renderer.toneMappingExposure = 1.18 + 0.22 * night;
-        scene.environmentIntensity = 1 - 0.15 * smooth(0.05, 0.8, t);
+        renderer.toneMappingExposure = 1.12 + 0.18 * night;
+        // On high, visuals owns environmentIntensity (stable env slots). Low keeps the old path.
+        if (!visuals.high()) {
+          scene.environmentIntensity = 1 - 0.15 * smooth(0.05, 0.8, t);
+        }
 
         // Hemisphere is the non-directional fill: sky from above, warm ground bounce.
         hemi.color.copy(HEMI_SKY_DAY).lerp(HEMI_SKY_NIGHT, night);
         hemi.groundColor.copy(HEMI_GND_DAY).lerp(HEMI_GND_NIGHT, night);
-        // Night stays readable without a lamp on every corner.
-        hemi.intensity = 0.85 + 0.25 * night;
+        // High: pull ambient down so sun shadows and night lamps actually read (AAA contrast).
+        hemi.intensity = visuals.high()
+          ? 0.45 + 0.2 * night
+          : 0.85 + 0.25 * night;
 
         // One directional light plays the sun by day and the moon by night.
         sun.color.copy(SUN_COL).lerp(SUN_DUSK, dusk).lerp(MOON_COL, smooth(0.5, 0.9, t));
-        sun.intensity = 1.35 * dayAmt + 0.9 * smooth(0.5, 1.0, t);
-        sun.position.lerpVectors(sunArcPos, MOON_POS, smooth(0.2, 0.8, t));
-        sunMesh.position.copy(sun.position).normalize().multiplyScalar(900);
+        sun.intensity = visuals.high()
+          ? 1.55 * dayAmt + 0.55 * smooth(0.5, 1.0, t)
+          : 1.35 * dayAmt + 0.9 * smooth(0.5, 1.0, t);
+        // Aim is the arc/moon direction. Shadow code offsets sun.position from this each frame —
+        // do NOT write sun.position from the aim on high (that fought the shadow camera at 5 Hz).
+        _sunAim.lerpVectors(sunArcPos, MOON_POS, smooth(0.2, 0.8, t));
+        visuals.setSunAim(_sunAim);
+        if (!visuals.high()) sun.position.copy(_sunAim);
+        sunMesh.position.copy(_sunAim).normalize().multiplyScalar(900);
         sunHaze.position.copy(sunMesh.position);
         sunMesh.material.color.set(0xffe7a0).lerp(_tmpCol.set(0xdfe6f5), smooth(0.4, 0.9, t));
         sunMesh.scale.setScalar(1 - 0.45 * smooth(0.4, 0.9, t));
         sunHaze.material.color.set(0xffe8b0).lerp(_tmpCol.set(0x8fa6d8), smooth(0.4, 0.9, t));
         sunHaze.material.opacity = 0.18 + 0.1 * dusk;
-        fill.intensity = 0.35 + 0.25 * night;
+        fill.intensity = visuals.high() ? 0.18 + 0.15 * night : 0.35 + 0.25 * night;
 
         // Façade windows + lamp heads glow; cars and trams follow.
         const glow = smooth(0.4, 0.9, t);
         for (const g of glowMats) g.mat.emissiveIntensity = g.scale * glow;
         lampGlow = glow;
-        for (const l of lampLights) l.intensity = LAMP_INTENSITY * glow * l.userData.on;
+        // Lamp point-light intensity is lerped in updateLampLights — don't snap it here.
         traffic.setNight && traffic.setNight(glow);
         parkedCars && parkedCars.setNight(glow);
         scooters && scooters.setNight(glow);
@@ -1435,7 +1491,7 @@
         // Crowns stay vivid green under moonlight unless we pull them down with the sky.
         for (const v of vegMats) {
           v.mat.color.copy(v.day).lerp(v.night, night * 0.45);
-          if (v.mat.envMapIntensity != null) {
+          if (v.mat.envMapIntensity != null && !visuals.high()) {
             v.mat.envMapIntensity = v.dayEnv * (1 - 0.75 * night);
           }
         }
@@ -1443,6 +1499,16 @@
         starMat.opacity = smooth(0.55, 1.0, t) * 0.9;
         stars.visible = starMat.opacity > 0.01;
         skirtMat && skirtMat.color.set(GROUND_SKIRT).lerp(_tmpCol.set(0x6e685e), night);
+
+        // High-tier bloom / grade / wetness / sky — player-follow shadows continue in tick().
+        visuals.update({
+          tod: t,
+          hour: gameHour,
+          dayAmt,
+          playerPos: camera.position,
+          exposure: renderer.toneMappingExposure,
+          sunAim: _sunAim,
+        });
 
         const isNight = t > 0.5;
         btnNight.textContent = isNight ? "Day" : "Night";
@@ -1495,42 +1561,75 @@
       function updateLampLights(dt, walker) {
         if (todApplied < 0.4 || !lampHeads.length) {
           setLampLightsVisible(false);
+          for (const l of lampLights) {
+            l.userData.on = 0;
+            l.userData.targetOn = 0;
+            l.intensity = 0;
+          }
           return;
         }
         setLampLightsVisible(true);
         lampClock -= dt;
-        if (lampClock > 0) return;
-        lampClock = 0.35;
         const px = walker.position.x;
         const pz = walker.position.z;
-        // Allocation-free top-N nearest lamps (insertion into a tiny sorted buffer).
-        _lampD.fill(Infinity);
-        _lampI.fill(-1);
-        for (let i = 0; i < lampHeads.length; i++) {
-          const h = lampHeads[i];
-          const d = (h.x - px) ** 2 + (h.z - pz) ** 2;
-          if (d >= _lampD[LAMP_LIGHTS - 1]) continue;
-          let k = LAMP_LIGHTS - 1;
-          while (k > 0 && _lampD[k - 1] > d) {
-            _lampD[k] = _lampD[k - 1];
-            _lampI[k] = _lampI[k - 1];
-            k--;
+        // Re-pick nearest lamps at a low rate; sticky slots stop lights teleporting every beat.
+        if (lampClock <= 0) {
+          lampClock = 0.5;
+          _lampD.fill(Infinity);
+          _lampI.fill(-1);
+          for (let i = 0; i < lampHeads.length; i++) {
+            const h = lampHeads[i];
+            const d = (h.x - px) ** 2 + (h.z - pz) ** 2;
+            if (d >= _lampD[LAMP_LIGHTS - 1]) continue;
+            let k = LAMP_LIGHTS - 1;
+            while (k > 0 && _lampD[k - 1] > d) {
+              _lampD[k] = _lampD[k - 1];
+              _lampI[k] = _lampI[k - 1];
+              k--;
+            }
+            _lampD[k] = d;
+            _lampI[k] = i;
           }
-          _lampD[k] = d;
-          _lampI[k] = i;
-        }
-        // The nearest lamps get the real light; the rest stay glowing heads. Lights stay
-        // "visible" at night (constant shader variant) and just fade to 0 when unused.
-        lampLights.forEach((l, i) => {
-          const idx = _lampI[i];
-          const on = idx >= 0 && _lampD[i] < 70 * 70 ? 1 : 0;
-          l.userData.on = on;
-          l.intensity = LAMP_INTENSITY * lampGlow * on;
-          if (on) {
+          // Sticky: keep a light on its head while it's still inside a wider radius.
+          const KEEP = 85 * 85;
+          const TAKE = 70 * 70;
+          const claimed = new Set();
+          for (const l of lampLights) {
+            const cur = l.userData.headIdx;
+            if (cur >= 0 && cur < lampHeads.length) {
+              const h = lampHeads[cur];
+              const d = (h.x - px) ** 2 + (h.z - pz) ** 2;
+              if (d < KEEP) {
+                l.userData.targetOn = 1;
+                claimed.add(cur);
+                continue;
+              }
+            }
+            l.userData.headIdx = -1;
+            l.userData.targetOn = 0;
+          }
+          for (let i = 0; i < LAMP_LIGHTS; i++) {
+            const idx = _lampI[i];
+            if (idx < 0 || _lampD[i] >= TAKE || claimed.has(idx)) continue;
+            const free = lampLights.find((l) => l.userData.headIdx < 0);
+            if (!free) break;
+            free.userData.headIdx = idx;
+            free.userData.targetOn = 1;
+            claimed.add(idx);
             const h = lampHeads[idx];
-            l.position.set(h.x, h.y - 0.25, h.z);
+            free.position.set(h.x, h.y - 0.25, h.z);
           }
-        });
+        }
+        // Smooth intensity so lamps fade instead of strobing when slots change.
+        const fade = 1 - Math.exp(-dt * 6);
+        for (const l of lampLights) {
+          if (l.userData.headIdx == null) l.userData.headIdx = -1;
+          if (l.userData.targetOn == null) l.userData.targetOn = 0;
+          if (l.userData.on == null) l.userData.on = 0;
+          l.userData.on += (l.userData.targetOn - l.userData.on) * fade;
+          if (l.userData.on < 0.02 && l.userData.targetOn === 0) l.userData.on = 0;
+          l.intensity = LAMP_INTENSITY * lampGlow * l.userData.on;
+        }
       }
 
       let mode = "walk"; // walk | free
@@ -2473,6 +2572,13 @@
         hasStarted: () => sessionStarted,
         isPlaying: () => sessionStarted && menu && !menu.open,
         gamepad,
+        getQuality: () => visuals.quality,
+        onQuality: (q) => {
+          storeQuality(q === "high" ? "high" : "low");
+          const p = new URLSearchParams(location.search);
+          p.set("q", q === "high" ? "high" : "low");
+          location.search = p.toString();
+        },
         onPause: () => {
           walkControls.unlock();
           document.body.classList.remove("locked");
@@ -2750,6 +2856,8 @@
       // and samples the scene environment. Keep that for glass, water, gold and car paint
       // (name test matches blender/build_city.py _tag_pbr; extras override it after a rebuild).
       function keepCityPbr(mat) {
+        // High: keep roads / metal / roofs as Standard for sheen + wetness.
+        if (visuals.high()) return visuals.keepCityPbr(mat);
         const tag = mat.userData && mat.userData.cityview_shader;
         if (tag === "pbr") return true;
         if (tag === "lambert") return false;
@@ -2949,6 +3057,7 @@
             if (n === "ground") return { factor: 3, units: 3 };
             return null;
           };
+          await visualsReady;
           cityRoot.traverse((obj) => {
             if (obj.isMesh) {
               obj.castShadow = false;
@@ -2969,7 +3078,8 @@
                   n.includes("facade") || n.includes("bldg_") || n.includes("chim") || n.includes("roof");
                 for (const m of mats) {
                   if (!m) continue;
-                  m.flatShading = !isFacade;
+                  // Smooth shading: facets were a strong "GTA 3" tell. Low keeps the old look.
+                  m.flatShading = visuals.high() ? false : !isFacade;
                   if (m.name && /glass/i.test(m.name)) {
                     m.metalness = Math.max(m.metalness ?? 0, 0.45);
                     m.roughness = Math.min(m.roughness ?? 1, 0.18);
@@ -2977,8 +3087,15 @@
                   } else if (isFacade && m.roughness != null) {
                     m.envMapIntensity = 0.35;
                   }
-                  if (m.emissiveMap) glowMats.push({ mat: m, scale: 1.55 }); // lit windows
-                  else if (m.name === "lamp_head") glowMats.push({ mat: m, scale: 2.6 }); // street lamps
+                  visuals.tunePbrMaterial(m, obj.name || "");
+                  visuals.patchHeightFog(m);
+                  if (m.emissiveMap) {
+                    visuals.varyWindowGlow(m);
+                    const jitter = m.userData.glowJitter || 1;
+                    glowMats.push({ mat: m, scale: 1.55 * jitter }); // lit windows
+                  } else if (m.name === "lamp_head") {
+                    glowMats.push({ mat: m, scale: 2.6 }); // street lamps
+                  }
                   if (
                     m.color &&
                     m.name &&
@@ -3002,6 +3119,9 @@
               }
             }
           });
+          // Actor shadows onto streets first; building cast is a second step if perf allows.
+          visuals.applyCityShadows(cityRoot, { castBuildings: false });
+          visuals.applyAnisotropy(cityRoot);
           scene.add(cityRoot);
           cityRoot.updateMatrixWorld(true);
           cityRoot.traverse((obj) => {
@@ -3042,6 +3162,10 @@
             const m = mergeStaticMeshes(cityRoot);
             console.info(`[metropolis] merged ${m.before} meshes into ${m.after} tile batches`);
           }
+          // Actor shadows onto streets first. Building cast is opt-in after the gate
+          // (enable via visuals.applyCityShadows(cityRoot, { castBuildings: true })).
+          visuals.applyCityShadows(cityRoot, { castBuildings: false });
+          visuals.applyAnisotropy(cityRoot);
           // Static after the merge: skip per-frame matrix traversal of the (now small) tree.
           cityRoot.updateMatrixWorld(true); // bake world matrices of the merged tiles once
           cityRoot.traverse((obj) => (obj.matrixWorldAutoUpdate = false));
@@ -3385,6 +3509,7 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        visuals.resize(window.innerWidth, window.innerHeight);
       });
 
       // Adaptive render resolution: step the pixel ratio down only when the GPU is clearly
@@ -3426,6 +3551,7 @@
         if (Math.abs(next - pixelRatio) > 1e-3) {
           pixelRatio = next;
           renderer.setPixelRatio(pixelRatio);
+          visuals.setPixelRatio(pixelRatio);
           adaptSettle = 90;
         }
       }
@@ -3806,7 +3932,22 @@
           },
         });
 
-        renderer.render(scene, camera);
+        // Keep the sun shadow camera locked to the walker every frame.
+        if (visuals.high()) {
+          const dayAmt = 1 - (() => {
+            const u = Math.min(1, Math.max(0, (tod - 0.0) / 0.7));
+            return u * u * (3 - 2 * u);
+          })();
+          visuals.update({
+            tod,
+            hour: gameHour,
+            dayAmt,
+            playerPos: walkControls.getObject().position,
+            exposure: renderer.toneMappingExposure,
+            sunAim: _sunAim,
+          });
+        }
+        visuals.render();
         requestAnimationFrame(tick);
       }
       tick();
