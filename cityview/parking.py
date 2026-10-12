@@ -17,7 +17,8 @@ Reality model
   car to the carriageway edge (a half-on-kerb park), exactly like a Belgian side street.
 * Tram-shared carriageways get no cars (runtime lane is at the kerb there).
 * Cars keep clear of junctions (other motor roads), pedestrian crossings, traffic signals,
-  transit stops, tram beds and surveyed trees / benches / street clutter.
+  transit stops, tram beds, surveyed trees / benches / street clutter, Velo dock rails
+  (and their docked bikes), and OSM bicycle parking racks.
 
 Pure stdlib: ``blender/build_city.py`` imports this inside Blender's Python and the unit
 tests import it without ``bpy``.
@@ -55,7 +56,11 @@ JUNCTION_GAP_M = 0.4  # extra gap between a car's end and another street's edge
 CROSSING_CLEAR_M = 4.5
 SIGNAL_CLEAR_M = 12.0
 STOP_CLEAR_M = 14.0
-FURNITURE_CLEAR_M = 1.3
+# Keep-out around trees / benches / clutter (bike-rack hoops are sampled along the rack).
+FURNITURE_CLEAR_M = HALF_WID + 1.1
+# Velo rail + docked-bike depth (SLOT_PAD ≈ 0.76): cars must not sit on the rail or bikes.
+VELO_CLEAR_M = HALF_WID + 1.5
+HOOP_SPACING_M = 0.8  # matches cityview.clutter / clutter_blender
 CAR_SPACING_M = 4.8  # centre-to-centre floor between any two parked cars
 KERB_LIFT_M = 0.12  # pavement top: cars parked fully on the kerb ride up onto it
 
@@ -198,8 +203,34 @@ def plan_parked_cars(
     furniture = _Grid()
     for key in ("trees", "benches", "clutter"):
         for item in layout.get(key) or []:
-            if item.get("x") is not None and item.get("y") is not None:
-                furniture.add(float(item["x"]), float(item["y"]))
+            if item.get("x") is None or item.get("y") is None:
+                continue
+            x, y = float(item["x"]), float(item["y"])
+            furniture.add(x, y)
+            # Bike racks span several metres along the kerb — seed keep-out points along the hoops.
+            if key == "clutter" and item.get("kind") == "bike_rack":
+                yaw = float(item.get("yaw") or 0.0)
+                along_x, along_y = math.cos(yaw), math.sin(yaw)
+                hoops = max(1, int(item.get("hoops") or 2))
+                half = (hoops - 1) * HOOP_SPACING_M * 0.5
+                for i in range(hoops):
+                    t = -half + i * HOOP_SPACING_M
+                    furniture.add(x + along_x * t, y + along_y * t)
+
+    # Velo docks are long kerbside rails with bikes nosed into them — segment keep-outs.
+    velo_segs: list[tuple[list[float], list[float]]] = []
+    for st in layout.get("velo_stations") or []:
+        if st.get("x") is None or st.get("y") is None:
+            continue
+        cx, cy = float(st["x"]), float(st["y"])
+        yaw = float(st.get("yaw") or 0.0)
+        half = max(2.0, float(st.get("railLength") or 8.0) * 0.5)
+        ax, ay = math.cos(yaw), math.sin(yaw)
+        # Street-facing local +Y (docked bike centres sit ~0.76 m off the rail).
+        nx, ny = -math.sin(yaw), math.cos(yaw)
+        for offset in (0.0, 0.8):
+            ox, oy = cx + nx * offset, cy + ny * offset
+            velo_segs.append(([ox - ax * half, oy - ay * half], [ox + ax * half, oy + ay * half]))
 
     placed: list[dict[str, Any]] = []
     placed_grid = _Grid()
@@ -265,7 +296,9 @@ def plan_parked_cars(
                 else:
                     facing_along = side == "right"
                 yaw = math.atan2(ty, tx) + (0.0 if facing_along else math.pi)
-                if _blocked_spot(x, y, tx, ty, crossings, signals, stops, furniture, placed_grid, blocked):
+                if _blocked_spot(
+                    x, y, tx, ty, crossings, signals, stops, furniture, placed_grid, blocked, velo_segs
+                ):
                     continue
                 if any(
                     min(_seg_dist(x, y, o["points"][i], o["points"][i + 1]) for i in range(len(o["points"]) - 1))
@@ -307,6 +340,7 @@ def _blocked_spot(
     furniture: _Grid,
     placed_grid: _Grid,
     blocked: Callable[[float, float], bool] | None,
+    velo_segs: list[tuple[list[float], list[float]]] | None = None,
 ) -> bool:
     if crossings.near(x, y, CROSSING_CLEAR_M + HALF_LEN * 0.5):
         return True
@@ -322,6 +356,9 @@ def _blocked_spot(
             return True
         if blocked is not None and blocked(px, py):
             return True
+        for a, b in velo_segs or ():
+            if _seg_dist(px, py, a, b) < VELO_CLEAR_M:
+                return True
     return False
 
 

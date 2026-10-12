@@ -292,9 +292,9 @@ def _copy_mixamo_fingers(src_arm, tgt_arm, sn, spin: Matrix) -> None:
 
     A rest-relative retarget drops a fist that lives in the Mixamo bind,
     because the finger curves never move. The posed bone direction still
-    holds the fist. The last bone on these hands is as long as Mixamo's
-    whole finger, so a fold that points back through the knuckle is stopped
-    at a right angle, still bending toward that fingertip.
+    holds the fist. Mo/Jacob tip bones are long; a Mixamo distal fold past a
+    soft curl is capped with a real axis-angle turn (the old sin combo kinked
+    the tip sideways). Pieter's two-segment fingers keep a sharper distal fold.
     """
     def aim(pb, direction: Vector) -> None:
         if direction.length < 1e-8:
@@ -303,7 +303,8 @@ def _copy_mixamo_fingers(src_arm, tgt_arm, sn, spin: Matrix) -> None:
         if pb.children:
             cur = world_head(tgt_arm, pb.children[0]) - world_head(tgt_arm, pb)
         else:
-            cur = Vector((rot(tgt_arm.matrix_world) @ rot(pb.matrix)).col[1])
+            # Leaf tip: aim along head→tail (bone length), not a fixed local axis.
+            cur = (tgt_arm.matrix_world @ pb.tail) - world_head(tgt_arm, pb)
         if cur.length < 1e-8:
             return
         turn_bone(tgt_arm, pb, cur.normalized().rotation_difference(direction.normalized()).to_matrix())
@@ -339,17 +340,23 @@ def _copy_mixamo_fingers(src_arm, tgt_arm, sn, spin: Matrix) -> None:
                 direction = tip - src_head
             else:
                 direction = world_head(src_arm, src_arm.pose.bones[sn(srcs[i + 1])]) - src_head
-            # The last Mixamo bone folds back onto the knuckle. These finger
-            # bones are as long as the whole Mixamo finger, so that fold sends
-            # the fingertip out through the palm. Keep the bend toward the
-            # Mixamo tip and stop it at a right angle.
-            if last and not thumb and prev_dir is not None and direction.length > 1e-8 and prev_dir.length > 1e-8:
+            # Cap a Mixamo tip fold so the long Rocketbox distal bone does not
+            # spear the palm — rotate from the prior phalanx, never kink sideways.
+            if last and not thumb and prev_dir is not None and prev_dir.length > 1e-8:
                 a = prev_dir.normalized()
-                b = direction.normalized()
-                ang = math.acos(max(-1.0, min(1.0, a.dot(b))))
-                cap = math.radians(90)
-                if ang > cap:
-                    direction = a * math.sin(ang - cap) + b * math.sin(cap)
+                if direction.length < 1e-8:
+                    direction = Vector(a)
+                else:
+                    b = direction.normalized()
+                    ang = math.acos(max(-1.0, min(1.0, a.dot(b))))
+                    # Three segments (Mo/Jacob): soft curl. Two (Pieter): sharper OK.
+                    cap = math.radians(38 if len(tgts) >= 3 else 90)
+                    if ang > cap:
+                        axis = a.cross(b)
+                        if axis.length < 1e-8:
+                            direction = Vector(a)
+                        else:
+                            direction = Matrix.Rotation(cap, 3, axis.normalized()) @ a
             pb = tgt_arm.pose.bones[t]
             aim(pb, spin @ direction)
             prev_dir = direction

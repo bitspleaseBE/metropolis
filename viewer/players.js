@@ -174,6 +174,37 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     return new THREE.AnimationClip(clip.name, clip.duration, tracks);
   }
 
+  /** Bone name from a track path like `Bip01 L Thigh.quaternion`. */
+  function trackBone(trackName) {
+    return (trackName || "").split(".")[0];
+  }
+
+  /** Legs + hips stay on the gait; punches overlay everything else. */
+  function isLowerBodyBone(name) {
+    const n = (name || "")
+      .replace(/^mixamorig\d*:?/i, "")
+      .replace(/^bip01[_\s]?/i, "");
+    return (
+      /^(pelvis|hips|l thigh|r thigh|l calf|r calf|l foot|r foot|l toe|r toe|leftupleg|rightupleg|leftleg|rightleg|leftfoot|rightfoot|lefttoe|righttoe)/i.test(
+        n,
+      ) || /(thigh|calf|foot|toe0?|pelvis|hips|upleg)/i.test(n)
+    );
+  }
+
+  function filterClipBones(clip, keepLower) {
+    if (!clip?.tracks?.length) return clip;
+    const tracks = clip.tracks.filter((t) => {
+      const lower = isLowerBodyBone(trackBone(t.name));
+      return keepLower ? lower : !lower;
+    });
+    if (!tracks.length || tracks.length === clip.tracks.length) return clip;
+    const tag = keepLower ? "Legs" : "Upper";
+    return new THREE.AnimationClip(`${clip.name}${tag}`, clip.duration, tracks);
+  }
+
+  const upperBodyClip = (clip) => filterClipBones(clip, false);
+  const legsOnlyClip = (clip) => filterClipBones(clip, true);
+
   // Reused each frame for Mixamo thigh-lift polish.
   const _qLift = new THREE.Quaternion();
   const _vBone = new THREE.Vector3();
@@ -772,10 +803,12 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     mixer.addEventListener("finished", (e) => {
       if (!melee || e.action !== actions[melee]) return;
       const next = meleeQueue;
+      const done = melee;
       melee = null;
       meleeQueue = null;
-      // Keep `current` on the strike: the clamped clip holds full weight until
-      // the next setAction fades it out.
+      // Upper-body strikes sit on top of the gait — fade them out; keep legs moving.
+      // Kicks own the whole body: leave `current` on the clip so the next gait fades it.
+      if (done !== "kick") e.action.fadeOut(0.12);
       if (next && actions[next]) playStrike(next, 0.12);
     });
 
@@ -795,8 +828,7 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     if (gen !== buildGen) return;
 
     const byName = new Map((moves?.animations || []).map((c) => [c.name, sanitizeClip(c)]));
-    const add = (key, clipName, loop) => {
-      const clip = byName.get(clipName);
+    const add = (key, clip, loop) => {
       if (!clip) return;
       const action = mixer.clipAction(clip);
       action.enabled = true;
@@ -805,15 +837,20 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       action.clampWhenFinished = !loop;
       actions[key] = action;
     };
-    add("idle", "Idle", true);
-    add("walk", "Walk", true);
-    add("jog", "Jog", true);
-    add("run", "Run", true);
-    add("jump", "Jump", false);
-    add("punch", "Punch", false);
-    add("cross", "Cross", false);
-    add("kick", "Kick", false);
-    add("ride", "Riding", true);
+    add("idle", byName.get("Idle"), true);
+    add("walk", byName.get("Walk"), true);
+    add("jog", byName.get("Jog"), true);
+    add("run", byName.get("Run"), true);
+    // Legs-only gaits under upper-body punches so the stride keeps going while you jab.
+    add("idleLegs", legsOnlyClip(byName.get("Idle")), true);
+    add("walkLegs", legsOnlyClip(byName.get("Walk")), true);
+    add("jogLegs", legsOnlyClip(byName.get("Jog")), true);
+    add("runLegs", legsOnlyClip(byName.get("Run")), true);
+    add("jump", byName.get("Jump"), false);
+    add("punch", upperBodyClip(byName.get("Punch")), false);
+    add("cross", upperBodyClip(byName.get("Cross")), false);
+    add("kick", byName.get("Kick"), false); // full-body: a kick needs the legs
+    add("ride", byName.get("Riding"), true);
     mocap = !!(actions.idle && actions.walk && actions.jog && actions.run);
     gripPose = [];
     const fistClip = byName.get("Punch");
@@ -872,12 +909,48 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   // Trimmed Mixamo boxing: jab-cross, then a hook, then a checked kick.
   // Near real time. The next hit blends in before the last one returns to guard.
   const STRIKE_RATE = { punch: 1.08, cross: 1.05, kick: 1.08 };
+  const UPPER_STRIKE = new Set(["punch", "cross"]);
+
+  function gaitFor(speed) {
+    const s = Math.abs(speed);
+    if (s < 0.28) return "idle";
+    if (s < 1.7) return "walk";
+    if (s < 5.2) return "jog";
+    return "run";
+  }
+
+  /** Drive locomotion. `legsOnly` keeps the stride under an upper-body punch. */
+  function driveGait(moveSpeed, legsOnly = false) {
+    const gait = gaitFor(moveSpeed);
+    const legsKey = `${gait}Legs`;
+    const name = legsOnly && actions[legsKey] ? legsKey : actions[gait] ? gait : "walk";
+    setAction(name, legsOnly ? 0.1 : 0.18);
+    const action = actions[name];
+    if (!action) return;
+    const native = speeds[gait] || 0;
+    if (gait === "idle" || native < 0.2) action.setEffectiveTimeScale(1);
+    else {
+      const rate = Math.abs(moveSpeed) / native;
+      action.setEffectiveTimeScale(Math.max(0.7, Math.min(2.1, rate)));
+    }
+  }
 
   function playStrike(name, fade) {
     melee = name;
-    setAction(name, fade, true, true);
     const act = actions[name];
-    if (act) act.setEffectiveTimeScale(STRIKE_RATE[name] || 1.08);
+    if (!act) return;
+    if (UPPER_STRIKE.has(name)) {
+      // Keep legs on the gait; overlay spine/arms from the punch clip.
+      act.reset();
+      act.setLoop(THREE.LoopOnce, 1);
+      act.clampWhenFinished = true;
+      act.setEffectiveWeight(1);
+      act.setEffectiveTimeScale(STRIKE_RATE[name] || 1.08);
+      act.fadeIn(fade).play();
+      return;
+    }
+    setAction(name, fade, true, true);
+    act.setEffectiveTimeScale(STRIKE_RATE[name] || 1.08);
   }
 
   function strike(kind) {
@@ -896,14 +969,6 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     }
     meleeQueue = null;
     playStrike(actions[want] ? want : "cross", 0.1);
-  }
-
-  function gaitFor(speed) {
-    const s = Math.abs(speed);
-    if (s < 0.28) return "idle";
-    if (s < 1.7) return "walk";
-    if (s < 5.2) return "jog";
-    return "run";
   }
 
   function start() {
@@ -976,10 +1041,12 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
           const next = meleeQueue;
           meleeQueue = null;
           playStrike(next, 0.16);
-        } else {
+        } else if (!UPPER_STRIKE.has(melee)) {
           setAction(melee, 0.1, true);
           act.setEffectiveTimeScale(STRIKE_RATE[melee] || 1.08);
         }
+        // Punches/crosses keep the stride; kicks still own the whole body.
+        if (UPPER_STRIKE.has(melee) && mocap) driveGait(moveSpeed, true);
       } else if (airborne && actions.jump) {
         if (!jumpLatch) {
           jumpLatch = true;
@@ -989,18 +1056,7 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         actions.jump.setEffectiveTimeScale(1.75);
       } else if (mocap) {
         if (jumpLatch) jumpLatch = false;
-        const gait = gaitFor(moveSpeed);
-        const name = actions[gait] ? gait : "walk";
-        setAction(name, 0.18);
-        const action = actions[name];
-        if (action) {
-          const native = speeds[name] || 0;
-          if (name === "idle" || native < 0.2) action.setEffectiveTimeScale(1);
-          else {
-            const rate = Math.abs(moveSpeed) / native;
-            action.setEffectiveTimeScale(Math.max(0.7, Math.min(2.1, rate)));
-          }
-        }
+        driveGait(moveSpeed, false);
       } else {
         setAction("walk");
         if (airborne) airBlend = Math.min(1, airBlend + dt * 9);
@@ -1022,7 +1078,7 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       // Walk clips re-assert the tiny FBX armature scale after mixer.update.
       normalizeImportScale(visual);
       visual.position.y = visualBaseY;
-      const gaitNow = current === "idle" || current === "walk" || current === "jog" || current === "run";
+      const gaitNow = /^(idle|walk|jog|run)(Legs)?$/.test(current || "");
       if (!mocap && current === "walk" && actions.walk) {
         pinWalkPelvis();
         const dur = actions.walk.getClip()?.duration || 1;

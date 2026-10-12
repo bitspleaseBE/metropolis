@@ -1129,7 +1129,7 @@
       import { createMinimap } from "./minimap.js";
       import { createStreetLocator } from "./street-locate.js";
       import { createOutdoorsGuard } from "./outdoors.js";
-      import { paintParkedCars, wireParkedCarLamps } from "./cars.js";
+      import { paintParkedCars, wireParkedCarLamps, hideParkedCarsOverlapping } from "./cars.js";
       import { createTouchControls, wantsTouchControls } from "./touch-controls.js";
       import { createGamepad, interactLabel } from "./gamepad.js";
       import { createDistrictBorder } from "./district-border.js";
@@ -1697,6 +1697,62 @@
         }
       }
 
+      /** Hide baked cars that sit on Velo rails, bike racks, or scooter circles. */
+      async function clearParkedCarsFromMicromobility(root, scooterCircles) {
+        const zones = { segments: [], boxes: [], circles: scooterCircles || [] };
+        const distUrl = (name) =>
+          (typeof window.districtUrl === "function" && window.districtUrl(name)) || `./${name}`;
+        try {
+          const res = await fetch(distUrl("velo.json"));
+          if (res.ok) {
+            const doc = await res.json();
+            for (const st of doc.stations || []) {
+              const yaw = st.yaw || 0;
+              const half = (st.railLength || 8) * 0.5 + 0.4;
+              const ax = Math.cos(yaw);
+              const az = -Math.sin(yaw);
+              // Street-facing local +Y in Blender → (−sin, −cos) in Three XZ after z = −y.
+              const nx = -Math.sin(yaw);
+              const nz = -Math.cos(yaw);
+              for (const pad of [0, 0.85]) {
+                const cx = st.x + nx * pad;
+                const cz = st.z + nz * pad;
+                zones.segments.push({
+                  x0: cx - ax * half,
+                  z0: cz - az * half,
+                  x1: cx + ax * half,
+                  z1: cz + az * half,
+                  pad: 2.4,
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("[metropolis] parked-car velo clear skipped", err);
+        }
+        try {
+          const res = await fetch(distUrl("props.json"));
+          if (res.ok) {
+            const doc = await res.json();
+            for (const [x, y, yaw, hl, hd] of doc.boxes || []) {
+              // Bike racks are shallow (hd ≈ 0.12); benches (0.3) are cleared too.
+              if (hd > 0.4) continue;
+              zones.boxes.push({
+                x,
+                z: -y,
+                ax: Math.cos(yaw),
+                az: -Math.sin(yaw),
+                hl,
+                hw: Math.max(hd, 0.35),
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("[metropolis] parked-car props clear skipped", err);
+        }
+        return hideParkedCarsOverlapping(root, zones, parkedCarSolids);
+      }
+
       function boxTouches(px, pz, cx, cz, ax, az, hl, hw, r) {
         const dx = px - cx;
         const dz = pz - cz;
@@ -2253,7 +2309,8 @@
           const result = velo.tryInteract({
             x: p.x,
             z: p.z,
-            yaw: playerMotion.yaw(),
+            // Leave / mount facing travel so a reverse roll does not drop the bike sideways.
+            yaw: onVelo ? playerMotion.travelYaw() : playerMotion.yaw(),
           });
           if (result.action === "take") {
             avatar.visible = false;
@@ -2960,6 +3017,8 @@
           paintParkedCars(cityRoot);
           parkedCars = wireParkedCarLamps(cityRoot, THREE);
           cityRoot.updateMatrixWorld(true);
+          // Drop cars baked onto Velo rails / bike racks before mesh merge (live district GLB).
+          await clearParkedCarsFromMicromobility(cityRoot, null);
           collectParkedCarSolids(cityRoot);
           setLoad(0.9, "Building the streets");
           await nextFrame();
@@ -3011,6 +3070,16 @@
             spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             groundAt,
           });
+          // Hide any leftover cars sitting on a step that still spawned beside them.
+          const stepCircles = (scooters?.fleet || []).map((s) => ({
+            x: s.mesh.position.x,
+            z: s.mesh.position.z,
+            r: 1.6,
+          }));
+          if (stepCircles.length) {
+            hideParkedCarsOverlapping(cityRoot, { circles: stepCircles }, parkedCarSolids);
+            collectParkedCarSolids(cityRoot);
+          }
           // Shop signs raycast the streets. They fill in after the city is on screen.
           minimap = createMinimap(THREE, {
             playBounds: playBounds || { minX: -500, maxX: 200, minZ: -800, maxZ: 100 },
@@ -3517,28 +3586,33 @@
             }
             if (!playerCrash.active && overlapSpeed >= HIT_SPEED) hitByVehicle(overlapSpeed);
             if (ridingVelo && velo.update && !playerCrash.active) {
+              // Face the bike the way you travel — reverse flips the frame with the rider.
+              const rideYaw = playerMotion.travelYaw();
               velo.update(dt, {
                 x: w.position.x,
                 z: w.position.z,
-                yaw: playerMotion.yaw(),
+                yaw: rideYaw,
                 moving: Math.abs(playerMotion.speed) > 0.05,
-                speed: playerMotion.speed,
+                // Speed along the bike's facing (always forward once yaw follows travel).
+                speed: Math.abs(playerMotion.speed),
                 pedal: playerAvatar.pedalPhase ? playerAvatar.pedalPhase() : 0,
               });
             }
             if ((onScooter || ridingVelo) && !playerCrash.active && Math.abs(playerMotion.speed) > 0.15) {
-              thirdPerson.easeYawToward(playerMotion.yaw(), dt, 3);
+              thirdPerson.easeYawToward(playerMotion.travelYaw(), dt, 3);
             }
           } else {
             playerMotion.stop();
           }
           if (scooters) {
             const w = walkControls.getObject().position;
+            const rideYaw = playerMotion.travelYaw();
             scooters.update(dt, {
               x: w.x,
               z: w.z,
-              yaw: playerMotion.yaw(),
-              speed: playerMotion.speed,
+              yaw: rideYaw,
+              // Abs once yaw follows travel so wheels roll with the deck, not against it.
+              speed: Math.abs(playerMotion.speed),
               turn: (keys.d ? 1 : 0) - (keys.a ? 1 : 0),
             });
           }
@@ -3555,14 +3629,8 @@
         // Eye sits just above the grip so the soles, not the ankles, meet the deck.
         if (scooterDeck) wPos.y = scooterDeck.y + 1.58;
         const spd = Math.abs(playerMotion.speed);
-        let bodyYaw = thirdPerson.yaw();
-        if (spd > 0.12 && mode === "walk") {
-          // Face the direction of travel (camera-relative WASD).
-          const y = thirdPerson.yaw();
-          const fx = -Math.sin(y) * playerMotion.state.fwd + Math.cos(y) * playerMotion.state.side;
-          const fz = -Math.cos(y) * playerMotion.state.fwd - Math.sin(y) * playerMotion.state.side;
-          if (fx * fx + fz * fz > 1e-6) bodyYaw = Math.atan2(-fx, -fz);
-        }
+        // Same travel heading the Velo/scooter use, so reverse turns bike and rider together.
+        let bodyYaw = spd > 0.12 && mode === "walk" ? playerMotion.travelYaw() : thirdPerson.yaw();
         const crashing = playerCrash.active;
         if (mode === "walk" || mode === "free") {
           playerAvatar.update(menuOpen || crashing ? 0 : dt, wPos, crashing ? 0 : spd, bodyYaw, moveKind, scooterDeck);

@@ -7,7 +7,9 @@ import unittest
 
 from cityview.geo import METERS_PER_DEG_LAT, meters_per_deg_lon
 from cityview.velo import (
+    MIN_ROAD_SETBACK_M,
     export_velo_for_viewer,
+    merge_survey_positions,
     plan_velo,
     seeded_bikes_available,
 )
@@ -124,6 +126,23 @@ class PlanVeloTests(unittest.TestCase):
         self.assertAlmostEqual(v["x"], plan["stations"][0]["x"])
         self.assertAlmostEqual(v["z"], -plan["stations"][0]["y"])
         self.assertEqual(v["y"], 0.0)
+
+    def test_nudges_kerb_hugging_dock_off_carriageway(self):
+        # 8 m road half-width 4; y=4.2 is only 0.2 m past the asphalt edge.
+        plan = plan_velo(_layout(), {"stations": [_station("020", 0.0, 4.2, 27)]}, ORIGIN)
+        self.assertEqual(plan["stats"]["placed"], 1)
+        self.assertGreaterEqual(plan["stats"]["nudged_to_kerb"], 1)
+        st = plan["stations"][0]
+        self.assertGreaterEqual(st["y"], 4.0 + MIN_ROAD_SETBACK_M - 0.05)
+
+    def test_merge_survey_positions_prefers_antwerp(self):
+        stations = [_station("017", 0.0, 5.0, 18)]
+        lat, lon = _ll(2.0, 6.0)
+        n = merge_survey_positions(stations, {"017": (lat, lon)})
+        self.assertEqual(n, 1)
+        self.assertAlmostEqual(stations[0]["lat"], lat, places=6)
+        self.assertAlmostEqual(stations[0]["lon"], lon, places=6)
+        self.assertEqual(stations[0]["positionSource"], "antwerp")
 
 
 if __name__ == "__main__":

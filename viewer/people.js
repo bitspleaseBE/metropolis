@@ -24,17 +24,34 @@ function dropScaleTracks(THREE, clip) {
   return new THREE.AnimationClip(clip.name, clip.duration, tracks);
 }
 
-// Looks that plausibly share a household; anything else pairs within its own look.
+// Look → household bucket. Hasidic only walks with Hasidic; Flemish/european,
+// arab/muslim, and african may share a couple or friends group.
 const CLUSTER = {
   european: "eu",
   slavic: "eu",
   mediterranean: "eu",
   african: "african",
+  african_street: "african",
   asian: "asian",
   muslim: "muslim",
   arab: "muslim",
+  arab_young: "muslim",
   hasidic: "hasidic",
 };
+
+/** Flemish, arab, and african mix; Hasidic never mixes with anyone else. */
+const STREET_MIX = new Set(["eu", "african", "muslim"]);
+
+function sharesHousehold(personOrCluster, withPersonOrCluster) {
+  const a = typeof personOrCluster === "string" ? personOrCluster : CLUSTER[personOrCluster.look] || personOrCluster.look;
+  const b =
+    typeof withPersonOrCluster === "string"
+      ? withPersonOrCluster
+      : CLUSTER[withPersonOrCluster.look] || withPersonOrCluster.look;
+  if (a === "hasidic" || b === "hasidic") return a === b;
+  if (STREET_MIX.has(a) && STREET_MIX.has(b)) return true;
+  return a === b;
+}
 
 // Always in the first batch, so the opening streets already show these households.
 const SERVICE = new Set(["Police_Male_03", "Police_Male_04"]);
@@ -225,13 +242,14 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
       const a = take((p) => adult(p) && (!look || cluster(p) === look));
       if (!a) return null;
       out.push(a);
-      const b = take((p) => adult(p) && p.sex !== a.person.sex && cluster(p) === cluster(a.person));
+      const b = take((p) => adult(p) && p.sex !== a.person.sex && sharesHousehold(p, a.person));
       if (b) out.push(b);
-      return cluster(a.person);
+      return a.person;
     };
-    const kids = (look, n) => {
+    const kids = (anchor, n) => {
+      if (!anchor) return;
       for (let i = 0; i < n; i++) {
-        const k = take((p) => child(p) && cluster(p) === look);
+        const k = take((p) => child(p) && sharesHousehold(p, anchor));
         if (k) out.push(k);
       }
     };
@@ -239,8 +257,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
       case "hasidic":
       case "muslimFamily": {
         const look = kind === "hasidic" ? "hasidic" : "muslim";
-        pair(look);
-        kids(look, 1 + ((Math.random() * (kind === "hasidic" ? 3 : 2)) | 0));
+        const parent = pair(look);
+        kids(parent, 1 + ((Math.random() * (kind === "hasidic" ? 3 : 2)) | 0));
         break;
       }
       case "family":
@@ -253,7 +271,7 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
         const a = take(adult);
         if (a) {
           out.push(a);
-          kids(cluster(a.person), 1);
+          kids(a.person, 1);
         }
         break;
       }
@@ -261,7 +279,7 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
         const a = take(grown);
         if (a) out.push(a);
         for (let i = 0; a && i < 1 + (Math.random() < 0.4 ? 1 : 0); i++) {
-          const b = take((p) => p.age === a.person.age);
+          const b = take((p) => p.age === a.person.age && sharesHousehold(p, a.person));
           if (b) out.push(b);
         }
         break;
@@ -269,21 +287,29 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
       case "seniors": {
         const a = take((p) => p.age === "senior");
         if (a) out.push(a);
-        const b = a && Math.random() < 0.6 && take((p) => p.age === "senior" || (adult(p) && p.sex !== a.person.sex));
+        const b =
+          a &&
+          Math.random() < 0.6 &&
+          take(
+            (p) =>
+              sharesHousehold(p, a.person) &&
+              (p.age === "senior" || (adult(p) && p.sex !== a.person.sex)),
+          );
         if (b) out.push(b);
         break;
       }
-      case "kids":
-        for (let i = 0; i < 2; i++) {
-          const k = take(child);
-          if (k) out.push(k);
-        }
+      case "kids": {
+        const k0 = take(child);
+        if (k0) out.push(k0);
+        const k1 = k0 && take((p) => child(p) && sharesHousehold(p, k0.person));
+        if (k1) out.push(k1);
         break;
+      }
     }
     if (!out.length) out.push(take(grown) || pick([...loaded.values()]));
-    // A household with children but no grown-up gets one.
+    // A household with children but no grown-up gets one who can walk with them.
     if (kind !== "kids" && out.every((t) => t.person.age === "child")) {
-      const a = take(adult);
+      const a = take((p) => adult(p) && sharesHousehold(p, out[0].person)) || take(adult);
       if (a) out.unshift(a);
     }
     return { kind, members: out };
