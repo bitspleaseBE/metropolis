@@ -117,6 +117,11 @@ export function createMenu(hooks) {
       <h2 id="cm-controls-title">Keyboard</h2>
       <p class="cm-controls-live" id="cm-controls-live"></p>
       <p class="cm-controls-note" id="cm-controls-note"></p>
+      <div class="cm-quality" id="cm-quality">
+        <p class="cm-eyebrow">Graphics</p>
+        <button type="button" class="cm-confirm" id="cm-quality-btn" aria-pressed="false">Quality: High</button>
+        <p class="cm-controls-note">High adds shadows, bloom and sky. Reloads the page.</p>
+      </div>
       <div class="cm-pad-actions" id="cm-pad-actions" hidden>
         <button type="button" class="cm-hid" id="cm-connect" hidden>Connect</button>
         <button type="button" class="cm-hid" id="cm-disconnect" hidden>Disconnect</button>
@@ -769,6 +774,20 @@ export function createMenu(hooks) {
     syncSound();
   });
   syncSound();
+
+  const qualityBtn = root.querySelector("#cm-quality-btn");
+  function syncQuality() {
+    const q = hooks.getQuality?.() === "low" ? "low" : "high";
+    if (!qualityBtn) return;
+    qualityBtn.textContent = q === "high" ? "Quality: High" : "Quality: Low";
+    qualityBtn.setAttribute("aria-pressed", q === "high" ? "true" : "false");
+  }
+  qualityBtn?.addEventListener("click", () => {
+    const cur = hooks.getQuality?.() === "low" ? "low" : "high";
+    const next = cur === "high" ? "low" : "high";
+    hooks.onQuality?.(next);
+  });
+  syncQuality();
 
   refreshPortrait();
   setNavSelected();
