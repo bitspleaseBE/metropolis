@@ -317,6 +317,77 @@ const TAIL_NIGHT = [1.0, 0.1, 0.08];
  * mergeStaticMeshes so it is not absorbed into a tile batch.
  * @returns {{ count: number, setNight: (t: number) => void }}
  */
+function _segDist2(px, pz, x0, z0, x1, z1) {
+  const vx = x1 - x0;
+  const vz = z1 - z0;
+  const ll = vx * vx + vz * vz || 1e-6;
+  const t = Math.max(0, Math.min(1, ((px - x0) * vx + (pz - z0) * vz) / ll));
+  const dx = px - (x0 + vx * t);
+  const dz = pz - (z0 + vz * t);
+  return dx * dx + dz * dz;
+}
+
+function _boxHits(px, pz, cx, cz, ax, az, hl, hw) {
+  const dx = px - cx;
+  const dz = pz - cz;
+  const a = dx * ax + dz * az;
+  const b = dx * -az + dz * ax;
+  return Math.abs(a) < hl && Math.abs(b) < hw;
+}
+
+/**
+ * Hide baked kerbside cars that overlap Velo rails, bike racks / benches, or parked
+ * scooters. Cars stay as Groups after wireParkedCarLamps, so this works before or after
+ * mergeStaticMeshes. Also strips matching entries from `solids` when provided.
+ *
+ * @param {import('three').Object3D} root
+ * @param {{
+ *   segments?: { x0: number, z0: number, x1: number, z1: number, pad: number }[],
+ *   boxes?: { x: number, z: number, ax: number, az: number, hl: number, hw: number }[],
+ *   circles?: { x: number, z: number, r: number }[],
+ * }} zones
+ * @param {{ pos: { x: number, z: number }, hl?: number, hw?: number }[]=} solids
+ * @returns {number} cars hidden
+ */
+export function hideParkedCarsOverlapping(root, zones, solids) {
+  const segments = zones.segments || [];
+  const boxes = zones.boxes || [];
+  const circles = zones.circles || [];
+  if (!segments.length && !boxes.length && !circles.length) return 0;
+
+  root.updateMatrixWorld(true);
+  const cars = [];
+  root.traverse((o) => {
+    const name = o.name || "";
+    if (!/^car_\d+_/.test(name) || /_body$/.test(name)) return;
+    if (o.isGroup || o.isMesh) cars.push(o);
+  });
+
+  let n = 0;
+  for (const car of cars) {
+    const e = car.matrixWorld.elements;
+    const px = e[12];
+    const pz = e[14];
+    const hits =
+      segments.some((s) => _segDist2(px, pz, s.x0, s.z0, s.x1, s.z1) < s.pad * s.pad) ||
+      boxes.some((b) => _boxHits(px, pz, b.x, b.z, b.ax, b.az, b.hl + 2.2, b.hw + 1.2)) ||
+      circles.some((c) => (px - c.x) * (px - c.x) + (pz - c.z) * (pz - c.z) < c.r * c.r);
+    if (!hits) continue;
+    car.visible = false;
+    n++;
+    if (solids) {
+      for (let i = solids.length - 1; i >= 0; i--) {
+        const s = solids[i];
+        if ((s.pos.x - px) * (s.pos.x - px) + (s.pos.z - pz) * (s.pos.z - pz) < 2.5 * 2.5) {
+          solids.splice(i, 1);
+        }
+      }
+    }
+  }
+  if (n) console.info(`[metropolis] parked cars: hid ${n} on velo / bike racks / steps`);
+  return n;
+}
+
 export function wireParkedCarLamps(root, THREE) {
   const parts = makeLampParts(THREE, []);
   const cars = [];

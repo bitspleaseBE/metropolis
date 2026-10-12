@@ -116,6 +116,40 @@ class PlanTests(unittest.TestCase):
                 key,
             )
 
+    def test_keeps_clear_of_velo_stations(self):
+        base = _plan([_road(parking=BOTH)])
+        self.assertTrue(base)
+        c0 = base[0]
+        cars = _plan(
+            [_road(parking=BOTH)],
+            velo_stations=[
+                {
+                    "x": c0["x"],
+                    "y": c0["y"],
+                    "yaw": 0.0,
+                    "railLength": 20.0,
+                    "capacity": 20,
+                }
+            ],
+        )
+        self.assertFalse(
+            any(math.hypot(c["x"] - c0["x"], c["y"] - c0["y"]) < 6.0 for c in cars),
+            "car still on the Velo rail",
+        )
+
+    def test_keeps_clear_of_bike_racks(self):
+        base = _plan([_road(parking=BOTH)])
+        self.assertTrue(base)
+        c0 = base[0]
+        cars = _plan(
+            [_road(parking=BOTH)],
+            clutter=[{"kind": "bike_rack", "x": c0["x"], "y": c0["y"], "yaw": 0.0, "hoops": 6}],
+        )
+        self.assertFalse(
+            any(math.hypot(c["x"] - c0["x"], c["y"] - c0["y"]) < 4.0 for c in cars),
+            "car still on the bike rack",
+        )
+
     def test_blocked_callback_vetoes_spots(self):
         layout = {"roads": [_road(parking=BOTH)]}
         cars = plan_parked_cars(layout, (0.0, 0.0), radius=200.0, blocked=lambda x, y: x > 0)

@@ -1,14 +1,20 @@
-"""Velo Antwerpen docking stations from the official Clear Channel GBFS feed.
+"""Velo Antwerpen docking stations from GBFS + Stad Antwerpen survey positions.
 
-Source
-------
-Clear Channel SmartBike GBFS for Antwerp (``system_id=cc_smartbike_antwerp``):
+Sources
+-------
+1. **Clear Channel SmartBike GBFS** (``system_id=cc_smartbike_antwerp``) —
+   station id, name, capacity, address:
 
-  https://gbfs.smartbike.com/antwerp/1.0/gbfs.json
-  → …/nl/station_information.json
+     https://gbfs.smartbike.com/antwerp/1.0/gbfs.json
+     → …/nl/station_information.json
 
-Station locations and capacities are authoritative. Live ``station_status`` is
-not polled — dock occupancy is seeded from ``capacity`` so CI builds stay offline.
+2. **Stad Antwerpen open data** layer ``velo`` (MapServer/57) — surveyed
+   lat/lon for each dock (``Objectcode`` VE_00000NN → station id NN). GBFS
+   points can sit a few metres into the carriageway (e.g. Groenplaats 2);
+   the city survey is preferred when the ids match.
+
+Live ``station_status`` is not polled — dock occupancy is seeded from
+``capacity`` so CI builds stay offline.
 
 OSM ``amenity=bicycle_rental`` / ``network=Velo`` nodes exist but drift and
 duplicate (e.g. two De Merode refs); they are not used for placement.
@@ -21,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -37,24 +44,32 @@ from cityview.trees import _Obstacles, _PointGrid
 STATION_INFORMATION_URL = (
     "https://gbfs.smartbike.com/antwerp/1.0/nl/station_information.json"
 )
-ALLOWED_HOSTS = frozenset({"gbfs.smartbike.com"})
+ANTWERP_VELO_LAYER = (
+    "https://geodata.antwerpen.be/arcgissql/rest/services/"
+    "P_Portal/portal_publiek1/MapServer/57/query"
+)
+ALLOWED_HOSTS = frozenset({"gbfs.smartbike.com", "geodata.antwerpen.be"})
 USER_AGENT = "metropolis/0.1 (Antwerp procedural city)"
 ATTRIBUTION = (
     "Velo Antwerpen docking stations: Clear Channel SmartBike GBFS "
-    "(https://gbfs.smartbike.com/antwerp/1.0/gbfs.json)."
+    "(https://gbfs.smartbike.com/antwerp/1.0/gbfs.json); "
+    "positions © Stad Antwerpen open data (velo layer) when available."
 )
 FETCH_PAD_DEG = 0.0004
 
 DEDUPE_M = 25.0  # same station_id should win; also collapse near-duplicates
 BUILDING_MARGIN = 0.25
-# GBFS points can sit a few metres inside OSM's nominal asphalt (survey vs. mapped width).
+# Drop only when the survey point is deep inside asphalt; shallow hits are nudged.
 ROAD_NUDGE_M = 3.5
+# Dock bikes sit ~0.76 m street-side of the rail — keep the whole dock on the pavement.
+MIN_ROAD_SETBACK_M = KERB_CLEARANCE + 0.85
 FACE_REACH_M = 18.0
 # Gameplay keeps full capacity; Blender rails size from this slot spacing.
 SLOT_SPACING_M = 0.95
 # Seeded occupancy fraction of capacity (deterministic per station id).
 OCCUPANCY_LO = 0.40
 OCCUPANCY_HI = 0.70
+_OBJECTCODE_RE = re.compile(r"VE_0*(\d+)$", re.I)
 
 
 # ---------------------------------------------------------------- fetching
@@ -117,10 +132,79 @@ def fetch_gbfs_stations(bbox: tuple[float, float, float, float]) -> list[dict[st
                 "lon": round(lon, 7),
                 "capacity": capacity,
                 "address": str(st.get("address") or ""),
+                "positionSource": "gbfs",
             }
         )
     out.sort(key=lambda s: s["id"])
     return out
+
+
+def _station_id_from_objectcode(code: str) -> str | None:
+    m = _OBJECTCODE_RE.match((code or "").strip())
+    if not m:
+        return None
+    return m.group(1).lstrip("0") or "0"
+
+
+def fetch_antwerp_positions(bbox: tuple[float, float, float, float]) -> dict[str, tuple[float, float]]:
+    """Surveyed (lat, lon) by station id from Stad Antwerpen's velo layer."""
+    south, west, north, east = bbox
+    params = urllib.parse.urlencode(
+        {
+            "where": "1=1",
+            "outFields": "Objectcode,Straatnaam,Aantal_plaatsen",
+            "returnGeometry": "true",
+            "geometryType": "esriGeometryEnvelope",
+            "geometry": json.dumps(
+                {"xmin": west, "ymin": south, "xmax": east, "ymax": north},
+                separators=(",", ":"),
+            ),
+            "inSR": "4326",
+            "spatialRel": "esriSpatialRelIntersects",
+            "outSR": "4326",
+            "f": "json",
+        }
+    )
+    doc = _http_json(f"{ANTWERP_VELO_LAYER}?{params}")
+    out: dict[str, tuple[float, float]] = {}
+    for feat in doc.get("features") or []:
+        attrs = feat.get("attributes") or {}
+        geom = feat.get("geometry") or {}
+        sid = _station_id_from_objectcode(str(attrs.get("Objectcode") or ""))
+        if not sid:
+            continue
+        try:
+            lon = float(geom["x"])
+            lat = float(geom["y"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        # Prefer zero-padded 3-digit ids to match GBFS ("017").
+        key = sid.zfill(3) if sid.isdigit() and len(sid) <= 3 else sid
+        out[key] = (lat, lon)
+        out[sid] = (lat, lon)
+    return out
+
+
+def merge_survey_positions(
+    stations: list[dict[str, Any]],
+    survey: dict[str, tuple[float, float]],
+) -> int:
+    """Overwrite GBFS lat/lon with city survey when the station id matches. Returns count."""
+    n = 0
+    for st in stations:
+        sid = str(st.get("id") or "")
+        pos = survey.get(sid) or survey.get(sid.lstrip("0") or sid)
+        if not pos:
+            continue
+        lat, lon = pos
+        if abs(float(st["lat"]) - lat) < 1e-7 and abs(float(st["lon"]) - lon) < 1e-7:
+            st["positionSource"] = "antwerp"
+            continue
+        st["lat"] = round(lat, 7)
+        st["lon"] = round(lon, 7)
+        st["positionSource"] = "antwerp"
+        n += 1
+    return n
 
 
 def fetch_velo_sources(
@@ -128,7 +212,7 @@ def fetch_velo_sources(
     cache_path: Path,
     refresh: bool = False,
 ) -> dict[str, Any]:
-    """Load (or download once and commit) the GBFS station payload for a tile."""
+    """Load (or download once and commit) GBFS stations with Antwerp survey positions."""
     cache_path = _checked_cache_path(cache_path)
     if cache_path.exists() and not refresh:
         return json.loads(cache_path.read_text())
@@ -145,11 +229,18 @@ def fetch_velo_sources(
         "fetched": time.strftime("%Y-%m-%d"),
         "stations": [],
         "errors": [],
+        "surveyMatched": 0,
     }
     try:
         payload["stations"] = fetch_gbfs_stations(padded)
     except Exception as exc:  # noqa: BLE001
         payload["errors"].append(f"gbfs: {exc}")
+    if payload["stations"]:
+        try:
+            survey = fetch_antwerp_positions(padded)
+            payload["surveyMatched"] = merge_survey_positions(payload["stations"], survey)
+        except Exception as exc:  # noqa: BLE001
+            payload["errors"].append(f"antwerp-velo: {exc}")
     if not payload["errors"] and payload["stations"]:
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         # Path confined to assets/velo/*.json by _checked_cache_path above.
@@ -173,6 +264,22 @@ def seeded_bikes_available(station_id: str, capacity: int) -> int:
     frac = OCCUPANCY_LO + (OCCUPANCY_HI - OCCUPANCY_LO) * u
     n = int(round(capacity * frac))
     return max(1, min(capacity - 1 if capacity > 1 else 1, n))
+
+
+def _clear_rail_from_road(
+    ways: _Ways, x: float, y: float, yaw: float, half_len: float
+) -> tuple[float, float, bool]:
+    """Push the station so mid and rail ends sit at least ``MIN_ROAD_SETBACK_M`` off asphalt."""
+    dx, dy = math.cos(yaw), math.sin(yaw)
+    worst = None
+    for t in (-half_len, 0.0, half_len):
+        near = ways.nearest(x + t * dx, y + t * dy, CARRIAGEWAY, FACE_REACH_M)
+        if near and (worst is None or near[0] < worst[0]):
+            worst = near
+    if not worst or worst[0] >= MIN_ROAD_SETBACK_M:
+        return x, y, False
+    push = MIN_ROAD_SETBACK_M - worst[0]
+    return x + worst[1] * push, y + worst[2] * push, True
 
 
 def plan_velo(
@@ -224,18 +331,20 @@ def plan_velo(
         if obstacles.in_building(x, y, BUILDING_MARGIN):
             stats["dropped_building"] += 1
             continue
-        road = ways.nearest(x, y, CARRIAGEWAY, 0.1)
-        if road and road[0] < 0.1:
-            depth = -road[0]
-            if depth > ROAD_NUDGE_M:
+        road = ways.nearest(x, y, CARRIAGEWAY, FACE_REACH_M)
+        if road:
+            edge, nx, ny, _ = road
+            # Deep inside asphalt → drop; shallow / kerb-hugging → push onto the pavement.
+            if edge < 0 and -edge > ROAD_NUDGE_M:
                 stats["dropped_carriageway"] += 1
                 continue
-            push = depth + KERB_CLEARANCE
-            x, y = x + road[1] * push, y + road[2] * push
-            stats["nudged_to_kerb"] += 1
-            if obstacles.in_building(x, y, BUILDING_MARGIN) or grid.near(x, y, DEDUPE_M):
-                stats["dropped_carriageway"] += 1
-                continue
+            if edge < MIN_ROAD_SETBACK_M:
+                push = MIN_ROAD_SETBACK_M - edge
+                x, y = x + nx * push, y + ny * push
+                stats["nudged_to_kerb"] += 1
+                if obstacles.in_building(x, y, BUILDING_MARGIN) or grid.near(x, y, DEDUPE_M):
+                    stats["dropped_carriageway"] += 1
+                    continue
         if obstacles.on_rails(x, y, CLEAR_FURNITURE):
             stats["dropped_rail"] += 1
             continue
@@ -249,6 +358,18 @@ def plan_velo(
         capacity = max(1, int(st.get("capacity") or 20))
         bikes = seeded_bikes_available(sid, capacity)
         rail_len = max(4.0, (capacity - 1) * SLOT_SPACING_M + 1.2)
+        yaw = _yaw_from_facing(fx, fy)
+        # Long rails can still clip the asphalt at the ends — keep the whole dock clear.
+        x, y, end_nudge = _clear_rail_from_road(ways, x, y, yaw, rail_len * 0.5)
+        if end_nudge:
+            stats["nudged_to_kerb"] += 1
+            near = ways.nearest(x, y, CARRIAGEWAY, FACE_REACH_M)
+            if near:
+                fx, fy = -near[1], -near[2]
+                yaw = _yaw_from_facing(fx, fy)
+            if obstacles.in_building(x, y, BUILDING_MARGIN) or obstacles.on_rails(x, y, CLEAR_FURNITURE):
+                stats["dropped_carriageway"] += 1
+                continue
         grid.add(x, y)
         out.append(
             {
@@ -257,13 +378,13 @@ def plan_velo(
                 "address": str(st.get("address") or ""),
                 "x": round(x, 3),
                 "y": round(y, 3),
-                "yaw": round(_yaw_from_facing(fx, fy), 4),
+                "yaw": round(yaw, 4),
                 "capacity": capacity,
                 "bikesAvailable": bikes,
                 "railLength": round(rail_len, 2),
                 "slotSpacing": SLOT_SPACING_M,
                 "rule": rule,
-                "source": "gbfs",
+                "source": st.get("positionSource") or "gbfs",
             }
         )
         stats["placed"] += 1

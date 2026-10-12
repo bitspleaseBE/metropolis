@@ -83,7 +83,8 @@
         Jog: { speed: MOVE.walk.speed },
         Run: { speed: MOVE.walk.speed * MOVE.walk.boost },
         Jump: { speed: JUMP.hop, jump: true },
-        Punch: { speed: 0, strike: "punch" },
+        // Punch overlays the upper body on the gait — keep moving so legs stay in stride.
+        Punch: { speed: MOVE.walk.speed * MOVE.walk.boost * 0.9, strike: "punch" },
         Kick: { speed: 0, strike: "kick" },
         Velo: { speed: MOVE.velo.speed * 0.75, kind: "velo" },
         Step: { speed: MOVE.scooter.speed * 0.75, kind: "scooter" },

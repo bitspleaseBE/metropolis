@@ -59,6 +59,15 @@ export function createPlayerMotion(THREE, playerObject, getYaw, setYaw) {
     return getYaw();
   }
 
+  /** Facing along the direction of travel (flips ~π when you roll backwards). */
+  function travelYaw() {
+    const y = getYaw();
+    const fx = -Math.sin(y) * state.fwd + Math.cos(y) * state.side;
+    const fz = -Math.cos(y) * state.fwd - Math.sin(y) * state.side;
+    if (fx * fx + fz * fz > 1e-6) return Math.atan2(-fx, -fz);
+    return y;
+  }
+
   /**
    * Integrate one frame. `keys` = { w, a, s, d, shift }. Returns how far the player moved
    * so callers can animate wheels / footsteps.
@@ -125,6 +134,7 @@ export function createPlayerMotion(THREE, playerObject, getYaw, setYaw) {
   return {
     state,
     yaw,
+    travelYaw,
     step,
     bump,
     hop,
