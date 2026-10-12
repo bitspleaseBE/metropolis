@@ -2276,6 +2276,9 @@
         if (!drop) return;
         walkControls.getObject().position.set(drop.x, eyeHeight, drop.z);
         clampWalkerXZ(walkControls.getObject().position);
+        // Back on foot: show the cast again (hidden for the whole ride).
+        playerAvatar.setVisible(true);
+        thirdPerson.snap(walkControls.getObject().position);
         rideEl.style.display = "none";
         promptEl.style.display = "none";
         hint.textContent = hintFor("walkShort");
@@ -2356,8 +2359,9 @@
         if (handleScooterE(p)) return;
         const result = transit.tryInteract({ x: p.x, z: p.z });
         if (result.action === "board") {
-          if (walkControls.isLocked) walkControls.unlock();
-          avatar.visible = false;
+          // Stay pointer-locked: unlock() fires pointerlockchange → pause menu.
+          // Mouse look is already gated off while transit.isRiding().
+          playerAvatar.setVisible(false);
           rideEl.style.display = "block";
           rideLine.textContent = `${result.mode === "bus" ? "Bus" : "Tram"} ${result.line}`;
           rideNext.textContent = `Next halt: ${result.nextHalt}`;
@@ -2505,7 +2509,14 @@
           if (!(touch && touch.isActive()) && !menu.open) document.body.classList.remove("locked");
           for (const fn of lockListeners.unlock) fn();
           // Esc often exits pointer lock — open the poster when a session is running.
-          if (sessionStarted && mode === "walk" && !menu.open && !TOUCH) {
+          // Skip while on a tram/bus: boarding used to unlock and dump you into the menu.
+          if (
+            sessionStarted &&
+            mode === "walk" &&
+            !menu.open &&
+            !TOUCH &&
+            !(transit.isRiding && transit.isRiding())
+          ) {
             menu.show();
           }
         }
@@ -3668,8 +3679,13 @@
         let bodyYaw = spd > 0.12 && mode === "walk" ? playerMotion.travelYaw() : thirdPerson.yaw();
         const crashing = playerCrash.active;
         if (mode === "walk" || mode === "free") {
-          playerAvatar.update(menuOpen || crashing ? 0 : dt, wPos, crashing ? 0 : spd, bodyYaw, moveKind, scooterDeck);
-          playerAvatar.setVisible(!crashing);
+          if (ridingTram) {
+            // First-person cabin ride: keep the body off the platform (update() forces visible).
+            playerAvatar.setVisible(false);
+          } else {
+            playerAvatar.update(menuOpen || crashing ? 0 : dt, wPos, crashing ? 0 : spd, bodyYaw, moveKind, scooterDeck);
+            playerAvatar.setVisible(!crashing);
+          }
         }
         if (crashing) {
           // First-person tumble: the boom would fight the fall camera.
