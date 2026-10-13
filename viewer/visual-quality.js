@@ -11,7 +11,6 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
-import { Sky } from "three/addons/objects/Sky.js";
 
 const QUALITY_KEY = "metropolis-quality";
 const SHADOW_EXTENT = 48;
@@ -432,8 +431,6 @@ export function createVisualQuality(opts) {
     // Keep the painted canvas gradient (index.html) and the sun disc; HDRI handles IBL.
     if (opts.sunMesh) opts.sunMesh.visible = true;
     if (opts.sunHaze) opts.sunHaze.visible = true;
-    sky = null;
-    skyUniforms = null;
   }
 
   function bakeSkyEnv(_hour, _force = false) {
@@ -493,7 +490,6 @@ export function createVisualQuality(opts) {
       lastEnvKey = key;
       if (key === "night" && nightEnv) scene.environment = nightEnv;
       else if (dayEnv) scene.environment = dayEnv;
-      else if (skyEnv) scene.environment = skyEnv;
     }
     const intensity = key === "night" ? 0.7 : key === "dusk" ? 0.85 : 1.0;
     scene.environmentIntensity = intensity;
