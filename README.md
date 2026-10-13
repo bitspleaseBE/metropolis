@@ -86,6 +86,8 @@ Presets live in `scenes/antwerp_places.json`. Other OSM downloads cache under `a
 
 ## District pipeline
 
+How the generator, Blender, viewer, walkability check, and custom buildings fit together: **[`docs/city-pipeline.md`](docs/city-pipeline.md)**.
+
 Each modelled area is a package under [`districts/<id>/`](districts/) (caches, facades, landmarks) with a viewer export in [`viewer/districts/<id>/`](viewer/districts/). Facades are never shared between districts.
 
 ```bash

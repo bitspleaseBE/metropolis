@@ -1426,12 +1426,15 @@ def export_buildings_near_spawn(
     """Building footprint rings near spawn for runtime outdoors collision.
 
     Viewer keeps the walker outside these rings (solid extruded boxes have no
-    interiors). Rings use the same Blender XY as roads.json.
+    interiors). Courtyard holes are walkable. Underground masses, canopies and
+    open pavilions are omitted. Rings use the same Blender XY as roads.json.
     """
     sx = float(spawn["x"]) if spawn else 0.0
     sy = float(spawn["y"]) if spawn else 0.0
     scored: list[tuple[float, dict[str, Any]]] = []
     for bldg in layout.get("buildings") or []:
+        if bldg.get("walker_solid") is False:
+            continue
         ring = bldg.get("ring") or []
         if len(ring) < 3:
             continue
@@ -1439,15 +1442,15 @@ def export_buildings_near_spawn(
         dmin = min(_dist(sx, sy, p[0], p[1]) for p in pts)
         if dmin > radius:
             continue
-        scored.append(
-            (
-                dmin,
-                {
-                    "id": bldg.get("id"),
-                    "ring": pts,
-                },
-            )
-        )
+        entry: dict[str, Any] = {"id": bldg.get("id"), "ring": pts}
+        holes = []
+        for hole in bldg.get("holes") or []:
+            if len(hole) < 3:
+                continue
+            holes.append([[float(p[0]), float(p[1])] for p in hole])
+        if holes:
+            entry["holes"] = holes
+        scored.append((dmin, entry))
     scored.sort(key=lambda item: item[0])
     return {
         "spawn": {"x": sx, "y": sy},

@@ -62,6 +62,7 @@ from cityview.streetscape import (
 )
 from cityview.trees import attach_trees, summarize as summarize_trees
 from cityview.velo import attach_velo, export_velo_for_viewer, summarize as summarize_velo
+from cityview.walkability import check_viewer_walkability
 
 
 def _sha256_file(path: Path) -> str:
@@ -818,9 +819,12 @@ def district_check(district_id: str, *, run_sims: bool = True) -> list[str]:
             if sx is not None and sy is not None:
                 for b in bdoc.get("buildings") or []:
                     ring = b.get("ring") or b.get("points") or []
-                    if _point_in_local_ring(sx, sy, ring):
-                        errors.append("spawn sits inside a building footprint")
-                        break
+                    if not _point_in_local_ring(sx, sy, ring):
+                        continue
+                    if any(_point_in_local_ring(sx, sy, h) for h in b.get("holes") or []):
+                        continue
+                    errors.append("spawn sits inside a building footprint")
+                    break
     else:
         errors.append("missing spawn.json")
 
@@ -862,6 +866,21 @@ def district_check(district_id: str, *, run_sims: bool = True) -> list[str]:
                     errors.append(f"missing landmark GLB for streamed id {lid}")
 
     errors.extend(assert_facades_unique(district_id))
+
+    osm_doc: dict[str, Any] = {}
+    if paths.osm_cache.exists():
+        try:
+            osm_doc = json.loads(paths.osm_cache.read_text())
+        except json.JSONDecodeError:
+            osm_doc = {}
+    origin = tuple(doc.get("origin") or (0.0, 0.0))
+    errors.extend(
+        check_viewer_walkability(
+            paths.viewer,
+            osm=osm_doc or None,
+            origin=origin if origin != (0.0, 0.0) else None,
+        )
+    )
 
     shops_path = paths.viewer / "shops.json"
     if shops_path.exists():

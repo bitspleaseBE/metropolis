@@ -15,11 +15,14 @@ kind                   OSM tags                   height     section
 
 ``height=*`` (metres) and ``material=*`` are honoured when mapped (brick / concrete / stone /
 render; unmapped walls get a neutral render colour, never a random brick-or-not guess).
-Gates, underground / tunnel ways and anything not a plain line are skipped.
+Gates, underground / tunnel ways and anything not a plain line are skipped. Gate *nodes*
+and stretches that cross a footway / square still cut a gap in the collider so the
+walker can enter parks and plazas; the mesh may show posts there, the solid must not.
 
 Each way is walked in ``STEP_M`` samples and only the stretches that are actually visible
 survive: not inside (or hugging, ``BUILDING_MARGIN``) a building footprint, where the wall
-is just the party wall already modelled; not on a carriageway; not on a tram bed. Contiguous
+is just the party wall already modelled; not on a carriageway or the kerb-side pavement
+strip beside it (a property-line hedge must not seal the sidewalk); not on a tram bed. Contiguous
 surviving samples are emitted as one straight run so a wall that crosses a house is split
 into the two stretches either side of it, not drawn through the roof.
 
@@ -35,7 +38,9 @@ from typing import Any
 from cityview.benches import CARRIAGEWAY, _Ways
 from cityview.geo import project
 from cityview.railclear import CLEAR_FURNITURE
+from cityview.streetscape import SIDEWALK_HOST_KINDS, SIDEWALK_W
 from cityview.trees import _Obstacles
+from cityview.walkability import GATE_CLEAR_M, walker_gate_from_tags
 
 ATTRIBUTION = "Walls, hedges and fences: (c) OpenStreetMap contributors (ODbL)."
 
@@ -50,6 +55,9 @@ BUILDING_MARGIN = 0.3  # a wall this close to a footprint is the building's own 
 MIN_RUN_M = 0.8  # drop slivers shorter than this
 DETAIL_RADIUS_M = 450.0
 DETAIL_KINDS = frozenset({"hedge", "fence"})
+# Footways / squares are not carriageways, but a fence that crosses one is a gate.
+WALK_CUT_KINDS = frozenset({"footway", "path", "pedestrian", "steps", "cycleway", "living_street"})
+WALK_CUT_MARGIN = 0.35  # metres past the path edge that still opens a gap
 # Neutral stand-ins for ``material=*``; unmapped walls use ``render``.
 MATERIALS = {
     "brick": "brick",
@@ -78,6 +86,22 @@ def classify(tags: dict[str, str]) -> str | None:
     except ValueError:
         pass
     return kind
+
+
+def osm_gates(osm: dict[str, Any] | None, origin: tuple[float, float]) -> list[tuple[float, float]]:
+    """Mapped barrier=gate (and similar) nodes in local metres — collider openings."""
+    out: list[tuple[float, float]] = []
+    for el in (osm or {}).get("elements") or []:
+        if el.get("type") != "node":
+            continue
+        tags = {k: str(v) for k, v in (el.get("tags") or {}).items()}
+        if not walker_gate_from_tags(tags):
+            continue
+        try:
+            out.append(project(float(el["lat"]), float(el["lon"]), origin[0], origin[1]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
 
 
 def parse_height(tags: dict[str, str], kind: str) -> float:
@@ -134,12 +158,32 @@ def _walk(ax: float, ay: float, bx: float, by: float) -> list[tuple[float, float
     return [(i / n, ax + (bx - ax) * i / n, ay + (by - ay) * i / n) for i in range(n + 1)]
 
 
+def _gate_grid(gates: list[tuple[float, float]], cell: float = 8.0) -> dict[tuple[int, int], list[tuple[float, float]]]:
+    grid: dict[tuple[int, int], list[tuple[float, float]]] = {}
+    for x, y in gates:
+        grid.setdefault((int(math.floor(x / cell)), int(math.floor(y / cell))), []).append((x, y))
+    return grid
+
+
+def _near_gate(grid: dict[tuple[int, int], list[tuple[float, float]]], x: float, y: float, reach: float, cell: float = 8.0) -> bool:
+    gx, gy = int(math.floor(x / cell)), int(math.floor(y / cell))
+    span = 1
+    r2 = reach * reach
+    for ix in range(gx - span, gx + span + 1):
+        for iy in range(gy - span, gy + span + 1):
+            for px, py in grid.get((ix, iy), ()):
+                if (px - x) * (px - x) + (py - y) * (py - y) <= r2:
+                    return True
+    return False
+
+
 def plan_barriers(
     layout: dict[str, Any],
     items: list[dict[str, Any]],
     origin: tuple[float, float],
     bbox: tuple[float, float, float, float] | None = None,
     spawn_xy: tuple[float, float] | None = None,
+    gates: list[tuple[float, float]] | None = None,
 ) -> dict[str, Any]:
     """Return ``{"barriers": [...], "stats": {...}}`` with straight runs in local metres.
 
@@ -147,8 +191,21 @@ def plan_barriers(
     """
     obstacles = _Obstacles(layout)
     ways = _Ways(layout)
+    gate_cells = _gate_grid(gates or [])
     stats: dict[str, Any] = {k: 0 for k in KINDS}
-    stats.update({"metres": 0.0, "dropped_building": 0, "dropped_carriageway": 0, "dropped_rail": 0, "dropped_outside": 0, "dropped_far": 0})
+    stats.update(
+        {
+            "metres": 0.0,
+            "dropped_building": 0,
+            "dropped_carriageway": 0,
+            "dropped_path": 0,
+            "dropped_sidewalk": 0,
+            "dropped_gate": 0,
+            "dropped_rail": 0,
+            "dropped_outside": 0,
+            "dropped_far": 0,
+        }
+    )
     if bbox is not None:
         x_lo, y_lo = project(bbox[0], bbox[1], origin[0], origin[1])
         x_hi, y_hi = project(bbox[2], bbox[3], origin[0], origin[1])
@@ -173,12 +230,21 @@ def plan_barriers(
                     reason = "dropped_far"
                 elif obstacles.in_building(x, y, BUILDING_MARGIN):
                     reason = "dropped_building"
+                elif _near_gate(gate_cells, x, y, GATE_CLEAR_M):
+                    reason = "dropped_gate"
                 else:
                     road = ways.nearest(x, y, CARRIAGEWAY, 0.0)
                     if road and road[0] < 0.0:
                         reason = "dropped_carriageway"
-                    elif obstacles.on_rails(x, y, CLEAR_FURNITURE):
-                        reason = "dropped_rail"
+                    else:
+                        walk = ways.nearest(x, y, WALK_CUT_KINDS, WALK_CUT_MARGIN)
+                        kerb = ways.nearest(x, y, SIDEWALK_HOST_KINDS, SIDEWALK_W)
+                        if walk and walk[0] < WALK_CUT_MARGIN:
+                            reason = "dropped_path"
+                        elif kerb and kerb[0] < SIDEWALK_W:
+                            reason = "dropped_sidewalk"
+                        elif obstacles.on_rails(x, y, CLEAR_FURNITURE):
+                            reason = "dropped_rail"
                 if reason is None:
                     if run_start is None:
                         run_start = (x, y)
@@ -217,7 +283,7 @@ def attach_barriers(
     spawn_xy: tuple[float, float] | None = None,
 ) -> dict[str, Any]:
     """Plan OSM walls / hedges / fences and store them on ``layout`` (OSM already loaded)."""
-    plan = plan_barriers(layout, osm_barriers(osm), origin, bbox, spawn_xy)
+    plan = plan_barriers(layout, osm_barriers(osm), origin, bbox, spawn_xy, osm_gates(osm, origin))
     layout["barriers"] = plan["barriers"]
     layout["barrier_stats"] = plan["stats"]
     return plan

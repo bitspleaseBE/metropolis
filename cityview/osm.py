@@ -34,6 +34,7 @@ from cityview.streetscape import (
     roof_shape_for,
     safe_roof_shape,
 )
+from cityview.walkability import walker_solid_from_tags
 
 OVERPASS_URLS = (
     "https://overpass.private.coffee/api/interpreter",
@@ -868,6 +869,7 @@ def _make_building(
         "style": btype,
         "name": name,
         "osm_building": tags.get("building") or "",
+        "walker_solid": walker_solid_from_tags(tags),
         "_tags": dict(tags),
     }
     if use:
@@ -1361,6 +1363,7 @@ def layout_from_osm(
                 bldg["roof_shape"] = safe_roof_shape(
                     roof_shape_for(tags, btype, osm_id), bldg["ring"]
                 )
+            bldg["walker_solid"] = walker_solid_from_tags(tags)
         attach_landmark(bldg, manifest, origin)
         finalized.append(bldg)
         final_tags.append(tags)
