@@ -2305,6 +2305,14 @@ def make_landmark_materials(surface_mat_fn, church_mats: dict) -> dict:
         "frame_dark": (principled("lm_frame_dark", (0.09, 0.09, 0.09, 1.0), 0.6, metallic=0.3), 2.0),
         "iron": (principled("lm_iron", (0.06, 0.07, 0.065, 1.0), 0.5, metallic=0.6), 2.0),
         "gold": (principled("lm_gold", (0.78, 0.6, 0.22, 1.0), 0.35, metallic=1.0), 2.0),
+        "bronze": (principled("lm_bronze", (0.13, 0.22, 0.18, 1.0), 0.5, metallic=0.5), 2.0),
+        "stone_rose": (principled("lm_stone_rose", (0.43, 0.3, 0.26, 1.0), 0.85), 2.0),
+        "rock": (principled("lm_rock", (0.07, 0.065, 0.06, 1.0), 0.7), 2.0),
+        "cloth_red": (principled("lm_cloth_red", (0.62, 0.05, 0.06, 1.0), 0.9), 2.0),
+        "cloth_yellow": (principled("lm_cloth_yellow", (0.9, 0.7, 0.08, 1.0), 0.9), 2.0),
+        "cloth_blue": (principled("lm_cloth_blue", (0.05, 0.16, 0.5, 1.0), 0.9), 2.0),
+        "cloth_white": (principled("lm_cloth_white", (0.88, 0.88, 0.86, 1.0), 0.9), 2.0),
+        "cloth_green": (principled("lm_cloth_green", (0.05, 0.4, 0.18, 1.0), 0.9), 2.0),
         "door": (principled("lm_door", (0.13, 0.07, 0.04, 1.0), 0.8), 2.0),
         "canopy": (principled("lm_canopy", (0.84, 0.82, 0.74, 1.0), 0.8), 2.0),
         "water": (principled("lm_water", (0.07, 0.11, 0.12, 1.0), 0.08), 2.0),
@@ -4420,11 +4428,9 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
         velo_red = (0.75294, 0.00182, 0.00651, 1.0)
         velo_mats = {
             "metal": principled("velo_dock_metal", (0.08, 0.08, 0.09, 1.0), 0.45),
-            "frame": principled("velo_frame_red", velo_red, 0.38),
-            "silver": principled("velo_silver", (0.75, 0.76, 0.78, 1.0), 0.32, metallic=0.85),
-            "mudguard": principled("velo_mudguard", (0.94, 0.93, 0.90, 1.0), 0.7),
-            "tire": principled("velo_tire", (0.08, 0.08, 0.08, 1.0), 0.95),
             "signal_red": principled("velo_accent_red", velo_red, 0.38),
+            "screen": principled("velo_dock_screen", (0.08, 0.08, 0.08, 1.0), 0.95),
+            "panel": principled("velo_dock_panel", (0.94, 0.93, 0.90, 1.0), 0.7),
         }
         velo_stats = velo_blender.add_velo_stations(layout, RAILS, velo_mats)
         print(f"Velo docks (GBFS stations): {velo_stats}")
