@@ -112,7 +112,7 @@ export function createTerraces(scene, THREE, records, opts = {}) {
     solids.length = 0;
     for (const site of sites) {
       const out = site.r.open === true;
-      if (out) for (const t of site.tables) solids.push([t.x, t.z, 0.75]);
+      if (out) for (const t of site.tables) solids.push([t.x, t.z, 0.48]);
       const yaw = Math.atan2(site.r.nx, site.r.nz);
       site.tables.forEach((t, i) => {
         const jit = (hash(site.r.id * 31 + i) - 0.5) * 0.5;

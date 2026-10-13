@@ -154,6 +154,7 @@ class OsmLayoutTests(unittest.TestCase):
         self.assertEqual(bldg["building_type"], "supermarket")
         self.assertEqual(bldg.get("brand_key"), "aldi")
         self.assertEqual(bldg.get("name"), "ALDI")
+        self.assertTrue(bldg.get("walker_solid"))
 
     def test_join_pois_helper(self):
         buildings = [
