@@ -1818,7 +1818,7 @@
               // Street-facing local +Y in Blender → (−sin, −cos) in Three XZ after z = −y.
               const nx = -Math.sin(yaw);
               const nz = -Math.cos(yaw);
-              for (const pad of [0, 0.85]) {
+              for (const pad of [0, 0.85, 1.4]) {
                 const cx = st.x + nx * pad;
                 const cz = st.z + nz * pad;
                 zones.segments.push({

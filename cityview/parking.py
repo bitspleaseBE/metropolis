@@ -58,8 +58,8 @@ SIGNAL_CLEAR_M = 12.0
 STOP_CLEAR_M = 14.0
 # Keep-out around trees / benches / clutter (bike-rack hoops are sampled along the rack).
 FURNITURE_CLEAR_M = HALF_WID + 1.1
-# Velo rail + docked-bike depth (SLOT_PAD ≈ 0.76): cars must not sit on the rail or bikes.
-VELO_CLEAR_M = HALF_WID + 1.5
+# Velo rail + docked velo.glb depth (BB ~1.14 m street-side, rear wheel ~1.58 m).
+VELO_CLEAR_M = HALF_WID + 1.8
 HOOP_SPACING_M = 0.8  # matches cityview.clutter / clutter_blender
 CAR_SPACING_M = 4.8  # centre-to-centre floor between any two parked cars
 KERB_LIFT_M = 0.12  # pavement top: cars parked fully on the kerb ride up onto it
@@ -226,9 +226,9 @@ def plan_parked_cars(
         yaw = float(st.get("yaw") or 0.0)
         half = max(2.0, float(st.get("railLength") or 8.0) * 0.5)
         ax, ay = math.cos(yaw), math.sin(yaw)
-        # Street-facing local +Y (docked bike centres sit ~0.76 m off the rail).
+        # Street-facing local +Y (docked Velo BB sits ~1.14 m off the rail).
         nx, ny = -math.sin(yaw), math.cos(yaw)
-        for offset in (0.0, 0.8):
+        for offset in (0.0, 0.8, 1.4):
             ox, oy = cx + nx * offset, cy + ny * offset
             velo_segs.append(([ox - ax * half, oy - ay * half], [ox + ax * half, oy + ay * half]))
 
