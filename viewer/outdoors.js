@@ -1,7 +1,8 @@
 /**
  * Keep the walker outdoors: building footprints (empty extruded boxes) are
- * solid volumes with no interior. Rings come from buildings.json (Blender XY);
- * Three.js uses z = -y, same as roads.json / street-locate.js.
+ * solid volumes with no interior. Courtyard holes in buildings.json are
+ * walkable. Rings come from buildings.json (Blender XY); Three.js uses
+ * z = -y, same as roads.json / street-locate.js.
  */
 
 import { fetchJsonCached } from "./json-cache.js";
@@ -53,9 +54,7 @@ export async function createOutdoorsGuard(_opts = {}) {
     const res = await fetchJsonCached("./buildings.json");
     if (res.ok) {
       const data = await res.json();
-      for (const b of data.buildings || []) {
-        const pts = b.ring || [];
-        if (pts.length < 3) continue;
+      const ringFrom = (pts) => {
         const ring = new Float32Array(pts.length * 2);
         let minX = Infinity;
         let maxX = -Infinity;
@@ -73,7 +72,17 @@ export async function createOutdoorsGuard(_opts = {}) {
           if (z < minZ) minZ = z;
           if (z > maxZ) maxZ = z;
         }
-        buildings.push({ minX, maxX, minZ, maxZ, ring });
+        return { minX, maxX, minZ, maxZ, ring };
+      };
+      for (const b of data.buildings || []) {
+        const pts = b.ring || [];
+        if (pts.length < 3) continue;
+        const outer = ringFrom(pts);
+        const holes = [];
+        for (const hole of b.holes || []) {
+          if ((hole || []).length >= 3) holes.push(ringFrom(hole).ring);
+        }
+        buildings.push({ ...outer, holes });
       }
     }
   } catch {
@@ -111,7 +120,15 @@ export async function createOutdoorsGuard(_opts = {}) {
   function insideBuilding(x, z) {
     for (const b of buildings) {
       if (x < b.minX || x > b.maxX || z < b.minZ || z > b.maxZ) continue;
-      if (pointInRing(x, z, b.ring)) return true;
+      if (!pointInRing(x, z, b.ring)) continue;
+      let inHole = false;
+      for (const hole of b.holes || []) {
+        if (pointInRing(x, z, hole)) {
+          inHole = true;
+          break;
+        }
+      }
+      if (!inHole) return true;
     }
     return false;
   }

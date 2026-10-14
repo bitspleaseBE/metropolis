@@ -517,7 +517,7 @@ export async function createVelo(scene, THREE) {
     pos: { x: st.x, z: st.z },
     tan: { x: Math.cos(st.yaw), z: -Math.sin(st.yaw) },
     hl: (st.railLength || 8) * 0.5 + 0.3,
-    hw: 1.85,
+    hw: 0.45,
   }));
 
   function setNight(glow) {
