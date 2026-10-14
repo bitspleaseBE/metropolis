@@ -106,6 +106,12 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   let clipLoads = { ride: null, scooter: null };
   /** @type {null | { lUpper: object, lFore: object, lHand: object, rUpper: object, rFore: object, rHand: object }} */
   let armBones = null;
+  /** Clavicle / Mixamo shoulder bones — ride clips roll these; we hold the bind on wheels. */
+  /** @type {null | { l: object, r: object }} */
+  let clavBones = null;
+  /** Bind local quats for clavicles + upper arms, captured once per rig. */
+  /** @type {{ bone: object, q: import("three").Quaternion }[]} */
+  let shoulderBind = [];
   /** @type {null | { lThigh: object, rThigh: object, lCalf: object, rCalf: object, spine: object, head: object }} */
   let bodyBones = null;
   let airBlend = 0;
@@ -364,6 +370,10 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       rFore: findNamed(rig, "Bip01_R_Forearm", "Bip01 R Forearm", "RightForeArm", "mixamorigRightForeArm"),
       rHand: findNamed(rig, "Bip01_R_Hand", "Bip01 R Hand", "RightHand", "mixamorigRightHand"),
     };
+    clavBones = {
+      l: findNamed(rig, "Bip01_L_Clavicle", "Bip01 L Clavicle", "LeftShoulder", "mixamorigLeftShoulder"),
+      r: findNamed(rig, "Bip01_R_Clavicle", "Bip01 R Clavicle", "RightShoulder", "mixamorigRightShoulder"),
+    };
     bodyBones = {
       lThigh: findNamed(rig, "Bip01_L_Thigh", "Bip01 L Thigh", "LeftUpLeg", "mixamorigLeftUpLeg"),
       rThigh: findNamed(rig, "Bip01_R_Thigh", "Bip01 R Thigh", "RightUpLeg", "mixamorigRightUpLeg"),
@@ -377,6 +387,20 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       head: findNamed(rig, "Bip01_Head", "Bip01 Head", "Head", "mixamorigHead"),
       pelvis: findNamed(rig, "Bip01_Pelvis", "Bip01 Pelvis", "Pelvis", "mixamorigHips"),
     };
+    // Ride clips key spine + UpperArm (Rocketbox) / Shoulder+Arm (Mixamo). Holding the
+    // bind before lean+IK keeps the fold a pure pitch — clip twist rolls one deltoid.
+    shoulderBind = [];
+    for (const bone of [
+      clavBones.l,
+      clavBones.r,
+      armBones.lUpper,
+      armBones.rUpper,
+      bodyBones.spine,
+      bodyBones.spine1,
+      bodyBones.spine2,
+    ]) {
+      if (bone) shoulderBind.push({ bone, q: bone.quaternion.clone() });
+    }
     headReady = false;
     headBindReady = false;
     airPoseSaved = false;
@@ -559,6 +583,52 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     }
   }
 
+  /** Drop the clip's spine twist and shoulder roll so lean + bar IK start square. */
+  function stabilizeRideShoulders() {
+    for (const { bone, q } of shoulderBind) {
+      bone.quaternion.copy(q);
+      // Clear leanToBars' undo cache — we replaced the mixer pose it would restore.
+      if (bone.userData) {
+        bone.userData.leanIn = null;
+        bone.userData.leanOut = null;
+      }
+    }
+    if (shoulderBind.length) root.updateMatrixWorld(true);
+  }
+
+  /**
+   * After lean + bar IK the clip/IK often leave one deltoid high or forward.
+   * Tip the top spine so the shoulder line is level and square to travel, then
+   * the next grip pass puts the hands back on the bars from a square chest.
+   */
+  function levelRideShoulders(yaw) {
+    const spine = bodyBones?.spine2 || bodyBones?.spine1;
+    if (!spine?.parent || !armBones?.lUpper || !armBones?.rUpper) return;
+    const fx = -Math.sin(yaw);
+    const fz = -Math.cos(yaw);
+    armBones.lUpper.getWorldPosition(_spreadL);
+    armBones.rUpper.getWorldPosition(_spreadA);
+    const span = Math.max(0.2, Math.hypot(_spreadA.x - _spreadL.x, _spreadA.z - _spreadL.z));
+    const dy = _spreadA.y - _spreadL.y;
+    const dFwd = (_spreadA.x - _spreadL.x) * fx + (_spreadA.z - _spreadL.z) * fz;
+    if (Math.abs(dy) < 0.008 && Math.abs(dFwd) < 0.008) return;
+    spine.getWorldQuaternion(_ikWorldQ);
+    // Roll about forward: positive dy ⇒ right high ⇒ roll left.
+    if (Math.abs(dy) >= 0.008) {
+      _leanAxis.set(fx, 0, fz);
+      _ikQ.setFromAxisAngle(_leanAxis, -Math.atan2(dy, span) * 0.9);
+      _ikWorldQ.premultiply(_ikQ);
+    }
+    // Yaw about up: positive dFwd ⇒ right shoulder ahead ⇒ turn chest left.
+    if (Math.abs(dFwd) >= 0.008) {
+      _ikQ.setFromAxisAngle(_worldUp, -Math.atan2(dFwd, span) * 0.9);
+      _ikWorldQ.premultiply(_ikQ);
+    }
+    spine.parent.getWorldQuaternion(_ikParentQ);
+    spine.quaternion.copy(_ikParentQ.invert().multiply(_ikWorldQ));
+    spine.updateMatrixWorld(true);
+  }
+
   function polishRideGrips(kind, yaw, deck = null) {
     if (!armBones || (kind !== "velo" && kind !== "scooter")) return;
     const cfg = kind === "scooter" && deck ? GRIP.scooterOnDeck : GRIP[kind];
@@ -570,13 +640,18 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     }
     gripTarget(_gripL, yaw, -1, cfg);
     gripTarget(_gripR, yaw, 1, cfg);
-    if (kind === "scooter" && barHands) {
-      barGrip(barHands.L, armBones.lUpper, armBones.lFore, _gripL, yaw, -1);
-      barGrip(barHands.R, armBones.rUpper, armBones.rFore, _gripR, yaw, 1);
-      return;
-    }
-    ccdArmIK(armBones.lUpper, armBones.lFore, armBones.lHand, _gripL);
-    ccdArmIK(armBones.rUpper, armBones.rFore, armBones.rHand, _gripR);
+    const wrapBars = () => {
+      if (kind === "scooter" && barHands) {
+        barGrip(barHands.L, armBones.lUpper, armBones.lFore, _gripL, yaw, -1);
+        barGrip(barHands.R, armBones.rUpper, armBones.rFore, _gripR, yaw, 1);
+        return;
+      }
+      ccdArmIK(armBones.lUpper, armBones.lFore, armBones.lHand, _gripL);
+      ccdArmIK(armBones.rUpper, armBones.rFore, armBones.rHand, _gripR);
+    };
+    wrapBars();
+    levelRideShoulders(yaw);
+    wrapBars();
   }
 
   /**
@@ -771,44 +846,112 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   }
 
   /**
-   * Mocap swing feet often brush past or cross the stance foot (runs, strafes, blends).
-   * Keep the swing foot at least FOOT_GAP to its own side, solved through the leg so the
-   * knee follows; the clip's foot rotation is kept.
+   * Mocap walks (especially Mo and Jacob) keep a narrow track and knock the knees
+   * inward. Abduct each thigh in world space so the whole leg swings out — calf and
+   * foot stay parented, so the knee crease does not twist (aimBone on Biped +X legs
+   * was pinching Mo's left knee mesh into a line).
    */
-  const FOOT_GAP = 0.08;
+  const FOOT_GAP = 0.22;
+  const KNEE_GAP = 0.36;
+  const SPREAD_MAX = 0.1; // metres of outward knee travel per frame correction
   const _spreadR = new THREE.Vector3();
   const _spreadL = new THREE.Vector3();
   const _spreadA = new THREE.Vector3();
   const _spreadT = new THREE.Vector3();
-  const _spreadP = new THREE.Vector3();
+  const _spreadKnee = new THREE.Vector3();
+  const _spreadHip = new THREE.Vector3();
+  const _spreadAnkle = new THREE.Vector3();
+  const _spreadFrom = new THREE.Vector3();
+  const _spreadTo = new THREE.Vector3();
+  const _spreadAxis = new THREE.Vector3();
   const _spreadQ = new THREE.Quaternion();
+  const _spreadFootQ = new THREE.Quaternion();
+  const _spreadMid = new THREE.Vector3();
+  function abductThigh(thigh, worldDelta) {
+    const parent = thigh.parent;
+    if (!parent) return;
+    parent.getWorldQuaternion(_ikParentQ);
+    thigh.getWorldQuaternion(_ikWorldQ);
+    _ikWorldQ.premultiply(worldDelta);
+    thigh.quaternion.copy(_ikParentQ.invert()).multiply(_ikWorldQ);
+    thigh.updateMatrixWorld(true);
+  }
+  /** Swing the knee out around the hip→ankle axis so a bent leg stops folding into an X. */
+  function openKneePlane(thigh, calf, foot, side, out) {
+    thigh.getWorldPosition(_spreadHip);
+    calf.getWorldPosition(_spreadKnee);
+    foot.getWorldPosition(_spreadAnkle);
+    _spreadAxis.subVectors(_spreadAnkle, _spreadHip);
+    if (_spreadAxis.lengthSq() < 1e-6) return;
+    _spreadAxis.normalize();
+    _spreadFrom.copy(_spreadKnee).sub(_spreadHip);
+    _spreadFrom.addScaledVector(_spreadAxis, -_spreadFrom.dot(_spreadAxis));
+    if (_spreadFrom.lengthSq() < 1e-6) return; // nearly straight — nothing to open
+    _spreadTo.copy(_spreadFrom).addScaledVector(_spreadR, side * out);
+    _spreadTo.addScaledVector(_spreadAxis, -_spreadTo.dot(_spreadAxis));
+    if (_spreadTo.lengthSq() < 1e-6) return;
+    const cross = _spreadT.crossVectors(_spreadFrom, _spreadTo).dot(_spreadAxis);
+    const ang = Math.atan2(cross, _spreadFrom.dot(_spreadTo));
+    if (Math.abs(ang) < 0.01) return;
+    foot.getWorldQuaternion(_spreadFootQ);
+    _spreadQ.setFromAxisAngle(_spreadAxis, ang);
+    abductThigh(thigh, _spreadQ);
+    // Keep the foot's world aim. Do not aimBone the calf — on Mo/Jacob's Biped
+    // +X legs that twists the knee crease into a pinched mesh.
+    foot.parent.getWorldQuaternion(_ikParentQ);
+    foot.quaternion.copy(_ikParentQ.invert()).multiply(_spreadFootQ);
+    foot.updateMatrixWorld(true);
+  }
   function spreadFeet() {
     const b = bodyBones;
     if (!b?.lThigh || !b.rThigh || !b.lCalf || !b.rCalf || !b.lFoot || !b.rFoot) return;
-    root.getWorldQuaternion(_spreadQ);
-    _spreadR.set(1, 0, 0).applyQuaternion(_spreadQ);
+    // Character right from the hips — feet can cross mid-stride and flip the axis.
+    b.lThigh.getWorldPosition(_spreadL);
+    b.rThigh.getWorldPosition(_spreadA);
+    _spreadR.subVectors(_spreadA, _spreadL);
     _spreadR.y = 0;
+    if (_spreadR.lengthSq() < 1e-8) {
+      root.getWorldQuaternion(_spreadQ);
+      _spreadR.set(1, 0, 0).applyQuaternion(_spreadQ);
+      _spreadR.y = 0;
+    }
+    if (_spreadR.lengthSq() < 1e-8) return;
     _spreadR.normalize();
+    // Knee width from the hip midline — ankle mid drifts with the stride.
+    _spreadMid.copy(_spreadL).add(_spreadA).multiplyScalar(0.5);
     b.lFoot.getWorldPosition(_spreadL);
     b.rFoot.getWorldPosition(_spreadA);
-    const gap = _spreadT.subVectors(_spreadA, _spreadL).dot(_spreadR);
-    if (gap >= FOOT_GAP) return;
-    const dy = _spreadA.y - _spreadL.y;
-    const w = Math.min(1, Math.max(0, (Math.abs(dy) - 0.003) / 0.017));
-    if (w <= 0) return;
-    const left = dy < 0;
-    const side = left ? -1 : 1;
-    const thigh = left ? b.lThigh : b.rThigh;
-    const calf = left ? b.lCalf : b.rCalf;
-    const foot = left ? b.lFoot : b.rFoot;
-    _spreadT.copy(left ? _spreadL : _spreadA).addScaledVector(_spreadR, side * (FOOT_GAP - gap) * w);
-    // Pole a little ahead of the current knee keeps the leg's bend plane.
-    calf.getWorldPosition(_spreadP).addScaledVector(_spreadL.crossVectors(_worldUp, _spreadR), 0.15);
-    foot.getWorldQuaternion(_spreadQ);
-    solveLeg(thigh, calf, foot, _spreadT, _spreadP);
-    foot.parent.getWorldQuaternion(_ikParentQ);
-    foot.quaternion.copy(_ikParentQ.invert()).multiply(_spreadQ);
-    foot.updateMatrixWorld(true);
+    const footGap = _spreadT.subVectors(_spreadA, _spreadL).dot(_spreadR);
+    const footNeed = Math.max(0, FOOT_GAP - footGap) * 0.5;
+    for (const [thigh, calf, foot, side] of [
+      [b.lThigh, b.lCalf, b.lFoot, -1],
+      [b.rThigh, b.rCalf, b.rFoot, 1],
+    ]) {
+      thigh.getWorldPosition(_spreadHip);
+      calf.getWorldPosition(_spreadKnee);
+      const lat = _spreadT.subVectors(_spreadKnee, _spreadMid).dot(_spreadR);
+      const want = side * (KNEE_GAP * 0.5);
+      const out = Math.min(SPREAD_MAX, Math.max(0, side * (want - lat), footNeed));
+      if (out < 0.004) continue;
+      // Prefer opening the bend plane on a bent leg; fall back to whole-leg abduct.
+      foot.getWorldPosition(_spreadAnkle);
+      const bent =
+        _spreadFrom.copy(_spreadKnee).sub(_spreadHip).length() +
+          _spreadTo.copy(_spreadAnkle).sub(_spreadKnee).length() >
+        _spreadHip.distanceTo(_spreadAnkle) + 0.02;
+      if (bent) openKneePlane(thigh, calf, foot, side, out);
+      else {
+        foot.getWorldQuaternion(_spreadFootQ);
+        _spreadFrom.copy(_spreadKnee).sub(_spreadHip);
+        _spreadTo.copy(_spreadFrom).addScaledVector(_spreadR, side * out);
+        if (_spreadFrom.lengthSq() < 1e-8 || _spreadTo.lengthSq() < 1e-8) continue;
+        _spreadQ.setFromUnitVectors(_spreadFrom.normalize(), _spreadTo.normalize());
+        abductThigh(thigh, _spreadQ);
+        foot.parent.getWorldQuaternion(_ikParentQ);
+        foot.quaternion.copy(_ikParentQ.invert()).multiply(_spreadFootQ);
+        foot.updateMatrixWorld(true);
+      }
+    }
   }
 
   /**
@@ -1057,6 +1200,8 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       });
       visual = null;
       armBones = null;
+      clavBones = null;
+      shoulderBind = [];
     }
     armed = null;
     mixer = null;
@@ -1323,8 +1468,10 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     if (gait === "idle" || native < 0.2) action.setEffectiveTimeScale(1);
     else {
       const rate = Math.abs(moveSpeed) / native;
-      // Wide enough for an analog stick's slow creep and the jog's top end.
-      action.setEffectiveTimeScale(Math.max(0.4, Math.min(2.4, rate)));
+      // A walk played much below native freezes mid-stride and reads as a shuffle;
+      // keep the full step cadence and let the feet slide a touch instead.
+      const floor = gait === "walk" ? 0.75 : 0.4;
+      action.setEffectiveTimeScale(Math.max(floor, Math.min(2.4, rate)));
     }
   }
 
@@ -1407,8 +1554,15 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       const eye = kind === "scooter" && deck ? 1.58 : 1.7;
       root.position.y = Number.isFinite(pos.y) ? Math.max(0, pos.y - eye) : 0;
 
-      const dy = Math.atan2(Math.sin(targetYaw - facing), Math.cos(targetYaw - facing));
-      facing += dy * (1 - Math.exp(-20 * dt));
+      // On wheels the bike snaps to targetYaw every frame; keep the rider with it so the
+      // pedal IK does not twist the feet. On foot, snap once you are moving so a look-turn
+      // does not leave you walking sideways — ease only when nearly still (idle turn).
+      if (kind === "velo" || kind === "scooter" || Math.abs(moveSpeed) > 0.3) {
+        facing = targetYaw;
+      } else {
+        const dy = Math.atan2(Math.sin(targetYaw - facing), Math.cos(targetYaw - facing));
+        facing += dy * (1 - Math.exp(-18 * dt));
+      }
       root.rotation.y = facing;
 
       // Pavement is 0.12 m. A few centimetres of sidewalk must not freeze the stride;
@@ -1525,6 +1679,9 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         // Ride clips don't put Rocketbox/Mixamo wrists on the bars — IK does.
         // Scooter legs are solved onto the deck; the baked crouch leaves them trailing.
         root.updateMatrixWorld(true);
+        // Clip upper-arm / Mixamo shoulder keys roll the deltoids. Square them before
+        // lean measures reach (twisted arms look short → over-fold) and before bar IK.
+        stabilizeRideShoulders();
         if (kind === "scooter") {
           polishScooterLegs(deck);
           leanOnScooter(targetYaw, deck);
