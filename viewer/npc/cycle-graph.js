@@ -6,6 +6,7 @@
 
 const SNAP_M = 14;
 const BIKE_LANE_EXTRA = 1.45;
+const KEEP_RIGHT = 0.22; // share of a two-way cycleway's width between its centre and a rider's line
 const JOIN_M = 8;
 
 const DRIVEABLE = new Set([
@@ -83,10 +84,13 @@ export function buildCyclePaths(roads, cycleways = []) {
     paths.push(path);
   }
   for (const cw of cycleways || []) {
+    const oneway = Number(cw.oneway) || 0;
+    const width = cw.width || 2.4;
     const path = buildPath(String(cw.id), cw.kind || "cycleway", cw.points || [], {
-      oneway: Number(cw.oneway) || 0,
-      width: cw.width || 2.4,
-      bikeOffset: 0, // already on the cycleway centreline
+      oneway,
+      width,
+      // One-way: ride the centreline. Ridden both ways: keep to the right half.
+      bikeOffset: oneway && !cw.contraflow ? 0 : width * KEEP_RIGHT,
       contraflow: !!cw.contraflow,
     });
     if (path) paths.push(path);

@@ -12,16 +12,17 @@ import { createCellGrid } from "./cell-grid.js";
 import { fetchJsonCached } from "./json-cache.js";
 import { buildCyclePaths, buildCycleHandoffs } from "./npc/cycle-graph.js";
 import { createPopulation } from "./npc/population.js";
+import { HALF_W, chooseLine, lineRoom, stepLine } from "./npc/ride-line.js";
 
 const KMH = 1 / 3.6;
 const SPAWN_GAP = 7; // m between riders at spawn
 const LOOK_AHEAD = 9; // m: riders react to anything this far ahead in their lane
 const LOOK_AHEAD_HARD = 22; // m: trams / buses are long — brake earlier
+const RIDER_REACH = 100; // m: other riders further off never change the line
 const LANE_HALF = 0.55; // m: half a bike's swept width
 const HARD_SIDE = 2.4; // m: notice a tram/bus on a parallel track before riding into it
-const STOP_GAP = 1.6; // m nose-to-tail when queued
-const SWERVE = 0.75; // m to the right when an oncoming rider shares the lane
-const OVERTAKE = 1.3; // m to the left when passing something that blocks the lane
+const STOP_GAP = 1.6; // m nose-to-tail when queued behind a tram / bus
+const STEER_MAX = 0.35; // rad the bike turns off the path heading while drifting sideways
 const HARD_HIT_SPEED = 1.5; // m/s closing → knock-down (not a soft brush)
 const CRASH_KILL_SPEED = 7.5; // m/s closing with a tram/bus → lethal
 const CRASH_LIE_S = 3.2; // s on the deck before scramble / clear
@@ -63,17 +64,20 @@ function addBikeLights(THREE, g, frontZ, rearZ, y = 0.55) {
 // (scripts/bake_mixamo_rider_clips.py) puts ankles and wrists on exactly these points.
 const RIDE = { bbFwd: 0.2, bbDown: 0.54, crank: 0.16, barFwd: 0.46, barUp: 0.08, gripHalf: 0.3 };
 
+// halfLen: half the footprint, nose to tail, for keeping a line past other riders.
 const KINDS = {
   bicycle: {
     label: "bicycle",
     weight: 0.5,
     speedKmh: 18,
+    halfLen: 0.85,
     color: [0x2a6a9a, 0xc44a3a, 0x3a8a5a, 0x1a1a1a, 0xe8c040],
   },
   scooter: {
     label: "scooter",
     weight: 0.3,
     speedKmh: 20,
+    halfLen: 0.55,
     color: [0x00c2a8, 0x6b4cff, 0xff3d6e, 0x222222], // shared-fleet vibes
   },
   // Speed-pedelec long-john: up to ~40 km/h, pulls away hard, 2.7 m long.
@@ -83,6 +87,7 @@ const KINDS = {
     speedKmh: 35,
     accel: 2.8,
     hl: 1.35, // half length about the hit centre
+    halfLen: 1.35,
     nose: 0.21, // hit centre ahead of the rider
     color: [0x9fb5a8, 0x3a5a78, 0xd4a020, 0x8a4a3a, 0x2a2a2a],
   },
@@ -104,6 +109,7 @@ function cyclePathsToMicro(cyclePaths, THREE) {
     contraflow: !!p.contraflow,
     width: p.width,
     bikeOffset: p.bikeOffset,
+    room: lineRoom(p),
     points: p.points.map((q) => new THREE.Vector3(q.x, 0, q.z)),
     cumulative: p.cumulative,
     length: p.length,
@@ -589,7 +595,9 @@ export async function createMicromobility(scene, THREE, opts = {}) {
       _pos.z += _tan.x * v.swerve;
     }
     v.mesh.position.copy(_pos);
-    v.mesh.rotation.y = Math.atan2(_tan.x, _tan.z);
+    // Turn into a sideways drift, so the bike steers around instead of crabbing.
+    const steer = v.latVel ? Math.max(-STEER_MAX, Math.min(STEER_MAX, Math.atan2(v.latVel, Math.max(1, v.cur)))) : 0;
+    v.mesh.rotation.y = Math.atan2(_tan.x, _tan.z) - steer;
     v.pos.set(_pos.x, 0, _pos.z);
     v.tan.set(_tan.x, 0, _tan.z);
   }
@@ -644,7 +652,9 @@ export async function createMicromobility(scene, THREE, opts = {}) {
       s,
       speed,
       cur: speed,
-      swerve: 0,
+      swerve: 0, // m off the lane line now (+ = right)
+      aim: 0, // m off the lane line it is steering for
+      latVel: 0,
       mesh,
       pos: new THREE.Vector3(),
       tan: new THREE.Vector3(),
@@ -654,12 +664,6 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     vehicles.push(v);
   }
 
-  /**
-   * Keep riders apart: follow the one ahead in the same lane, swerve right for oncoming
-   * riders sharing the lane, and brake for the walker / other obstacles on the bike lane.
-   * Oriented obstacles (trams / buses: `{ x, z, tx, tz, hl, hw, hard }`) are solid — riders
-   * brake and never try to overtake through them.
-   */
   // Spatial prefilter over this frame's obstacle list (24 m cells). Exact tests stay as-is;
   // the grid only drops obstacles that cannot reach the rider.
   const obsGrid = createCellGrid();
@@ -684,83 +688,100 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     return obsGrid.query(v.pos.x, v.pos.z, gridReach, _nearObs);
   }
 
+  /**
+   * Gap from this rider to a tram / bus (`{ x, z, tx, tz, hl, hw, hard }`), Infinity when clear.
+   * Noticed from the neighbouring track too, so riders brake instead of riding into a tram
+   * that only looks "beside" them.
+   */
+  function hardGap(v, ob, look) {
+    const dx = ob.x - v.pos.x;
+    const dz = ob.z - v.pos.z;
+    const hl = ob.hl ?? 1;
+    const hw = ob.hw ?? 1;
+    const ahead = dx * v.tan.x + dz * v.tan.z;
+    if (ahead < -hl || ahead > Math.max(LOOK_AHEAD_HARD, look) + hl) return Infinity;
+    const lat = Math.abs(dx * v.tan.z - dz * v.tan.x);
+    if (lat > HARD_SIDE + hw) return Infinity;
+    // Closing on the box: prefer the nose gap; if already alongside, treat as zero gap.
+    const nose = ahead - hl;
+    return lat > LANE_HALF + hw * 0.85 ? Math.max(0.2, nose) : nose;
+  }
+
+  const _thingPool = [];
+  const _things = [];
+  const _me = { x: 0, z: 0, tx: 0, tz: 0, line: 0, aim: 0, speed: 0, cur: 0, hl: 0, look: 0 };
+  const _plan = { aim: 0, speed: 0 };
+  function addThing(x, z, tx, tz, hl, hw, speed, line) {
+    const i = _things.length;
+    const t = _thingPool[i] || (_thingPool[i] = {});
+    t.x = x;
+    t.z = z;
+    t.tx = tx;
+    t.tz = tz;
+    t.hl = hl;
+    t.hw = hw;
+    t.v = speed;
+    t.line = line;
+    _things.push(t);
+  }
+
+  /**
+   * This frame's speed, and the line to steer for (v.aim). Other riders, walkers, wrecks and
+   * cars go through chooseLine (npc/ride-line.js): riders follow, pass on the left, keep right
+   * for oncoming riders, and drift around whoever stands in the lane. Trams and buses count
+   * there too, so nobody drifts into one, but riders brake for them on every line and never
+   * pass one: they fill the lane.
+   */
   function targetSpeed(v, obstacles) {
-    let gap = Infinity;
-    let oncoming = false;
-    let hardBlock = false;
-    const tx = v.tan.x;
-    const tz = v.tan.z;
     const cfg = KINDS[v.kind];
+    const nose = cfg.nose || 0;
     // Long nose ahead of the rider, and the stopping distance at this speed (brakes ~5 m/s²).
-    const front = cfg.hl ? cfg.nose + cfg.hl - 0.5 : 0;
+    const front = cfg.hl ? nose + cfg.hl - 0.5 : 0;
     const look = Math.max(LOOK_AHEAD, front + STOP_GAP + (v.speed * v.speed) / 10);
-    const consider = (ox, oz, otx, otz, radius) => {
-      const dx = ox - v.pos.x;
-      const dz = oz - v.pos.z;
-      const along = dx * tx + dz * tz;
-      if (along <= 0 || along > look) return;
-      const lat = Math.abs(dx * tz - dz * tx);
-      if (lat > LANE_HALF + radius) return;
-      if (otx * tx + otz * tz < -0.3) oncoming = true;
-      gap = Math.min(gap, along - radius);
-    };
-    const considerBox = (ob) => {
-      const dx = ob.x - v.pos.x;
-      const dz = ob.z - v.pos.z;
-      const hl = ob.hl ?? 1;
-      const hw = ob.hw ?? 1;
-      const ahead = dx * tx + dz * tz;
-      const reach = Math.max(ob.hard ? LOOK_AHEAD_HARD : LOOK_AHEAD, look) + hl;
-      if (ahead < -hl || ahead > reach) return;
-      const lat = Math.abs(dx * tz - dz * tx);
-      // Soft lane box for cars; hard transit is noticed from the neighbouring track too
-      // so riders brake instead of overtaking into a tram that looks "beside" them.
-      const side = ob.hard ? HARD_SIDE + hw : LANE_HALF + hw;
-      if (lat > side) return;
-      const otx = ob.tx || 0;
-      const otz = ob.tz || 0;
-      if (otx * tx + otz * tz < -0.3) oncoming = true;
-      // Closing on the box: prefer the nose gap; if already alongside, treat as zero gap.
-      const nose = ahead - hl;
-      gap = Math.min(gap, lat > LANE_HALF + hw * 0.85 ? Math.max(0.2, nose) : nose);
-      if (ob.hard) hardBlock = true;
-    };
+    _things.length = 0;
     for (const o of vehicles) {
       if (o === v) continue;
-      // Tipped wrecks are static debris in the lane — brake for them, do not ride through.
+      const dx = o.pos.x - v.pos.x;
+      const dz = o.pos.z - v.pos.z;
+      if (dx * dx + dz * dz > RIDER_REACH * RIDER_REACH) continue;
+      // Tipped wrecks are static debris in the lane: ride around them, not through.
       if (o.crash) {
-        consider(o.pos.x, o.pos.z, 0, 0, 0.85);
+        addThing(o.pos.x, o.pos.z, 0, 0, 0.85, 0.85, 0, 0);
         continue;
       }
       const oc = KINDS[o.kind];
-      consider(o.pos.x, o.pos.z, o.tan.x, o.tan.z, oc.hl ? oc.hl - oc.nose : 0.5);
+      const on = oc.nose || 0;
+      addThing(o.pos.x + o.tan.x * on, o.pos.z + o.tan.z * on, o.tan.x, o.tan.z, oc.halfLen, HALF_W, o.cur, o.swerve);
     }
+    let hard = Infinity;
     for (const ob of nearObstacles(v, obstacles)) {
-      if (ob.hl != null) considerBox(ob);
-      else consider(ob.x, ob.z, 0, 0, ob.r ?? 0.4);
+      if (ob.hl == null) {
+        addThing(ob.x, ob.z, 0, 0, ob.r ?? 0.4, ob.r ?? 0.4, 0, 0);
+        continue;
+      }
+      addThing(ob.x, ob.z, ob.tx || 0, ob.tz || 0, ob.hl, ob.hw ?? 1, Number(ob.speed) || 0, 0);
+      if (ob.hard) hard = Math.min(hard, hardGap(v, ob, look));
     }
+
+    _me.x = v.pos.x + v.tan.x * nose;
+    _me.z = v.pos.z + v.tan.z * nose;
+    _me.tx = v.tan.x;
+    _me.tz = v.tan.z;
+    _me.line = v.swerve;
+    _me.aim = v.aim;
+    _me.speed = v.speed;
+    _me.cur = v.cur;
+    _me.hl = cfg.halfLen;
+    _me.look = look;
+    const plan = chooseLine(_me, _things, v.path.room, _plan);
+    v.aim = plan.aim;
+    if (hard === Infinity) return plan.speed;
     // Measure from this bike's own nose, not the saddle.
-    gap -= front;
-    // Held up for a while behind something that is not moving: pull out and pass on the left —
-    // never past a tram / bus (they fill the lane; "passing" would ride through them).
-    v.stuck = gap < STOP_GAP + 1 && v.cur < 0.5 ? (v.stuck || 0) + dtSwerve : 0;
-    if (!hardBlock && v.stuck > 2.5) {
-      v.overtake = 3.5; // s spent out in the passing line
-      v.stuck = 0;
-    }
-    if (hardBlock) v.overtake = 0;
-    if (v.overtake > 0) v.overtake -= dtSwerve;
-    const passing = v.overtake > 0 && !oncoming && !hardBlock;
-    const want = oncoming ? SWERVE : passing ? -OVERTAKE : 0;
-    const k = Math.min(1, dtSwerve * 2.5);
-    v.swerve += (want - v.swerve) * k;
-    if (passing) return v.speed * 0.6;
-    if (gap === Infinity) return v.speed;
+    const gap = hard - front;
     // Hard stop in front of a tram / bus that already overlaps the bike's nose.
-    if (hardBlock && gap < STOP_GAP) return 0;
-    return v.speed * Math.max(0, Math.min(1, (gap - STOP_GAP) / (look - front - STOP_GAP)));
+    if (gap < STOP_GAP) return 0;
+    return Math.min(plan.speed, v.speed * Math.min(1, (gap - STOP_GAP) / (look - front - STOP_GAP)));
   }
-  let dtSwerve = 0;
 
   const FIRST = Math.min(COUNT, opts.firstCount ?? 3);
   for (let i = 0; i < FIRST; i++) spawnOne();
@@ -869,8 +890,8 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     v.s = Math.random() * Math.max(1, path.length - 2) + 0.5;
     v.cur = 0;
     v.swerve = 0;
-    v.overtake = 0;
-    v.stuck = 0;
+    v.aim = 0;
+    v.latVel = 0;
     v.crash = null;
     v.mesh.rotation.x = 0;
     v.mesh.rotation.z = 0;
@@ -910,8 +931,8 @@ export async function createMicromobility(scene, THREE, opts = {}) {
     const dead = closing >= CRASH_KILL_SPEED;
     v.cur = 0;
     v.swerve = 0;
-    v.overtake = 0;
-    v.stuck = 0;
+    v.aim = 0;
+    v.latVel = 0;
     v.crash = {
       t: 0,
       dead,
@@ -1015,8 +1036,8 @@ export async function createMicromobility(scene, THREE, opts = {}) {
       v.s = s;
       v.cur = v.speed;
       v.swerve = 0;
-      v.overtake = 0;
-      v.stuck = 0;
+      v.aim = 0;
+      v.latVel = 0;
       place(v);
       recycled++;
       return true;
@@ -1026,7 +1047,6 @@ export async function createMicromobility(scene, THREE, opts = {}) {
 
   function update(dt, obstacles = [], cam = null) {
     if (!(dt > 0)) return;
-    dtSwerve = dt;
     lodFrame++;
     recycled = 0;
     buildObstacleGrid(obstacles);
@@ -1065,6 +1085,9 @@ export async function createMicromobility(scene, THREE, opts = {}) {
       const want = targetSpeed(v, obstacles);
       const rate = want < v.cur ? 6.0 : KINDS[v.kind].accel || 1.6; // brake hard, pull away gently
       v.cur += Math.max(-rate * dt, Math.min(rate * dt, want - v.cur));
+      const line = stepLine(v.swerve, v.aim, v.cur, dt);
+      v.latVel = (line - v.swerve) / dt;
+      v.swerve = line;
       const delta = v.cur * dt;
       v.s += v.reverse ? -delta : delta;
       if (v.s >= v.path.length) {
