@@ -13,9 +13,10 @@ const LEG_KEYS = ["aimIdleLegs", "aimWalk", "aimWalkBack", "aimStrafeL", "aimStr
 const OVERLAYS = ["holdPistol", "holdRifle", "reloadPistol", "reloadRifle", "stab", "slash", "hitReact"];
 const RIFLE_LOW = 0.6;
 const MAX_SOLVE = 1.1;
+const HIP_SQUARE = 0.7;
 
 export function createArmedRig(THREE, ctx) {
-  const { root, visual, mixer, actions, arms, body, ik, clips, speeds, upper, legs, loop: loopClip, fist } = ctx;
+  const { root, visual, mixer, actions, arms, body, ik, limb, clips, speeds, footPhase, upper, legs, loop: loopClip, fist } = ctx;
   const has = (k) => !!actions[k];
   const weight = Object.fromEntries([...LEG_KEYS, ...OVERLAYS].map((k) => [k, 0]));
   const goal = { ...weight };
@@ -40,8 +41,11 @@ export function createArmedRig(THREE, ctx) {
   add("holdRifle", upper(C("AimRifle") || C("AimPistol")));
   add("reloadPistol", upper(C("ReloadPistol")), false);
   add("reloadRifle", upper(C("ReloadRifle") || C("ReloadPistol")), false);
-  add("stab", upper(C("Stab")), false);
-  add("slash", upper(C("Slash")), false);
+  // The knife clips throw the head back; it rides the chest instead.
+  const headless = (clip) =>
+    clip && new THREE.AnimationClip(clip.name, clip.duration, clip.tracks.filter((t) => !/(neck|head)/i.test(t.name)));
+  add("stab", headless(upper(C("Stab"))), false);
+  add("slash", headless(upper(C("Slash"))), false);
   add("hitReact", upper(C("HitReact")), false);
   add("death", C("Death"), false);
   const ready = has("holdPistol");
@@ -380,15 +384,41 @@ export function createArmedRig(THREE, ctx) {
     solvedDirty = true;
   }
 
+  // The aim gaits keep the hips bladed 25-50° off the facing, so a strafe steps
+  // diagonally across itself. While moving, turn most of that back; the aim solve
+  // brings the gun round again.
+  let moveK = 0;
+  let hipsDirty = false;
+  const hipsClean = new THREE.Quaternion();
+  const _hl = new THREE.Vector3();
+  const _hr = new THREE.Vector3();
+  const _hipQ = new THREE.Quaternion();
+  const _hipUp = new THREE.Vector3(0, 1, 0);
+  function squareHips() {
+    const k = moveK * aimK * HIP_SQUARE;
+    if (!legsOn || k < 0.01 || !body?.pelvis || !body.lThigh || !body.rThigh) return;
+    hipsClean.copy(body.pelvis.quaternion);
+    hipsDirty = true;
+    root.updateMatrixWorld(true);
+    body.lThigh.getWorldPosition(_hl);
+    body.rThigh.getWorldPosition(_hr).sub(_hl);
+    root.getWorldQuaternion(_hipQ);
+    _hl.set(1, 0, 0).applyQuaternion(_hipQ);
+    const blade = Math.atan2(_hr.z * _hl.x - _hr.x * _hl.z, _hr.x * _hl.x + _hr.z * _hl.z);
+    rotateWorld(body.pelvis, _hipQ.setFromAxisAngle(_hipUp, blade * k));
+  }
+
   // Clip analysis gets the straight gaits right, but diagonal blends land off by up
   // to a third. Each of eight travel directions keeps a stride gain, nudged by how
-  // far the planted foot actually drifts along the travel line.
+  // far the planted foot drifts along the travel line, measured against the commanded
+  // speed rather than the root's actual motion (a held-in-place preview never moves).
   const stride = {};
   let strideDir = null;
   let strideSpeed = 0;
   let strideYaw = 0;
   const _fl = new THREE.Vector3();
   const _fr = new THREE.Vector3();
+  const _rootAt = new THREE.Vector3();
   const feetPrev = { l: new THREE.Vector3(), r: new THREE.Vector3(), ok: false };
   function learnStride(dt) {
     const lf = body?.lFoot;
@@ -397,19 +427,20 @@ export function createArmedRig(THREE, ctx) {
       feetPrev.ok = false;
       return;
     }
-    lf.getWorldPosition(_fl);
-    rf.getWorldPosition(_fr);
+    root.getWorldPosition(_rootAt);
+    lf.getWorldPosition(_fl).sub(_rootAt);
+    rf.getWorldPosition(_fr).sub(_rootAt);
     if (feetPrev.ok) {
       const lx = _fl.x - feetPrev.l.x;
       const lz = _fl.z - feetPrev.l.z;
       const rx = _fr.x - feetPrev.r.x;
       const rz = _fr.z - feetPrev.r.z;
-      const left = lx * lx + lz * lz < rx * rx + rz * rz;
-      // Planted: the slower foot, and clearly the lower one.
-      if (left ? _fl.y < _fr.y - 0.02 : _fr.y < _fl.y - 0.02) {
+      const left = _fl.y < _fr.y;
+      // Planted: clearly the lower foot.
+      if (Math.abs(_fl.y - _fr.y) > 0.02) {
         const dx = left ? lx : rx;
         const dz = left ? lz : rz;
-        const along = (dx * -Math.sin(strideYaw) + dz * -Math.cos(strideYaw)) / dt;
+        const along = (dx * -Math.sin(strideYaw) + dz * -Math.cos(strideYaw)) / dt + strideSpeed;
         const e = along / strideSpeed;
         if (Math.abs(e) < 1.2) {
           const g = (stride[strideDir] ?? 1) * Math.exp(1.2 * e * dt);
@@ -428,6 +459,10 @@ export function createArmedRig(THREE, ctx) {
       for (const [b, q] of solved) b.quaternion.copy(q);
       solvedDirty = false;
     }
+    if (hipsDirty) {
+      body.pelvis.quaternion.copy(hipsClean);
+      hipsDirty = false;
+    }
     legsOn = !!s.legsOwned && ready;
     aimK += ((s.aim ?? 0) - aimK) * (1 - Math.exp(-16 * dt));
     for (const k of LEG_KEYS) goal[k] = 0;
@@ -438,6 +473,7 @@ export function createArmedRig(THREE, ctx) {
       const sn = Math.sin(a);
       const sum = Math.abs(c) + Math.abs(sn) || 1;
       const m = Math.min(1, Math.max(0, (speed - 0.12) / 0.4));
+      moveK = m;
       const run = Math.min(1, Math.max(0, (speed - 3.6) / 1.2)) * Math.max(0, c);
       const fwd = (Math.max(0, c) / sum) * m;
       goal.aimWalk = fwd * (1 - run);
@@ -447,7 +483,8 @@ export function createArmedRig(THREE, ctx) {
       goal.aimStrafeR = (Math.max(0, -sn) / sum) * m;
       goal.aimStrafeL = (Math.max(0, sn) / sum) * m;
       goal.aimIdleLegs = 1 - m;
-      // One phase for every direction, so diagonals don't scissor the feet. The pace
+      // One phase for every direction, each clip offset to its own left-foot stance,
+      // so diagonals don't scissor the feet. The pace
       // comes from the moving clips only (blended by weight), never from idle.
       let lead = null;
       let native = 0;
@@ -468,6 +505,7 @@ export function createArmedRig(THREE, ctx) {
       strideYaw = s.moveYaw;
     } else {
       strideDir = null;
+      moveK = 0;
     }
 
     const hold = holdOf();
@@ -500,7 +538,7 @@ export function createArmedRig(THREE, ctx) {
       act.setEffectiveWeight(weight[key]);
       if (LEG_KEYS.includes(key)) {
         act.timeScale = 0;
-        act.time = phase * act.getClip().duration;
+        act.time = ((phase + (footPhase?.[key] ?? 0)) % 1) * act.getClip().duration;
       }
     }
     if (model) model.root.visible = !!s.onFoot && !s.dead;
@@ -519,7 +557,145 @@ export function createArmedRig(THREE, ctx) {
     act.fadeIn(0.1).play();
     busy = key;
     busyT = dur || clipDur;
+    busyDur = busyT;
     return true;
+  }
+
+  // --- Knife: the Mixamo stab pokes high and the slash trails low, both from a
+  // stance this body doesn't have. Steer them, and hold a ready stance around them.
+  const KNIFE_READY_S = 1.6;
+  let busyDur = 1;
+  let knifeReady = 0;
+  let readyHold = 0;
+  const _kF = new THREE.Vector3();
+  const _kR = new THREE.Vector3();
+  const _kU = new THREE.Vector3(0, 1, 0);
+  const _kSL = new THREE.Vector3();
+  const _kSR = new THREE.Vector3();
+  const _kC = new THREE.Vector3();
+  const _kH = new THREE.Vector3();
+  const _kT = new THREE.Vector3();
+  const _kP = new THREE.Vector3();
+  const _kD = new THREE.Vector3();
+  const _kQ = new THREE.Quaternion();
+  const _kQ2 = new THREE.Quaternion();
+  const _kTip = new THREE.Vector3();
+  const _kDir = new THREE.Vector3();
+  const knifeSmooth = (a, b, x) => {
+    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+
+  function knifeFrame() {
+    const yaw = root.rotation.y;
+    _kF.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+    _kR.set(Math.cos(yaw), 0, -Math.sin(yaw));
+    arms.lUpper.getWorldPosition(_kSL);
+    arms.rUpper.getWorldPosition(_kSR);
+    _kC.addVectors(_kSL, _kSR).multiplyScalar(0.5);
+  }
+
+  /** Chest turn (+ brings the right shoulder forward) and lean (+ forward). */
+  function turnChest(turn, lean) {
+    const parts = [body?.spine1, body?.spine2].filter(Boolean);
+    if (!parts.length) return;
+    _kQ.setFromAxisAngle(_kU, turn / parts.length);
+    _kQ2.setFromAxisAngle(_kR, -lean / parts.length);
+    _kQ.premultiply(_kQ2);
+    for (const b of parts) rotateWorld(b, _kQ);
+    knifeFrame();
+  }
+
+  function armReach(upper, fore, hand) {
+    return upper.getWorldPosition(_kT).distanceTo(fore.getWorldPosition(_kP)) + _kP.distanceTo(hand.getWorldPosition(_kD));
+  }
+
+  /** Right hand to `target`, elbow toward `pole`; then the blade toward `dir` by `w`. */
+  function knifeHand(target, pole, dir, w) {
+    limb(arms.rUpper, arms.rFore, arms.rHand, target, pole);
+    if (!dir || !muzzle(_kTip, _kDir)) return;
+    _kQ.setFromUnitVectors(_kDir, dir);
+    rotateWorld(arms.rHand, _kQ2.slerpQuaternions(_id, _kQ, w));
+  }
+
+  function knifeMoves(dt) {
+    const attack = busy === "stab" || busy === "slash" ? busy : null;
+    readyHold -= dt;
+    const want = attack || readyHold > 0 ? 1 : 0;
+    knifeReady += (want - knifeReady) * (1 - Math.exp(-(want ? 12 : 3) * dt));
+    if (knifeReady < 0.01 || !arms?.rUpper || !limb) return;
+    const u = attack ? 1 - Math.max(0, busyT) / busyDur : 1;
+    knifeFrame();
+
+    // Ready: blade low and forward, tip up; free hand guarding the chest. The clip
+    // owns the middle of an attack.
+    const own = attack ? knifeSmooth(0, 0.12, u) * (1 - knifeSmooth(0.7, 1, u)) : 0;
+    const r = knifeReady * (1 - own);
+    if (r > 0.01) {
+      arms.rHand.getWorldPosition(_kH);
+      _kT.copy(_kSR).addScaledVector(_kF, 0.34).addScaledVector(_kU, -0.24).addScaledVector(_kR, -0.04);
+      _kT.lerp(_kH, 1 - r);
+      _kP.copy(_kSR).addScaledVector(_kR, 0.25).addScaledVector(_kU, -0.4).addScaledVector(_kF, -0.1);
+      _kD.copy(_kF).multiplyScalar(Math.cos(0.35)).addScaledVector(_kU, Math.sin(0.35));
+      knifeHand(_kT, _kP, _kD, r);
+      arms.lHand.getWorldPosition(_kH);
+      _kT.copy(_kSL).addScaledVector(_kF, 0.36).addScaledVector(_kU, -0.18).addScaledVector(_kR, 0.08);
+      _kT.lerp(_kH, 1 - r);
+      _kP.copy(_kSL).addScaledVector(_kR, -0.25).addScaledVector(_kU, -0.4);
+      limb(arms.lUpper, arms.lFore, arms.lHand, _kT, _kP);
+      gripFingers("L", "claw", r);
+    }
+    if (!attack) return;
+
+    // The slash clip arches the back and throws the head up; keep the torso over the
+    // hips, a touch forward.
+    if (body?.spine1 && body.head) {
+      body.spine1.getWorldPosition(_kT);
+      body.head.getWorldPosition(_kH).sub(_kT);
+      const pitch = Math.atan2(_kH.dot(_kF), _kH.dot(_kU));
+      if (pitch < 0.08) turnChest(0, (0.08 - pitch) * 0.85 * own);
+    }
+    if (attack === "stab") {
+      // The clip shoves the free hand out after the thrust; it guards instead.
+      arms.lHand.getWorldPosition(_kH);
+      _kT.copy(_kSL).addScaledVector(_kF, 0.36).addScaledVector(_kU, -0.16).addScaledVector(_kR, 0.1);
+      _kT.lerp(_kH, 1 - own);
+      _kP.copy(_kSL).addScaledVector(_kR, -0.25).addScaledVector(_kU, -0.4);
+      limb(arms.lUpper, arms.lFore, arms.lHand, _kT, _kP);
+    }
+
+    const arm = armReach(arms.rUpper, arms.rFore, arms.rHand);
+    arms.rHand.getWorldPosition(_kH);
+    if (attack === "stab") {
+      // Thrust: shoulders and weight drive in, blade out to full reach at the sternum.
+      const w = knifeSmooth(0.12, 0.38, _kD.subVectors(_kH, _kSR).dot(_kF));
+      if (w < 0.01) return;
+      turnChest(0.42 * w, 0.14 * w);
+      arms.rHand.getWorldPosition(_kH);
+      const half = _kC.distanceTo(_kSR);
+      const ahead = Math.sqrt(Math.max(0, (arm * 0.95) ** 2 - half * half - 0.1 * 0.1));
+      _kT.copy(_kC).addScaledVector(_kF, ahead).addScaledVector(_kU, -0.1);
+      _kT.lerpVectors(_kH, _kT, w);
+      _kP.copy(_kSR).addScaledVector(_kR, 0.3).addScaledVector(_kU, -0.35);
+      _kD.copy(_kF).addScaledVector(_kU, -0.08).normalize();
+      knifeHand(_kT, _kP, _kD, w);
+      return;
+    }
+    // Slash: the chest follows the blade across, held at chest height and near full
+    // reach, tip leading out along the arc.
+    const w = knifeSmooth(0.3, 0.42, u) * (1 - knifeSmooth(0.62, 0.8, u));
+    if (w < 0.01) return;
+    _kD.subVectors(_kH, _kC).setY(0);
+    const az = Math.atan2(-_kD.dot(_kR), _kD.dot(_kF));
+    turnChest(0.4 * az * w, 0.06 * w);
+    arms.rHand.getWorldPosition(_kH);
+    _kD.subVectors(_kH, _kC).setY(0);
+    const radius = Math.max(_kD.length(), arm * 0.85);
+    _kD.normalize();
+    _kT.copy(_kC).addScaledVector(_kD, radius).addScaledVector(_kU, -0.1);
+    _kT.lerpVectors(_kH, _kT, w);
+    _kP.copy(_kSR).addScaledVector(_kR, 0.3).addScaledVector(_kU, -0.4);
+    knifeHand(_kT, _kP, _kD.addScaledVector(_kU, 0.15).normalize(), w);
   }
 
   // --- After mixer.update: aim solve, recoil, support hand.
@@ -913,12 +1089,15 @@ export function createArmedRig(THREE, ctx) {
     kickSide *= Math.exp(-16 * dt);
     const hold = holdOf();
     if (!model || !model.root.visible) return;
+    if (hold === "knife") knifeMoves(dt);
     gripFingers("R", weaponId === "knife" ? "knife" : "pistolGrip", 1, hold === "pistol" ? setWrap("pistol") : null);
     if (!body?.spine || (hold !== "pistol" && hold !== "rifle")) return;
     const clipReload = busy && busy.startsWith("reload") ? 1 : 0;
     const reloadW = proc ? smooth01(Math.min(proc.t / proc.dur, 1 - proc.t / proc.dur) / 0.1) : clipReload;
     const k = aimK * (1 - reloadW);
-    const spine = [body.spine, body.spine1, body.spine2].filter(Boolean);
+    // The first spine bone carries the thighs on these rigs, so turning it would swing
+    // the stride off the travel line.
+    const spine = [body.spine1, body.spine2].filter(Boolean);
     let solveK = k;
     if (aimPoint) _target.copy(aimPoint);
     if (proc && muzzle(muzzleW, fwdW)) {
@@ -951,11 +1130,12 @@ export function createArmedRig(THREE, ctx) {
       _up.set(0, 1, 0).applyQuaternion(_q);
       arms.rUpper.getWorldPosition(_sup);
       const yaw = root.rotation.y;
-      // Shoulder pocket: in front of the joint and in toward the collarbone, where a
-      // butt actually sits. The hand goes wherever that puts the grip.
-      _sup.x -= Math.cos(yaw) * 0.05;
-      _sup.z += Math.sin(yaw) * 0.05;
-      _sup.addScaledVector(_v, 0.07).addScaledVector(_up, -0.03);
+      // Shoulder pocket: just inside the joint, in front of it and level with its top,
+      // so the sights come up under the right eye. The hand goes wherever that puts
+      // the grip.
+      _sup.x -= Math.cos(yaw) * 0.02;
+      _sup.z += Math.sin(yaw) * 0.02;
+      _sup.addScaledVector(_v, 0.07).addScaledVector(_up, 0.06);
       model.root.updateWorldMatrix(true, false);
       _pw.copy(model.butt);
       model.root.localToWorld(_pw);
@@ -1009,6 +1189,8 @@ export function createArmedRig(THREE, ctx) {
     get hasModel() {
       return !!model;
     },
+    /** After mixer.update, before the feet are planted. */
+    squareHips,
     /** An upper-body clip (reload, stab, flinch) owns the arms right now. */
     get busy() {
       return !!busy || !!proc;
@@ -1029,6 +1211,7 @@ export function createArmedRig(THREE, ctx) {
       return overlay(key, dur);
     },
     stab(move = "stab") {
+      readyHold = KNIFE_READY_S;
       if (move === "slash" && has("slash")) return overlay("slash", 0.62);
       return overlay("stab", 0.55);
     },

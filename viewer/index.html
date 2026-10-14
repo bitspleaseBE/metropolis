@@ -3301,7 +3301,7 @@ let knifeLunge = null;
           transit = await createTransit(scene, THREE, { tramCount: 6, busCount: 8 });
           if (traffic.setOnHitPlayer) traffic.setOnHitPlayer((speed) => hitByVehicle(speed));
           if (transit.setOnHitPlayer) transit.setOnHitPlayer((speed) => hitByVehicle(speed));
-          // A handful of Aj, then the other bodies and the rest of the crowd after the city is up.
+          // A handful of people, then the rest of the crowd after the city is up.
           pedestrians = await createPedestrians(scene, THREE, {
             count: 40,
             firstCount: 5,
@@ -3609,7 +3609,7 @@ let knifeLunge = null;
           const buf = await window.__glbPromise;
           // After the city file, so posters and portraits don't compete with it.
           menu?.loadArt?.();
-          // Only Aj and the saved neighbour. The rest start once the city is visible.
+          // Only the starter rider and the saved neighbour. The rest start once the city is visible.
           preloadStarter();
           preloadPlayer();
           setLoad(0.82, "Unpacking the streets");

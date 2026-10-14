@@ -24,7 +24,7 @@ from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
 CHAR_DIR = ROOT / "viewer" / "characters"
-CHARS = ("Remy", "Amy", "James", "Michelle", "Aj")
+CHARS = ("Remy", "James")
 
 
 def _clear_scene() -> None:
@@ -132,7 +132,7 @@ ANKLE_ABOVE_PEDAL = 0.08
 # Mirrors makeScooter() / makeShareScooter() (m, relative to the rider's soles and origin).
 SC_GRIP_UP, SC_GRIP_FWD, SC_GRIP_HALF = 0.99, 0.34, 0.22
 SC_FRONT_FOOT, SC_REAR_FOOT, SC_FOOT_SIDE = 0.12, -0.16, 0.07
-SC_HIPS_DROP = 0.05
+SC_HIPS_DROP = 0.12
 
 # Joint limits as (bone, euler axis, lo, hi). On the Mixamo rig: UpLeg +X swings the thigh
 # forward, Leg −X bends the knee, Arm +X lowers / ±Z swings the arm forward, ForeArm ±Z flexes.
@@ -365,6 +365,9 @@ def bake_scooter(arm: bpy.types.Object) -> bpy.types.Action:
     hips_loc = rig.bone("Hips").location.copy()
     for s, fwd, sign in (("Left", SC_FRONT_FOOT, -1.0), ("Right", SC_REAR_FOOT, 1.0)):
         ankle = rig.point(fwd, sign * SC_FOOT_SIDE, rig.rest_foot[s].z)
+        # From a straight leg, a knee or thigh step alone lifts the foot, so the solver never starts.
+        rig.set_rot(f"{s}UpLeg", (0.4, 0.0, 0.0))
+        rig.set_rot(f"{s}Leg", (-0.8, 0.0, 0.0))
         rig.solve(f"{s}Foot", ankle, LEG[s])
     feet = rig.snapshot(_posed_bones(LEG.values()))
 
