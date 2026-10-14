@@ -82,6 +82,27 @@ SWAP = (
     ("Roundhouse_Kick.fbx", "Kick", "plant"),
 )
 
+# Armed clips, packed into ``{id}_combat.glb`` by ``-- combat``. The viewer plays the
+# aims, fires and reloads on the upper body over the strafe legs; Death and HitReact
+# are full-body. ``fall`` keeps the drop to the floor but none of the slide.
+COMBAT = (
+    ("Pistol_Idle.fbx", "AimPistol", "plant"),
+    ("Pistol_Walk.fbx", "AimWalk", "bob"),
+    ("Pistol_Walk_Backward.fbx", "AimWalkBack", "bob"),
+    ("Pistol_Strafe_Left.fbx", "AimStrafeL", "bob"),
+    ("Pistol_Strafe_Right.fbx", "AimStrafeR", "bob"),
+    ("Pistol_Run.fbx", "AimRun", "bob"),
+    ("Shooting_Handgun.fbx", "FirePistol", "plant"),
+    ("Gun_Reload.fbx", "ReloadPistol", "plant"),
+    ("Rifle_Aiming_Idle.fbx", "AimRifle", "plant"),
+    ("Firing_Rifle.fbx", "FireRifle", "plant"),
+    ("Rifle_Reload.fbx", "ReloadRifle", "plant"),
+    ("Knife_Stab.fbx", "Stab", "plant"),
+    ("Standing_Melee_Attack_Horizontal.fbx", "Slash", "plant"),
+    ("Hit_Reaction.fbx", "HitReact", "plant"),
+    ("Dying_Backwards.fbx", "Death", "fall"),
+)
+
 # Viewer normalizes a 0.0001 armature up to 0.01 before measuring height.
 NORM_SCALE = 0.01
 
@@ -666,6 +687,9 @@ def _retarget(
             d.y = 0.0
         elif mode == "plant":
             d = Vector()
+        elif mode == "fall":
+            d.x = 0.0
+            d.y = 0.0
         else:
             d.x *= 0.4
             d.y *= 0.4
@@ -692,7 +716,7 @@ def _retarget(
     _key_action(tgt_arm, clip_name, f0, f1, quats, locations)
     dst = _export_clip(tgt_arm, pid, clip_name)
     print(f"  {clip_name}: {dur:.2f}s  native {speed:.2f} m/s  mode {mode}  fix {fix:.0f}")
-    return dst, speed if mode == "bob" else 0.0
+    return dst, speed if mode in ("bob", "fall") else 0.0
 
 
 def _basis(arm: bpy.types.Object) -> tuple[Vector, Vector, Vector]:
@@ -822,7 +846,7 @@ def _bake_riding(pid: str) -> Path:
     return dst
 
 
-def _merge(pid: str, parts: list[Path]) -> Path:
+def _merge(pid: str, parts: list[Path], kind: str = "moves") -> Path:
     nodes = None
     scenes = None
     anims = []
@@ -870,7 +894,7 @@ def _merge(pid: str, parts: list[Path]) -> Path:
         "bufferViews": views,
         "buffers": [{"byteLength": len(blob)}],
     }
-    dst = OUT / f"{pid}_moves.glb"
+    dst = OUT / f"{pid}_{kind}.glb"
     write_glb(dst, out, blob)
     print(f"OK {pid}: {len(anims)} clips, {dst.stat().st_size // 1024} KB")
     return dst
@@ -914,10 +938,29 @@ def main() -> int:
     flags = {a.lower() for a in argv}
     swap = "swap" in flags
     fight = "fight" in flags
-    want = {a for a in flags if a not in {"swap", "fight"}} or None
+    combat = "combat" in flags
+    want = {a for a in flags if a not in {"swap", "fight", "combat"}} or None
     ids = ["pieter", "mo", "jacob"]
     if want:
         ids = [i for i in ids if i in want]
+    if combat:
+        speeds = {}
+        for pid in ids:
+            print(f"== {pid} combat ==")
+            parts = []
+            for fname, clip, mode in COMBAT:
+                src = MIXAMO / fname
+                if not src.exists():
+                    print(f"  skip {clip}: no {fname}")
+                    continue
+                path, speed = _retarget(pid, src, clip, mode)
+                parts.append(path)
+                if mode == "bob" and speed > 0.2:
+                    speeds[clip] = round(speed, 2)
+            _merge(pid, parts, "combat")
+        (OUT / "combat.json").write_text(json.dumps(speeds, indent=2) + "\n")
+        print("speeds", speeds)
+        return 0
     if swap:
         speeds: dict[str, float] = {}
         meta_path = OUT / "locomotion.json"

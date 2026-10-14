@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <title>Metropolis — Klein Antwerpen</title>
     <link rel="preconnect" href="https://unpkg.com" crossorigin />
     <style>
@@ -1134,7 +1135,9 @@
       import { createHud } from "./hud.js";
       import { playWasted, playBusted } from "./wasted.js";
       import { createWanted } from "./wanted.js";
-      import { createCombat } from "./combat.js";
+      import { createCombatPlayer } from "./combat-player.js";
+import { absorb, ARMOR_MAX, createLoot } from "./loot.js";
+import { SLOTS } from "./weapons.js";
       import { createPolice } from "./police.js";
       import { createMinimap } from "./minimap.js";
       import { createStreetLocator } from "./street-locate.js";
@@ -1414,6 +1417,10 @@
         get clock() { return { hour: gameHour, day: gameDay }; },
         get motion() { return playerMotion; },
         get thirdPerson() { return thirdPerson; },
+        get combat() { return combatPlayer; },
+        get loot() { return loot; },
+        get pedestrians() { return pedestrians; },
+        get police() { return police; },
         get pixelRatio() { return pixelRatio; },
         get quality() { return visuals.quality; },
         setQuality(q) {
@@ -1738,6 +1745,11 @@
       }
       const _beforeStep = { x: 0, z: 0 };
       const _afterWall = { x: 0, z: 0 };
+// Share of the commanded pace that survived walls this frame (smoothed), so the legs
+// stop cycling when you push into a facade instead of moonwalking against it.
+let footFree = 1;
+// Knife step-in toward the locked target, stopping at striking distance.
+let knifeLunge = null;
       let _lastVehicleHitMs = 0;
       const HIT_SPEED = 1.8; // m/s: below this you walk beside it; above it you go down
       /** Parked kerbside cars (velocity 0) captured before the city meshes are merged. */
@@ -2063,26 +2075,107 @@
       const wanted = createWanted();
       wanted.setOnChange((state) => hud.setWanted(state.level, state.sign));
       function landBlow(range, damage, single) {
-        if (playerCrash.active || playerCrash.dead || mode !== "walk") return;
+        if (playerCrash.active || playerCrash.dead || mode !== "walk") return 0;
         const w = walkControls.getObject().position;
         const yaw = playerMotion.yaw();
         const dx = -Math.sin(yaw);
         const dz = -Math.cos(yaw);
         const peopleHit = pedestrians?.strike ? pedestrians.strike(w.x, w.z, dx, dz, range, damage, single) : [];
         const ridersHit = micromobility?.strike ? micromobility.strike(w.x, w.z, dx, dz, range, damage, single) : [];
-        if (police?.hit) police.hit(w.x, w.z, dx, dz, range, damage, single);
+        const copsHit = police?.hit ? police.hit(w.x, w.z, dx, dz, range, damage, single) : 0;
         if (peopleHit.length || ridersHit.length) harmedPulse = true;
+        return peopleHit.length + ridersHit.length + copsHit;
       }
-      const combat = createCombat(THREE, {
-        bones: () => playerAvatar.bones,
-        legs: () => playerAvatar.legs,
-        skipPose: () => playerAvatar.striking,
-        blocked: () =>
-          menu.open || mode !== "walk" || playerCrash.active || playerCrash.dead || (transit.isRiding && transit.isRiding()),
-        onHud: (info) => hud.setWeapon(info),
-        onMelee: (range, damage) => landBlow(range, damage, false),
-        onShot: (_damage, range) => landBlow(range, _damage, true),
+      const onFootBusy = () =>
+        menu.open ||
+        mode !== "walk" ||
+        playerCrash.active ||
+        playerCrash.dead ||
+        caught ||
+        !!(transit.isRiding && transit.isRiding()) ||
+        !!velo?.isRiding?.() ||
+        !!scooters?.isRiding?.();
+      const _shootTargets = [];
+      const _pedTargets = [];
+      const _copTargets = [];
+      let playerArmor = 0;
+      const combatPlayer = createCombatPlayer(THREE, {
+        scene,
+        camera,
+        avatar: playerAvatar,
+        thirdPerson,
+        targets() {
+          const p = walkControls.getObject().position;
+          _shootTargets.length = 0;
+          if (pedestrians?.shootables) _shootTargets.push(...pedestrians.shootables(p.x, p.z, 170, _pedTargets));
+          if (police?.shootables) _shootTargets.push(...police.shootables(_copTargets));
+          return _shootTargets;
+        },
+        // Footprints only: anything below a typical eave inside one is wall.
+        solidAt: (x, y, z) => y < 22 && !!outdoors?.ready && outdoors.insideBuilding(x, z),
+        groundY: (x, z) => Math.max(0, groundAt(x, z)),
+        blocked: onFootBusy,
+        onMelee(m) {
+          const knife = m.kind === "knife";
+          if (knife && m.target) knifeLunge = { x: m.target.x, z: m.target.z, t: 0.22 };
+          const blow = () => {
+            if (landBlow(m.range, m.damage, knife)) combatPlayer.hud.hit(false);
+          };
+          // The knife cuts when the blade arrives, after the step-in.
+          if (knife) setTimeout(blow, (m.hit ?? 0) * 1000);
+          else blow();
+        },
+        onHit(h) {
+          const t = h.target;
+          if (!t) return null;
+          harmedPulse = true;
+          if (t.kind === "pedestrian") {
+            const r = pedestrians?.shoot(t.ref, h.damage, h.dir.x, h.dir.z);
+            return r ? (r.dead ? "kill" : "hit") : null;
+          }
+          return police?.shoot ? police.shoot(t.ref, h.damage) : null;
+        },
+        onGunfire(from) {
+          // A shot is a crime any officer who sees you will act on, and it clears the street.
+          harmedPulse = true;
+          pedestrians?.panic?.(from.x, from.z, 45);
+        },
       });
+      const combat = combatPlayer.combat;
+      const loot = createLoot(THREE, scene, {
+        onPickup(item) {
+          if (item.cash) {
+            hud.earn(item.cash, "Cash");
+            return true;
+          }
+          if (item.armor) {
+            if (playerArmor >= ARMOR_MAX) return false;
+            playerArmor = Math.min(ARMOR_MAX, playerArmor + item.armor);
+            combatPlayer.hud.setArmor(playerArmor);
+            hud.notify("Body armour", 1800);
+            return true;
+          }
+          if (item.weapon) {
+            const got = combat.give(item.weapon, item.rounds);
+            if (got === "full") return false;
+            if (got === "new") hud.notify(`Picked up a ${WEAPON_NAMES[item.weapon] || item.weapon}`, 2200);
+            return true;
+          }
+          return true;
+        },
+      });
+      const WEAPON_NAMES = { knife: "knife", pistol: "pistol", shotgun: "shotgun", smg: "SMG", rifle: "rifle" };
+      /** Police gunfire and other damage to the player: armour soaks most of it first. */
+      function hurtPlayer(n) {
+        const split = absorb(playerArmor, n);
+        playerArmor -= split.armor;
+        combatPlayer.hud.setArmor(playerArmor);
+        if (split.health > 0) playerCrash.hurt(split.health);
+        playerAvatar.hitReact?.();
+      }
+      const _feet = new THREE.Vector3();
+      const _copMuzzle = new THREE.Vector3();
+      const _copAim = new THREE.Vector3();
       window.startFactionPursuit = (spec) => police?.startFactionPursuit(spec) || false;
       const CRASH_IMPACT = 3.2; // m/s straight into something solid throws you off
       const CRASH_PERSON = 3.0; // m/s into a pedestrian: you both go down
@@ -2141,6 +2234,8 @@
         camera.up.copy(UP_WORLD);
         playerAvatar.setVisible(true);
         hud.setHealth(100);
+        playerArmor = 0;
+        combatPlayer.hud.setArmor(0);
       }
       let caught = false;
       playerCrash.setOnDeath(() => {
@@ -2159,6 +2254,7 @@
         });
         if (!started) return;
         caught = true;
+        combat.clear();
         const w = walkControls.getObject();
         const yaw = playerMotion.yaw();
         if (scooters && scooters.isRiding()) scooters.tryInteract({ x: w.position.x, z: w.position.z, yaw });
@@ -2630,6 +2726,10 @@
       window.addEventListener("mousemove", (e) => {
         if (!pointerLocked || menu.open || mode !== "walk") return;
         if (transit.isRiding && transit.isRiding()) return;
+        if (combat.wheelOpen) {
+          combatPlayer.hud.point(e.movementX || 0, e.movementY || 0);
+          return;
+        }
         applyLookDelta(e.movementX || 0, e.movementY || 0);
       });
 
@@ -2637,9 +2737,8 @@
         touch = createTouchControls({
           keys,
           onInteract: () => handleInteractE(),
-          onPunch: () => playerAvatar.strike("punch"),
-          onKick: () => playerAvatar.strike("kick"),
-          onAttack: () => combat.attack(),
+          onPunch: () => combat.attack(),
+          onKick: () => combat.kick(),
           onToggleMode: () => {
             if (transit.isRiding && transit.isRiding()) return;
             if (velo && velo.isRiding && velo.isRiding()) return;
@@ -2674,13 +2773,18 @@
         touch.bindCanvas(renderer.domElement);
       }
 
+      // GTA mouse: left fires (or punches / stabs), right aims a gun or kicks bare-handed.
       window.addEventListener("mousedown", (e) => {
-        if (!pointerLocked || menu.open || mode !== "walk") return;
-        if (transit.isRiding && transit.isRiding()) return;
-        if (velo && velo.isRiding && velo.isRiding()) return;
-        if (scooters && scooters.isRiding()) return;
-        if (e.button === 0) playerAvatar.strike("punch");
-        if (e.button === 2) playerAvatar.strike("kick");
+        if (!pointerLocked || onFootBusy()) return;
+        if (e.button === 0) combat.setTrigger(true);
+        if (e.button === 2) {
+          if (combat.armed) combat.setAim(true);
+          else combat.kick();
+        }
+      });
+      window.addEventListener("mouseup", (e) => {
+        if (e.button === 0) combat.setTrigger(false);
+        if (e.button === 2) combat.setAim(false);
       });
       window.addEventListener("contextmenu", (e) => {
         if (pointerLocked) e.preventDefault();
@@ -2717,15 +2821,16 @@
         }
       });
 
-      window.addEventListener("mousedown", (e) => {
-        if (e.button !== 0 || menu.open || !pointerLocked || mode !== "walk") return;
-        combat.attack();
-      });
       window.addEventListener("keyup", (e) => {
-        if (e.code === "Tab") combat.setOpen(false);
+        if (e.code === "Tab") combat.setWheel(false);
+      });
+      window.addEventListener("blur", () => {
+        combat.setTrigger(false);
+        combat.setAim(false);
+        combat.setWheel(false);
       });
       window.addEventListener("wheel", (e) => {
-        if (!pointerLocked || menu.open) return;
+        if (!pointerLocked || menu.open || mode !== "walk" || combat.wheelOpen) return;
         combat.cycle(e.deltaY > 0 ? 1 : -1);
       }, { passive: true });
 
@@ -2733,7 +2838,20 @@
         if (menu.open) return;
         if (e.code === "Tab") {
           e.preventDefault();
-          combat.setOpen(true);
+          if (!e.repeat && !onFootBusy()) {
+            combatPlayer.hud.resetCursor();
+            combat.setWheel(true);
+          }
+          return;
+        }
+        if (e.code === "KeyR" && !e.repeat && !onFootBusy()) {
+          combat.reload();
+          return;
+        }
+        const slot = /^Digit([1-6])$/.exec(e.code);
+        if (slot && !onFootBusy()) {
+          const id = SLOTS[Number(slot[1]) - 1];
+          if (combat.has(id)) combat.equip(id);
           return;
         }
         if (e.code === "Escape") {
@@ -3310,8 +3428,14 @@
               return { x: p.x, z: p.z };
             },
             notify: (text) => hud.notify(text, 2800),
-            onLoot: () => combat.givePistol(),
+            onKilled: (d) => loot.drop(d.kind === "police" ? "police" : "pedestrian", d.x, Math.max(0, groundAt(d.x, d.z)), d.z),
+            onShot(from, target) {
+              _copMuzzle.set(from.x, from.y + 1.4, from.z);
+              _copAim.set(target.x, walkControls.getObject().position.y - 0.4, target.z);
+              combatPlayer.fx.remoteShot("pistol", _copMuzzle, _copAim, _copMuzzle.distanceTo(camera.position));
+            },
           });
+          pedestrians?.setOnKilled?.((d) => loot.drop("pedestrian", d.x, Math.max(0, groundAt(d.x, d.z)), d.z));
           // Cars give way to trams/buses instead of driving through them.
           if (traffic.setObstacles) traffic.setObstacles(() => transit.vehicles || []);
           const nCars = traffic.count ?? 0;
@@ -3580,6 +3704,29 @@
         }
       }
 
+      let padWheel = false;
+      let padFire = false;
+      let padAim = false;
+      /** GTA pad: LT aims (sprints bare-handed), RT fires, LB holds the wheel, B reloads (kicks bare-handed). */
+      function padCombat(g) {
+        const fire = !!g?.down.r2;
+        const aim = !!g?.down.l2 && combat.armed;
+        const wheel = !!g?.down.l1;
+        if (fire !== padFire) combat.setTrigger((padFire = fire));
+        if (aim !== padAim) combat.setAim((padAim = aim));
+        if (wheel !== padWheel) {
+          padWheel = wheel;
+          if (wheel) combatPlayer.hud.resetCursor();
+          combat.setWheel(wheel);
+        }
+        if (!g) return;
+        if (wheel) combatPlayer.hud.point(g.sticks.rx, g.sticks.ry, true);
+        if (g.pressed.circle) {
+          if (combat.armed) combat.reload();
+          else combat.kick();
+        }
+      }
+
       function applyGamepad(dt) {
         const g = gamepad.sample();
         if (!g.layout) {
@@ -3596,11 +3743,15 @@
           keys.a = kb.a || g.move.a;
           keys.s = kb.s || g.move.s;
           keys.d = kb.d || g.move.d;
+          const kbMove = kb.w || kb.a || kb.s || kb.d;
+          keys.stick = moving && !kbMove ? { x: g.sticks.lx, y: -g.sticks.ly } : null;
           padDrive = moving;
         }
-        if (g.sprint || padSprint) {
-          keys.shift = kb.shift || g.sprint;
-          padSprint = g.sprint;
+        // LT is the aim trigger once a gun is out; bare-handed it stays sprint.
+        const padRun = g.sprint && !combat.armed;
+        if (padRun || padSprint) {
+          keys.shift = kb.shift || padRun;
+          padSprint = padRun;
         }
         if (g.jump || padJump) {
           keys.space = kb.space || g.jump;
@@ -3617,9 +3768,8 @@
           !(velo && velo.isRiding && velo.isRiding()) &&
           !(scooters && scooters.isRiding())
         ) {
-          if (g.pressed.r2) playerAvatar.strike("punch");
-          if (g.pressed.circle) playerAvatar.strike("kick");
-        }
+          padCombat(g);
+        } else padCombat(null);
         if (g.pressed.triangle) tap("KeyN");
         if (g.pressed.r1) tap("KeyH");
         if (g.pressed.up) tap("KeyV");
@@ -3627,6 +3777,7 @@
         if (
           mode === "walk" &&
           !playerCrash.active &&
+          !combat.wheelOpen &&
           !(transit.isRiding && transit.isRiding()) &&
           (g.look.x || g.look.y)
         ) {
@@ -3637,10 +3788,13 @@
       function tick() {
         const time = performance.now();
         const rawDt = (time - prevTime) / 1000;
-        const dt = Math.min(0.05, rawDt);
+        // The weapon wheel slows the whole world (GTA), not just the player.
+        const slow = combatPlayer.timeScale;
+        const realDt = Math.min(0.05, rawDt);
+        const dt = realDt * slow;
         // Traffic and transit integrate real elapsed time themselves (sub-stepped), so a slow
         // frame does not put the whole street in slow motion. Walking/camera keep the 50 ms cap.
-        const simDt = Math.min(0.25, rawDt);
+        const simDt = Math.min(0.25, rawDt) * slow;
         prevTime = time;
         // One read per frame. A second poll in the same frame clears button edges.
         gamepad.poll();
@@ -3658,7 +3812,7 @@
         const ridingVelo = velo && velo.isRiding && velo.isRiding();
         const riding = ridingTram;
         const onScooter = scooters && scooters.isRiding();
-        playerMotion.setFootScale(playerCrash.speedScale());
+        playerMotion.setFootScale(playerCrash.speedScale() * combatPlayer.footScale);
 
         if (playerCrash.active) {
           const w = walkControls.getObject();
@@ -3716,7 +3870,18 @@
             const w = walkControls.getObject();
             _beforeStep.x = w.position.x;
             _beforeStep.z = w.position.z;
-            playerMotion.step(dt, keys, kind);
+            playerMotion.step(dt, combat.aiming && keys.shift ? { ...keys, shift: false } : keys, kind);
+            if (knifeLunge) {
+              const dx = knifeLunge.x - w.position.x;
+              const dz = knifeLunge.z - w.position.z;
+              const d = Math.hypot(dx, dz);
+              const step = kind === "walk" ? Math.min(Math.max(0, d - 0.75), 5 * dt) : 0;
+              if (d > 1e-3) {
+                w.position.x += (dx / d) * step;
+                w.position.z += (dz / d) * step;
+              }
+              if ((knifeLunge.t -= dt) <= 0) knifeLunge = null;
+            }
             const surface = kind === "walk" ? Math.max(0, groundAt(w.position.x, w.position.z)) : 0;
             w.position.y = playerMotion.eye(kind) + surface + JUMP.y;
             const overlapSpeed = fastestOverlap(w.position, onScooter || ridingVelo ? 0.55 : 0.36);
@@ -3728,6 +3893,13 @@
             _afterWall.z = w.position.z;
             if (!onScooter && !ridingVelo) pushOutOfSolids(w.position);
             collideWorld(w.position, onScooter || ridingVelo);
+            const commanded = Math.hypot(playerMotion.state.fwd, playerMotion.state.side) * dt;
+            if (commanded > 1e-4) {
+              const moved = Math.hypot(w.position.x - _beforeStep.x, w.position.z - _beforeStep.z);
+              footFree += (Math.min(1, moved / commanded) - footFree) * (1 - Math.exp(-10 * dt));
+            } else {
+              footFree = 1;
+            }
             if ((onScooter || ridingVelo) && dt > 0) {
             stepJump(JUMP, dt);
               const yaw = playerMotion.yaw();
@@ -3800,16 +3972,34 @@
         const scooterDeck = onScooter && scooters?.deckAnchor ? scooters.deckAnchor() : null;
         // Eye sits just above the grip so the soles, not the ankles, meet the deck.
         if (scooterDeck) wPos.y = scooterDeck.y + 1.58;
-        const spd = Math.abs(playerMotion.speed);
+        // The legs pace to ground speed, strafe included (A/D and every off-axis stick angle).
+        const spd =
+          moveKind === "walk" ? Math.hypot(playerMotion.state.fwd, playerMotion.state.side) * footFree : Math.abs(playerMotion.speed);
         // Same travel heading the Velo/scooter use, so reverse turns bike and rider together.
         let bodyYaw = spd > 0.12 && mode === "walk" ? playerMotion.travelYaw() : thirdPerson.yaw();
         const crashing = playerCrash.active;
+        const armedOnFoot = mode === "walk" && moveKind === "walk" && !ridingTram && !crashing;
+        _feet.set(wPos.x, wPos.y - 1.7, wPos.z);
+        combatPlayer.update(menuOpen ? 0 : realDt, _feet, {
+          moving: Math.min(1, spd / 3.5),
+          moveYaw: spd > 0.12 ? playerMotion.travelYaw() : thirdPerson.yaw(),
+          dead: playerCrash.dead,
+        });
+        if (armedOnFoot) bodyYaw = combatPlayer.bodyYaw(bodyYaw);
         if (mode === "walk" || mode === "free") {
           if (ridingTram) {
             // First-person cabin ride: keep the body off the platform (update() forces visible).
             playerAvatar.setVisible(false);
           } else {
-            playerAvatar.update(menuOpen || crashing ? 0 : dt, wPos, crashing ? 0 : spd, bodyYaw, moveKind, scooterDeck);
+            playerAvatar.update(
+              menuOpen || crashing ? 0 : dt,
+              wPos,
+              crashing ? 0 : spd,
+              bodyYaw,
+              moveKind,
+              scooterDeck,
+              armedOnFoot ? combatPlayer.fight : null,
+            );
             playerAvatar.setVisible(!crashing);
           }
         }
@@ -3818,7 +4008,10 @@
           camera.up.copy(UP_WORLD);
           camera.position.copy(wPos);
         } else if (mode === "walk" && !riding) {
-          thirdPerson.update(menuOpen ? 1 / 60 : dt, wPos);
+          thirdPerson.update(menuOpen ? 1 / 60 : realDt, wPos, {
+            armed: armedOnFoot && combat.armed,
+            aim: armedOnFoot && combat.aiming ? 1 : 0,
+          });
         }
 
         const walker = mode === "walk" ? walkControls.getObject() : playerAvatar.root;
@@ -3844,13 +4037,13 @@
               z: wPos.z,
               dead: playerCrash.dead || caught,
               bust: bustPlayer,
-              hurt: (n) => playerCrash.hurt(n),
+              hurt: hurtPlayer,
               ranRed: !!(traffic.playerRanRed && traffic.playerRanRed(wPos.x, wPos.z, face)),
               harmed: harmedPulse,
             });
             harmedPulse = false;
           }
-          combat.update(menuOpen ? 0 : dt);
+          if (mode === "walk") loot.update(dt, wPos.x, wPos.z);
           if (micromobility) {
             micromobility.setClock?.(gameHour);
             fillRiderObstacles(walker);

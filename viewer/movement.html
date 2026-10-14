@@ -7,6 +7,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <title>Movement — cast and crowd</title>
     <style>
       :root { color-scheme: dark; }
@@ -70,6 +71,7 @@
       import { leanToBars } from "./ride-lean.js";
       import { makeBicycleMesh, makeCargoMesh, makeScooterMesh } from "./micromobility.js";
       import { createPlayerAvatar } from "./players.js";
+      import { skinnedFloor } from "./foot-plant.js";
       import { makeShareScooter, placeRideScooter, scooterDeck } from "./scooters.js";
       import { JUMP, MOVE, makeJump, stepJump } from "./player-motion.js";
 
@@ -79,6 +81,8 @@
       // so a sliding foot shows. Speeds come from viewer/player-motion.js.
       const DRIVE = {
         Idle: { speed: 0 },
+        // A light push on the touch / pad stick: the walk clip slowed right down.
+        Creep: { speed: 0.6 },
         Walk: { speed: 1.3 },
         Jog: { speed: MOVE.walk.speed },
         Run: { speed: MOVE.walk.speed * MOVE.walk.boost },
@@ -88,6 +92,14 @@
         Kick: { speed: 0, strike: "kick" },
         Velo: { speed: MOVE.velo.speed * 0.75, kind: "velo" },
         Step: { speed: MOVE.scooter.speed * 0.75, kind: "scooter" },
+        // Combat (viewer/player-armed.js): aimed walk is the jog at the game's 0.55 aim pace.
+        Pistol: { speed: 0, weapon: "pistol", aim: 1 },
+        "Aim walk": { speed: MOVE.walk.speed * 0.55, weapon: "rifle", aim: 1 },
+        Strafe: { speed: MOVE.walk.speed * 0.55, weapon: "rifle", aim: 1, strafe: Math.PI / 2 },
+        // W+D while aiming: forward plus the 0.85 strafe pace, blended aimWalk + aimStrafe.
+        "Aim diagonal": { speed: Math.hypot(1, 0.85) * MOVE.walk.speed * 0.55, weapon: "rifle", aim: 1, strafe: Math.atan2(0.85, 1) },
+        Reload: { speed: 0, weapon: "rifle", aim: 0, act: "reload" },
+        Stab: { speed: 0, weapon: "knife", act: "stab" },
       };
       const CAST_CLIPS = Object.keys(DRIVE);
       const CAST_YAW = Math.PI; // the avatar faces −Z at yaw 0; turn it toward the camera
@@ -220,6 +232,8 @@
       const avatar = createPlayerAvatar(THREE, scene, { remember: false });
       avatar.setVisible(false);
       const drive = { name: "Idle", t: 0, travel: 0, jump: makeJump(), rest: 0, presses: 0 };
+      // Aim at a point 20 m ahead of the avatar (it faces +Z here), as the crosshair would.
+      const castFight = { aim: 0, aimPoint: new THREE.Vector3(0, 1.45, 20), moveYaw: CAST_YAW, dead: false };
 
       /** One game frame for the cast: vehicle first, then the avatar, as index.html does. */
       function driveCast(dt) {
@@ -262,8 +276,20 @@
             drive.rest = 0.9;
           }
         }
-        avatar.update(dt, pos, speed, CAST_YAW, kind, deck);
-        grid.position.z = -(drive.travel % GRID_CELL);
+        const weapon = spec.weapon || "unarmed";
+        if (avatar.weapon !== weapon) avatar.setWeapon(weapon);
+        if (spec.act && (drive.rest -= dt) <= 0) {
+          if (spec.act === "reload") avatar.reload(2);
+          else avatar.stab();
+          drive.rest = spec.act === "reload" ? 2.6 : 1.1;
+        }
+        castFight.aim = spec.aim ?? 0;
+        castFight.moveYaw = CAST_YAW + (spec.strafe || 0);
+        avatar.update(dt, pos, speed, CAST_YAW, kind, deck, spec.weapon ? castFight : null);
+        // The floor slides the way the feet push: back for a walk, sideways for a strafe.
+        const a = spec.strafe || 0;
+        grid.position.x = (Math.sin(a) * drive.travel) % GRID_CELL;
+        grid.position.z = -(Math.cos(a) * drive.travel) % GRID_CELL;
       }
 
       function setDrive(name) {
@@ -321,10 +347,9 @@
         }
         if (h > 0.01) root.scale.multiplyScalar(1.72 / h);
         root.updateMatrixWorld(true);
-        if (foot) {
-          foot.updateWorldMatrix(true, false);
-          root.position.y -= foot.matrixWorld.elements[13];
-        }
+        // Soles on the floor, as the game's fitHumanoid does. The ankle bone sits ~12 cm above them.
+        const floor = skinnedFloor(THREE, root);
+        if (Number.isFinite(floor)) root.position.y -= floor;
         root.userData.groundY = root.position.y;
         root.updateMatrixWorld(true);
         const bindFeet = {};
@@ -390,6 +415,20 @@
         if (name === "Punch") {
           const pass = m.hand >= 0.2;
           return { pass, text: `hand ${(m.hand * 100).toFixed(0)} cm` };
+        }
+        if (name === "Pistol" || name === "Reload") {
+          // Standing with a gun: the legs hold still.
+          const pass = m.leg < 0.25 && (name === "Pistol" ? m.arm < 0.35 : m.hand >= 0.1);
+          return { pass, text: `legs ${(m.leg * 100).toFixed(0)} cm, hands ${(m.hand * 100).toFixed(0)} cm` };
+        }
+        if (name === "Stab") {
+          const pass = m.hand >= 0.2;
+          return { pass, text: `hand ${(m.hand * 100).toFixed(0)} cm` };
+        }
+        if (name === "Aim walk" || name === "Strafe" || name === "Aim diagonal") {
+          // Arms are locked on the gun; only the feet travel.
+          const pass = m.foot >= 0.2;
+          return { pass, text: `feet ${(m.foot * 100).toFixed(0)} cm` };
         }
         if (name === "Kick") {
           const pass = m.foot >= 0.25;
@@ -723,7 +762,14 @@
         setDrive(name);
         avatar.update(0, { x: 0, y: MOVE.walk.eye, z: 0 }, 0, CAST_YAW, "walk");
         for (let i = 0; i < 30; i++) driveCast(1 / 60);
-        const seconds = name === "Idle" ? 1.2 : name === "Punch" || name === "Kick" ? 2.4 : name === "Jump" ? 1.6 : 1.5;
+        const seconds =
+          name === "Idle" || name === "Pistol"
+            ? 1.2
+            : name === "Punch" || name === "Kick" || name === "Reload"
+              ? 2.4
+              : name === "Jump"
+                ? 1.6
+                : 1.5;
         return measure(avatar.root, { update: driveCast }, seconds);
       }
 
@@ -939,7 +985,6 @@
 
       document.getElementById("check").onclick = () => checkAll();
       window.__checkMotion = checkAll;
-
       function frame() {
         requestAnimationFrame(frame);
         const dt = Math.min(clock.getDelta(), 0.05);

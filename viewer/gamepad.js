@@ -40,6 +40,7 @@ const BUTTONS = {
   3: "triangle",
   4: "l1",
   5: "r1",
+  6: "l2",
   7: "r2",
   8: "share",
   9: "options",
@@ -52,7 +53,8 @@ const BUTTONS = {
 const ROWS = {
   keyboard: [
     ["W A S D", "Walk, steer"],
-    ["Mouse", "Look · click punch · right-click kick"],
+    ["Mouse", "Look · click punch / fire · right-click kick / aim"],
+    ["Tab · wheel · 1–6", "Weapons · R reload"],
     ["Shift", "Sprint"],
     ["Space", "Jump"],
     ["E", "Scooter, tram, bus, Velo"],
@@ -65,9 +67,10 @@ const ROWS = {
   playstation: [
     ["Left stick", "Walk, steer"],
     ["Right stick", "Look"],
-    ["L2", "Sprint"],
+    ["L2", "Aim (sprint unarmed)"],
     ["Cross", "Jump"],
-    ["R2", "Punch · Circle kick"],
+    ["R2", "Fire / punch · Circle reload / kick"],
+    ["L1", "Weapon wheel"],
     ["Square", "Scooter, tram, bus, Velo"],
     ["Triangle", "Night / day"],
     ["D-pad up", "Map view"],
@@ -78,9 +81,10 @@ const ROWS = {
   xbox: [
     ["Left stick", "Walk, steer"],
     ["Right stick", "Look"],
-    ["LT", "Sprint"],
+    ["LT", "Aim (sprint unarmed)"],
     ["A", "Jump"],
-    ["RT", "Punch · B kick"],
+    ["RT", "Fire / punch · B reload / kick"],
+    ["LB", "Weapon wheel"],
     ["X", "Scooter, tram, bus, Velo"],
     ["Y", "Night / day"],
     ["D-pad up", "Map view"],

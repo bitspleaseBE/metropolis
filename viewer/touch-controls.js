@@ -122,7 +122,6 @@ export function createTouchControls(opts) {
     onInteract,
     onPunch,
     onKick,
-    onAttack,
     onToggleMode,
     onToggleNight,
     onToggleHelp,
@@ -159,7 +158,6 @@ export function createTouchControls(opts) {
         <button type="button" class="tc-btn tc-jump" data-hold="space">Jump</button>
         <button type="button" class="tc-btn" data-act="punch">Punch</button>
         <button type="button" class="tc-btn" data-act="kick">Kick</button>
-        <button type="button" class="tc-btn" data-act="attack">Hit</button>
         <button type="button" class="tc-btn tc-interact big" data-act="interact">Go</button>
       </div>
     </div>
@@ -195,6 +193,7 @@ export function createTouchControls(opts) {
 
   function clearMoveKeys() {
     keys.w = keys.a = keys.s = keys.d = false;
+    keys.stick = null;
     knob.style.transform = "translate(0,0)";
   }
 
@@ -207,6 +206,9 @@ export function createTouchControls(opts) {
     }
     const ax = nx / mag;
     const ay = ny / mag;
+    // Analog pace: the dead zone eats the first bit, the rim is full speed.
+    const push = Math.min(1, (mag - DEAD) / (0.85 - DEAD));
+    keys.stick = { x: ax * push, y: -ay * push };
     keys.w = ay < -0.35;
     keys.s = ay > 0.35;
     keys.a = ax < -0.35;
@@ -294,7 +296,6 @@ export function createTouchControls(opts) {
       if (act === "interact") onInteract?.();
       else if (act === "punch") onPunch?.();
       else if (act === "kick") onKick?.();
-      else if (act === "attack") onAttack?.();
       else if (act === "mode") onToggleMode?.();
       else if (act === "night") onToggleNight?.();
       else if (act === "help") onToggleHelp?.();
