@@ -1,0 +1,80 @@
+"""Shallow vs deep water classification (Antwerp ponds vs Scheldt / docks)."""
+
+from __future__ import annotations
+
+import unittest
+
+from cityview.water import annotate_water_entry, classify_water, export_water_for_viewer
+
+
+class ClassifyWaterTests(unittest.TestCase):
+    def test_stadsparkvijver_is_shallow_wade(self):
+        info = classify_water(
+            {"natural": "water", "water": "pond", "name": "Stadsparkvijver"},
+            area_m2=17_000,
+        )
+        self.assertEqual(info["kind"], "pond")
+        self.assertEqual(info["depth"], "shallow")
+        self.assertTrue(info["wade"])
+        self.assertGreater(info["depth_m"], 0.1)
+
+    def test_schelde_by_name_is_deep(self):
+        info = classify_water({"natural": "water", "water": "river", "name": "Schelde"}, 2e6)
+        self.assertEqual(info["depth"], "deep")
+        self.assertFalse(info["wade"])
+
+    def test_escaut_relation_is_deep(self):
+        info = classify_water({"waterway": "river", "name": "L'Escaut"}, 1e6)
+        self.assertEqual(info["kind"], "river")
+        self.assertFalse(info["wade"])
+
+    def test_harbour_dock_is_deep(self):
+        for tags in (
+            {"water": "harbour", "name": "Bonapartedok"},
+            {"waterway": "dock", "name": "Willemdok"},
+            {"water": "canal"},
+        ):
+            info = classify_water(tags, 80_000)
+            self.assertEqual(info["depth"], "deep", tags)
+            self.assertFalse(info["wade"], tags)
+
+    def test_deep_fountain_basin_stays_shallow(self):
+        info = classify_water({"landuse": "basin", "name": "Deep Fountain"}, 400)
+        self.assertEqual(info["depth"], "shallow")
+        self.assertTrue(info["wade"])
+
+    def test_large_industrial_basin_is_deep(self):
+        info = classify_water({"landuse": "basin", "name": "Retentiebekken"}, 12_000)
+        self.assertEqual(info["depth"], "deep")
+
+    def test_large_untyped_open_water_is_deep(self):
+        info = classify_water({"natural": "water"}, 55_000)
+        self.assertEqual(info["depth"], "deep")
+
+    def test_small_untyped_water_is_shallow(self):
+        info = classify_water({"natural": "water"}, 200)
+        self.assertEqual(info["depth"], "shallow")
+        self.assertTrue(info["wade"])
+
+
+class ExportWaterTests(unittest.TestCase):
+    def test_export_keeps_wade_fields(self):
+        pond = annotate_water_entry(
+            {"id": 145169574, "ring": [[0, 0], [100, 0], [100, 50], [0, 50]]},
+            {"natural": "water", "water": "pond", "name": "Stadsparkvijver"},
+        )
+        river = annotate_water_entry(
+            {"id": 1, "ring": [[0, 0], [1000, 0], [1000, 500], [0, 500]]},
+            {"waterway": "river", "name": "Schelde"},
+        )
+        doc = export_water_for_viewer({"water": [pond, river]})
+        self.assertEqual(len(doc["bodies"]), 2)
+        by_id = {b["id"]: b for b in doc["bodies"]}
+        self.assertTrue(by_id[145169574]["wade"])
+        self.assertEqual(by_id[145169574]["depth"], "shallow")
+        self.assertFalse(by_id[1]["wade"])
+        self.assertEqual(by_id[1]["depth"], "deep")
+
+
+if __name__ == "__main__":
+    unittest.main()

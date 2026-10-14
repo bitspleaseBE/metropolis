@@ -3052,7 +3052,8 @@ def add_building(
 # resolves ~2 cm). Rails are the highest flat layer: they can never sink under
 # asphalt, sidewalks, kerbs or park/ground polygons.
 Z_GROUND = -0.15
-Z_WATER = -0.04
+Z_WATER_BED = -0.28  # silt under shallow ponds (below the gravel yard)
+Z_WATER = -0.02  # surface just under park grass — banks read, no z-fight
 Z_PARK = 0.00
 Z_ROAD = 0.04
 Z_PARK_PATH = 0.05
@@ -4167,7 +4168,13 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
         surface_mat("gravel", "ground", (0.74, 0.73, 0.68, 1.0), 0.95, tint=GROUND_TINT),
     )
 
-    water_mat = principled("water", (0.18, 0.32, 0.42, 1.0), 0.12)
+    # Shallow ponds: silt bed + green-brown surface (viewer upgrades to transmission).
+    # Deep water (Scheldt, docks): single opaque disc — walker is pushed out in JS.
+    water_bed_mat = principled("water_bed", (0.20, 0.26, 0.14, 1.0), 0.95)
+    water_shallow_mat = principled("water_shallow", (0.20, 0.40, 0.46, 1.0), 0.08)
+    water_deep_mat = principled("water_deep", (0.10, 0.18, 0.28, 1.0), 0.14)
+    # Legacy name kept so older GLBs / landmark basins still match keepCityPbr.
+    water_mat = water_shallow_mat
     park_mat = surface_mat("grass", "park", (0.28, 0.48, 0.26, 1.0), 0.92, tint=PARK_TINT)
     road_mat = surface_mat("asphalt", "asphalt", (0.32, 0.32, 0.34, 1.0), 0.92)
     cobble_mat = surface_mat("sett", "cobble", (0.45, 0.43, 0.40, 1.0), 0.88)
@@ -4338,7 +4345,14 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     spawn_xy = (float(spawn["x"]), float(spawn["y"])) if spawn.get("x") is not None else None
 
     for i, pond in enumerate(layout.get("water") or []):
-        add_ring(f"water_{pond.get('id', i)}", pond["ring"], 0.0, Z_WATER, water_mat)
+        wid = pond.get("id", i)
+        ring = pond["ring"]
+        deep = str(pond.get("depth") or "shallow") == "deep"
+        if deep:
+            add_ring(f"water_{wid}", ring, 0.0, Z_WATER, water_deep_mat)
+        else:
+            add_ring(f"water_bed_{wid}", ring, 0.0, Z_WATER_BED, water_bed_mat)
+            add_ring(f"water_{wid}", ring, 0.0, Z_WATER, water_shallow_mat)
     for i, park in enumerate(layout.get("parks") or []):
         add_ring(
             f"park_{park.get('id', i)}",

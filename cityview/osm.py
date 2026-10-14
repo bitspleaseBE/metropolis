@@ -35,6 +35,7 @@ from cityview.streetscape import (
     safe_roof_shape,
 )
 from cityview.walkability import walker_solid_from_tags
+from cityview.water import annotate_water_entry
 
 OVERPASS_URLS = (
     "https://overpass.private.coffee/api/interpreter",
@@ -1206,7 +1207,7 @@ def layout_from_osm(
         ):
             ring = _closed(pts)
             if len(ring) >= 3 and _area(ring) >= 80.0:
-                water.append({"id": int(way["id"]), "ring": ring})
+                water.append(annotate_water_entry({"id": int(way["id"]), "ring": ring}, tags))
             continue
         if _is_park(tags):
             ring = _closed(pts)
@@ -1274,7 +1275,9 @@ def layout_from_osm(
         ):
             for i, ring in enumerate(rings):
                 if _area(ring) >= 80.0:
-                    water.append({"id": int(rel["id"]) * 100 + i, "ring": ring})
+                    water.append(
+                        annotate_water_entry({"id": int(rel["id"]) * 100 + i, "ring": ring}, tags)
+                    )
         elif _is_park(tags):
             for i, ring in enumerate(rings):
                 if _area(ring) >= 80.0:
