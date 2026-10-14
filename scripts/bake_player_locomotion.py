@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -54,6 +54,8 @@ MIXAMO = ROOT / "assets" / "mixamo"
 PLAYERS = ROOT / "viewer" / "characters" / "players"
 OUT = PLAYERS / "clips"
 FPS = 30
+# Share of the hand's twist the forearm takes; the rest stays in the wrist.
+WRIST_UNWIND = 0.8
 
 # (file, clip name, root mode)  bob = vertical only, plant = none, lunge = partial step
 SOURCES = (
@@ -98,6 +100,8 @@ COMBAT = (
     ("Firing_Rifle.fbx", "FireRifle", "plant"),
     ("Rifle_Reload.fbx", "ReloadRifle", "plant"),
     ("Knife_Stab.fbx", "Stab", "plant"),
+    # The stab opens and closes on Mixamo's knife guard; hold it between attacks.
+    ("Knife_Stab.fbx", "KnifeReady", "plant", (0.0, 0.1)),
     ("Standing_Melee_Attack_Horizontal.fbx", "Slash", "plant"),
     ("Hit_Reaction.fbx", "HitReact", "plant"),
     ("Dying_Backwards.fbx", "Death", "fall"),
@@ -477,6 +481,45 @@ def _aim_feet(src_arm, tgt_arm, sn, spin: Matrix) -> None:
             _roll_axis(tgt_arm, foot, _posed_col(tgt_arm, foot, 1), cur_sole, rolled)
 
 
+_TWIST_PREV: dict[str, float] = {}
+
+
+def _unwind_wrist(arm, fore_name: str, hand_name: str, share: float = WRIST_UNWIND) -> None:
+    """Roll the forearm to carry the hand's twist; the hand keeps its world orientation.
+
+    The cast has no forearm twist bones. Matching Mixamo's hand alone leaves the
+    whole pronation in the wrist joint, which wrings the skin (up to ~175° in the
+    knife clips). The sleeve hides a rolled forearm; a wrung wrist shows.
+    """
+    if fore_name not in arm.pose.bones or hand_name not in arm.pose.bones:
+        return
+    fore = arm.pose.bones[fore_name]
+    hand = arm.pose.bones[hand_name]
+    rf = rot(fore.matrix).to_quaternion()
+    rel0 = fore.bone.matrix_local.to_quaternion().inverted() @ hand.bone.matrix_local.to_quaternion()
+    d = rf.inverted() @ rot(hand.matrix).to_quaternion() @ rel0.inverted()
+    axis = rf.inverted() @ (hand.head - fore.head)
+    if axis.length < 1e-12:
+        return
+    axis.normalize()
+    twist = 2.0 * math.atan2(d.x * axis.x + d.y * axis.y + d.z * axis.z, d.w)
+    twist = (twist + math.pi) % (2.0 * math.pi) - math.pi
+    # Near a half turn the wrap flips sides between frames; stay on the previous
+    # frame's side or the forearm spins most of a turn in one step.
+    prev = _TWIST_PREV.get(hand_name)
+    if prev is not None:
+        twist += 2.0 * math.pi * round((prev - twist) / (2.0 * math.pi))
+    _TWIST_PREV[hand_name] = twist
+    if abs(twist) < 1e-3:
+        return
+    keep = hand.matrix.copy()
+    spin = Quaternion(rf @ axis, twist * share).to_matrix()
+    fore.matrix = Matrix.Translation(fore.head) @ (spin @ rot(fore.matrix)).to_4x4()
+    bpy.context.view_layer.update()
+    hand.matrix = keep
+    bpy.context.view_layer.update()
+
+
 def _plant_limbs(src_arm, tgt_arm, sn, ratio: float, fist: bool = False, hand_align: dict | None = None) -> None:
     """Ankles follow the Mixamo clip in hip space, wrists in shoulder space.
 
@@ -535,6 +578,8 @@ def _plant_limbs(src_arm, tgt_arm, sn, ratio: float, fist: bool = False, hand_al
             bpy.context.view_layer.update()
     else:
         _match_palms(src_arm, tgt_arm, sn, spin, thigh=not fist)
+    for letter in ("L", "R"):
+        _unwind_wrist(tgt_arm, f"Bip01 {letter} Forearm", f"Bip01 {letter} Hand")
     # Every clip takes Mixamo's fingers: a loose curl on the run, a fist on a punch.
     # The Rocketbox bind keeps them straight, which reads as pointing.
     if fist or hand_align:
@@ -564,6 +609,7 @@ def _retarget(
     window: tuple[float, float] | None = None,
 ) -> tuple[Path, float]:
     _clear()
+    _TWIST_PREV.clear()
     scene = bpy.context.scene
     scene.render.fps = FPS
 
@@ -948,12 +994,14 @@ def main() -> int:
         for pid in ids:
             print(f"== {pid} combat ==")
             parts = []
-            for fname, clip, mode in COMBAT:
+            for row in COMBAT:
+                fname, clip, mode = row[0], row[1], row[2]
+                window = row[3] if len(row) > 3 else None
                 src = MIXAMO / fname
                 if not src.exists():
                     print(f"  skip {clip}: no {fname}")
                     continue
-                path, speed = _retarget(pid, src, clip, mode)
+                path, speed = _retarget(pid, src, clip, mode, window)
                 parts.append(path)
                 if mode == "bob" and speed > 0.2:
                     speeds[clip] = round(speed, 2)

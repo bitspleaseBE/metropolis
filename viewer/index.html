@@ -3885,14 +3885,15 @@ let knifeLunge = null;
             JUMP.active = false;
             JUMP.v = 0;
             JUMP.y = 0;
-          } else {
-            if (keys.space && !JUMP.held && !JUMP.active) {
-              JUMP.v = JUMP_CFG.strength;
-              JUMP.active = true;
-              playerMotion.hop(JUMP_CFG.hop);
-            }
+          } else if (keys.space && !JUMP.held && !JUMP.active) {
+            JUMP.v = JUMP_CFG.strength;
+            JUMP.active = true;
+            playerMotion.hop(JUMP_CFG.hop);
           }
           JUMP.held = !!keys.space;
+          // Must run on foot — it used to sit inside the Velo/scooter block, so Space
+          // never lifted you and JUMP.active stayed stuck after the first press.
+          if (JUMP.active) stepJump(JUMP, dt);
           {
             const walker = walkControls.getObject();
             const baseEye = playerMotion.eye(onScooter ? "scooter" : ridingVelo ? "velo" : "walk");
@@ -3951,7 +3952,6 @@ let knifeLunge = null;
               footFree = 1;
             }
             if ((onScooter || ridingVelo) && dt > 0) {
-            stepJump(JUMP, dt);
               const yaw = playerMotion.yaw();
               const rideSpeed = playerMotion.speed;
               let impact = Math.hypot(w.position.x - _afterWall.x, w.position.z - _afterWall.z) / dt;
@@ -4025,14 +4025,18 @@ let knifeLunge = null;
         // The legs pace to ground speed, strafe included (A/D and every off-axis stick angle).
         const spd =
           moveKind === "walk" ? Math.hypot(playerMotion.state.fwd, playerMotion.state.side) * footFree : Math.abs(playerMotion.speed);
-        // Same travel heading the Velo/scooter use, so reverse turns bike and rider together.
-        let bodyYaw = spd > 0.12 && mode === "walk" ? playerMotion.travelYaw() : thirdPerson.yaw();
+        // On wheels the body must face the bike, even when nearly stopped — otherwise the
+        // pedal IK aims with the camera while the cranks face travel, and the feet twist.
+        // On foot, face travel once you are moving; idle faces the camera.
+        const onWheels = moveKind === "velo" || moveKind === "scooter";
+        let bodyYaw =
+          onWheels || (spd > 0.12 && mode === "walk") ? playerMotion.travelYaw() : thirdPerson.yaw();
         const crashing = playerCrash.active;
         const armedOnFoot = mode === "walk" && moveKind === "walk" && !ridingTram && !crashing;
         _feet.set(wPos.x, wPos.y - 1.7, wPos.z);
         combatPlayer.update(menuOpen ? 0 : realDt, _feet, {
           moving: Math.min(1, spd / 3.5),
-          moveYaw: spd > 0.12 ? playerMotion.travelYaw() : thirdPerson.yaw(),
+          moveYaw: onWheels || spd > 0.12 ? playerMotion.travelYaw() : thirdPerson.yaw(),
           dead: playerCrash.dead,
         });
         if (armedOnFoot) bodyYaw = combatPlayer.bodyYaw(bodyYaw);

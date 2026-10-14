@@ -10,13 +10,13 @@ import { loadWeaponModel, WEAPONS } from "./weapons.js";
 import { RELOADS, poseAt, splitPart, makeMag, makeShell, createDrops } from "./weapon-reload.js";
 
 const LEG_KEYS = ["aimIdleLegs", "aimWalk", "aimWalkBack", "aimStrafeL", "aimStrafeR", "aimRun"];
-const OVERLAYS = ["holdPistol", "holdRifle", "reloadPistol", "reloadRifle", "stab", "slash", "hitReact"];
+const OVERLAYS = ["holdPistol", "holdRifle", "holdKnife", "reloadPistol", "reloadRifle", "stab", "slash", "hitReact"];
 const RIFLE_LOW = 0.6;
 const MAX_SOLVE = 1.1;
 const HIP_SQUARE = 0.7;
 
 export function createArmedRig(THREE, ctx) {
-  const { root, visual, mixer, actions, arms, body, ik, limb, clips, speeds, footPhase, upper, legs, loop: loopClip, fist } = ctx;
+  const { root, visual, mixer, actions, arms, body, ik, clips, speeds, footPhase, upper, legs, loop: loopClip, fist } = ctx;
   const has = (k) => !!actions[k];
   const weight = Object.fromEntries([...LEG_KEYS, ...OVERLAYS].map((k) => [k, 0]));
   const goal = { ...weight };
@@ -41,9 +41,10 @@ export function createArmedRig(THREE, ctx) {
   add("holdRifle", upper(C("AimRifle") || C("AimPistol")));
   add("reloadPistol", upper(C("ReloadPistol")), false);
   add("reloadRifle", upper(C("ReloadRifle") || C("ReloadPistol")), false);
-  // The knife clips throw the head back; it rides the chest instead.
+  // The knife clips throw the head back; keep the gaze level.
   const headless = (clip) =>
     clip && new THREE.AnimationClip(clip.name, clip.duration, clip.tracks.filter((t) => !/(neck|head)/i.test(t.name)));
+  add("holdKnife", headless(upper(C("KnifeReady"))));
   add("stab", headless(upper(C("Stab"))), false);
   add("slash", headless(upper(C("Slash"))), false);
   add("hitReact", upper(C("HitReact")), false);
@@ -92,6 +93,36 @@ export function createArmedRig(THREE, ctx) {
     };
     a.stop();
   }
+  // Knife: Mixamo's guard (the stab's first frame) cocks the wrist so the unseen
+  // blade points ahead. Hammer grip: the handle runs across the palm (pommel out
+  // the pinky side), turned toward the fingers until the tip points forward in the
+  // guard; the edge faces the fingers. The thrust lands knuckles-first, so the tip
+  // rises there as it would in the fist.
+  function calibrateKnife(clip) {
+    if (!clip || !arms?.rHand || !rightFrame) return;
+    mixer.stopAllAction();
+    const a = mixer.clipAction(clip);
+    a.reset().setEffectiveWeight(1).play();
+    mixer.update(0);
+    root.updateMatrixWorld(true);
+    const hand = arms.rHand;
+    hand.getWorldScale(_s);
+    const s = 1 / Math.max(1e-6, _s.x);
+    hand.getWorldQuaternion(_q).invert();
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(root.getWorldQuaternion(_q2)).applyQuaternion(_q);
+    const { finger, across } = rightFrame;
+    const lean = Math.min(1.2, Math.max(0, Math.atan2(fwd.dot(finger), fwd.dot(across))));
+    const z = across.clone().multiplyScalar(Math.cos(lean)).addScaledVector(finger, Math.sin(lean)).normalize();
+    const y = finger.clone().addScaledVector(z, -finger.dot(z)).normalize().negate();
+    const x = new THREE.Vector3().crossVectors(y, z);
+    const palmIn = new THREE.Vector3().crossVectors(across, finger).normalize();
+    grip.knife = {
+      q: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z)),
+      p: rightFrame.palm.clone().addScaledVector(palmIn, 0.02 * s),
+      s,
+    };
+    a.stop();
+  }
   // Each hand's frame from its own knuckles (hand-local), so one grip rule fits
   // Pieter's two-segment fingers and the Biped hands alike.
   const knuckle = (side, n) => visual.getObjectByName(`Bip01_${side}_${n}`) || visual.getObjectByName(`Bip01 ${side} ${n}`);
@@ -108,9 +139,11 @@ export function createArmedRig(THREE, ctx) {
     const across = local(idx).sub(local(pinky));
     across.addScaledVector(finger, -across.dot(finger)).normalize();
     const basis = new THREE.Matrix4().makeBasis(finger, across, new THREE.Vector3().crossVectors(finger, across));
-    return { hand, palm: m.multiplyScalar(0.5), inv: new THREE.Quaternion().setFromRotationMatrix(basis).invert() };
+    return { hand, finger, across, palm: m.multiplyScalar(0.5), inv: new THREE.Quaternion().setFromRotationMatrix(basis).invert() };
   }
   const leftFrame = handFrame("L");
+  // Right knuckle frame while the GLB is still in bind — before aim calibrate poses the arm.
+  const rightFrame = handFrame("R");
   // --- Fingers. The aim clips' retargeted fingers splay on these rigs, so grips are
   // built here: every finger starts from the bind pose (straight) and bends about
   // its own hinge, found from how that finger closes in the baked Punch fist.
@@ -192,8 +225,9 @@ export function createArmedRig(THREE, ctx) {
     // can't get it there (it only folds the thumb across the palm).
     knife: [[26, 32, 18], [62, 78, 46], [66, 80, 46], [70, 82, 46], [72, 82, 44]],
   };
-  // Right thumb forward and down the left of the frame; left thumb forward under the slide.
-  const THUMBS = { pistolGrip: [0.3, -0.35, 0.89], cup: [0.05, -0.2, 1] };
+  // Right thumb forward and down the left of the frame; left thumb forward under the slide;
+  // knife thumb along the handle toward the tip.
+  const THUMBS = { pistolGrip: [0.3, -0.35, 0.89], cup: [0.05, -0.2, 1], knife: [0.05, 0.15, 0.99] };
   const _td = new THREE.Vector3();
   const _tc = new THREE.Vector3();
   const DEG = Math.PI / 180;
@@ -206,6 +240,8 @@ export function createArmedRig(THREE, ctx) {
     rifle: { c: [0, 0.004, 0], axis: "z", r: [0.038, 0.038], fromSupport: true },
     // Pistol grip: 28 x 56 mm section under the slide.
     pistol: { c: [0, -0.03, -0.001], axis: "y", r: [0.023, 0.037], over: [0.041, 0.055] },
+    // Knife handle tube along the blade axis (model +Z).
+    knife: { c: [0, 0, 0.02], axis: "z", r: [0.018, 0.022] },
   };
   const _wrap = { inv: new THREE.Matrix4(), c: new THREE.Vector3(), axis: "z", r: [0, 0] };
   function setWrap(kind, over) {
@@ -300,12 +336,8 @@ export function createArmedRig(THREE, ctx) {
   if (ready && arms) {
     calibrate("pistol", C("AimPistol"));
     calibrate("rifle", C("AimRifle") || C("AimPistol"));
-    if (grip.pistol) {
-      grip.knife = {
-        ...grip.pistol,
-        q: grip.pistol.q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2)),
-      };
-    }
+    calibrateKnife(C("KnifeReady") || C("Stab"));
+    if (!grip.knife && grip.pistol) grip.knife = { q: grip.pistol.q.clone(), p: grip.pistol.p.clone(), s: grip.pistol.s };
     mixer.stopAllAction();
   }
 
@@ -514,6 +546,8 @@ export function createArmedRig(THREE, ctx) {
     const base = legsOn ? (busy ? 0.15 : 1) : busy ? 0 : proc ? 1 : null;
     goal.holdPistol = gunHold && hold === "pistol" ? (base ?? aimK) : 0;
     goal.holdRifle = gunHold && hold === "rifle" ? (base ?? RIFLE_LOW + (1 - RIFLE_LOW) * aimK) : 0;
+    // Between attacks the knife sits in Mixamo's guard (the stab's own first frame).
+    goal.holdKnife = s.onFoot && !s.dead && hold === "knife" && !busy ? 1 : 0;
 
     if (busy) {
       busyT -= dt;
@@ -524,7 +558,7 @@ export function createArmedRig(THREE, ctx) {
     }
 
     const k = 1 - Math.exp(-14 * dt);
-    for (const key of [...LEG_KEYS, "holdPistol", "holdRifle"]) {
+    for (const key of [...LEG_KEYS, "holdPistol", "holdRifle", "holdKnife"]) {
       const act = actions[key];
       if (!act) continue;
       weight[key] += (goal[key] - weight[key]) * k;
@@ -557,145 +591,7 @@ export function createArmedRig(THREE, ctx) {
     act.fadeIn(0.1).play();
     busy = key;
     busyT = dur || clipDur;
-    busyDur = busyT;
     return true;
-  }
-
-  // --- Knife: the Mixamo stab pokes high and the slash trails low, both from a
-  // stance this body doesn't have. Steer them, and hold a ready stance around them.
-  const KNIFE_READY_S = 1.6;
-  let busyDur = 1;
-  let knifeReady = 0;
-  let readyHold = 0;
-  const _kF = new THREE.Vector3();
-  const _kR = new THREE.Vector3();
-  const _kU = new THREE.Vector3(0, 1, 0);
-  const _kSL = new THREE.Vector3();
-  const _kSR = new THREE.Vector3();
-  const _kC = new THREE.Vector3();
-  const _kH = new THREE.Vector3();
-  const _kT = new THREE.Vector3();
-  const _kP = new THREE.Vector3();
-  const _kD = new THREE.Vector3();
-  const _kQ = new THREE.Quaternion();
-  const _kQ2 = new THREE.Quaternion();
-  const _kTip = new THREE.Vector3();
-  const _kDir = new THREE.Vector3();
-  const knifeSmooth = (a, b, x) => {
-    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-    return t * t * (3 - 2 * t);
-  };
-
-  function knifeFrame() {
-    const yaw = root.rotation.y;
-    _kF.set(-Math.sin(yaw), 0, -Math.cos(yaw));
-    _kR.set(Math.cos(yaw), 0, -Math.sin(yaw));
-    arms.lUpper.getWorldPosition(_kSL);
-    arms.rUpper.getWorldPosition(_kSR);
-    _kC.addVectors(_kSL, _kSR).multiplyScalar(0.5);
-  }
-
-  /** Chest turn (+ brings the right shoulder forward) and lean (+ forward). */
-  function turnChest(turn, lean) {
-    const parts = [body?.spine1, body?.spine2].filter(Boolean);
-    if (!parts.length) return;
-    _kQ.setFromAxisAngle(_kU, turn / parts.length);
-    _kQ2.setFromAxisAngle(_kR, -lean / parts.length);
-    _kQ.premultiply(_kQ2);
-    for (const b of parts) rotateWorld(b, _kQ);
-    knifeFrame();
-  }
-
-  function armReach(upper, fore, hand) {
-    return upper.getWorldPosition(_kT).distanceTo(fore.getWorldPosition(_kP)) + _kP.distanceTo(hand.getWorldPosition(_kD));
-  }
-
-  /** Right hand to `target`, elbow toward `pole`; then the blade toward `dir` by `w`. */
-  function knifeHand(target, pole, dir, w) {
-    limb(arms.rUpper, arms.rFore, arms.rHand, target, pole);
-    if (!dir || !muzzle(_kTip, _kDir)) return;
-    _kQ.setFromUnitVectors(_kDir, dir);
-    rotateWorld(arms.rHand, _kQ2.slerpQuaternions(_id, _kQ, w));
-  }
-
-  function knifeMoves(dt) {
-    const attack = busy === "stab" || busy === "slash" ? busy : null;
-    readyHold -= dt;
-    const want = attack || readyHold > 0 ? 1 : 0;
-    knifeReady += (want - knifeReady) * (1 - Math.exp(-(want ? 12 : 3) * dt));
-    if (knifeReady < 0.01 || !arms?.rUpper || !limb) return;
-    const u = attack ? 1 - Math.max(0, busyT) / busyDur : 1;
-    knifeFrame();
-
-    // Ready: blade low and forward, tip up; free hand guarding the chest. The clip
-    // owns the middle of an attack.
-    const own = attack ? knifeSmooth(0, 0.12, u) * (1 - knifeSmooth(0.7, 1, u)) : 0;
-    const r = knifeReady * (1 - own);
-    if (r > 0.01) {
-      arms.rHand.getWorldPosition(_kH);
-      _kT.copy(_kSR).addScaledVector(_kF, 0.34).addScaledVector(_kU, -0.24).addScaledVector(_kR, -0.04);
-      _kT.lerp(_kH, 1 - r);
-      _kP.copy(_kSR).addScaledVector(_kR, 0.25).addScaledVector(_kU, -0.4).addScaledVector(_kF, -0.1);
-      _kD.copy(_kF).multiplyScalar(Math.cos(0.35)).addScaledVector(_kU, Math.sin(0.35));
-      knifeHand(_kT, _kP, _kD, r);
-      arms.lHand.getWorldPosition(_kH);
-      _kT.copy(_kSL).addScaledVector(_kF, 0.36).addScaledVector(_kU, -0.18).addScaledVector(_kR, 0.08);
-      _kT.lerp(_kH, 1 - r);
-      _kP.copy(_kSL).addScaledVector(_kR, -0.25).addScaledVector(_kU, -0.4);
-      limb(arms.lUpper, arms.lFore, arms.lHand, _kT, _kP);
-      gripFingers("L", "claw", r);
-    }
-    if (!attack) return;
-
-    // The slash clip arches the back and throws the head up; keep the torso over the
-    // hips, a touch forward.
-    if (body?.spine1 && body.head) {
-      body.spine1.getWorldPosition(_kT);
-      body.head.getWorldPosition(_kH).sub(_kT);
-      const pitch = Math.atan2(_kH.dot(_kF), _kH.dot(_kU));
-      if (pitch < 0.08) turnChest(0, (0.08 - pitch) * 0.85 * own);
-    }
-    if (attack === "stab") {
-      // The clip shoves the free hand out after the thrust; it guards instead.
-      arms.lHand.getWorldPosition(_kH);
-      _kT.copy(_kSL).addScaledVector(_kF, 0.36).addScaledVector(_kU, -0.16).addScaledVector(_kR, 0.1);
-      _kT.lerp(_kH, 1 - own);
-      _kP.copy(_kSL).addScaledVector(_kR, -0.25).addScaledVector(_kU, -0.4);
-      limb(arms.lUpper, arms.lFore, arms.lHand, _kT, _kP);
-    }
-
-    const arm = armReach(arms.rUpper, arms.rFore, arms.rHand);
-    arms.rHand.getWorldPosition(_kH);
-    if (attack === "stab") {
-      // Thrust: shoulders and weight drive in, blade out to full reach at the sternum.
-      const w = knifeSmooth(0.12, 0.38, _kD.subVectors(_kH, _kSR).dot(_kF));
-      if (w < 0.01) return;
-      turnChest(0.42 * w, 0.14 * w);
-      arms.rHand.getWorldPosition(_kH);
-      const half = _kC.distanceTo(_kSR);
-      const ahead = Math.sqrt(Math.max(0, (arm * 0.95) ** 2 - half * half - 0.1 * 0.1));
-      _kT.copy(_kC).addScaledVector(_kF, ahead).addScaledVector(_kU, -0.1);
-      _kT.lerpVectors(_kH, _kT, w);
-      _kP.copy(_kSR).addScaledVector(_kR, 0.3).addScaledVector(_kU, -0.35);
-      _kD.copy(_kF).addScaledVector(_kU, -0.08).normalize();
-      knifeHand(_kT, _kP, _kD, w);
-      return;
-    }
-    // Slash: the chest follows the blade across, held at chest height and near full
-    // reach, tip leading out along the arc.
-    const w = knifeSmooth(0.3, 0.42, u) * (1 - knifeSmooth(0.62, 0.8, u));
-    if (w < 0.01) return;
-    _kD.subVectors(_kH, _kC).setY(0);
-    const az = Math.atan2(-_kD.dot(_kR), _kD.dot(_kF));
-    turnChest(0.4 * az * w, 0.06 * w);
-    arms.rHand.getWorldPosition(_kH);
-    _kD.subVectors(_kH, _kC).setY(0);
-    const radius = Math.max(_kD.length(), arm * 0.85);
-    _kD.normalize();
-    _kT.copy(_kC).addScaledVector(_kD, radius).addScaledVector(_kU, -0.1);
-    _kT.lerpVectors(_kH, _kT, w);
-    _kP.copy(_kSR).addScaledVector(_kR, 0.3).addScaledVector(_kU, -0.4);
-    knifeHand(_kT, _kP, _kD.addScaledVector(_kU, 0.15).normalize(), w);
   }
 
   // --- After mixer.update: aim solve, recoil, support hand.
@@ -1089,8 +985,12 @@ export function createArmedRig(THREE, ctx) {
     kickSide *= Math.exp(-16 * dt);
     const hold = holdOf();
     if (!model || !model.root.visible) return;
-    if (hold === "knife") knifeMoves(dt);
-    gripFingers("R", weaponId === "knife" ? "knife" : "pistolGrip", 1, hold === "pistol" ? setWrap("pistol") : null);
+    gripFingers(
+      "R",
+      weaponId === "knife" ? "knife" : "pistolGrip",
+      1,
+      hold === "pistol" ? setWrap("pistol") : hold === "knife" ? setWrap("knife") : null,
+    );
     if (!body?.spine || (hold !== "pistol" && hold !== "rifle")) return;
     const clipReload = busy && busy.startsWith("reload") ? 1 : 0;
     const reloadW = proc ? smooth01(Math.min(proc.t / proc.dur, 1 - proc.t / proc.dur) / 0.1) : clipReload;
@@ -1211,7 +1111,6 @@ export function createArmedRig(THREE, ctx) {
       return overlay(key, dur);
     },
     stab(move = "stab") {
-      readyHold = KNIFE_READY_S;
       if (move === "slash" && has("slash")) return overlay("slash", 0.62);
       return overlay("stab", 0.55);
     },
