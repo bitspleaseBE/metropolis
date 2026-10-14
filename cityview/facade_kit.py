@@ -42,6 +42,7 @@ NORMAL_FILE = "facade_normal.jpg"  # tangent-space relief aligned 1:1 with the a
 EMISSIVE_FILE = "facade_emissive.jpg"  # night glow of lit windows, aligned 1:1 with the atlas
 WINDOWS_FILE = "facade_windows.json"  # detected glass / shop glazing per elevation
 BANDS_FILE = "facade_bands.json"  # seamless repeatable storey strip per elevation
+DOORS_FILE = "facade_doors.json"  # front doors of a district's own elevations
 TEXTURES_DIRNAME = "textures"
 FACADE_SRC_DIR = "generated/facades"
 WALL_SRC_DIR = "generated/walls"
@@ -230,8 +231,33 @@ TOWER_HOUSE_M = 9.0
 MIN_CROP_FRAC = 0.5
 
 
+_DOOR_TABLES: dict[str, dict[str, tuple[float, float]]] = {}
+
+
+def door_table() -> dict[str, tuple[float, float]]:
+    """Front doors of the active atlas: ``facade_doors.json`` beside it, else ``DOORS``.
+
+    District atlases reuse the ids ``facade_01..50`` for different pictures, so the
+    hand-read ``DOORS`` (shared 2018 elevations) only applies when no table sits there.
+    """
+    key = str(atlas_dir())
+    table = _DOOR_TABLES.get(key)
+    if table is None:
+        import json
+
+        table = dict(DOORS)
+        if ACTIVE_ATLAS_DIR is not None:
+            try:
+                doc = json.loads((atlas_dir() / DOORS_FILE).read_text())
+                table = {fid: (float(c), float(w)) for fid, (c, w) in doc.items()}
+            except (OSError, ValueError, TypeError):
+                pass
+        _DOOR_TABLES[key] = table
+    return table
+
+
 def _door_spans(fid: str) -> list[tuple[float, float]]:
-    door = DOORS.get(fid)
+    door = door_table().get(fid)
     if not door:
         return []
     centre, width = door
@@ -369,12 +395,37 @@ def facades_for_type(type_id: str) -> list[str]:
     return [fid for fid, f in FACADES.items() if base in f["types"]]
 
 
+FACADE_CLASSES = ("townhouse", "mid_rise", "tower")
+# GRB parts that are outbuildings / canopies: plain wall, no street elevation.
+ANNEX_PARTS = frozenset({"bijgebouw", "afdak", "garage", "luifel"})
+# Open structures: no street elevation (outbuildings and garages facing a street get one).
+OPEN_PARTS = frozenset({"afdak", "luifel"})
+
+
+def facade_class(floors: int, part: str = "") -> str:
+    """Massing class from measured storeys: townhouse <= 4, mid_rise 5-8, tower >= 9."""
+    if part in ANNEX_PARTS:
+        return "annex"
+    if floors <= 4:
+        return "townhouse"
+    if floors <= 8:
+        return "mid_rise"
+    return "tower"
+
+
+def _own_class(fid: str) -> str:
+    f = FACADES[fid]
+    return f.get("class") or facade_class(int(f["storeys"]))
+
+
 def facade_score(
     fid: str, type_id: str, floors: int, rep_len: float, seed_key: str
 ) -> float:
-    """Lower is better: storey mismatch + horizontal stretch - type bonus + jitter."""
+    """Lower is better: class + storey mismatch + horizontal stretch - type bonus + jitter."""
     f = FACADES[fid]
     base = type_id.split("__v")[0]
+    want = facade_class(floors)
+    class_pen = 0.8 * abs(FACADE_CLASSES.index(_own_class(fid)) - FACADE_CLASSES.index(want))
     # With a repeatable storey strip the elevation can grow / shrink by whole storeys, so
     # its own storey count matters much less than its type and plan width.
     banded = fid in band_layout()
@@ -385,7 +436,7 @@ def facade_score(
         storey_pen += 2.5 * max(0.0, abs(math.log(want_m / f["height_m"])) - 0.25)
     stretch = abs(math.log(max(0.2, rep_len) / f["width_m"]))
     bonus = -0.7 if base in f["types"] else 0.0
-    return storey_pen + 1.1 * stretch + bonus + 0.9 * _unit(f"{seed_key}:{fid}")
+    return class_pen + storey_pen + 1.1 * stretch + bonus + 0.9 * _unit(f"{seed_key}:{fid}")
 
 
 def pick_facade(
@@ -541,8 +592,9 @@ def door_steps(
     narrow edges.
     """
     out: list[dict[str, float]] = []
+    doors = door_table()
     for q in ground_quads(quads):
-        door = DOORS.get(q["cell"])
+        door = doors.get(q["cell"])
         if not door:
             continue
         centre, width_frac = door

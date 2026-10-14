@@ -85,6 +85,7 @@
       if (meta) {
         window.__DISTRICT.title = meta.title || id;
         window.__DISTRICT.summary = meta.summary || "";
+        window.__DISTRICT.stylePolicy = meta.style_policy || "default";
       }
       const edges = (index.edges || []).filter((e) => e.from === id);
       const built = await Promise.all(edges.map((e) => districtBuilt(e.to)));
@@ -112,9 +113,31 @@
     return base + "core.glb";
   };
 
-  window.enterDistrict = function enterDistrict(id) {
+  /**
+   * Switch district package. `at` = { lat, lon, yaw } keeps the walker where they crossed the
+   * border instead of dropping them at the neighbour's spawn.
+   */
+  window.enterDistrict = function enterDistrict(id, at) {
     const u = new URL(location.href);
     u.searchParams.set("district", id);
+    u.searchParams.delete("d");
+    if (at && Number.isFinite(at.lat) && Number.isFinite(at.lon)) {
+      const yaw = Number.isFinite(at.yaw) ? at.yaw : 0;
+      u.searchParams.set("at", [at.lat.toFixed(7), at.lon.toFixed(7), yaw.toFixed(3)].join(","));
+    } else {
+      u.searchParams.delete("at");
+    }
     location.href = u.toString();
   };
+
+  /** One-shot arrival point from a border crossing (?at=lat,lon,yaw), else null. */
+  window.districtArrival = (function () {
+    const raw = params.get("at");
+    if (!raw) return null;
+    const [lat, lon, yaw] = raw.split(",").map(Number);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+      return null;
+    }
+    return { lat, lon, yaw: Number.isFinite(yaw) ? yaw : 0 };
+  })();
 })();

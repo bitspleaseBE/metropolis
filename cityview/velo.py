@@ -36,10 +36,10 @@ from typing import Any
 
 from cityview.benches import CARRIAGEWAY, KERB_CLEARANCE, _Ways
 from cityview.clutter import _yaw_from_facing
-from cityview.geo import project
+from cityview.geo import bbox_covers, project
 from cityview.paths import VELO_CACHE, is_allowed_cache_json
 from cityview.railclear import CLEAR_FURNITURE
-from cityview.trees import _Obstacles, _PointGrid
+from cityview.trees import _Obstacles, _PointGrid, _point_in_ring
 
 STATION_INFORMATION_URL = (
     "https://gbfs.smartbike.com/antwerp/1.0/nl/station_information.json"
@@ -215,7 +215,9 @@ def fetch_velo_sources(
     """Load (or download once and commit) GBFS stations with Antwerp survey positions."""
     cache_path = _checked_cache_path(cache_path)
     if cache_path.exists() and not refresh:
-        return json.loads(cache_path.read_text())
+        cached = json.loads(cache_path.read_text())
+        if bbox_covers(cached.get("bbox"), bbox):
+            return cached
     south, west, north, east = bbox
     padded = (
         south - FETCH_PAD_DEG,
@@ -314,6 +316,7 @@ def plan_velo(
         x_lo = y_lo = -math.inf
         x_hi = y_hi = math.inf
 
+    boundary = layout.get("boundary_local") or None
     grid = _PointGrid(cell=8.0)
     out: list[dict[str, Any]] = []
     for st in sorted(stations_in, key=lambda s: str(s.get("id") or "")):
@@ -322,7 +325,9 @@ def plan_velo(
             continue
         lat, lon = float(st["lat"]), float(st["lon"])
         x, y = project(lat, lon, origin[0], origin[1])
-        if not (x_lo <= x <= x_hi and y_lo <= y <= y_hi):
+        if not (x_lo <= x <= x_hi and y_lo <= y <= y_hi) or (
+            boundary and not _point_in_ring(x, y, boundary)
+        ):
             stats["dropped_outside"] += 1
             continue
         if grid.near(x, y, DEDUPE_M):

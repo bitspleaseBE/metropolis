@@ -1,14 +1,19 @@
 """Public benches from survey data — real positions, real facing, no procedural spam.
 
-Sources (merged, de-duplicated, in this priority order):
+Sources (merged, de-duplicated within ``DEDUPE_M``, in this priority order):
 
-1. **OpenStreetMap** ``amenity=bench`` nodes / ways (ODbL). Mappers who surveyed a
-   bench often record ``direction=*`` — per the OSM wiki that is the compass bearing a
-   person *sitting* on the bench faces, so it is used verbatim.
-2. **Stad Antwerpen Groeninventaris**, layer ``meubilair in parken`` (park furniture
+1. **OpenStreetMap** ``amenity=bench`` nodes / ways (ODbL) **with** a surveyed
+   ``direction=*`` — per the OSM wiki the compass bearing a person *sitting* on the
+   bench faces, so it is used verbatim.
+2. **Stad Antwerpen zitmeubilair** (``portal_publiek4/MapServer/282``): the city's
+   street-seating register, filtered by ``Postcode``. ``Type_zitmeubel`` gives the model
+   (``BANK_1500_MET_LEUNING`` → 1.5 m with backrest, plateau / double benches deeper,
+   single seats, …; tables and tree-ring seats are skipped).
+3. OSM benches without a direction.
+4. **Stad Antwerpen Groeninventaris**, layer ``meubilair in parken`` (park furniture
    inventory), ``CATEGORIE = 'Bank'`` (public ArcGIS service, open-data licence,
    © Stad Antwerpen). Positions only, no orientation.
-3. **OSM bus / tram platforms tagged ``bench=yes``** (De Lijn shelters). Only used where
+5. **OSM bus / tram platforms tagged ``bench=yes``** (De Lijn shelters). Only used where
    no surveyed bench already stands within ``STOP_SKIP_M``; the bench sits just behind
    the stop pole with its seat toward the track / carriageway.
 
@@ -45,7 +50,7 @@ import urllib.parse
 from pathlib import Path
 from typing import Any
 
-from cityview.geo import project
+from cityview.geo import bbox_covers, project
 from cityview.paths import BENCHES_CACHE, is_allowed_cache_json
 from cityview.railclear import CLEAR_FURNITURE
 from cityview.trees import (
@@ -62,14 +67,18 @@ ANTWERP_FURNITURE_LAYER = (
     "https://geodata.antwerpen.be/arcgissql/rest/services/"
     "P_Groeninventaris/Groeninventaris_extern/MapServer/1/query"
 )
+ANTWERP_SEATING_LAYER = (
+    "https://geodata.antwerpen.be/arcgissql/rest/services/"
+    "P_Portal/portal_publiek4/MapServer/282/query"
+)
 ATTRIBUTION = (
-    "Benches: (c) Stad Antwerpen Groeninventaris, layer 'meubilair in parken' "
-    "(open data licence); (c) OpenStreetMap contributors (ODbL)."
+    "Benches: (c) Stad Antwerpen, layers 'zitmeubilair' and Groeninventaris "
+    "'meubilair in parken' (open data licence); (c) OpenStreetMap contributors (ODbL)."
 )
 FETCH_PAD_DEG = 0.0004
 
 # --- placement tuning -----------------------------------------------------
-DEDUPE_M = 2.0  # two survey points closer than this are the same bench
+DEDUPE_M = 1.5  # two survey points closer than this are the same bench
 BUILDING_MARGIN = 0.25  # a bench may stand against a façade, not in it
 WALL_BACK_M = 2.2  # wall closer than this → back to the wall
 PATH_FACE_M = 8.0  # footway closer than this → seat toward it
@@ -100,7 +109,95 @@ CARDINALS = {
 }
 
 
+# ``Type_zitmeubel`` -> (length m, backrest, depth m). ``None`` = not a bench we model.
+_SEAT_SKIP = ("TAFEL_", "BOOM_RONDZIT", "ZITMUUR")
+_SEAT_NAMED: dict[str, tuple[float, bool, float]] = {
+    "PLATEAUBANK_KORT": (1.8, False, 0.9),
+    "PLATEAUBANK_LANG": (3.0, False, 0.9),
+    "DUBBELE_BANK": (2.0, True, 0.9),
+    "PICKNICKBANK": (1.8, False, 0.46),
+    "TAFELBANK": (1.8, False, 0.46),
+    "WINDELEMENT_ZITBANK": (2.0, True, 0.46),
+    "Z_BANK": (2.0, True, 0.46),
+    "ZWEVENDE_BANK": (2.0, False, 0.46),
+    "PARKBANK": (1.8, True, 0.46),
+    "S_STOEL": (0.6, True, 0.5),
+}
+
+
+def seat_model(raw: str | None) -> tuple[float, bool, float] | None:
+    """Bench model for a ``Type_zitmeubel`` value (truncated / spaced spellings included)."""
+    text = "_".join(str(raw or "").upper().replace("(LENGTE INGEVEN)", "").split())
+    if not text or text in {"ANDERE", "ANDER_ZITMEUBILAIR"}:
+        return (1.7, True, 0.46)
+    if any(text.startswith(p) for p in _SEAT_SKIP):
+        return None
+    backrest = "_MET" in text and "ZONDER" not in text
+    for key, spec in _SEAT_NAMED.items():
+        if text.startswith(key):
+            length, back, depth = spec
+            if key.startswith("PLATEAUBANK"):
+                back = backrest
+            return (length, back, depth)
+    digits = "".join(ch if ch.isdigit() else " " for ch in text).split()
+    mm = int(digits[0]) if digits else 0
+    if text.startswith("STOEL") or text.startswith("MONOLIET"):
+        length = mm / 1000.0 if mm else 0.6
+        return (max(0.5, length), backrest and length < 1.0, 0.5 if length < 1.0 else 0.6)
+    if text.startswith("BANK"):
+        return (max(1.2, min(4.5, mm / 1000.0)) if mm else 1.7, backrest, 0.46)
+    return (1.7, True, 0.46)
+
+
 # ---------------------------------------------------------------- fetching
+
+
+def fetch_city_seating(
+    bbox: tuple[float, float, float, float], postcode: str | None = None
+) -> list[dict[str, Any]]:
+    """Page the city's street-seating register (MapServer 282) inside ``(s, w, n, e)``."""
+    south, west, north, east = bbox
+    where = f"Postcode='{int(postcode):04d}'" if postcode and str(postcode).isdigit() else "1=1"
+    out: list[dict[str, Any]] = []
+    offset = 0
+    while True:
+        params = urllib.parse.urlencode(
+            {
+                "f": "geojson",
+                "where": where,
+                "geometry": f"{west:.6f},{south:.6f},{east:.6f},{north:.6f}",
+                "geometryType": "esriGeometryEnvelope",
+                "inSR": 4326,
+                "outSR": 4326,
+                "spatialRel": "esriSpatialRelIntersects",
+                "outFields": "OBJECTID,Type_zitmeubel,Ligging,Postcode",
+                "orderByFields": "OBJECTID",
+                "resultOffset": offset,
+                "resultRecordCount": 1000,
+            }
+        )
+        doc = _http_json(f"{ANTWERP_SEATING_LAYER}?{params}")
+        feats = doc.get("features") or []
+        for feat in feats:
+            geom = feat.get("geometry") or {}
+            coords = geom.get("coordinates") or []
+            if geom.get("type") != "Point" or len(coords) < 2:
+                continue
+            props = feat.get("properties") or {}
+            out.append(
+                {
+                    "id": props.get("OBJECTID"),
+                    "lat": round(float(coords[1]), 7),
+                    "lon": round(float(coords[0]), 7),
+                    "type": props.get("Type_zitmeubel"),
+                    "ligging": props.get("Ligging"),
+                }
+            )
+        if not feats or not (doc.get("exceededTransferLimit") or (doc.get("properties") or {}).get("exceededTransferLimit")):
+            break
+        offset += len(feats)
+    return out
+
 
 
 def fetch_city_benches(bbox: tuple[float, float, float, float]) -> list[dict[str, Any]]:
@@ -160,25 +257,43 @@ def fetch_bench_sources(
     bbox: tuple[float, float, float, float],
     cache_path: Path,
     refresh: bool = False,
+    postcode: str | None = None,
 ) -> dict[str, Any]:
     """Load (or download once and commit) the municipal bench payload for a tile."""
     cache_path = _checked_cache_path(cache_path)
-    if cache_path.exists() and not refresh:
-        return json.loads(cache_path.read_text())
+    cached = json.loads(cache_path.read_text()) if cache_path.exists() and not refresh else None
+    if cached is not None and bbox_covers(cached.get("bbox"), bbox):
+        payload = cached
+        if "street" in payload:
+            return payload
+        # Cache predates the street-seating register: add that source only.
+        try:
+            payload["street"] = fetch_city_seating(tuple(payload.get("bbox") or bbox), postcode)
+            payload["postcode"] = postcode
+            cache_path.write_text(json.dumps(payload, separators=(",", ":")))  # nosemgrep
+        except Exception as exc:  # noqa: BLE001
+            payload.setdefault("errors", []).append(f"street: {exc}")
+        return payload
     south, west, north, east = bbox
     padded = (south - FETCH_PAD_DEG, west - FETCH_PAD_DEG, north + FETCH_PAD_DEG, east + FETCH_PAD_DEG)
     payload: dict[str, Any] = {
         "bbox": list(padded),
         "attribution": ATTRIBUTION,
         "fetched": time.strftime("%Y-%m-%d"),
+        "postcode": postcode,
         "antwerp": [],
+        "street": [],
         "errors": [],
     }
     try:
         payload["antwerp"] = fetch_city_benches(padded)
     except Exception as exc:  # noqa: BLE001
         payload["errors"].append(f"antwerp: {exc}")
-    if not payload["errors"] and payload["antwerp"]:
+    try:
+        payload["street"] = fetch_city_seating(padded, postcode)
+    except Exception as exc:  # noqa: BLE001
+        payload["errors"].append(f"street: {exc}")
+    if not payload["errors"] and (payload["antwerp"] or payload["street"]):
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         # Path confined to assets/benches/*.json by _checked_cache_path above.
         cache_path.write_text(json.dumps(payload, separators=(",", ":")))  # nosemgrep
@@ -468,14 +583,27 @@ def _candidates(
                 "length": _bench_length(tags),
             }
         )
-    # Surveyed heading first: when OSM and the city list the same bench, keep the one with a heading.
-    out.sort(key=lambda c: c["bearing"] is None)
+    surveyed = [c for c in out if c["bearing"] is not None]
+    unsurveyed = [c for c in out if c["bearing"] is None]
+    street: list[dict[str, Any]] = []
+    for rec in payload.get("street") or []:
+        model = seat_model(rec.get("type"))
+        if model is None:
+            continue
+        length, backrest, depth = model
+        x, y = project(float(rec["lat"]), float(rec["lon"]), origin[0], origin[1])
+        street.append(
+            {"x": x, "y": y, "source": "street", "id": rec.get("id"), "bearing": None,
+             "backrest": backrest, "length": length, "depth": depth}
+        )
+    park: list[dict[str, Any]] = []
     for rec in payload.get("antwerp") or []:
         x, y = project(float(rec["lat"]), float(rec["lon"]), origin[0], origin[1])
-        out.append(
+        park.append(
             {"x": x, "y": y, "source": "antwerp", "id": rec.get("id"), "bearing": None, "backrest": True, "length": 1.7}
         )
-    return out
+    # Surveyed heading first, then the city's typed register, then the rest.
+    return surveyed + street + unsurveyed + park
 
 
 def _bounds(bbox, origin):
@@ -494,8 +622,8 @@ def _park_for(x: float, y: float, parks: list[dict[str, Any]]):
     return None
 
 
-def _bench_record(x, y, fx, fy, rule, source, backrest, length) -> dict[str, Any]:
-    return {
+def _bench_record(x, y, fx, fy, rule, source, backrest, length, depth=None) -> dict[str, Any]:
+    rec = {
         "x": round(x, 2),
         "y": round(y, 2),
         "yaw": round(facing_to_yaw(fx, fy), 4),
@@ -504,6 +632,9 @@ def _bench_record(x, y, fx, fy, rule, source, backrest, length) -> dict[str, Any
         "source": source,
         "rule": rule,
     }
+    if depth:
+        rec["depth"] = round(float(depth), 2)
+    return rec
 
 
 def plan_benches(
@@ -520,9 +651,17 @@ def plan_benches(
     ways = _Ways(layout)
     parks = layout.get("parks") or []
     xmin, ymin, xmax, ymax = _bounds(bbox, origin)
+    boundary = layout.get("boundary_local") or None
+
+    def outside(x: float, y: float) -> bool:
+        if not (xmin <= x <= xmax and ymin <= y <= ymax):
+            return True
+        return bool(boundary) and not _point_in_ring(x, y, boundary)
+
     stats: dict[str, int] = {
         "osm": 0,
         "antwerp": 0,
+        "street": 0,
         "stop": 0,
         "fallback": 0,
         "dropped_duplicate": 0,
@@ -540,7 +679,7 @@ def plan_benches(
 
     for cand in _candidates(osm_list or [], payload, origin):
         x, y, src = cand["x"], cand["y"], cand["source"]
-        if not (xmin <= x <= xmax and ymin <= y <= ymax):
+        if outside(x, y):
             stats["dropped_outside"] += 1
             continue
         if grid.near(x, y, DEDUPE_M):
@@ -570,7 +709,7 @@ def plan_benches(
             x, y, bearing=cand["bearing"], ways=ways, obstacles=obstacles, park_ring=ring, seed=cand["id"]
         )
         grid.add(x, y)
-        benches.append(_bench_record(x, y, fx, fy, rule, src, cand["backrest"], cand["length"]))
+        benches.append(_bench_record(x, y, fx, fy, rule, src, cand["backrest"], cand["length"], cand.get("depth")))
         stats[src] += 1
 
     # --- shelters: bench=yes stops with no surveyed bench next to them ---
@@ -578,7 +717,7 @@ def plan_benches(
     stop_grid = _PointGrid(cell=4.0)
     for rec in stop_list or []:
         sx, sy = project(rec["lat"], rec["lon"], origin[0], origin[1])
-        if not (xmin <= sx <= xmax and ymin <= sy <= ymax):
+        if outside(sx, sy):
             stats["dropped_outside"] += 1
             continue
         if grid.near(sx, sy, STOP_SKIP_M):
@@ -664,10 +803,11 @@ def attach_benches(
     origin: tuple[float, float],
     cache_path: Path,
     refresh: bool = False,
+    postcode: str | None = None,
 ) -> dict[str, Any]:
     """Fetch/cached sources, plan placement and store the result on ``layout``."""
     try:
-        payload = fetch_bench_sources(bbox, cache_path, refresh=refresh)
+        payload = fetch_bench_sources(bbox, cache_path, refresh=refresh, postcode=postcode)
     except Exception as exc:  # noqa: BLE001 - offline builds still get the OSM benches
         print(f"WARNING: bench data unavailable ({exc}); using OSM benches only")
         payload = {}
@@ -685,7 +825,8 @@ def summarize(plan: dict[str, Any]) -> str:
     for b in plan["benches"]:
         rules[b["rule"]] = rules.get(b["rule"], 0) + 1
     return (
-        f"{len(plan['benches'])} benches ({s['osm']} OSM, {s['antwerp']} Stad Antwerpen, "
+        f"{len(plan['benches'])} benches ({s['osm']} OSM, {s.get('street', 0)} street register, "
+        f"{s['antwerp']} park inventory, "
         f"{s['stop']} stop shelters, {s['fallback']} fallback in {s['parks_fallback']} bench-less parks); dropped "
         f"{s['dropped_duplicate']} dup / {s['dropped_building']} building / "
         f"{s['dropped_carriageway']} carriageway / {s['dropped_rail']} tram-bed, "

@@ -2,6 +2,8 @@
 
 How to finish a district after `python -m cityview district build <id>` using the generated review pack.
 
+For the pipeline itself, walkability, road/park collision, and adding a custom building, see [city-pipeline.md](city-pipeline.md).
+
 ## Open the pack
 
 1. Read `districts/<id>/review/LATEST.md` (also mirrored at `viewer/districts/<id>/review/AGENT_REVIEW.md`).

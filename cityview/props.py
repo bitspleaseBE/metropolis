@@ -3,8 +3,9 @@
 Tree trunks, benches, bike racks and fences/walls are baked into the GLB as merged
 meshes, so the viewer cannot collide against them; this exports their footprints:
 
-* ``trunks``   ``[x, y, r]`` – same trunk radius rule as ``blender/trees_blender.py``
-* ``boxes``    ``[x, y, yaw, half_len, half_depth]`` – benches and bike racks
+* ``trunks``   ``[x, y, r]`` – same trunk radius rule as ``blender/trees_blender.py``;
+  also crane legs / pedestals
+* ``boxes``    ``[x, y, yaw, half_len, half_depth]`` – benches, bike racks, container stacks
 * ``segments`` ``[x0, y0, x1, y1, half_thickness]`` – fences, walls, hedges
 """
 
@@ -12,6 +13,8 @@ from __future__ import annotations
 
 import math
 from typing import Any
+
+from cityview.port_props import container_half_extents, crane_legs
 
 BARRIER_KINDS = frozenset({"fence", "wall", "hedge", "retaining"})
 POST_RADIUS = {
@@ -73,6 +76,16 @@ def export_props_for_viewer(
             boxes.append(
                 [round(x, 2), round(y, 2), round(float(c.get("yaw") or 0.0), 3), half_len, half_depth]
             )
+
+    for stack in layout.get("port_containers") or []:
+        x, y = float(stack["x"]), float(stack["y"])
+        if near(x, y):
+            half_len, half_depth = container_half_extents(stack)
+            boxes.append([round(x, 2), round(y, 2), round(float(stack.get("yaw") or 0.0), 3), round(half_len, 2), round(half_depth, 2)])
+    for crane in layout.get("port_cranes") or []:
+        for lx, ly, r in crane_legs(crane):
+            if near(lx, ly):
+                trunks.append([round(lx, 2), round(ly, 2), r])
 
     segments = []
     for w in layout.get("barriers") or []:

@@ -63,10 +63,22 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual([f["id"] for f in found], [9])
         self.assertEqual((found[0]["height"], found[0]["surface"]), (2.2, "brick"))
 
+    def test_osm_gates_reads_gate_nodes(self):
+        osm = {
+            "elements": [
+                {"type": "node", "id": 1, "lat": ORIGIN[0], "lon": ORIGIN[1], "tags": {"barrier": "gate"}},
+                {"type": "node", "id": 2, "lat": ORIGIN[0], "lon": ORIGIN[1], "tags": {"barrier": "fence"}},
+            ]
+        }
+        gates = bw.osm_gates(osm, ORIGIN)
+        self.assertEqual(len(gates), 1)
+        self.assertAlmostEqual(gates[0][0], 0.0, delta=0.2)
+        self.assertAlmostEqual(gates[0][1], 0.0, delta=0.2)
+
 
 class PlanTests(unittest.TestCase):
-    def plan(self, items, lay=None, spawn=None, bbox=None):
-        return bw.plan_barriers(lay or layout(), items, ORIGIN, bbox, spawn)
+    def plan(self, items, lay=None, spawn=None, bbox=None, gates=None):
+        return bw.plan_barriers(lay or layout(), items, ORIGIN, bbox, spawn, gates)
 
     def test_free_wall_is_one_run_with_its_length(self):
         out = self.plan([way(1, "wall", [(0, 0), (20, 0)])])
@@ -89,10 +101,31 @@ class PlanTests(unittest.TestCase):
         out = self.plan([way(1, "wall", [(0, -0.1), (20, -0.1)])], lay)
         self.assertEqual(out["barriers"], [])
 
+    def test_gate_node_opens_a_gap_in_the_fence(self):
+        out = self.plan([way(1, "fence", [(0, 0), (24, 0)])], gates=[(12.0, 0.0)])
+        self.assertGreaterEqual(len(out["barriers"]), 2)
+        self.assertGreater(out["stats"]["dropped_gate"], 0)
+        for run in out["barriers"]:
+            mid_x = 0.5 * (run["x0"] + run["x1"])
+            mid_y = 0.5 * (run["y0"] + run["y1"])
+            self.assertGreater(math.hypot(mid_x - 12.0, mid_y - 0.0), bw.GATE_CLEAR_M - 0.2)
+
+    def test_footway_crossing_opens_a_gap_in_the_fence(self):
+        path = {"id": 9, "kind": "footway", "width": 2.4, "points": [[12.0, -8.0], [12.0, 8.0]]}
+        out = self.plan([way(1, "fence", [(0, 0), (24, 0)])], layout(roads=[path]))
+        self.assertGreaterEqual(len(out["barriers"]), 2)
+        self.assertGreater(out["stats"]["dropped_path"], 0)
+
     def test_wall_on_a_carriageway_is_dropped(self):
         road = {"id": 5, "kind": "residential", "width": 8.0, "points": [[0.0, 0.0], [40.0, 0.0]]}
-        out = self.plan([way(1, "wall", [(0, 0), (30, 0)]), way(2, "wall", [(0, 6), (30, 6)])], layout(roads=[road]))
+        out = self.plan([way(1, "wall", [(0, 0), (30, 0)]), way(2, "wall", [(0, 6.5), (30, 6.5)])], layout(roads=[road]))
         self.assertEqual([r["id"] for r in out["barriers"]], [2])
+
+    def test_hedge_on_the_kerb_side_sidewalk_is_dropped(self):
+        road = {"id": 5, "kind": "residential", "width": 8.0, "points": [[0.0, 0.0], [40.0, 0.0]]}
+        out = self.plan([way(1, "hedge", [(0, 5), (30, 5)]), way(2, "hedge", [(0, 7), (30, 7)])], layout(roads=[road]))
+        self.assertEqual([r["id"] for r in out["barriers"]], [2])
+        self.assertGreater(out["stats"]["dropped_sidewalk"], 0)
 
     def test_hedges_and_fences_are_lod_culled_but_walls_are_not(self):
         items = [way(1, "hedge", [(900, 0), (910, 0)]), way(2, "fence", [(900, 5), (910, 5)]), way(3, "wall", [(900, 10), (910, 10)])]

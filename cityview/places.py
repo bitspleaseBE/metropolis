@@ -20,6 +20,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from cityview.geo import bbox_covers
 from cityview.osm import OVERPASS_URLS, _fetch_osm_map_tile
 
 USER_AGENT = "metropolis/0.1 (Antwerp procedural city; city-view)"
@@ -166,7 +167,9 @@ def fetch_places(
 ) -> dict[str, Any]:
     """``{"source", "fetched", "places": [...]}`` for the bbox, cached at ``cache_path``."""
     if cache_path.exists() and not refresh:
-        return json.loads(cache_path.read_text())
+        cached = json.loads(cache_path.read_text())
+        if bbox_covers(cached.get("bbox"), bbox):
+            return cached
     try:
         places = places_from_elements(_fetch_overpass_places(bbox))
         source = "overpass"

@@ -47,28 +47,30 @@ def add_benches(layout: dict, rails, wood_mat, metal_mat) -> dict:
 
     wood = bmesh.new()
     metal = bmesh.new()
-    counts = {"osm": 0, "antwerp": 0, "stop": 0, "fallback": 0, "skipped_rail": 0}
+    counts = {"osm": 0, "antwerp": 0, "street": 0, "stop": 0, "fallback": 0, "skipped_rail": 0}
     for bench in layout.get("benches") or []:
         x, y = float(bench["x"]), float(bench["y"])
         if rails.within(x, y, CLEAR_FURNITURE):
             counts["skipped_rail"] += 1  # safety net: nothing sits on a tram bed
             continue
         length = float(bench.get("length") or 1.7)
+        depth = float(bench.get("depth") or SEAT_DEPTH)  # plateau / double benches are deeper
         base = Matrix.Translation(Vector((x, y, 0.0))) @ Matrix.Rotation(float(bench["yaw"]), 4, "Z")
-        _box(wood, base, (length, SEAT_DEPTH, SEAT_THICK), (0.0, 0.0, SEAT_Z))
+        _box(wood, base, (length, depth, SEAT_THICK), (0.0, 0.0, SEAT_Z))
         if bench.get("backrest", True):
             # Backrest on the +Y edge, leaning back slightly via a raised, thin board.
             _box(
                 wood,
                 base,
                 (length, BACK_THICK, BACK_H),
-                (0.0, SEAT_DEPTH * 0.5 - BACK_THICK * 0.5, SEAT_Z + SEAT_THICK * 0.5 + BACK_H * 0.5 + 0.04),
+                (0.0, depth * 0.5 - BACK_THICK * 0.5, SEAT_Z + SEAT_THICK * 0.5 + BACK_H * 0.5 + 0.04),
             )
-        for sx in (-1.0, 1.0):
+        legs = (-1.0, 1.0) if length > 0.8 else (0.0,)  # single seats stand on one pedestal
+        for sx in legs:
             _box(
                 metal,
                 base,
-                (LEG_W, SEAT_DEPTH * 0.9, SEAT_Z - SEAT_THICK * 0.5),
+                (LEG_W, depth * 0.9, SEAT_Z - SEAT_THICK * 0.5),
                 (sx * (length * 0.5 - 0.14), 0.0, (SEAT_Z - SEAT_THICK * 0.5) * 0.5),
             )
         counts[bench.get("source") or "osm"] = counts.get(bench.get("source") or "osm", 0) + 1
@@ -83,5 +85,5 @@ def add_benches(layout: dict, rails, wood_mat, metal_mat) -> dict:
         mesh.materials.append(mat)
         obj = bpy.data.objects.new(name, mesh)
         bpy.context.collection.objects.link(obj)
-    counts["total"] = sum(counts[k] for k in ("osm", "antwerp", "stop", "fallback"))
+    counts["total"] = sum(counts[k] for k in ("osm", "antwerp", "street", "stop", "fallback"))
     return counts

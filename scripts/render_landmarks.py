@@ -53,6 +53,25 @@ SHOTS = {
 }
 
 
+# Set pieces shot from fixed world positions (east, north metres), matching on-site photos
+# in districts/<id>/references/grote-markt-photos/. Portrait shots mimic a phone held upright.
+WORLD_SHOTS = {
+    "grote_markt": [
+        # (shot name, eye xyz, target xyz, lens, portrait)
+        # Photo 01: south-west of the square, Stadhuis left, guild row behind.
+        ("north_row", (-54.0, 140.0, 1.6), (-40.0, 210.0, 13.0), 26, True),
+        # Photo 02: square, looking at Bella Patio (mansard) with Compagnie Belge to the left.
+        ("south_row", (-50.0, 148.0, 1.6), (-43.0, 132.0, 12.0), 28, True),
+        # Photo 03: on Suikerrui, looking at the Hansahuis corner dome.
+        ("suikerrui", (-136.0, 142.0, 1.6), (-165.0, 176.0, 22.0), 30, True),
+        # Photo 04: close on Brabo, Stadhuis left, guild houses right.
+        ("brabo", (-29.0, 147.0, 1.6), (-40.0, 168.0, 7.0), 26, True),
+        ("stadhuis", (-14.0, 166.0, 1.7), (-60.0, 178.0, 16.0), 22, False),
+        ("overview", (40.0, 120.0, 38.0), (-30.0, 180.0, 6.0), 24, False),
+    ],
+}
+
+
 def _frame_for(bldg: dict) -> tuple[K.Frame, float]:
     ring = [tuple(p) for p in bldg["ring"]]
     e = K.front_edge(ring, tuple(bldg["landmark"]["anchor_xy"]))
@@ -78,6 +97,10 @@ def _shots(layout: dict, only: set[str] | None):
             ea = a * L if abs(a) <= 1.5 else a
             ta2 = ta * L if abs(ta) <= 1.5 else ta
             yield kind, name, f.p(ea, d, z), f.p(ta2, td, tz), lens
+    for group, shots in WORLD_SHOTS.items():
+        if only and group in only:
+            for name, eye, target, lens, portrait in shots:
+                yield group, name, eye, target, (lens, portrait)
     for node in layout.get("landmark_nodes") or []:
         kind = node.get("custom")
         if kind not in SHOTS or (only and kind not in only):
@@ -118,6 +141,9 @@ def main() -> None:
     scene.render.image_settings.file_format = "JPEG"
     scene.render.image_settings.quality = 90
     for kind, name, eye, target, lens in _shots(layout, only):
+        lens, portrait = lens if isinstance(lens, tuple) else (lens, False)
+        long_side, short_side = args.res, int(args.res * (0.75 if portrait else 0.625))
+        scene.render.resolution_x, scene.render.resolution_y = (short_side, long_side) if portrait else (long_side, short_side)
         eye_v, tgt_v = Vector(eye), Vector(target)
         cam.location = eye_v
         cam.rotation_euler = (tgt_v - eye_v).to_track_quat("-Z", "Y").to_euler()
@@ -128,4 +154,5 @@ def main() -> None:
         print("Wrote", path)
 
 
-main()
+if __name__ == "__main__":
+    main()

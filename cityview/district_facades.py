@@ -38,8 +38,15 @@ BRIEF_2000 = {
         "sandstone": [(0.78, 0.70, 0.55), (0.72, 0.65, 0.52), (0.85, 0.78, 0.62)],
         "render": [(0.90, 0.86, 0.78), (0.95, 0.92, 0.88), (0.82, 0.78, 0.70)],
         "quay": [(0.42, 0.38, 0.35), (0.50, 0.45, 0.40)],
+        "concrete": [(0.66, 0.64, 0.60), (0.74, 0.72, 0.68), (0.58, 0.57, 0.55), (0.80, 0.76, 0.66)],
+        "curtain": [(0.30, 0.38, 0.44), (0.24, 0.30, 0.36), (0.40, 0.46, 0.50)],
+        "cladding": [(0.52, 0.56, 0.60), (0.70, 0.66, 0.58), (0.36, 0.42, 0.48), (0.62, 0.30, 0.24)],
     },
 }
+
+# Mid-rise / tower looks: painted on the atlas's 5-storey slots (the storey strip in
+# facade_bands.json repeats them up to the measured LOD2 storey count).
+MODERN_STYLES = ("postwar_block", "social_block", "glass_tower", "industrial_shed")
 
 
 def _rng(seed: str):
@@ -53,15 +60,89 @@ def _rgb(t: tuple[float, float, float]) -> tuple[int, int, int]:
     return (int(t[0] * 255), int(t[1] * 255), int(t[2] * 255))
 
 
-def _paint_elevation(fid: str, storeys: int, style: str, brief: dict[str, Any]) -> "Any":
+def _paint_modern(draw, w: int, h: int, storeys: int, style: str, pal: dict, rng) -> None:
+    """Post-war slab, social block, curtain-wall tower or port shed: flat grids, no gable."""
+    def pick(key: str) -> tuple[int, int, int]:
+        return _rgb(rng.choice(pal.get(key) or BRIEF_2000["palette"][key]))
+
+    glass = (34 + rng.randint(0, 20), 44 + rng.randint(0, 24), 56 + rng.randint(0, 30))
+    if style == "glass_tower":
+        draw.rectangle([0, 0, w, h], fill=pick("curtain"))
+        mull = pick("cladding")
+        cols = 6 + rng.randint(0, 3)
+        for c in range(cols + 1):
+            x = int(c * (w - 1) / cols)
+            draw.rectangle([x - 2, 0, x + 2, h], fill=mull)
+        for f in range(storeys + 1):
+            y = int(f * (h - 1) / storeys)
+            draw.rectangle([0, y - 3, w, y + 3], fill=mull)
+        # Reflections: a few lighter panes.
+        for _ in range(cols * storeys // 3):
+            c, f = rng.randint(0, cols - 1), rng.randint(0, storeys - 1)
+            x0, x1 = int(c * w / cols) + 3, int((c + 1) * w / cols) - 3
+            y0, y1 = int(f * h / storeys) + 4, int((f + 1) * h / storeys) - 4
+            draw.rectangle([x0, y0, x1, y1], fill=tuple(min(255, v + 28) for v in glass))
+        draw.rectangle([0, h - int(h * 0.16), w, h], fill=(48, 52, 56))
+        draw.rectangle([int(w * 0.35), h - int(h * 0.14), int(w * 0.65), h - 4], fill=glass)
+        return
+    if style == "industrial_shed":
+        wall = pick("cladding")
+        draw.rectangle([0, 0, w, h], fill=wall)
+        dark = tuple(max(0, v - 22) for v in wall)
+        for x in range(0, w, 9):
+            draw.line([(x, 0), (x, h)], fill=dark, width=2)
+        # Roller door + high strip window.
+        dw = int(w * 0.42)
+        dx = int(w * (0.1 + rng.random() * 0.4))
+        draw.rectangle([dx, h - int(h * 0.48), dx + dw, h], fill=(92, 96, 100))
+        for y in range(h - int(h * 0.48), h, 7):
+            draw.line([(dx, y), (dx + dw, y)], fill=(70, 74, 78), width=1)
+        draw.rectangle([8, int(h * 0.12), w - 9, int(h * 0.2)], fill=glass)
+        return
+    wall = pick("concrete")
+    draw.rectangle([0, 0, w, h], fill=wall)
+    seam = tuple(max(0, v - 30) for v in wall)
+    plinth_h = int(h * 0.15)
+    draw.rectangle([0, h - plinth_h, w, h], fill=tuple(max(0, v - 45) for v in wall))
+    cols = 3 if style == "postwar_block" else 4
+    floor_h = (h - plinth_h) / storeys
+    for f in range(storeys):
+        y0 = int(f * floor_h)
+        y1 = int((f + 1) * floor_h)
+        draw.line([(0, y1), (w, y1)], fill=seam, width=3)  # panel joint
+        if style == "postwar_block":
+            # Ribbon window across the bay, spandrel below.
+            draw.rectangle([10, y0 + int(floor_h * 0.22), w - 11, y0 + int(floor_h * 0.68)], fill=glass)
+            for c in range(1, cols):
+                x = int(c * w / cols)
+                draw.line([(x, y0 + int(floor_h * 0.22)), (x, y0 + int(floor_h * 0.68))], fill=(210, 205, 195), width=3)
+        else:
+            # Social block: punched windows + recessed balcony with a parapet band.
+            for c in range(cols):
+                cx0 = int(c * w / cols) + 8
+                cx1 = int((c + 1) * w / cols) - 8
+                draw.rectangle([cx0, y0 + int(floor_h * 0.2), cx1, y0 + int(floor_h * 0.72)], fill=glass)
+            draw.rectangle([0, y1 - int(floor_h * 0.3), w, y1 - 2], fill=pick("cladding"))
+    # Entrance.
+    ex = int(w * (0.3 + rng.random() * 0.3))
+    draw.rectangle([ex, h - plinth_h + 6, ex + int(w * 0.18), h - 4], fill=glass)
+
+
+def _paint_elevation(
+    fid: str, storeys: int, style: str, brief: dict[str, Any], district_id: str = ""
+) -> "Any":
     """Return a PIL Image for one elevation."""
     from PIL import Image, ImageDraw
 
     w, h = kit.CELL_INNER_W, kit.CELL_INNER_H
     img = Image.new("RGB", (w, h), (40, 40, 45))
     draw = ImageDraw.Draw(img)
-    rng = _rng(f"{fid}:{style}")
+    rng = _rng(f"{district_id}:{fid}:{style}" if district_id else f"{fid}:{style}")
     pal = brief.get("palette") or BRIEF_2000["palette"]
+
+    if style in MODERN_STYLES:
+        _paint_modern(draw, w, h, storeys, style, pal, rng)
+        return _finish(img, rng, fid, style, district_id)
 
     if style == "warehouse_quay":
         wall = _rgb(rng.choice(pal["quay"]))
@@ -145,7 +226,12 @@ def _paint_elevation(fid: str, storeys: int, style: str, brief: dict[str, Any]) 
                 y_cut = int(top + (h * 0.2) * (t**1.6))
                 draw.line([(x, 0), (x, y_cut)], fill=sky)
 
-    # Weathering: subtle noise via seeded hash pixels
+    return _finish(img, rng, fid, style, district_id)
+
+
+def _finish(img, rng, fid: str, style: str, district_id: str):
+    """Weathering noise + per-district watermark bits (hashes never collide across districts)."""
+    w, h = img.size
     pixels = img.load()
     for _ in range(800):
         x = rng.randint(0, w - 1)
@@ -156,7 +242,8 @@ def _paint_elevation(fid: str, storeys: int, style: str, brief: dict[str, Any]) 
 
     # Embed unique watermark bits in LSB of a few pixels so hashes never collide
     # with another district even if style RNG somehow matched.
-    digest = hashlib.sha256(f"district-facade:{fid}:{style}".encode()).digest()
+    salt = f"{district_id}:" if district_id else ""
+    digest = hashlib.sha256(f"district-facade:{salt}{fid}:{style}".encode()).digest()
     for i, byte in enumerate(digest[:16]):
         x = (i * 17) % w
         y = (i * 31) % h
@@ -183,8 +270,13 @@ def generate_district_facades(
     doc = load_district(district_id) if paths.district_json.exists() else {}
     brief = dict(BRIEF_2000)
     profile_brief = (doc.get("profile") or {}).get("facade_brief") or {}
-    if profile_brief.get("styles"):
-        brief["styles"] = list(profile_brief["styles"]) + list(BRIEF_2000["styles"])
+    from cityview.districts import DISTRICT_REGISTRY
+
+    registry_styles = list((DISTRICT_REGISTRY.get(district_id) or {}).get("facade_styles") or [])
+    if registry_styles or profile_brief.get("styles"):
+        # Registry brief leads; the generic historic styles only fill in for old-town districts.
+        tail = [] if registry_styles and all(s in MODERN_STYLES for s in registry_styles[:2]) else BRIEF_2000["styles"]
+        brief["styles"] = registry_styles + list(profile_brief.get("styles") or []) + list(tail)
         # unique preserve order
         seen: set[str] = set()
         styles = []
@@ -195,6 +287,9 @@ def generate_district_facades(
         brief["styles"] = styles
 
     styles = brief["styles"]
+    modern = [s for s in styles if s in MODERN_STYLES]
+    classic = [s for s in styles if s not in MODERN_STYLES] or modern
+    tall_seen = 0
     out_dir = paths.facade_elevations
     written = []
     meta = {"district_id": district_id, "elevations": {}}
@@ -207,9 +302,16 @@ def generate_district_facades(
             written.append(str(dest))
             meta["elevations"][fid] = {"file": dest.name, "skipped": True}
             continue
-        style = styles[(i - 1) % len(styles)]
+        if storeys >= 5 and modern:
+            # Mid-rise / tower slots: post-war and curtain-wall elevations.
+            style = modern[tall_seen % len(modern)]
+            tall_seen += 1
+        else:
+            style = classic[(i - 1) % len(classic)]
         # Bias tags toward brief for shop / quay indices
-        if "supermarket" in tags or "restaurant" in tags:
+        if style in MODERN_STYLES:
+            pass
+        elif "supermarket" in tags or "restaurant" in tags:
             style = "shopfront_meir"
         elif i % 11 == 0 and "warehouse_quay" in styles:
             style = "warehouse_quay"
@@ -220,11 +322,11 @@ def generate_district_facades(
             and i <= max(12, count // 2)
             and "shopfront_meir" in styles
             and (profile_shops or "restaurant" in tags or "shop" in tags)
-            and style not in {"warehouse_quay", "baroque_civic"}
+            and style not in {"warehouse_quay", "baroque_civic", *MODERN_STYLES}
         ):
             if i % 2 == 1 or "restaurant" in tags:
                 style = "shopfront_meir"
-        img = _paint_elevation(fid, storeys, style, brief)
+        img = _paint_elevation(fid, storeys, style, brief, district_id)
         img.save(dest, quality=88, optimize=True)
         written.append(str(dest))
         meta["elevations"][fid] = {
@@ -238,6 +340,49 @@ def generate_district_facades(
     meta_path = paths.facades / "elevations_meta.json"
     meta_path.write_text(json.dumps(meta, indent=2) + "\n")
     return {"written": len(written), "dir": str(out_dir), "meta": str(meta_path)}
+
+
+def detect_door(img) -> tuple[float, float] | None:
+    """(centre, width) as image-width fractions of the painted front door, or None.
+
+    ``_paint_elevation`` draws the door as a flat dark-brown slab standing on the
+    pavement line; modern / roller-door elevations have none and get no doorstep.
+    """
+    import numpy as np
+
+    a = np.asarray(img.convert("RGB")).astype(int)
+    h, w, _ = a.shape
+    band = a[int(h * 0.84) : int(h * 0.97)]
+    r, g, b = band[..., 0], band[..., 1], band[..., 2]
+    brown = (r >= 30) & (r <= 95) & (g >= 15) & (g <= 65) & (b >= 10) & (b <= 55) & (r - b >= 12)
+    cols = list(brown.mean(axis=0) > 0.6) + [False]
+    best, start = (0, 0), None
+    for x, hit in enumerate(cols):
+        if hit and start is None:
+            start = x
+        elif not hit and start is not None:
+            if x - start > best[1] - best[0]:
+                best = (start, x)
+            start = None
+    if best[1] - best[0] < 0.05 * w:
+        return None
+    return round((best[0] + best[1]) / 2 / w, 3), round((best[1] - best[0]) / w, 3)
+
+
+def write_door_table(district_id: str) -> Path:
+    """Detect front doors in the district's elevations -> ``facades/atlas/facade_doors.json``."""
+    from PIL import Image
+
+    paths = district_paths(district_id)
+    doors = {}
+    for src in sorted(paths.facade_elevations.glob("facade_*.jpg")):
+        door = detect_door(Image.open(src))
+        if door is not None:
+            doors[src.stem] = list(door)
+    dest = paths.facade_atlas_dir / kit.DOORS_FILE
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(doors, indent=1, sort_keys=True) + "\n")
+    return dest
 
 
 def pack_district_atlas(district_id: str) -> Path:
@@ -263,6 +408,8 @@ def pack_district_atlas(district_id: str) -> Path:
         ft.build_bands(atlas, paths.facade_atlas_dir)
     except Exception as exc:  # noqa: BLE001
         print(f"bands skipped: {exc}")
+    if not district_id.startswith("2018"):  # 2018 shows the shared elevations: kit.DOORS
+        write_door_table(district_id)
     return atlas
 
 

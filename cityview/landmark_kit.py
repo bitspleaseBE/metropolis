@@ -29,6 +29,7 @@ MATERIALS = frozenset(
         "brick_yellow",  # yellow brick with red bands (Peter Benoitstraat 38)
         "stone_white",  # white limestone: tracery, statues, copings
         "stone_grey",  # light grey stone / concrete (Benoit monument)
+        "stone_rose",  # pinkish rusticated stone and marble (Stadhuis arcade, frontispiece columns)
         "bluestone",  # Belgian arduin: plinths, sills, steps
         "render_white",  # painted neoclassical render (Harmonie)
         "render_cream",  # Art Deco cream render
@@ -45,6 +46,13 @@ MATERIALS = frozenset(
         "frame_dark",
         "iron",  # cast iron: columns, railings, cresting
         "gold",  # gilt lyre finial
+        "bronze",  # verdigris bronze / copper (Brabo, Stadhuis obelisks)
+        "rock",  # dark wet boulders under the Brabo fountain
+        "cloth_red",  # flag bunting (Stadhuis flag row)
+        "cloth_yellow",
+        "cloth_blue",
+        "cloth_white",
+        "cloth_green",
         "door",  # dark varnished timber
         "canopy",  # painted kiosk ceiling
         "water",

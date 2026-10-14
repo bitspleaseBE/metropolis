@@ -194,6 +194,17 @@ class TestDistrictChunks(unittest.TestCase):
         still_far = assign_object("bldg_far", 900, 100, spawn_xy=spawn, core_r=320)
         self.assertEqual(still_far, (3, 0))
 
+    def test_cell_tag_overrides_position(self):
+        from cityview.district_chunks import assign_object, cell_tag
+
+        spawn = (0.0, 0.0)
+        # Rooftop batches stream with the cell of the buildings they crown.
+        name = "rooftop_roof_plant" + cell_tag((3, -2))
+        self.assertEqual(name, "rooftop_roof_plant__c_3_-2")
+        self.assertEqual(assign_object(name, 0, 0, spawn_xy=spawn), (3, -2))
+        self.assertEqual(assign_object(name + ".001", 0, 0, spawn_xy=spawn), (3, -2))
+        self.assertEqual(assign_object("rooftop_x" + cell_tag("core"), 900, 900, spawn_xy=spawn), "core")
+
     def test_manifest_shape(self):
         from cityview.district_chunks import build_chunks_manifest, empty_chunks_manifest
 

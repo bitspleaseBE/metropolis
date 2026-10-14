@@ -52,6 +52,14 @@ MATS = {
     "frame_dark": ("lm_frame_dark", 2.0),
     "iron": ("lm_iron", 2.0),
     "gold": ("lm_gold", 2.0),
+    "bronze": ("lm_bronze", 2.0),
+    "stone_rose": ("lm_stone_rose", 2.0),
+    "rock": ("lm_rock", 2.0),
+    "cloth_red": ("lm_cloth_red", 2.0),
+    "cloth_yellow": ("lm_cloth_yellow", 2.0),
+    "cloth_blue": ("lm_cloth_blue", 2.0),
+    "cloth_white": ("lm_cloth_white", 2.0),
+    "cloth_green": ("lm_cloth_green", 2.0),
     "door": ("lm_door", 2.0),
 }
 
@@ -72,6 +80,14 @@ FALLBACK = {
     "frame_dark": (0.09, 0.09, 0.09, 1),
     "iron": (0.06, 0.07, 0.065, 1),
     "gold": (0.78, 0.6, 0.22, 1),
+    "bronze": (0.13, 0.22, 0.18, 1),
+    "stone_rose": (0.43, 0.3, 0.26, 1),
+    "rock": (0.07, 0.065, 0.06, 1),
+    "cloth_red": (0.62, 0.05, 0.06, 1),
+    "cloth_yellow": (0.9, 0.7, 0.08, 1),
+    "cloth_blue": (0.05, 0.16, 0.5, 1),
+    "cloth_white": (0.88, 0.88, 0.86, 1),
+    "cloth_green": (0.05, 0.4, 0.18, 1),
     "door": (0.13, 0.07, 0.04, 1),
 }
 

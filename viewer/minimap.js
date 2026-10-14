@@ -9,7 +9,6 @@ import { fetchJsonCached } from "./json-cache.js";
 export function createMinimap(THREE, opts = {}) {
   const SIZE = 200; // px
   const MARGIN = 12;
-  const BOUNDS = opts.playBounds || { minX: -500, maxX: 200, minZ: -800, maxZ: 100 };
   const SPAWN = opts.spawnCenter || { x: -218.5, z: -432.1 };
   const ROADS_URL = opts.roadsUrl || "./roads.json";
   const TRANSIT_URL = opts.transitUrl || "./transit.json";
@@ -91,192 +90,313 @@ export function createMinimap(THREE, opts = {}) {
   const ctx = canvas.getContext("2d");
   const W = canvas.width;
   const H = canvas.height;
-  const scaleX = W / (BOUNDS.maxX - BOUNDS.minX);
-  const scaleZ = H / (BOUNDS.maxZ - BOUNDS.minZ);
-  const scale = Math.min(scaleX, scaleZ) * 0.85;
-  const ox = (W - (BOUNDS.maxX - BOUNDS.minX) * scale) / 2;
-  const oy = (H - (BOUNDS.maxZ - BOUNDS.minZ) * scale) / 2;
+  let BOUNDS = { ...(opts.playBounds || { minX: -500, maxX: 200, minZ: -800, maxZ: 100 }) };
+  let scale = 1;
+  let ox = 0;
+  let oy = 0;
+  function fitOverview() {
+    const sx = W / (BOUNDS.maxX - BOUNDS.minX);
+    const sz = H / (BOUNDS.maxZ - BOUNDS.minZ);
+    scale = Math.min(sx, sz) * 0.92;
+    ox = (W - (BOUNDS.maxX - BOUNDS.minX) * scale) / 2;
+    oy = (H - (BOUNDS.maxZ - BOUNDS.minZ) * scale) / 2;
+  }
+  fitOverview();
 
   function toPixel(x, z) {
     return { u: ox + (x - BOUNDS.minX) * scale, v: oy + (z - BOUNDS.minZ) * scale };
   }
 
-  // ---- Background rendering: will be re-drawn with roads data ----
+  // ---- Map data: every source is stored in Three XZ (z = -y) with its district offset ----
+  const CELL_M = 128;
+  /** @type {Map<string, object[]>} */
+  const grid = new Map();
+  const features = [];
+  const pins = [];
+  const shopDots = [];
+  const stops = [];
+  let stamp = 0;
+
+  function toXZ(points, dx, dz, sx = 1) {
+    const out = new Float32Array(points.length * 2);
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      out[i * 2] = (Array.isArray(p) ? p[0] : p.x || 0) * sx + dx;
+      out[i * 2 + 1] = -(Array.isArray(p) ? p[1] : p.y || 0) + dz;
+    }
+    return out;
+  }
+
+  function addFeature(layer, xz, extra) {
+    if (xz.length < 4) return;
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (let i = 0; i < xz.length; i += 2) {
+      if (xz[i] < minX) minX = xz[i];
+      if (xz[i] > maxX) maxX = xz[i];
+      if (xz[i + 1] < minZ) minZ = xz[i + 1];
+      if (xz[i + 1] > maxZ) maxZ = xz[i + 1];
+    }
+    const f = { layer, xz, minX, maxX, minZ, maxZ, seen: 0, ...extra };
+    features.push(f);
+    for (let cx = Math.floor(minX / CELL_M); cx <= Math.floor(maxX / CELL_M); cx++) {
+      for (let cz = Math.floor(minZ / CELL_M); cz <= Math.floor(maxZ / CELL_M); cz++) {
+        const key = cx + "," + cz;
+        let list = grid.get(key);
+        if (!list) grid.set(key, (list = []));
+        list.push(f);
+      }
+    }
+  }
+
+  function query(minX, minZ, maxX, maxZ) {
+    stamp += 1;
+    const out = [];
+    for (let cx = Math.floor(minX / CELL_M); cx <= Math.floor(maxX / CELL_M); cx++) {
+      for (let cz = Math.floor(minZ / CELL_M); cz <= Math.floor(maxZ / CELL_M); cz++) {
+        const list = grid.get(cx + "," + cz);
+        if (!list) continue;
+        for (const f of list) {
+          if (f.seen === stamp) continue;
+          f.seen = stamp;
+          if (f.maxX < minX || f.minX > maxX || f.maxZ < minZ || f.minZ > maxZ) continue;
+          out.push(f);
+        }
+      }
+    }
+    return out;
+  }
+
+  const LAYER_ORDER = { park: 0, water: 1, building: 2, road: 3, walk: 4, rail: 5 };
+
+  async function loadJson(url) {
+    try {
+      const res = await fetchJsonCached(url);
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Ingest one district package. `base` is "" for the current district (districtUrl resolves),
+   * or "./districts/<id>/" for a neighbour; `t` = { x, z, sx } maps its local frame into ours.
+   */
+  async function addSource(base, t = null) {
+    const dx = t ? Number(t.x) || 0 : 0;
+    const dz = t ? Number(t.z) || 0 : 0;
+    const tsx = t ? Number(t.sx) || 1 : 1;
+    const [map, bdoc, lms, shops] = await Promise.all([
+      loadJson(base ? base + "map.json" : opts.mapUrl || "./map.json"),
+      loadJson(base ? base + "buildings.json" : "./buildings.json"),
+      loadJson(base ? base + "landmarks.json" : opts.landmarksUrl || "./landmarks.json"),
+      base ? null : opts.shopsUrl ? loadJson(opts.shopsUrl) : null,
+    ]);
+    for (const b of (bdoc && bdoc.buildings) || []) {
+      if ((b.ring || []).length >= 3) addFeature("building", toXZ(b.ring, dx, dz, tsx));
+    }
+    if (map) {
+      for (const ring of map.parks || []) addFeature("park", toXZ(ring, dx, dz, tsx));
+      for (const ring of map.water || []) addFeature("water", toXZ(ring, dx, dz, tsx));
+      for (const r of map.roads || []) {
+        const walk = (r.rank || 2) >= 4;
+        addFeature(walk ? "walk" : "road", toXZ(r.points || [], dx, dz, tsx), {
+          width: Number(r.width) || 6,
+          rank: r.rank || 2,
+          name: r.name || "",
+        });
+      }
+      for (const r of map.rails || []) {
+        addFeature("rail", toXZ(r.points || [], dx, dz, tsx), { mode: r.mode || "rail" });
+      }
+    } else {
+      // Pre-map.json packages: spawn-limited roads.json is all we have.
+      const roads = await loadJson(base ? base + "roads.json" : ROADS_URL);
+        for (const r of (roads && roads.roads) || []) {
+        addFeature("road", toXZ(r.points || [], dx, dz, tsx), { width: Number(r.width) || 7, rank: 2 });
+      }
+      for (const w of (roads && roads.walks) || []) {
+        addFeature("walk", toXZ(w.points || [], dx, dz, tsx), { width: 1.4, rank: 4, crossing: w.kind === "crossing" });
+      }
+    }
+    for (const lm of (lms && lms.landmarks) || []) {
+      if (Number.isFinite(lm.x) && Number.isFinite(lm.y)) pins.push({ x: lm.x * tsx + dx, z: -lm.y + dz });
+    }
+    for (const s of (shops && shops.shops) || []) {
+      if (Number.isFinite(s.x) && Number.isFinite(s.y)) shopDots.push({ x: s.x * tsx + dx, z: -s.y + dz });
+    }
+    if (!base) {
+      const transitDoc = await loadJson(TRANSIT_URL);
+      for (const p of (transitDoc && transitDoc.paths) || []) {
+        // map.json rails already cover OSM track geometry; GTFS paths fill the rest.
+        if (!map) addFeature("rail", toXZ(p.points || [], dx, dz, tsx), { mode: p.mode || "bus" });
+      }
+      for (const st of (transitDoc && transitDoc.stops) || []) {
+        if (Number.isFinite(st.x) && Number.isFinite(st.y)) {
+          stops.push({ x: st.x + dx, z: -st.y + dz, mode: st.mode || "bus" });
+        }
+      }
+    }
+    dirty = true;
+  }
+
+  // ---- Painting -----------------------------------------------------------------------------
+  const PALETTE = {
+    land: "#56645a",
+    park: "#5f7d55",
+    water: "#3d6f96",
+    building: "#8d978e",
+    roadCasing: "#2e3530",
+    road: "#e9ece6",
+    walk: "rgba(214,226,204,0.75)",
+    tram: "rgba(255,216,0,0.8)",
+    bus: "rgba(0,159,227,0.55)",
+    rail: "rgba(60,48,40,0.9)",
+  };
+
+  function tracePath(c, xz, map, close) {
+    c.beginPath();
+    for (let i = 0; i < xz.length; i += 2) {
+      const [u, v] = map(xz[i], xz[i + 1]);
+      if (i) c.lineTo(u, v);
+      else c.moveTo(u, v);
+    }
+    if (close) c.closePath();
+  }
+
+  /** Paint features into `c` where map(x, z) → [u, v] and pxPerM scales widths. */
+  function paintFeatures(c, list, map, pxPerM, { detail = true } = {}) {
+    list.sort((a, b) => LAYER_ORDER[a.layer] - LAYER_ORDER[b.layer] || (b.rank || 0) - (a.rank || 0));
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    for (const f of list) {
+      if (f.layer === "park" || f.layer === "water" || f.layer === "building") {
+        if (f.layer === "building" && !detail) continue;
+        c.fillStyle = PALETTE[f.layer];
+        tracePath(c, f.xz, map, true);
+        c.fill();
+      }
+    }
+    const roads = list.filter((f) => f.layer === "road");
+    for (const pass of [0, 1]) {
+      for (const f of roads) {
+        const w = Math.max(detail ? 1.2 : 0.8, f.width * pxPerM);
+        c.strokeStyle = pass ? PALETTE.road : PALETTE.roadCasing;
+        c.lineWidth = pass ? w : w + Math.max(1, 2.5 * pxPerM);
+        tracePath(c, f.xz, map, false);
+        c.stroke();
+      }
+    }
+    if (detail) {
+      for (const f of list) {
+        if (f.layer !== "walk") continue;
+        c.strokeStyle = f.crossing ? "rgba(230,215,150,0.75)" : PALETTE.walk;
+        c.lineWidth = Math.max(1, (f.crossing ? 1.8 : 1.6) * pxPerM);
+        tracePath(c, f.xz, map, false);
+        c.stroke();
+      }
+    }
+    for (const f of list) {
+      if (f.layer !== "rail") continue;
+      const m = f.mode;
+      c.strokeStyle = m === "tram" ? PALETTE.tram : m === "bus" ? PALETTE.bus : PALETTE.rail;
+      c.lineWidth = Math.max(1, (m === "tram" ? 2.4 : 1.6) * pxPerM);
+      if (m !== "tram" && m !== "bus") c.setLineDash([3 * pxPerM, 2 * pxPerM]);
+      tracePath(c, f.xz, map, false);
+      c.stroke();
+      c.setLineDash([]);
+    }
+  }
+
+  function paintPins(c, map, size, inBox) {
+    for (const st of stops) {
+      if (inBox && !inBox(st.x, st.z)) continue;
+      const [u, v] = map(st.x, st.z);
+      c.fillStyle = st.mode === "tram" ? "#ffd800" : "#009fe3";
+      c.beginPath();
+      c.arc(u, v, size * 0.6, 0, Math.PI * 2);
+      c.fill();
+    }
+    for (const lm of pins) {
+      if (inBox && !inBox(lm.x, lm.z)) continue;
+      const [u, v] = map(lm.x, lm.z);
+      c.fillStyle = "#d4a017";
+      c.strokeStyle = "rgba(20,12,0,0.55)";
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(u, v - size);
+      c.lineTo(u + size * 0.75, v);
+      c.lineTo(u, v + size);
+      c.lineTo(u - size * 0.75, v);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    }
+  }
+
+  // Overview (free / drive mode): whole district fitted to the canvas.
   const bgCanvas = document.createElement("canvas");
   bgCanvas.width = W;
   bgCanvas.height = H;
   const bgCtx = bgCanvas.getContext("2d");
-  bgCtx.fillStyle = "rgba(10,14,24,0.7)";
-  bgCtx.fillRect(0, 0, W, H);
+  let dirty = true;
 
-  let bgReady = false;
-
-  /** Stroke a Blender-XY polyline onto a 2d context via toPixel(x, z). */
-  function strokeWalk(ctx2d, points) {
-    if (!points || points.length < 2) return;
-    ctx2d.beginPath();
-    for (let k = 0; k < points.length; k++) {
-      const p = points[k];
-      const px = Array.isArray(p) ? p[0] : p.x || 0;
-      const py = Array.isArray(p) ? p[1] : p.y || 0;
-      const pix = toPixel(px, -py);
-      if (k === 0) ctx2d.moveTo(pix.u, pix.v);
-      else ctx2d.lineTo(pix.u, pix.v);
+  function paintOverview() {
+    bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+    bgCtx.fillStyle = "rgba(10,14,24,0.7)";
+    bgCtx.fillRect(0, 0, W, H);
+    const list = query(BOUNDS.minX, BOUNDS.minZ, BOUNDS.maxX, BOUNDS.maxZ);
+    const map = (x, z) => {
+      const p = toPixel(x, z);
+      return [p.u, p.v];
+    };
+    paintFeatures(bgCtx, list, map, scale, { detail: scale > 0.5 });
+    bgCtx.fillStyle = "rgba(255, 180, 90, 0.55)";
+    for (const s of shopDots) {
+      const p = toPixel(s.x, s.z);
+      bgCtx.fillRect(p.u - 1.5, p.v - 1.5, 3, 3);
     }
-    ctx2d.stroke();
+    paintPins(bgCtx, map, 4);
+    const sp = toPixel(SPAWN.x, SPAWN.z);
+    bgCtx.fillStyle = "#ffffff";
+    bgCtx.beginPath();
+    bgCtx.arc(sp.u, sp.v, 4.5, 0, Math.PI * 2);
+    bgCtx.fill();
+    bgCtx.strokeStyle = "#1a1a1a";
+    bgCtx.lineWidth = 1.5;
+    bgCtx.stroke();
   }
 
-  function paintWalkLayer(ctx2d, walks) {
-    ctx2d.lineCap = "round";
-    ctx2d.lineJoin = "round";
-    ctx2d.strokeStyle = "rgba(150,205,165,0.42)";
-    ctx2d.lineWidth = 1.5;
-    for (const w of walks) {
-      if ((w.kind || "") === "crossing") continue;
-      strokeWalk(ctx2d, w.points);
-    }
-    ctx2d.strokeStyle = "rgba(235,220,140,0.55)";
-    ctx2d.lineWidth = 1.7;
-    ctx2d.setLineDash([3.5, 2.5]);
-    for (const w of walks) {
-      if ((w.kind || "") !== "crossing") continue;
-      strokeWalk(ctx2d, w.points);
-    }
-    ctx2d.setLineDash([]);
+  // Radar (walk mode): a sliding window around the player, repainted as they walk.
+  const WIN_M = 640;
+  const WIN_PX_PER_M = 2;
+  const REPAINT_M = 150;
+  const win = {
+    canvas: document.createElement("canvas"),
+    cx: NaN,
+    cz: NaN,
+  };
+  win.canvas.width = win.canvas.height = WIN_M * WIN_PX_PER_M;
+  const wctx = win.canvas.getContext("2d");
+
+  function paintWindow(cx, cz) {
+    win.cx = cx;
+    win.cz = cz;
+    const minX = cx - WIN_M / 2;
+    const minZ = cz - WIN_M / 2;
+    wctx.setTransform(1, 0, 0, 1, 0, 0);
+    wctx.fillStyle = PALETTE.land;
+    wctx.fillRect(0, 0, win.canvas.width, win.canvas.height);
+    const k = WIN_PX_PER_M;
+    const map = (x, z) => [(x - minX) * k, (z - minZ) * k];
+    paintFeatures(wctx, query(minX, minZ, minX + WIN_M, minZ + WIN_M), map, k);
+    paintPins(wctx, map, 2.4 * k, (x, z) => x >= minX && x <= minX + WIN_M && z >= minZ && z <= minZ + WIN_M);
   }
 
-  /** Gold diamond pins for heritage landmarks (district landmarks.json, Blender XY). */
-  async function paintLandmarkPins(ctx2d, mapPoint, size = 4) {
-    try {
-      const url = opts.landmarksUrl || "./landmarks.json";
-      const res = await fetchJsonCached(url);
-      if (!res.ok) return;
-      const data = await res.json();
-      for (const lm of data.landmarks || []) {
-        if (!Number.isFinite(lm.x) || !Number.isFinite(lm.y)) continue;
-        const p = mapPoint(lm.x, -lm.y);
-        ctx2d.fillStyle = "#d4a017";
-        ctx2d.strokeStyle = "rgba(20,12,0,0.55)";
-        ctx2d.lineWidth = 1;
-        ctx2d.beginPath();
-        ctx2d.moveTo(p.u, p.v - size);
-        ctx2d.lineTo(p.u + size * 0.75, p.v);
-        ctx2d.lineTo(p.u, p.v + size);
-        ctx2d.lineTo(p.u - size * 0.75, p.v);
-        ctx2d.closePath();
-        ctx2d.fill();
-        ctx2d.stroke();
-      }
-    } catch {
-      /* landmarks optional */
-    }
-  }
-
-  /** Soft shop dots on the full map only (radar stays clean). */
-  async function paintShopBlips(ctx2d, mapPoint, size = 2.2) {
-    if (!opts.shopsUrl) return;
-    try {
-      const res = await fetchJsonCached(opts.shopsUrl);
-      if (!res.ok) return;
-      const data = await res.json();
-      ctx2d.fillStyle = "rgba(255, 180, 90, 0.55)";
-      for (const s of data.shops || []) {
-        if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) continue;
-        const p = mapPoint(s.x, -s.y);
-        ctx2d.beginPath();
-        ctx2d.arc(p.u, p.v, size, 0, Math.PI * 2);
-        ctx2d.fill();
-      }
-    } catch {
-      /* shops optional */
-    }
-  }
-
-  /** De Lijn tram (yellow) / bus (blue) routes + halt dots from transit.json. */
-  async function paintTransitLayer(ctx2d, mapPoint, opts = {}) {
-    const tramW = opts.tramW ?? 2.2;
-    const busW = opts.busW ?? 1.4;
-    const stopR = opts.stopR ?? 3;
-    try {
-      const res = await fetch(TRANSIT_URL);
-      if (!res.ok) return;
-      const data = await res.json();
-      ctx2d.lineCap = "round";
-      ctx2d.lineJoin = "round";
-      for (const path of data.paths || []) {
-        const pts = path.points || [];
-        if (pts.length < 2) continue;
-        const tram = (path.mode || "") === "tram";
-        ctx2d.strokeStyle = tram ? "rgba(255,216,0,0.55)" : "rgba(0,159,227,0.4)";
-        ctx2d.lineWidth = tram ? tramW : busW;
-        ctx2d.beginPath();
-        for (let k = 0; k < pts.length; k++) {
-          const p = pts[k];
-          const px = Array.isArray(p) ? p[0] : p.x || 0;
-          const py = Array.isArray(p) ? p[1] : p.y || 0;
-          const pix = mapPoint(px, -py);
-          if (k === 0) ctx2d.moveTo(pix.u, pix.v);
-          else ctx2d.lineTo(pix.u, pix.v);
-        }
-        ctx2d.stroke();
-      }
-      for (const st of data.stops || []) {
-        if (!Number.isFinite(st.x) || !Number.isFinite(st.y)) continue;
-        const pix = mapPoint(st.x, -st.y);
-        const tram = (st.mode || "") === "tram";
-        ctx2d.fillStyle = tram ? "#ffd800" : "#009fe3";
-        ctx2d.beginPath();
-        ctx2d.arc(pix.u, pix.v, stopR, 0, Math.PI * 2);
-        ctx2d.fill();
-        ctx2d.strokeStyle = "rgba(0,0,0,0.35)";
-        ctx2d.lineWidth = 1;
-        ctx2d.stroke();
-      }
-    } catch {
-      console.warn("Minimap: transit layer unavailable");
-    }
-  }
-
-  async function loadRoads() {
-    try {
-      const res = await fetchJsonCached(ROADS_URL);
-      if (!res.ok) return;
-      const data = await res.json();
-      const roads = data.roads || [];
-      bgCtx.strokeStyle = "rgba(180,190,210,0.35)";
-      bgCtx.lineWidth = 2.5;
-      bgCtx.lineCap = "round";
-      for (const road of roads) {
-        const pts = road.points || [];
-        if (pts.length < 2) continue;
-        bgCtx.beginPath();
-        for (let k = 0; k < pts.length; k++) {
-          const p = pts[k];
-          const px = Array.isArray(p) ? p[0] : p.x || 0;
-          const py = Array.isArray(p) ? p[1] : p.y || 0;
-          // roads.json stores [x, y] where y is Blender north; z = -y in Three.js
-          const pix = toPixel(px, -py);
-          if (k === 0) bgCtx.moveTo(pix.u, pix.v);
-          else bgCtx.lineTo(pix.u, pix.v);
-        }
-        bgCtx.stroke();
-      }
-      paintWalkLayer(bgCtx, data.walks || []);
-      await paintTransitLayer(bgCtx, (x, z) => toPixel(x, z));
-      await paintLandmarkPins(bgCtx, (x, z) => toPixel(x, z), 4);
-      await paintShopBlips(bgCtx, (x, z) => toPixel(x, z), 2.2);
-      // Spawn marker (white ring so it doesn't read as a tram halt)
-      const sp = toPixel(SPAWN.x, SPAWN.z);
-      bgCtx.fillStyle = "#ffffff";
-      bgCtx.beginPath();
-      bgCtx.arc(sp.u, sp.v, 4.5, 0, Math.PI * 2);
-      bgCtx.fill();
-      bgCtx.strokeStyle = "#1a1a1a";
-      bgCtx.lineWidth = 1.5;
-      bgCtx.stroke();
-      bgReady = true;
-    } catch (e) {
-      console.warn("Minimap: could not load roads");
+  function ensureWindow(x, z) {
+    if (dirty || !(Math.abs(x - win.cx) < REPAINT_M && Math.abs(z - win.cz) < REPAINT_M)) {
+      if (dirty) paintOverview();
+      dirty = false;
+      paintWindow(x, z);
     }
   }
 
@@ -290,18 +410,20 @@ export function createMinimap(THREE, opts = {}) {
   let teleportTarget = null;
   canvas.addEventListener("click", (e) => {
     const rect = canvas.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
-    const cy = e.clientY - rect.top;
-    const worldX = (cx / width) * (BOUNDS.maxX - BOUNDS.minX) + BOUNDS.minX;
-    const worldZ = (cy / height) * (BOUNDS.maxZ - BOUNDS.minZ) + BOUNDS.minZ;
-    teleportTarget = { x: worldX, z: worldZ };
+    const u = ((e.clientX - rect.left) / rect.width) * W;
+    const v = ((e.clientY - rect.top) / rect.height) * H;
+    teleportTarget = { x: (u - ox) / scale + BOUNDS.minX, z: (v - oy) / scale + BOUNDS.minZ };
   });
 
   // ---- Draw dynamic elements each frame ----
   function draw(playerPos, traffic, transit, pedestrians, mode, micromobility, velo) {
     if (!visible) return;
+    if (dirty) {
+      paintOverview();
+      dirty = false;
+      win.cx = NaN;
+    }
 
-    // Clear and redraw from background
     ctx.clearRect(0, 0, W, H);
     ctx.drawImage(bgCanvas, 0, 0);
     if (nightGlow > 0.01) {
@@ -309,7 +431,6 @@ export function createMinimap(THREE, opts = {}) {
       ctx.fillRect(0, 0, W, H);
     }
 
-    // Velo docking stations
     if (velo && velo.stations) {
       for (const st of velo.stations) {
         const p = toPixel(st.x, st.z);
@@ -323,16 +444,13 @@ export function createMinimap(THREE, opts = {}) {
       }
     }
 
-    // Transit vehicles
     if (transit && transit.vehicles) {
       for (const v of transit.vehicles) {
         if (v.phase === "gone" || !v.pos) continue;
         const p = toPixel(v.pos.x, v.pos.z);
         ctx.fillStyle = v.mode === "tram" ? "#ffd800" : "#009fe3";
         const size = v.mode === "tram" ? 5 : 3.5;
-        ctx.beginPath();
         const ang = Math.atan2(v.tan.x, v.tan.z);
-        // Draw oriented rectangle
         ctx.save();
         ctx.translate(p.u, p.v);
         ctx.rotate(ang);
@@ -341,7 +459,6 @@ export function createMinimap(THREE, opts = {}) {
       }
     }
 
-    // Traffic cars
     if (traffic && traffic.cars) {
       for (const c of traffic.cars) {
         const p = toPixel(c.pos.x, c.pos.z);
@@ -365,7 +482,6 @@ export function createMinimap(THREE, opts = {}) {
       }
     }
 
-    // Pedestrians (dense cluster)
     if (pedestrians && pedestrians.groups) {
       for (const g of pedestrians.groups) {
         for (const m of g.members) {
@@ -376,22 +492,18 @@ export function createMinimap(THREE, opts = {}) {
       }
     }
 
-    // Player position + heading
     if (playerPos) {
       const p = toPixel(playerPos.x, playerPos.z);
-      // Glow
       ctx.fillStyle = "rgba(255,255,255,0.3)";
       ctx.beginPath();
       ctx.arc(p.u, p.v, 7, 0, Math.PI * 2);
       ctx.fill();
-      // Dot
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
       ctx.arc(p.u, p.v, 3.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Border
     ctx.strokeStyle = "rgba(255,255,255,0.2)";
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, W, H);
@@ -408,118 +520,22 @@ export function createMinimap(THREE, opts = {}) {
   radar.style.cssText = `position:fixed;left:22px;bottom:22px;width:${RW}px;height:${RH}px;z-index:500;pointer-events:none;border-radius:6px;box-shadow:0 0 0 3px rgba(0,0,0,0.55),0 6px 18px rgba(0,0,0,0.35)`;
   document.body.appendChild(radar);
   const rctx = radar.getContext("2d");
-  const spanX = BOUNDS.maxX - BOUNDS.minX;
-  const spanZ = BOUNDS.maxZ - BOUNDS.minZ;
-  const hiScale = Math.min(1.5, 2048 / Math.max(spanX, spanZ)); // px/m — was up to 3× and ~23 MB GPU
-  const hiBg = document.createElement("canvas");
-  hiBg.width = Math.ceil(spanX * hiScale);
-  hiBg.height = Math.ceil(spanZ * hiScale);
-  const hctx = hiBg.getContext("2d");
-  hctx.fillStyle = "#56645a";
-  hctx.fillRect(0, 0, hiBg.width, hiBg.height);
-  const toHi = (x, z) => [(x - BOUNDS.minX) * hiScale, (z - BOUNDS.minZ) * hiScale];
   let heading = 0;
   let blipSource = null;
-
-  async function paintRadarBase() {
-    hctx.fillStyle = "#56645a"; // land
-    hctx.fillRect(0, 0, hiBg.width, hiBg.height);
-    try {
-      const res = await fetchJsonCached("./buildings.json");
-      if (res.ok) {
-        hctx.fillStyle = "#8d978e";
-        for (const b of (await res.json()).buildings || []) {
-          const ring = b.ring || [];
-          if (ring.length < 3) continue;
-          hctx.beginPath();
-          ring.forEach((p, i) => {
-            const [u, v] = toHi(p[0], -p[1]);
-            if (i) hctx.lineTo(u, v);
-            else hctx.moveTo(u, v);
-          });
-          hctx.fill();
-        }
-      }
-    } catch {
-      /* buildings are optional on the radar */
-    }
-    try {
-      const res = await fetchJsonCached(ROADS_URL);
-      if (!res.ok) return;
-      const data = await res.json();
-      const roads = data.roads || [];
-      hctx.lineCap = "round";
-      hctx.lineJoin = "round";
-      for (const pass of [0, 1]) {
-        for (const road of roads) {
-          const pts = road.points || [];
-          if (pts.length < 2) continue;
-          const w = (Number(road.width) || 7) * hiScale;
-          hctx.strokeStyle = pass ? "#e9ece6" : "#2e3530";
-          hctx.lineWidth = pass ? w : w + 2.5 * hiScale;
-          hctx.beginPath();
-          pts.forEach((p, i) => {
-            const [u, v] = toHi(p[0], -p[1]);
-            if (i) hctx.lineTo(u, v);
-            else hctx.moveTo(u, v);
-          });
-          hctx.stroke();
-        }
-      }
-      // Sidewalk ribbons + zebra links (subtle so the radar stays readable).
-      hctx.strokeStyle = "rgba(200,220,190,0.55)";
-      hctx.lineWidth = 1.4 * hiScale;
-      for (const walk of data.walks || []) {
-        const pts = walk.points || [];
-        if (pts.length < 2) continue;
-        const cross = (walk.kind || "") === "crossing";
-        hctx.strokeStyle = cross ? "rgba(230,215,150,0.7)" : "rgba(200,220,190,0.55)";
-        hctx.lineWidth = (cross ? 1.8 : 1.3) * hiScale;
-        if (cross) hctx.setLineDash([2.5 * hiScale, 1.8 * hiScale]);
-        hctx.beginPath();
-        pts.forEach((p, i) => {
-          const [u, v] = toHi(p[0], -p[1]);
-          if (i) hctx.lineTo(u, v);
-          else hctx.moveTo(u, v);
-        });
-        hctx.stroke();
-        if (cross) hctx.setLineDash([]);
-      }
-      await paintTransitLayer(
-        hctx,
-        (x, z) => {
-          const [u, v] = toHi(x, z);
-          return { u, v };
-        },
-        { tramW: 2.4 * hiScale, busW: 1.5 * hiScale, stopR: 2.2 * hiScale },
-      );
-      await paintLandmarkPins(
-        hctx,
-        (x, z) => {
-          const [u, v] = toHi(x, z);
-          return { u, v };
-        },
-        2.4 * hiScale,
-      );
-    } catch {
-      console.warn("Minimap: radar roads unavailable");
-    }
-  }
 
   let baseWarmed = false;
   function warmBase() {
     if (baseWarmed) return;
     baseWarmed = true;
-    loadRoads();
-    paintRadarBase();
+    addSource("");
   }
 
   function drawRadar(playerPos, traffic, transit, micromobility) {
+    ensureWindow(playerPos.x, playerPos.z);
     const W2 = radar.width;
     const H2 = radar.height;
     const k = 2 * RADAR_PX_PER_M; // canvas px per metre (canvas is 2x CSS)
     rctx.setTransform(1, 0, 0, 1, 0, 0);
-    // Day olive → night charcoal under the map raster.
     const g = nightGlow;
     const landR = (0x3c + (0x1c - 0x3c) * g) | 0;
     const landG = (0x47 + (0x24 - 0x47) * g) | 0;
@@ -532,10 +548,12 @@ export function createMinimap(THREE, opts = {}) {
     rctx.scale(k, k);
     rctx.translate(-playerPos.x, -playerPos.z);
     rctx.imageSmoothingEnabled = true;
-    rctx.drawImage(hiBg, BOUNDS.minX, BOUNDS.minZ, spanX, spanZ);
+    const wx = win.cx - WIN_M / 2;
+    const wz = win.cz - WIN_M / 2;
+    rctx.drawImage(win.canvas, wx, wz, WIN_M, WIN_M);
     if (g > 0.01) {
       rctx.fillStyle = `rgba(5,10,22,${0.5 * g})`;
-      rctx.fillRect(BOUNDS.minX, BOUNDS.minZ, spanX, spanZ);
+      rctx.fillRect(wx, wz, WIN_M, WIN_M);
     }
     const box = (x, z, tx, tz, len, wid, color) => {
       rctx.save();
@@ -665,5 +683,14 @@ export function createMinimap(THREE, opts = {}) {
       blipSource = fn;
     },
     warmBase,
+    /** Refit the overview map (the radar window follows the player on its own). */
+    setBounds(b) {
+      if (!b || !(b.maxX > b.minX) || !(b.maxZ > b.minZ)) return;
+      BOUNDS = { minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: b.maxZ };
+      fitOverview();
+      dirty = true;
+    },
+    /** Merge a neighbour package ("./districts/<id>/") shifted by (dx, dz) into the map. */
+    addSource,
   };
 }

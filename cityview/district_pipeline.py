@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import shutil
 import subprocess
 import sys
@@ -21,15 +22,11 @@ from cityview.building_types import BUILDING_TYPES_PATH, attach_palettes, load_b
 from cityview.clutter import attach_clutter, summarize as summarize_clutter
 from cityview.courtyards import attach_courtyards, summarize as summarize_courtyards
 from cityview.district_boundary import (
-    NATIONALE_BANK_FALLBACK,
     bbox_to_ring,
     clip_osm_to_ring,
     district_bbox_from_doc,
-    extend_bbox_north,
     find_nationale_bank_anchor,
-    load_place,
     postcode_ring,
-    ring_excluding_bank_block,
 )
 from cityview.district_profile import build_profile
 from cityview.districts import (
@@ -55,13 +52,14 @@ from cityview.props import export_props_for_viewer
 from cityview.places import fetch_places
 from cityview.shops import district_shop_inputs, export_shops_for_viewer, plan_shops
 from cityview.streetscape import (
-    export_buildings_near_spawn,
+    export_walker_buildings,
     export_roads_near_spawn,
     export_transit_near_spawn,
     spawn_from_place,
 )
 from cityview.trees import attach_trees, summarize as summarize_trees
 from cityview.velo import attach_velo, export_velo_for_viewer, summarize as summarize_velo
+from cityview.walkability import check_viewer_walkability, osm_passages
 
 
 def _sha256_file(path: Path) -> str:
@@ -101,122 +99,147 @@ def assert_facades_unique(district_id: str) -> list[str]:
     return errors
 
 
-def seed_2018_district_json(*, extend_to_bank: bool = True) -> dict[str, Any]:
-    place = load_place("klein-antwerpen")
-    bbox = tuple(place["bbox"])
-    bank = NATIONALE_BANK_FALLBACK
-    if extend_to_bank:
-        bbox = extend_bbox_north(bbox, bank[0], pad_deg=0.0012)
-    ring = bbox_to_ring(bbox)
-    origin = tuple(place.get("origin") or ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2))
-    doc = {
-        "id": ID_2018,
-        "title": "Klein Antwerpen · Harmonie · 2018",
-        "postcode": "2018",
-        "description": place.get("description") or "",
-        "bbox": list(bbox),
-        "boundary": ring,
-        "origin": list(origin),
-        "style_policy": "historic",
-        "spawn": place.get("spawn"),
-        "seam": {
-            "nationale_bank": {"lat": bank[0], "lon": bank[1]},
-            "role": "north_gate",
-        },
-        "profile": {},
-        "stages": {},
-        "viewer_glb": "city.glb",
-        "legacy_viewer_glb": "klein_antwerpen.glb",
-    }
-    write_district(ID_2018, doc)
+def seed_district_json(district_id: str) -> dict[str, Any]:
+    """district.json for a registry district: full postcode ring, registry spawn/policy.
+
+    An existing district.json keeps its origin, profile and hand-tuned extras
+    (population, landmark notes …) so a re-seed never shifts local coordinates.
+    """
+    from cityview.districts import bbox_of_ring, registry_entry
+
+    entry = registry_entry(district_id)
+    paths = district_paths(district_id)
+    prev: dict[str, Any] = {}
+    if paths.district_json.exists():
+        prev = json.loads(paths.district_json.read_text())
+    ring = postcode_ring(entry["postcode"])
+    bbox = bbox_of_ring(ring)
+    origin = prev.get("origin") or [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]
+    doc = dict(prev)
+    doc.update(
+        {
+            "id": district_id,
+            "title": entry["title"],
+            "menu_name": entry["menu_name"],
+            "postcode": entry["postcode"],
+            "description": prev.get("description") or entry["summary"],
+            "bbox": list(bbox),
+            "boundary": ring,
+            "origin": list(origin),
+            "style_policy": entry["style_policy"],
+            "spawn": entry["spawn"],
+            "access": entry["access"],
+            "standalone": bool(entry.get("standalone")),
+            "viewer_glb": "city.glb",
+        }
+    )
+    doc.setdefault("profile", {})
+    doc.setdefault("stages", {})
+    if entry.get("legacy_viewer_glb"):
+        doc["legacy_viewer_glb"] = entry["legacy_viewer_glb"]
+    write_district(district_id, doc)
     return doc
+
+
+def seed_2018_district_json(*, extend_to_bank: bool = True) -> dict[str, Any]:
+    """Back-compat alias: 2018 is now the full postcode (the bank lies on its border)."""
+    _ = extend_to_bank
+    return seed_district_json(ID_2018)
 
 
 def seed_2000_district_json() -> dict[str, Any]:
-    ring = postcode_ring("2000")
-    bank = NATIONALE_BANK_FALLBACK
-    ring = ring_excluding_bank_block(ring, bank[0], bank[1])
-    from cityview.districts import bbox_of_ring
+    return seed_district_json(ID_2000)
 
-    bbox = bbox_of_ring(ring)
-    origin = ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2)
-    doc = {
-        "id": ID_2000,
-        "title": "Antwerpen · 2000",
-        "postcode": "2000",
-        "description": "Historisch centrum, Meir, Grote Markt, Scheldekaaien.",
-        "bbox": list(bbox),
-        "boundary": ring,
-        "origin": list(origin),
-        "style_policy": "historic",
-        "spawn": {
-            "label": "Groenplaats",
-            "lat": 51.21897,
-            "lon": 4.40165,
-            "eye_height": 1.7,
-            "yaw": 2.0624,
-            "snap_road": False,
-        },
-        "seam": {
-            "nationale_bank": {"lat": bank[0], "lon": bank[1]},
-            "role": "south_gate",
-            "owned_by": ID_2018,
-        },
-        "profile": {},
-        "stages": {},
-        "viewer_glb": "city.glb",
-    }
-    write_district(ID_2000, doc)
-    return doc
+
+def district_edges() -> list[dict[str, Any]]:
+    """Neighbour edges from shared postcode borders (standalone districts excluded)."""
+    from cityview.districts import DISTRICT_REGISTRY
+    from cityview.postcodes import postcode_main_ring, shared_border_runs
+
+    def thin(run: list[list[float]]) -> list[list[float]]:
+        # ~15 m steps; the viewer tests distance to these segments.
+        out = [run[0]]
+        for p in run[1:]:
+            q = out[-1]
+            if math.hypot((p[0] - q[0]) * 110540.0, (p[1] - q[1]) * 69800.0) >= 15.0:
+                out.append(p)
+        if out[-1] != run[-1]:
+            out.append(run[-1])
+        return [[round(p[0], 6), round(p[1], 6)] for p in out]
+
+    ids = [k for k, v in DISTRICT_REGISTRY.items() if not v.get("standalone")]
+    rings = {k: postcode_main_ring(DISTRICT_REGISTRY[k]["postcode"]) for k in ids}
+    edges: list[dict[str, Any]] = []
+    for i, a in enumerate(ids):
+        for b in ids[i + 1:]:
+            runs = shared_border_runs(rings[a], rings[b])
+            if not runs:
+                continue
+            longest = max(runs, key=len)
+            gate = longest[len(longest) // 2]
+            borders = [thin(r) for r in runs]
+            for src, dst in ((a, b), (b, a)):
+                edges.append(
+                    {
+                        "from": src,
+                        "to": dst,
+                        "label": DISTRICT_REGISTRY[dst]["menu_name"],
+                        "gate": {"lat": gate[0], "lon": gate[1]},
+                        "border": thin(longest),
+                        "borders": borders,
+                    }
+                )
+    return edges
+
+
+def _package_complete(pkg: Path) -> bool:
+    """A package counts as built only once every chunk it lists is on disk (not mid-export)."""
+    if (pkg / "city.glb").exists() and not (pkg / "core.glb").exists():
+        return True
+    if not (pkg / "core.glb").exists() or not (pkg / "chunks.json").exists():
+        return False
+    try:
+        chunks = json.loads((pkg / "chunks.json").read_text()).get("chunks") or []
+    except (OSError, ValueError):
+        return False
+    return all((pkg / str(c.get("file") or "")).is_file() for c in chunks)
 
 
 def write_districts_index() -> Path:
-    doc = {
-        "default": ID_2018,
-        "districts": [
+    from cityview.districts import DISTRICT_REGISTRY, VIEWER_DISTRICTS
+
+    districts = []
+    for did, entry in DISTRICT_REGISTRY.items():
+        built = _package_complete(VIEWER_DISTRICTS / did)
+        districts.append(
             {
-                "id": ID_2018,
-                "title": "Klein Antwerpen · Harmonie",
-                "postcode": "2018",
-                "summary": "19th-century belt around Harmoniepark",
-            },
-            {
-                "id": ID_2000,
-                "title": "Antwerpen · 2000",
-                "postcode": "2000",
-                "summary": "Historic core, Meir, Scheldt quays",
-            },
-        ],
-        "edges": [
-            {
-                "from": ID_2018,
-                "to": ID_2000,
-                "side": "north",
-                "label": "Nationale Bank / Leopoldplaats",
-                "gate": {"lat": NATIONALE_BANK_FALLBACK[0], "lon": NATIONALE_BANK_FALLBACK[1]},
-            },
-            {
-                "from": ID_2000,
-                "to": ID_2018,
-                "side": "south",
-                "label": "Nationale Bank / Leopoldplaats",
-                "gate": {"lat": NATIONALE_BANK_FALLBACK[0], "lon": NATIONALE_BANK_FALLBACK[1]},
-            },
-        ],
-    }
+                "id": did,
+                "title": entry["title"],
+                "menu_name": entry["menu_name"],
+                "postcode": entry["postcode"],
+                "summary": entry["summary"],
+                "style_policy": entry["style_policy"],
+                "access": entry["access"],
+                "standalone": bool(entry.get("standalone")),
+                "built": built,
+                # Locked until the package exists; gameplay unlock rules plug in here later.
+                "unlocked": built,
+            }
+        )
+    doc = {"default": ID_2018, "districts": districts, "edges": district_edges()}
     return write_index(doc)
 
 
 def district_add(*, postcode: str, district_id: str | None = None, refresh: bool = False) -> dict[str, Any]:
     """Write district.json + profile without running Blender."""
-    if postcode == "2000" or district_id == ID_2000:
-        doc = seed_2000_district_json()
-        district_id = ID_2000
-    elif postcode == "2018" or district_id == ID_2018:
-        doc = seed_2018_district_json(extend_to_bank=True)
-        district_id = ID_2018
-    else:
-        raise ValueError(f"Unsupported postcode {postcode!r} (supported: 2000, 2018)")
+    from cityview.districts import POSTCODE_TO_DISTRICT
+
+    district_id = district_id or POSTCODE_TO_DISTRICT.get(str(postcode))
+    if not district_id:
+        raise ValueError(
+            f"Unsupported postcode {postcode!r} (registry: {', '.join(sorted(POSTCODE_TO_DISTRICT))})"
+        )
+    doc = seed_district_json(district_id)
 
     paths = district_paths(district_id)
     ensure_district_dirs(paths)
@@ -228,19 +251,14 @@ def district_add(*, postcode: str, district_id: str | None = None, refresh: bool
         cache.unlink()
     # Fetch on bbox; clip to ring for the profile.
     osm = fetch_osm(bbox, cache)
-    if district_id == ID_2000:
-        osm = clip_osm_to_ring(osm, ring)
-        # Keep a clipped copy for reproducible builds.
-        cache.write_text(json.dumps(osm))
+    osm = clip_osm_to_ring(osm, ring)
+    # Keep a clipped copy for reproducible builds.
+    cache.write_text(json.dumps(osm))
 
     bank = find_nationale_bank_anchor(osm)
     doc.setdefault("seam", {})["nationale_bank"] = {"lat": bank[0], "lon": bank[1]}
-    if district_id == ID_2018:
-        bbox = extend_bbox_north(tuple(doc["bbox"]), bank[0], pad_deg=0.0012)
-        doc["bbox"] = list(bbox)
-        doc["boundary"] = bbox_to_ring(bbox)
 
-    profile = build_profile(osm, ring=ring if district_id == ID_2000 else None)
+    profile = build_profile(osm, ring=ring)
     doc["profile"] = profile
     doc["stages"] = profile.get("stages") or {}
     write_district(district_id, doc)
@@ -371,15 +389,21 @@ def _publish_package(
 
     roads = export_roads_near_spawn(layout, spawn)
     road_surfaces = surfaces_from_layout(layout)
-    buildings = export_buildings_near_spawn(layout, spawn)
+    buildings = export_walker_buildings(layout, spawn)
     transit = export_transit_near_spawn(layout, spawn)
     velo = export_velo_for_viewer(layout.get("velo_stations") or [])
     # shops need osm — stash on layout during build
     osm = layout.get("_osm") or {"elements": []}
-    shops = export_shops_for_viewer(plan_shops(osm, layout, origin, **district_shop_inputs(paths)), spawn)
+    buildings["passages"] = osm_passages(buildings, osm, origin)
+    if doc.get("style_policy") == "industrial":
+        shops = export_shops_for_viewer([], spawn)
+    else:
+        shops = export_shops_for_viewer(plan_shops(osm, layout, origin, **district_shop_inputs(paths)), spawn)
     props = export_props_for_viewer(layout, spawn)
+    from cityview.viewer_map import export_viewer_map
 
     for name, payload in (
+        ("map.json", export_viewer_map(layout)),
         ("roads.json", roads),
         ("road-surfaces.json", road_surfaces),
         ("buildings.json", buildings),
@@ -405,13 +429,16 @@ def district_build(
 ) -> int:
     """Full district build: data → Blender → viewer package → checks."""
     paths = district_paths(district_id)
+    from cityview.districts import DISTRICT_REGISTRY
+
     if not paths.district_json.exists():
-        if district_id == ID_2018:
-            district_add(postcode="2018", district_id=ID_2018, refresh=refresh)
-        elif district_id == ID_2000:
-            district_add(postcode="2000", district_id=ID_2000, refresh=refresh)
+        if district_id in DISTRICT_REGISTRY:
+            district_add(postcode=DISTRICT_REGISTRY[district_id]["postcode"], district_id=district_id, refresh=refresh)
         else:
             raise FileNotFoundError(f"Run district add first for {district_id}")
+    elif district_id in DISTRICT_REGISTRY:
+        # Keep boundary / spawn / policy in sync with the registry (origin is preserved).
+        seed_district_json(district_id)
 
     doc = load_district(district_id)
     ensure_district_dirs(paths)
@@ -452,12 +479,16 @@ def district_build(
     # Refresh bank seam from live OSM when possible.
     bank = find_nationale_bank_anchor(osm)
     doc.setdefault("seam", {})["nationale_bank"] = {"lat": bank[0], "lon": bank[1]}
-    if district_id == ID_2018:
-        bbox = extend_bbox_north(bbox, bank[0], pad_deg=0.0012)
-        doc["bbox"] = list(bbox)
-        doc["boundary"] = bbox_to_ring(bbox)
 
-    layout = layout_from_osm(osm, origin, style_policy=style_policy)
+    city3d_buildings = None
+    if stages.get("city3d", True) and doc.get("postcode"):
+        from cityview.city3d import load_buildings
+
+        city3d_buildings = load_buildings(doc, refresh=refresh)
+        print(f"city3d: {len(city3d_buildings['buildings'])} LOD2 buildings "
+              f"from {len(city3d_buildings['sectors'])} sectors")
+
+    layout = layout_from_osm(osm, origin, style_policy=style_policy, city3d=city3d_buildings, ring=ring)
     layout["_osm"] = osm
 
     if stages.get("gtfs_delijn", True):
@@ -474,7 +505,9 @@ def district_build(
         print("trees: " + summarize_trees(tree_plan["stats"]))
 
     if stages.get("benches", True):
-        bench_plan = attach_benches(layout, osm, bbox, origin, paths.benches_cache, refresh=refresh)
+        bench_plan = attach_benches(
+            layout, osm, bbox, origin, paths.benches_cache, refresh=refresh, postcode=doc.get("postcode")
+        )
         print("benches: " + summarize_benches(bench_plan))
 
     if stages.get("velo", True):
@@ -483,7 +516,7 @@ def district_build(
 
     # Refresh profile with real velo count.
     velo_n = len(layout.get("velo_stations") or [])
-    profile = build_profile(osm, ring=ring if district_id == ID_2000 else None, velo_stations=velo_n)
+    profile = build_profile(osm, ring=ring, velo_stations=velo_n)
     doc["profile"] = profile
     doc["stages"] = profile.get("stages") or stages
     stages = doc["stages"]
@@ -521,7 +554,7 @@ def district_build(
         from cityview.port_props import plan_port_containers
 
         n_c = len(plan_port_containers(layout, osm, origin))
-        print(f"port_props: {n_c} container stacks")
+        print(f"port_props: {n_c} container stacks, {len(layout.get('port_cranes') or [])} OSM cranes")
     else:
         layout["port_props"] = False
         print("port_props: skipped (no port industry in profile)")
@@ -671,6 +704,45 @@ def district_republish_shops(district_id: str) -> Path:
     return dest
 
 
+def district_republish_map(district_id: str) -> Path:
+    """Rewrite map.json + district-wide buildings.json from cached OSM / CityJSON (no Blender)."""
+    from cityview.viewer_map import export_viewer_map
+
+    paths = district_paths(district_id)
+    doc = load_district(district_id)
+    origin = tuple(doc["origin"])
+    osm = json.loads(paths.osm_cache.read_text())
+    city3d_buildings = None
+    if (doc.get("stages") or {}).get("city3d", True) and doc.get("postcode"):
+        from cityview.city3d import load_buildings
+
+        city3d_buildings = load_buildings(doc)
+    layout = layout_from_osm(
+        osm,
+        origin,
+        style_policy=doc.get("style_policy") or "historic",
+        city3d=city3d_buildings,
+        ring=doc.get("boundary"),
+    )
+    spawn_path = paths.viewer / "spawn.json"
+    spawn = json.loads(spawn_path.read_text()) if spawn_path.exists() else None
+    dest = paths.viewer / "map.json"
+    payload = export_viewer_map(layout)
+    dest.write_text(json.dumps(payload, separators=(",", ":")) + "\n")
+    print(f"Wrote {dest} ({len(payload['roads'])} roads, {len(payload['water'])} water, "
+          f"{len(payload['parks'])} parks)")
+    buildings = export_walker_buildings(layout, spawn)
+    buildings["passages"] = osm_passages(buildings, osm, origin)
+    (paths.viewer / "buildings.json").write_text(json.dumps(buildings) + "\n")
+    print(
+        f"Wrote {paths.viewer / 'buildings.json'} ({len(buildings['buildings'])} footprints, "
+        f"{len(buildings['passages'])} passage corridors)"
+    )
+    # The play ring + border handoff read the postcode boundary from the viewer copy.
+    (paths.viewer / "district.json").write_text(json.dumps(doc, indent=2) + "\n")
+    return dest
+
+
 def _configure_facade_paths(paths: DistrictPaths) -> None:
     """Point facade_kit / facade_textures at this district's elevations + atlas."""
     import cityview.facade_kit as kit
@@ -804,6 +876,17 @@ def district_check(district_id: str, *, run_sims: bool = True) -> list[str]:
             if not (paths.viewer / rel).exists():
                 errors.append(f"missing chunk GLB {rel}")
 
+    if core.exists():
+        from cityview.budgets import package_report, summarize
+
+        try:
+            budget = package_report(paths.viewer)
+        except (ValueError, OSError, json.JSONDecodeError) as exc:
+            errors.append(f"budget report failed: {exc}")
+        else:
+            print(f"Budget: {summarize(budget)}")
+            errors.extend(budget["errors"])
+
     spawn_path = paths.viewer / "spawn.json"
     if not spawn_path.exists():
         spawn_path = VIEWER / "spawn.json"
@@ -818,9 +901,12 @@ def district_check(district_id: str, *, run_sims: bool = True) -> list[str]:
             if sx is not None and sy is not None:
                 for b in bdoc.get("buildings") or []:
                     ring = b.get("ring") or b.get("points") or []
-                    if _point_in_local_ring(sx, sy, ring):
-                        errors.append("spawn sits inside a building footprint")
-                        break
+                    if not _point_in_local_ring(sx, sy, ring):
+                        continue
+                    if any(_point_in_local_ring(sx, sy, h) for h in b.get("holes") or []):
+                        continue
+                    errors.append("spawn sits inside a building footprint")
+                    break
     else:
         errors.append("missing spawn.json")
 
@@ -863,6 +949,21 @@ def district_check(district_id: str, *, run_sims: bool = True) -> list[str]:
 
     errors.extend(assert_facades_unique(district_id))
 
+    osm_doc: dict[str, Any] = {}
+    if paths.osm_cache.exists():
+        try:
+            osm_doc = json.loads(paths.osm_cache.read_text())
+        except json.JSONDecodeError:
+            osm_doc = {}
+    origin = tuple(doc.get("origin") or (0.0, 0.0))
+    errors.extend(
+        check_viewer_walkability(
+            paths.viewer,
+            osm=osm_doc or None,
+            origin=origin if origin != (0.0, 0.0) else None,
+        )
+    )
+
     shops_path = paths.viewer / "shops.json"
     if shops_path.exists():
         try:
@@ -870,7 +971,7 @@ def district_check(district_id: str, *, run_sims: bool = True) -> list[str]:
         except json.JSONDecodeError:
             sdoc = {}
         named_profile = [s for s in (doc.get("profile") or {}).get("shops") or [] if s]
-        if named_profile and not (sdoc.get("shops") or []):
+        if named_profile and not (sdoc.get("shops") or []) and doc.get("style_policy") != "industrial":
             errors.append(
                 "shops.json is empty but profile.shops lists named places — re-publish with OSM POIs"
             )
@@ -895,7 +996,7 @@ def district_check(district_id: str, *, run_sims: bool = True) -> list[str]:
                 )
 
     if run_sims and (glb.exists() or legacy.exists()):
-        env = {"VIEWER_ROOT": str(paths.viewer if glb.exists() else VIEWER)}
+        env = {"VIEWER_ROOT": str(VIEWER), "DATA_ROOT": str(paths.viewer if glb.exists() else VIEWER)}
         for script in (
             "scripts/sim_directions.mjs",
             "scripts/sim_flow.mjs",

@@ -1,46 +1,16 @@
 /**
- * GTA-style city poster: title / pause, character carousel (De buren), maps list.
+ * GTA-style city poster: title / pause, character carousel (De buren), and a tilted
+ * postcode map of Antwerp (Maps) with a mini-map preview per district.
  * Full-screen plate covers the WebGL view; no login, no combat chrome.
  */
 import { PLAYERS, getStoredPlayerId, setStoredPlayerId, playerById } from "./players.js";
 import { buttonName, controlRows } from "./gamepad.js";
 
-const MAPS = [
-  {
-    id: "klein-antwerpen",
-    district: "2018-harmonie",
-    name: "Klein Antwerpen",
-    playable: true,
-    note: "Playable now",
-    blurb: "Harmonie · Mechelsesteenweg · Velo docks",
-    preview: "./menu/map-klein-antwerpen.jpg",
-  },
-  {
-    id: "antwerpen-city",
-    district: "2000-antwerpen",
-    name: "Antwerpen · 2000",
-    playable: true,
-    note: "Playable now",
-    blurb: "Historic core · Meir · Scheldt quays",
-    preview: "./menu/map-2000-antwerpen.jpg",
-  },
-  {
-    id: "borgerhout",
-    name: "Borgerhout",
-    playable: false,
-    note: "Coming later",
-    blurb: "East of the ring — coming in a later build",
-    preview: null,
-  },
-  {
-    id: "harbor",
-    name: "Harbor",
-    playable: false,
-    note: "Coming later",
-    blurb: "Port & quays along the Scheldt — coming in a later build",
-    preview: null,
-  },
-];
+const ATLAS_URL = "./menu/antwerp_postcodes.json";
+const DISTRICT_ID = /^[0-9a-z][0-9a-z-]{0,40}$/;
+const minimapUrl = (district) =>
+  DISTRICT_ID.test(String(district)) ? `./menu/minimap-${district}.json` : null;
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 /**
  * @param {{
@@ -79,22 +49,30 @@ export function createMenu(hooks) {
       <p class="cm-eyebrow">Districts</p>
       <h2>Antwerp</h2>
       <div class="cm-maps-layout">
-        <ul class="cm-maps" role="listbox" aria-label="Districts"></ul>
+        <div class="cm-atlas" role="listbox" aria-label="Antwerp postcodes">
+          <div class="cm-atlas-tilt" id="cm-atlas-tilt">
+            <svg class="cm-atlas-svg" id="cm-atlas-svg" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+          <div class="cm-atlas-labels" id="cm-atlas-labels"></div>
+        </div>
         <aside class="cm-map-preview" aria-live="polite">
           <div class="cm-map-frame">
-            <img class="cm-map-img" id="cm-map-img" alt="" />
             <canvas class="cm-map-roads" id="cm-map-roads" width="640" height="640" aria-hidden="true"></canvas>
             <div class="cm-map-placeholder" id="cm-map-placeholder" hidden>
-              <span class="cm-map-lock">Coming later</span>
+              <span class="cm-map-lock">Locked</span>
+              <span class="cm-map-unlock">Keep playing to unlock</span>
             </div>
             <div class="cm-map-caption">
-              <strong id="cm-map-title">Klein Antwerpen</strong>
-              <span id="cm-map-blurb"></span>
+              <strong id="cm-map-title">Antwerp</strong>
+              <span id="cm-map-blurb">Pick a district on the map</span>
             </div>
+          </div>
+          <div class="cm-map-actions">
+            <button type="button" class="cm-confirm" id="cm-map-play" disabled>Play</button>
+            <button type="button" class="cm-back" data-back>Back</button>
           </div>
         </aside>
       </div>
-      <button type="button" class="cm-back" data-back>Back</button>
     </div>
     <div class="cm-panel cm-cast" id="cm-cast" hidden>
       <p class="cm-eyebrow">— De buren —</p>
@@ -134,177 +112,186 @@ export function createMenu(hooks) {
   document.body.append(root);
 
   const navItems = [...root.querySelectorAll(".cm-nav .cm-item")];
-  const mapsUl = root.querySelector(".cm-maps");
   const stage = root.querySelector("#cm-stage");
   const portrait = root.querySelector("#cm-portrait");
   const playBtn = root.querySelector('[data-action="play"]');
-  const mapImg = root.querySelector("#cm-map-img");
+  const atlasSvg = root.querySelector("#cm-atlas-svg");
+  const atlasLabels = root.querySelector("#cm-atlas-labels");
+  const atlasRoot = root.querySelector(".cm-atlas");
   const mapRoads = root.querySelector("#cm-map-roads");
   const mapPlaceholder = root.querySelector("#cm-map-placeholder");
   const mapTitle = root.querySelector("#cm-map-title");
   const mapBlurb = root.querySelector("#cm-map-blurb");
+  const mapPlay = root.querySelector("#cm-map-play");
 
   const currentDistrict =
     (typeof window !== "undefined" && window.__DISTRICT && window.__DISTRICT.id) || "2018-harmonie";
-  let mapIndex = MAPS.findIndex((m) => m.district === currentDistrict);
-  if (mapIndex < 0) mapIndex = 0;
-  /** @type {string | null} */
-  let roadsPaintedFor = null;
+  /** Selectable postcode areas in keyboard order; filled by loadAtlas(). */
+  let areas = [];
+  let mapIndex = -1;
+  let atlasLoad = null;
+  let waterEl = null;
+  const minimaps = new Map();
 
-  for (const m of MAPS) {
-    const li = document.createElement("li");
-    li.innerHTML = `<button type="button" class="cm-map${m.playable ? "" : " locked"}" data-map="${m.id}" role="option" aria-disabled="${m.playable ? "false" : "true"}">
-      <span class="cm-map-text"><strong>${m.name}</strong><em>${m.blurb}</em></span>
-      <span class="cm-map-note">${m.note}</span>
-    </button>`;
-    mapsUl.append(li);
-  }
-  const mapButtons = [...mapsUl.querySelectorAll(".cm-map")];
-
-  /** The default district always plays (legacy city); others need their local GLB build. */
-  async function lockUnbuiltMaps() {
-    const boot = typeof window !== "undefined" ? window.__DISTRICT : null;
-    if (!boot || typeof window.districtBuilt !== "function") return;
-    await boot.ready;
-    const fallback = (boot.index && boot.index.default) || "2018-harmonie";
-    MAPS.forEach(async (m, i) => {
-      if (!m.playable || !m.district || m.district === fallback) return;
-      if (await window.districtBuilt(m.district)) return;
-      m.playable = false;
-      m.note = "Local build only";
-      const btn = mapButtons[i];
-      btn.classList.add("locked");
-      btn.setAttribute("aria-disabled", "true");
-      btn.querySelector(".cm-map-note").textContent = m.note;
-      if (i === mapIndex) setMapSelected(i);
+  /** Tilted SVG of every postcode; only the registry districts take input. */
+  function loadAtlas() {
+    if (atlasLoad) return atlasLoad;
+    waterEl = null;
+    atlasLoad = (async () => {
+      const res = await fetch(ATLAS_URL);
+      if (!res.ok) throw new Error(`atlas HTTP ${res.status}`);
+      const doc = await res.json();
+      const boot = typeof window !== "undefined" ? window.__DISTRICT : null;
+      if (boot && boot.ready) await boot.ready;
+      const live = new Map(((boot && boot.index && boot.index.districts) || []).map((d) => [d.id, d]));
+      atlasSvg.setAttribute("viewBox", doc.viewBox.join(" "));
+      atlasSvg.replaceChildren();
+      atlasLabels.replaceChildren();
+      const byPc = new Map();
+      for (const a of doc.areas) {
+        const path = document.createElementNS(SVG_NS, "path");
+        path.setAttribute("d", a.path);
+        path.setAttribute("class", a.selectable ? "cm-area" : "cm-area inert");
+        atlasSvg.append(path);
+        if (!a.selectable) continue;
+        const meta = live.get(a.district) || {};
+        const area = {
+          ...a,
+          unlocked: meta.unlocked != null ? !!meta.unlocked : !!a.unlocked,
+          summary: meta.summary || a.summary || "",
+          el: path,
+        };
+        path.dataset.pc = a.postcode;
+        path.setAttribute("role", "option");
+        path.classList.toggle("locked", !area.unlocked);
+        path.classList.toggle("current", a.district === currentDistrict);
+        const anchor = document.createElementNS(SVG_NS, "circle");
+        anchor.setAttribute("cx", a.label[0]);
+        anchor.setAttribute("cy", a.label[1]);
+        anchor.setAttribute("r", "1");
+        anchor.setAttribute("class", "cm-area-anchor");
+        atlasSvg.append(anchor);
+        const label = document.createElement("span");
+        label.className = "cm-area-label" + (area.unlocked ? "" : " locked");
+        label.textContent = a.name;
+        atlasLabels.append(label);
+        area.anchorEl = anchor;
+        area.labelEl = label;
+        byPc.set(a.postcode, area);
+      }
+      if (doc.water) {
+        // The Scheldt and the docks sit over the postcode fills (rings include the river bed).
+        waterEl = document.createElementNS(SVG_NS, "path");
+        waterEl.setAttribute("d", doc.water);
+        waterEl.setAttribute("class", "cm-water");
+        atlasSvg.append(waterEl);
+      }
+      areas = (doc.order || []).map((pc) => byPc.get(pc)).filter(Boolean);
+      const here = areas.findIndex((a) => a.district === currentDistrict);
+      setMapSelected(here >= 0 ? here : 0);
+      requestAnimationFrame(placeLabels);
+    })().catch((err) => {
+      atlasLoad = null;
+      mapBlurb.textContent = "Map unavailable";
+      console.warn("[menu] atlas", err);
     });
+    return atlasLoad;
   }
-  void lockUnbuiltMaps();
 
-  /** Stroke a district's roads.json onto the preview canvas. */
-  async function paintRoadsOverlay(map) {
-    if (!mapRoads || !map?.playable) return;
-    const key = map.district || map.id;
-    if (roadsPaintedFor === key) return;
-    const pkgUrl = map.district ? `./districts/${map.district}/roads.json` : null;
-    const fallbackUrl =
-      (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
-      "./roads.json";
-    try {
-      let res = pkgUrl ? await fetch(pkgUrl) : null;
-      if (!res || !res.ok) res = await fetch(fallbackUrl);
-      if (!res.ok) return;
-      const data = await res.json();
-      const roads = data.roads || [];
-      const W = mapRoads.width;
-      const H = mapRoads.height;
-      const ctx = mapRoads.getContext("2d");
-      ctx.clearRect(0, 0, W, H);
-      // Only paint a dark plate when there is no aerial underlay (locked / missing jpg).
-      // With mix-blend-mode:screen a dark fill would wash out the Digitaal Vlaanderen plate.
-      if (!map.preview) {
-        ctx.fillStyle = "rgba(12, 18, 28, 0.92)";
-        ctx.fillRect(0, 0, W, H);
-      }
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
-      for (const r of roads) {
-        for (const p of r.points || []) {
-          minX = Math.min(minX, p[0]);
-          maxX = Math.max(maxX, p[0]);
-          minY = Math.min(minY, p[1]);
-          maxY = Math.max(maxY, p[1]);
-        }
-      }
-      if (!Number.isFinite(minX)) return;
-      const pad = 0.06;
-      const spanX = (maxX - minX) * (1 + pad * 2) || 1;
-      const spanY = (maxY - minY) * (1 + pad * 2) || 1;
-      const ox = minX - (maxX - minX) * pad;
-      const sx = W / spanX;
-      const sy = H / spanY;
-      const s = Math.min(sx, sy);
-      const offU = (W - spanX * s) / 2;
-      const offV = (H - spanY * s) / 2;
-      const toU = (x, y) => ({ u: offU + (x - ox) * s, v: offV + (maxY + (maxY - minY) * pad - y) * s });
-
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      for (const r of roads) {
-        const pts = r.points || [];
-        if (pts.length < 2) continue;
-        const kind = r.kind || "";
-        ctx.beginPath();
-        for (let i = 0; i < pts.length; i++) {
-          const { u, v } = toU(pts[i][0], pts[i][1]);
-          if (i === 0) ctx.moveTo(u, v);
-          else ctx.lineTo(u, v);
-        }
-        if (kind === "tram" || r.tramShared) {
-          ctx.strokeStyle = "rgba(255, 43, 214, 0.55)";
-          ctx.lineWidth = 1.6;
-        } else if (kind === "primary" || kind === "secondary") {
-          ctx.strokeStyle = "rgba(255,255,255,0.55)";
-          ctx.lineWidth = 2.2;
-        } else {
-          ctx.strokeStyle = "rgba(200,220,235,0.28)";
-          ctx.lineWidth = 1.1;
-        }
-        ctx.stroke();
-      }
-      const spawn = data.spawn;
-      if (spawn) {
-        const { u, v } = toU(spawn.x, spawn.y);
-        ctx.beginPath();
-        ctx.arc(u, v, 7, 0, Math.PI * 2);
-        ctx.fillStyle = "#ff2bd6";
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-      roadsPaintedFor = key;
-    } catch {
-      /* preview still works from aerial alone */
+  /** Flat labels over the tilted map, pinned to each area's projected anchor point. */
+  function placeLabels() {
+    if (!areas.length || atlasRoot.offsetParent === null) return;
+    const box = atlasRoot.getBoundingClientRect();
+    for (const a of areas) {
+      // The port runs off the framed edge: keep its label inside the box.
+      const r = a.anchorEl.getBoundingClientRect();
+      const half = a.labelEl.offsetWidth / 2 + 6;
+      const x = Math.min(box.width - half, Math.max(half, r.left + r.width / 2 - box.left));
+      const y = Math.min(box.height - 14, Math.max(14, r.top + r.height / 2 - box.top));
+      a.labelEl.style.left = `${x}px`;
+      a.labelEl.style.top = `${y}px`;
     }
+  }
+  window.addEventListener("resize", () => requestAnimationFrame(placeLabels));
+
+  async function loadMinimap(district) {
+    if (!minimaps.has(district)) {
+      const url = minimapUrl(district);
+      minimaps.set(
+        district,
+        url
+          ? fetch(url)
+              .then((r) => (r.ok ? r.json() : null))
+              .catch(() => null)
+          : Promise.resolve(null),
+      );
+    }
+    return minimaps.get(district);
+  }
+
+  /** District outline + streets on the preview canvas. */
+  async function paintMinimap(area) {
+    const data = await loadMinimap(area.district);
+    if (areas[mapIndex] !== area) return;
+    const W = mapRoads.width;
+    const H = mapRoads.height;
+    const ctx = mapRoads.getContext("2d");
+    ctx.clearRect(0, 0, W, H);
+    if (!data) return;
+    const k = W / (data.size || 1000);
+    ctx.save();
+    ctx.scale(k, k);
+    ctx.beginPath();
+    data.outline.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.fillStyle = area.unlocked ? "rgba(36, 70, 92, 0.85)" : "rgba(40, 48, 58, 0.7)";
+    ctx.fill();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (const rank of [1, 2, 3]) {
+      ctx.strokeStyle = rank === 3 ? "rgba(255,255,255,0.8)" : rank === 2 ? "rgba(225,235,242,0.55)" : "rgba(190,210,225,0.3)";
+      ctx.lineWidth = (rank === 3 ? 3.2 : rank === 2 ? 2 : 1.1) / k;
+      ctx.beginPath();
+      for (const road of data.roads) {
+        if (road.r !== rank) continue;
+        road.p.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      }
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    data.outline.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.strokeStyle = area.unlocked ? "#ff2bd6" : "#8a96a3";
+    ctx.lineWidth = 3 / k;
+    ctx.stroke();
+    ctx.restore();
   }
 
   function setMapSelected(i) {
-    mapIndex = Math.max(0, Math.min(MAPS.length - 1, i));
-    mapButtons.forEach((btn, j) => btn.classList.toggle("selected", j === mapIndex));
-    const m = MAPS[mapIndex];
-    mapTitle.textContent = m.name;
-    mapBlurb.textContent = m.blurb;
-    if (m.playable) {
-      mapPlaceholder.hidden = true;
-      mapRoads.hidden = false;
-      if (m.preview) {
-        mapImg.hidden = false;
-        mapImg.src = m.preview;
-        mapImg.alt = `Map of ${m.name}`;
-      } else {
-        mapImg.hidden = true;
-        mapImg.removeAttribute("src");
-      }
-      paintRoadsOverlay(m);
-    } else {
-      mapImg.hidden = true;
-      mapImg.removeAttribute("src");
-      mapRoads.hidden = true;
-      mapPlaceholder.hidden = false;
+    if (!areas.length) return;
+    mapIndex = (i + areas.length) % areas.length;
+    const a = areas[mapIndex];
+    for (const other of areas) {
+      other.el.classList.toggle("selected", other === a);
+      other.labelEl.classList.toggle("selected", other === a);
+      other.el.setAttribute("aria-selected", other === a ? "true" : "false");
     }
+    // Draw the selection last so its outline sits above the neighbours' strokes.
+    a.el.parentNode.append(a.el);
+        if (waterEl) waterEl.parentNode.append(waterEl);
+    mapTitle.textContent = `${a.name} · ${a.postcode}`;
+    mapBlurb.textContent = a.unlocked ? a.summary : a.summary || "Not reachable yet";
+    mapPlaceholder.hidden = a.unlocked;
+    mapPlay.disabled = !a.unlocked;
+    mapPlay.textContent = a.district === currentDistrict && hooks.hasStarted() ? "Resume" : "Play";
+    void paintMinimap(a);
   }
 
   function activateMap() {
-    const m = MAPS[mapIndex];
-    if (!m?.playable) return;
-    const target = m.district;
-    const here =
-      (typeof window !== "undefined" && window.__DISTRICT && window.__DISTRICT.id) || "2018-harmonie";
-    if (target && target !== here && typeof window.enterDistrict === "function") {
-      window.enterDistrict(target);
+    const a = areas[mapIndex];
+    if (!a?.unlocked) return;
+    if (a.district && a.district !== currentDistrict && typeof window.enterDistrict === "function") {
+      window.enterDistrict(a.district);
       return;
     }
     hide();
@@ -557,7 +544,10 @@ export function createMenu(hooks) {
     if (plate) plate.hidden = next !== "home";
     if (next === "cast") setCastView();
     if (next === "maps") {
-      setMapSelected(mapIndex);
+      if (areas.length) {
+        setMapSelected(Math.max(0, areas.findIndex((a) => a.district === currentDistrict)));
+        requestAnimationFrame(placeLabels);
+      } else void loadAtlas();
     }
     if (next === "controls") openControls();
   }
@@ -640,21 +630,20 @@ export function createMenu(hooks) {
     }),
   );
 
-  mapsUl.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-map]");
-    if (!btn) return;
-    const i = mapButtons.indexOf(btn);
-    if (i < 0) return;
-    setMapSelected(i);
-    if (MAPS[i].playable) activateMap();
-  });
-
-  mapsUl.addEventListener("mousemove", (e) => {
-    const btn = e.target.closest("[data-map]");
-    if (!btn) return;
-    const i = mapButtons.indexOf(btn);
+  // Click picks an area (preview + Play target); the choice sticks until Play or Back.
+  atlasSvg.addEventListener("click", (e) => {
+    const pc = e.target.closest?.("[data-pc]")?.dataset.pc;
+    const i = areas.findIndex((a) => a.postcode === pc);
     if (i >= 0) setMapSelected(i);
   });
+  atlasSvg.addEventListener("pointerover", (e) => {
+    const pc = e.target.closest?.("[data-pc]")?.dataset.pc;
+    for (const a of areas) a.el.classList.toggle("hover", a.postcode === pc);
+  });
+  atlasSvg.addEventListener("pointerleave", () => {
+    for (const a of areas) a.el.classList.remove("hover");
+  });
+  mapPlay.addEventListener("click", () => activateMap());
 
   stage.addEventListener("click", (e) => {
     const card = e.target.closest(".cm-card");
@@ -686,8 +675,8 @@ export function createMenu(hooks) {
         activateNav();
       }
     } else if (view === "maps") {
-      if (code === "ArrowDown") setMapSelected(mapIndex + 1);
-      else if (code === "ArrowUp") setMapSelected(mapIndex - 1);
+      if (code === "ArrowDown" || code === "ArrowRight") setMapSelected(mapIndex + 1);
+      else if (code === "ArrowUp" || code === "ArrowLeft") setMapSelected(mapIndex - 1);
       else if (code === "Enter") activateMap();
     } else if (view === "cast") {
       if (code === "ArrowLeft") {

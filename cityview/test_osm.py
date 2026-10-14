@@ -1,6 +1,10 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
-from cityview.geo import project
+from cityview.geo import bbox_covers, project
 from cityview.osm import (
     _make_building,
     building_type_for,
@@ -20,6 +24,27 @@ class GeoTests(unittest.TestCase):
         x, y = project(51.221, 4.40, 51.22, 4.40)
         self.assertAlmostEqual(x, 0.0, places=3)
         self.assertGreater(y, 100.0)
+
+
+class CacheCoverageTests(unittest.TestCase):
+    def test_bbox_covers(self):
+        self.assertTrue(bbox_covers([51.0, 4.0, 51.3, 4.5], (51.1, 4.1, 51.2, 4.4)))
+        self.assertFalse(bbox_covers([51.0, 4.0, 51.3, 4.43], (51.1, 4.1, 51.2, 4.44)))
+        self.assertFalse(bbox_covers(None, (51.1, 4.1, 51.2, 4.4)))
+
+    def test_fetch_osm_refetches_a_cache_from_a_smaller_box(self):
+        import cityview.osm as osm_mod
+
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "osm.json"
+            cache.write_text(json.dumps({"elements": [{"type": "node", "id": 1}]}))
+            bbox = (51.19, 4.38, 51.22, 4.45)
+            with mock.patch.object(osm_mod, "_fetch_overpass", return_value={"elements": []}) as fetch:
+                fresh = osm_mod.fetch_osm(bbox, cache)
+                self.assertEqual(fetch.call_count, 1)
+                self.assertEqual(fresh["bbox"], list(bbox))
+                osm_mod.fetch_osm(bbox, cache)
+                self.assertEqual(fetch.call_count, 1)
 
 
 class OsmLayoutTests(unittest.TestCase):
@@ -154,6 +179,7 @@ class OsmLayoutTests(unittest.TestCase):
         self.assertEqual(bldg["building_type"], "supermarket")
         self.assertEqual(bldg.get("brand_key"), "aldi")
         self.assertEqual(bldg.get("name"), "ALDI")
+        self.assertTrue(bldg.get("walker_solid"))
 
     def test_join_pois_helper(self):
         buildings = [
@@ -213,11 +239,44 @@ class MultipolygonTests(unittest.TestCase):
         self.assertEqual(len(rel[0]["holes"]), 1)
         self.assertEqual(layout["multipolygon_stats"]["holes_added"], 1)
 
+    def test_district_ring_survives_building_loops(self):
+        # Postcode ring in [lon, lat]: a 200 m square around the origin.
+        ring = [[4.4 + x / 69900.0, 51.2 + y / 110540.0] for x, y in ((-100, -100), (100, -100), (100, 100), (-100, 100))]
+        layout = layout_from_osm(self._osm(), (51.2000, 4.4000), style_policy="historic", ring=ring)
+        xs = [p[0] for p in layout["boundary_local"]]
+        ys = [p[1] for p in layout["boundary_local"]]
+        self.assertAlmostEqual(min(xs), -100.0, delta=1.0)
+        self.assertAlmostEqual(max(ys), 100.0, delta=1.0)
+
     def test_campus_outline_not_extruded_when_buildings_inside(self):
         layout = layout_from_osm(self._osm(with_campus=True), (51.2000, 4.4000), style_policy="historic")
         ids = {b["id"] for b in layout["buildings"]}
         self.assertNotIn(20, ids)
         self.assertEqual(layout["multipolygon_stats"]["campus_outlines_dropped"], 1)
+
+
+class Lod2OnRoadTests(unittest.TestCase):
+    BOX = [[-5.0, -5.0], [5.0, -5.0], [5.0, 5.0], [-5.0, 5.0]]
+
+    def _bldg(self, host):
+        return {"id": 1, "ring": [list(p) for p in self.BOX], "city3d": {"osm_host": host}}
+
+    def test_unmatched_part_across_a_road_is_dropped(self):
+        from cityview.osm import drop_unmatched_lod2_on_roads
+
+        buildings = [self._bldg(None)]
+        self.assertEqual(drop_unmatched_lod2_on_roads(buildings, [[[-20.0, 0.0], [20.0, 0.0]]]), [1])
+        self.assertEqual(buildings, [])
+
+    def test_matched_part_and_kerb_graze_are_kept(self):
+        from cityview.osm import drop_unmatched_lod2_on_roads
+
+        matched = [self._bldg(42)]
+        self.assertEqual(drop_unmatched_lod2_on_roads(matched, [[[-20.0, 0.0], [20.0, 0.0]]]), [])
+        grazed = [self._bldg(None)]
+        # Clips a 1.5 m corner: below the seal length.
+        self.assertEqual(drop_unmatched_lod2_on_roads(grazed, [[[4.0, 6.0], [6.5, 3.5]]]), [])
+        self.assertEqual(len(grazed), 1)
 
 
 if __name__ == "__main__":

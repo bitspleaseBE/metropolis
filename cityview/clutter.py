@@ -42,7 +42,7 @@ from typing import Any
 from cityview.benches import CARRIAGEWAY, KERB_CLEARANCE, _Ways
 from cityview.geo import project
 from cityview.railclear import CLEAR_FURNITURE
-from cityview.trees import _Obstacles, _PointGrid
+from cityview.trees import _Obstacles, _PointGrid, _point_in_ring
 
 ATTRIBUTION = "Street clutter: (c) OpenStreetMap contributors (ODbL)."
 
@@ -243,12 +243,15 @@ def plan_clutter(
     else:
         x_lo = y_lo = -math.inf
         x_hi = y_hi = math.inf
+    boundary = layout.get("boundary_local") or None
     grids = {k: _PointGrid(cell=4.0) for k in KINDS}
     out: list[dict[str, Any]] = []
     for item in sorted(items, key=lambda i: (i["kind"], i["id"])):
         kind = item["kind"]
         x, y = project(item["lat"], item["lon"], origin[0], origin[1])
-        if not (x_lo <= x <= x_hi and y_lo <= y <= y_hi):
+        if not (x_lo <= x <= x_hi and y_lo <= y <= y_hi) or (
+            boundary and not _point_in_ring(x, y, boundary)
+        ):
             stats["dropped_outside"] += 1
             continue
         if kind in SMALL_KINDS and spawn_xy is not None:

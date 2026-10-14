@@ -1,40 +1,79 @@
 /**
- * When the walker nears a modelled district edge that has a neighbour, offer
- * a choice to cross into that district package.
+ * Walking across a shared postcode border (``edges[].borders``) into a built neighbour hands the
+ * walker over to that district package at the same spot and heading. Neighbour chunks already
+ * stream across the border (neighbour-districts.js), so the city never stops at the edge.
+ *
+ * Without ``insideRing`` / ``unproject`` (legacy callers) it falls back to the old prompt.
  */
 export function createDistrictBorder(opts) {
   const getPos = opts.getPos; // () => {x,z}
   const projectGate = opts.projectGate; // (lat,lon) => {x,z} in Three space
+  const unproject = opts.unproject; // (x,z) => {lat,lon}
+  const insideRing = opts.insideRing; // (x,z) => bool, current postcode ring
+  const insideNeighbour = opts.insideNeighbour || (() => true); // (id,x,z) => bool
+  const getYaw = opts.getYaw || (() => 0);
   const promptEl = opts.promptEl || document.getElementById("prompt");
   const radius = opts.radiusM || 30;
+  /** Metres past our ring before the handoff fires (arrival lands this far inside theirs). */
+  const HANDOFF_M = 4;
+  const ARRIVAL_GRACE_MS = 4000;
+  const seamless = typeof unproject === "function" && typeof insideRing === "function";
+  const bornAt = performance.now();
   let edges = [];
   let active = null;
   let hiddenUntil = 0;
+  let leaving = false;
 
   async function init() {
     if (window.__DISTRICT && window.__DISTRICT.ready) await window.__DISTRICT.ready;
     const d = window.__DISTRICT || {};
+    const districts = (d.index && d.index.districts) || [];
     edges = (d.edges || [])
       .map((e) => {
+        const meta = districts.find((x) => x.id === e.to);
+        // Standalone / locked districts are reached from the menu, never by walking.
+        if (meta && (meta.standalone || meta.unlocked === false || meta.access !== "border")) return null;
         const g = e.gate || {};
         if (g.lat == null || g.lon == null || !projectGate) return null;
         const p = projectGate(g.lat, g.lon);
+        // Shared postcode border runs of [lat, lon] points; fall back to the single gate.
+        let runs = Array.isArray(e.borders) && e.borders.length ? e.borders : null;
+        if (!runs) runs = Array.isArray(e.border) && e.border.length >= 2 ? [e.border] : [[[g.lat, g.lon]]];
+        const lines = runs.map((run) => run.map(([lat, lon]) => projectGate(lat, lon)));
         return {
           to: e.to,
-          label: e.label || e.to,
+          label: (meta && meta.title) || e.label || e.to,
           side: e.side,
           x: p.x,
           z: p.z,
-          summary: "",
+          lines,
+          summary: (meta && (meta.summary || meta.title)) || "",
         };
       })
       .filter(Boolean);
-    const districts = (d.index && d.index.districts) || [];
-    for (const e of edges) {
-      const meta = districts.find((x) => x.id === e.to);
-      if (meta) e.summary = meta.summary || meta.title || "";
-      if (meta && meta.title) e.label = meta.title;
+  }
+
+  function distToEdge(e, x, z) {
+    let best = Infinity;
+    for (const pts of e.lines) best = Math.min(best, distToLine(pts, x, z));
+    return best;
+  }
+
+  function distToLine(pts, x, z) {
+    if (pts.length === 1) return Math.hypot(x - pts[0].x, z - pts[0].z);
+    let best = Infinity;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      const abx = b.x - a.x;
+      const abz = b.z - a.z;
+      const ab2 = abx * abx + abz * abz;
+      let t = ab2 > 1e-9 ? ((x - a.x) * abx + (z - a.z) * abz) / ab2 : 0;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const d = Math.hypot(x - (a.x + abx * t), z - (a.z + abz * t));
+      if (d < best) best = d;
     }
+    return best;
   }
 
   function hide() {
@@ -93,21 +132,52 @@ export function createDistrictBorder(opts) {
     promptEl.appendChild(root);
   }
 
+  function showEntering(edge) {
+    if (!promptEl) return;
+    while (promptEl.firstChild) promptEl.removeChild(promptEl.firstChild);
+    promptEl.style.display = "block";
+    const root = document.createElement("div");
+    root.className = "district-border";
+    const title = document.createElement("strong");
+    title.textContent = "Entering " + edge.label;
+    root.appendChild(title);
+    promptEl.appendChild(root);
+  }
+
+  function handoff(edge, pos) {
+    leaving = true;
+    showEntering(edge);
+    const at = unproject(pos.x, pos.z);
+    if (typeof window.enterDistrict === "function") {
+      window.enterDistrict(edge.to, { lat: at.lat, lon: at.lon, yaw: getYaw() });
+    }
+  }
+
   function update() {
-    if (!edges.length) return;
+    if (!edges.length || leaving) return;
     if (performance.now() < hiddenUntil) return;
     const pos = getPos();
     if (!pos) return;
     let best = null;
     let bestD = radius;
     for (const e of edges) {
-      const dx = pos.x - e.x;
-      const dz = pos.z - e.z;
-      const d = Math.hypot(dx, dz);
+      const d = distToEdge(e, pos.x, pos.z);
       if (d < bestD) {
         bestD = d;
         best = e;
       }
+    }
+    if (seamless) {
+      if (
+        best &&
+        bestD >= HANDOFF_M &&
+        !insideRing(pos.x, pos.z) &&
+        insideNeighbour(best.to, pos.x, pos.z) &&
+        performance.now() - bornAt > ARRIVAL_GRACE_MS
+      ) {
+        handoff(best, pos);
+      }
+      return;
     }
     if (best && (!active || active.to !== best.to)) show(best);
     else if (!best && active) hide();

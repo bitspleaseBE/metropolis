@@ -7,6 +7,7 @@ extruded to one flat terrace. This module replaces that fallback.
 
 Order of evidence (``height_source`` in the layout):
 
+0. ``city3d``       measured LOD2 eaves / ridge and ``StoreysAGr`` from Antwerpen in 3D.
 1. ``osm_height``   OSM ``height`` (metres, parsed leniently).
 2. ``osm_levels``   OSM ``building:levels`` (minus ``building:min_level`` when mapped).
 3. ``photo``        surveyed storey counts from ``assets/heights/photo_levels.json``
@@ -30,6 +31,8 @@ from typing import Any, Iterable
 
 FLOOR_H = 3.15  # metres per level (eaves = levels * FLOOR_H)
 MAX_LEVELS = 20  # hard cap, applies to OSM-tagged values too
+# Measured LOD2 heights are trusted (Boerentoren, KBC tower, Linkeroever slabs exceed 20).
+MAX_LEVELS_MEASURED = 60
 MAX_EAVES_M = MAX_LEVELS * FLOOR_H
 MIN_HOUSE_LEVELS = 2
 
@@ -185,6 +188,15 @@ def infer_levels(osm_id: int, tags: dict[str, str], area: float) -> tuple[int, s
     return _pick(LARGE_FOOTPRINT, u), "large"
 
 
+def city3d_levels(measured: dict[str, Any]) -> int:
+    """Storeys from the city LOD2 record: ``StoreysAGr`` when set, else eaves / FLOOR_H."""
+    storeys = measured.get("storeys")
+    if isinstance(storeys, int) and storeys > 0:
+        return max(1, min(MAX_LEVELS_MEASURED, storeys))
+    eaves = float(measured.get("eaves") or 0.0)
+    return max(1, min(MAX_LEVELS_MEASURED, int(round(eaves / FLOOR_H)) or 1))
+
+
 def eaves_for_levels(levels: int) -> float:
     return round(levels * FLOOR_H, 3)
 
@@ -233,6 +245,11 @@ def resolve_heights(buildings: list[dict[str, Any]], tags_by_index: list[dict[st
     pending: list[int] = []
 
     for i, b in enumerate(buildings):
+        measured = b.get("city3d")
+        if measured:
+            b["height_source"] = "city3d"
+            b["levels"] = city3d_levels(measured)
+            continue
         if b.get("height_source") == "type_default":
             b["levels"] = int(b["floors"])
             continue

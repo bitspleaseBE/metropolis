@@ -670,45 +670,85 @@
         gap: 22px;
         align-items: stretch;
       }
-      #city-menu .cm-maps { list-style: none; margin: 0; padding: 0; }
-      #city-menu .cm-map {
+      #city-menu .cm-atlas {
+        position: relative;
+        perspective: 1400px;
+        perspective-origin: 50% 30%;
+        min-height: 420px;
+        overflow: hidden;
+      }
+      /* Slight sideways + backwards tilt; labels counter-rotate so they stay upright. */
+      #city-menu .cm-atlas-tilt {
+        position: relative;
         width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        margin: 0 0 10px;
-        padding: 14px 16px;
-        border: 2px solid #ffffff22;
-        background: #ffffff0d;
-        color: #fff;
-        font: inherit;
+        aspect-ratio: 1.1;
+        transform: rotateX(22deg) rotateZ(-6deg);
+        transform-style: preserve-3d;
+        transform-origin: 50% 60%;
+      }
+      #city-menu .cm-atlas-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        filter: drop-shadow(0 18px 22px #000a);
+      }
+      #city-menu .cm-area {
+        fill: #2b4a5e;
+        stroke: #0b141c;
+        stroke-width: 34;
+        stroke-linejoin: round;
         cursor: pointer;
-        text-align: left;
-        transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+        transition: fill .15s ease;
       }
-      #city-menu .cm-map-text {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 0;
+      #city-menu .cm-area.inert {
+        fill: #1a2630;
+        stroke: #0b141c;
+        cursor: default;
+        pointer-events: none;
       }
-      #city-menu .cm-map strong { font-size: 1.15rem; }
-      #city-menu .cm-map em {
-        font-style: normal;
-        font-size: 0.78rem;
-        opacity: 0.62;
-        letter-spacing: 0.02em;
+      #city-menu .cm-area.locked { fill: #34404b; }
+      #city-menu .cm-water {
+        fill: #2f6f9c;
+        stroke: #5fa3cf;
+        stroke-width: 10;
+        stroke-linejoin: round;
+        pointer-events: none;
       }
-      #city-menu .cm-map-note { font-size: 0.85rem; opacity: 0.75; flex-shrink: 0; }
-      #city-menu .cm-map.selected {
-        border-color: #ff2bd6;
-        background: #ff2bd618;
-        box-shadow: 0 0 0 1px #ff2bd644, 0 8px 28px #0006;
+      #city-menu .cm-area.hover { fill: #3d6a85; }
+      #city-menu .cm-area.locked.hover { fill: #46535f; }
+      #city-menu .cm-area.selected {
+        fill: #ff2bd655;
+        stroke: #ff2bd6;
+        stroke-width: 60;
       }
-      #city-menu .cm-map.selected .cm-map-note { color: #ff9ae8; opacity: 1; }
-      #city-menu .cm-map.locked { opacity: 0.45; cursor: pointer; }
-      #city-menu .cm-map.locked.selected { opacity: 0.7; }
+      #city-menu .cm-area.locked.selected { fill: #ff2bd622; }
+      #city-menu .cm-atlas-labels {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      #city-menu .cm-area-anchor { fill: none; pointer-events: none; }
+      #city-menu .cm-area-label {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        font: 700 12px/1.1 system-ui, sans-serif;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        color: #e8f0f6;
+        text-shadow: 0 1px 4px #000, 0 0 10px #000a;
+      }
+      #city-menu .cm-area-label.locked { color: #9aa6b2; }
+      #city-menu .cm-area-label.selected { color: #fff; font-size: 14px; }
+      #city-menu .cm-map-actions { display: flex; }
+      #city-menu .cm-confirm:disabled {
+        background: #4a525a;
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
       #city-menu .cm-map-preview {
         min-height: 220px;
       }
@@ -731,7 +771,6 @@
         border-top: 3px solid #ff2bd6;
         box-shadow: inset 0 0 0 1px #ffffff10;
       }
-      #city-menu .cm-map-img,
       #city-menu .cm-map-roads {
         position: absolute;
         inset: 0;
@@ -748,14 +787,17 @@
         position: absolute;
         inset: 0;
         display: grid;
-        place-items: center;
+        place-content: start center;
+        justify-items: center;
+        gap: 10px;
+        padding-top: 22%;
         background:
           repeating-linear-gradient(
             -18deg,
             #ffffff06 0 12px,
             transparent 12px 24px
           ),
-          linear-gradient(145deg, #152433, #0a1018);
+          linear-gradient(145deg, #152433b8, #0a1018c8);
       }
       #city-menu .cm-map-placeholder[hidden] { display: none !important; }
       #city-menu .cm-map-lock {
@@ -766,6 +808,11 @@
         text-transform: uppercase;
         color: #e8eef4;
         background: #0006;
+      }
+      #city-menu .cm-map-unlock {
+        font: 13px/1.3 system-ui, sans-serif;
+        color: #e8eef4;
+        text-shadow: 0 1px 4px #000;
       }
       #city-menu .cm-map-caption {
         position: absolute;
@@ -1127,6 +1174,7 @@
       import { createCombat } from "./combat.js";
       import { createPolice } from "./police.js";
       import { createMinimap } from "./minimap.js";
+      import { createNeighbourDistricts } from "./neighbour-districts.js";
       import { createStreetLocator } from "./street-locate.js";
       import { createOutdoorsGuard } from "./outdoors.js";
       import { paintParkedCars, wireParkedCarLamps, hideParkedCarsOverlapping } from "./cars.js";
@@ -1134,6 +1182,8 @@
       import { createGamepad, interactLabel } from "./gamepad.js";
       import { createDistrictBorder } from "./district-border.js";
       import { createChunkStream } from "./chunk-stream.js";
+      import { createFarField } from "./far-field.js";
+      import { createRemovedBuildings } from "./removed-buildings.js";
       import { LOAD_M, createLandmarkStream } from "./landmark-stream.js";
       import { applyPavementFrontage, raiseStreetBuildings } from "./pavement-frontage.js";
       import { applyStreetSurfaces } from "./street-surfaces.js";
@@ -1382,6 +1432,12 @@
         get motion() { return playerMotion; },
         get thirdPerson() { return thirdPerson; },
         get pixelRatio() { return pixelRatio; },
+        get neighbours() { return neighbours; },
+        get farField() { return farField; },
+        get minimap() { return minimap; },
+        get outdoors() { return outdoors; },
+        get districtBorder() { return districtBorder; },
+        insidePlayRing: (x, z) => insidePlayRing(x, z),
       };
 
       function applyTimeOfDay(t) {
@@ -1568,6 +1624,9 @@
       let parkedCars = null;
       let outdoors = null;
       let chunkStream = null;
+      let farField = null;
+      let removedBuildings = null;
+      let neighbours = null;
       let landmarkStream = null;
       const _groundRay = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 2.5);
       let groundMeshes = null;
@@ -1595,6 +1654,7 @@
         const size = new THREE.Vector3();
         collectGroundFromRoot(root, meshes, size);
         collectGroundFromRoot(chunkStream?.root, meshes, size);
+        for (const n of neighbours?.neighbours || []) collectGroundFromRoot(n.stream.root, meshes, size);
         groundMeshes = meshes;
         console.info(`[metropolis] ground rays: ${meshes.length} walkable meshes`);
       }
@@ -1865,9 +1925,127 @@
         else if (pos.z > maxZ) pos.z = maxZ;
       }
 
+      // Postcode ring (Three XZ, flat [x0, z0, x1, z1, ...]). The walker may step this far past
+      // it, enough to reach a neighbour's border prompt, but not into the unmodelled void.
+      const RING_BUFFER_M = 35;
+      let playRing = null;
+
+      function setPlayRing(boundary, project) {
+        if (!Array.isArray(boundary) || boundary.length < 3) return;
+        const ring = new Float32Array(boundary.length * 2);
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minZ = Infinity;
+        let maxZ = -Infinity;
+        boundary.forEach(([lon, lat], i) => {
+          const p = project(lat, lon);
+          ring[i * 2] = p.x;
+          ring[i * 2 + 1] = p.z;
+          minX = Math.min(minX, p.x);
+          maxX = Math.max(maxX, p.x);
+          minZ = Math.min(minZ, p.z);
+          maxZ = Math.max(maxZ, p.z);
+        });
+        playRing = ring;
+        playBounds = {
+          minX: minX - RING_BUFFER_M,
+          maxX: maxX + RING_BUFFER_M,
+          minZ: minZ - RING_BUFFER_M,
+          maxZ: maxZ + RING_BUFFER_M,
+        };
+      }
+
+      function insidePlayRing(x, z) {
+        const r = playRing;
+        if (!r) return true;
+        const n = r.length / 2;
+        let inside = false;
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+          const xi = r[i * 2], zi = r[i * 2 + 1], xj = r[j * 2], zj = r[j * 2 + 1];
+          if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / ((zj - zi) || 1e-12) + xi) {
+            inside = !inside;
+          }
+        }
+        return inside;
+      }
+
+      function clampToPlayRing(pos) {
+        const r = playRing;
+        if (!r) return;
+        const n = r.length / 2;
+        if (insidePlayRing(pos.x, pos.z)) return;
+        let best = Infinity;
+        let nx = pos.x;
+        let nz = pos.z;
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+          const ax = r[j * 2], az = r[j * 2 + 1];
+          const abx = r[i * 2] - ax, abz = r[i * 2 + 1] - az;
+          const ab2 = abx * abx + abz * abz;
+          let t = ab2 > 1e-9 ? ((pos.x - ax) * abx + (pos.z - az) * abz) / ab2 : 0;
+          t = t < 0 ? 0 : t > 1 ? 1 : t;
+          const cx = ax + abx * t, cz = az + abz * t;
+          const d2 = (pos.x - cx) ** 2 + (pos.z - cz) ** 2;
+          if (d2 < best) {
+            best = d2;
+            nx = cx;
+            nz = cz;
+          }
+        }
+        const d = Math.sqrt(best);
+        if (d <= RING_BUFFER_M) return;
+        const k = RING_BUFFER_M / d;
+        pos.x = nx + (pos.x - nx) * k;
+        pos.z = nz + (pos.z - nz) * k;
+      }
+
+      // Built coverage: the walker may only stand where a chunk (ours or a neighbour's) or the
+      // core exists, so they can never walk out of the modelled city into an empty postcode.
+      let coreCentre = null;
+      let builtCells = null;
+      let lastBuilt = null;
+      function builtAt(x, z) {
+        if (!chunkStream || !chunkStream.items.length) return true;
+        if (!builtCells) {
+          builtCells = new Set();
+          for (const it of chunkStream.items) {
+            builtCells.add(Math.floor(it.x / it.cell_m) + "," + Math.floor(-it.z / it.cell_m));
+          }
+        }
+        const cell = chunkStream.items[0].cell_m;
+        if (builtCells.has(Math.floor(x / cell) + "," + Math.floor(-z / cell))) return true;
+        if (coreCentre && Math.hypot(x - coreCentre.x, z - coreCentre.z) <= coreCentre.r) return true;
+        for (const n of neighbours?.neighbours || []) {
+          const t = n.transform;
+          for (const it of n.stream.items) {
+            const half = it.reach ? it.reach : it.cell_m / 2;
+            const dx = (x - it.x) / (t.sx || 1);
+            const dz = z - it.z;
+            if (it.reach ? Math.hypot(dx, dz) <= half : Math.abs(dx) <= half && Math.abs(dz) <= half) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      function clampToBuilt(pos) {
+        if (builtAt(pos.x, pos.z)) {
+          lastBuilt = { x: pos.x, z: pos.z };
+          return;
+        }
+        if (!lastBuilt) return;
+        if (builtAt(pos.x, lastBuilt.z)) pos.z = lastBuilt.z;
+        else if (builtAt(lastBuilt.x, pos.z)) pos.x = lastBuilt.x;
+        else {
+          pos.x = lastBuilt.x;
+          pos.z = lastBuilt.z;
+        }
+      }
+
       /** District bounds + never inside a building footprint. */
       function clampWalkerXZ(pos) {
         softClampXZ(pos, playBounds);
+        clampToPlayRing(pos);
+        clampToBuilt(pos);
         if (outdoors) outdoors.ensureOutdoors(pos);
       }
 
@@ -1942,6 +2120,8 @@
       );
       const playerAvatar = createPlayerAvatar(THREE, scene);
       let sessionStarted = false;
+      /** Walked in across a postcode border: resume walking instead of opening the poster. */
+      let arrivedByBorder = false;
       let pointerLocked = false;
       const lockListeners = { lock: [], unlock: [] };
       const walkControls = {
@@ -2692,6 +2872,7 @@
       }
 
       function applySpawnJson(spawn) {
+        coreCentre = { x: spawn.x, z: -spawn.y, r: 160 };
         spawnPos.set(spawn.x, spawn.z, -spawn.y);
         clampWalkerXZ(spawnPos);
         walkControls.getObject().position.copy(spawnPos);
@@ -2733,6 +2914,41 @@
         const x = (lon - _districtOrigin.lon) * mLon;
         const y = (lat - _districtOrigin.lat) * mLat;
         return { x, z: -y };
+      }
+
+      function unprojectXZ(x, z) {
+        const mLon = 111320.0 * Math.cos((_districtOrigin.lat * Math.PI) / 180);
+        return { lat: _districtOrigin.lat - z / 110540.0, lon: _districtOrigin.lon + x / mLon };
+      }
+
+      /** district.json (origin, boundary, spawn); loaded once before spawn placement. */
+      let _districtDocPromise = null;
+      function loadDistrictDoc() {
+        if (!_districtDocPromise) {
+          _districtDocPromise = (async () => {
+            const id = (window.__DISTRICT && window.__DISTRICT.id) || "2018-harmonie";
+            const candidates = [
+              typeof window.districtUrl === "function" ? window.districtUrl("district.json") : null,
+              "./districts/" + id + "/district.json",
+            ].filter(Boolean);
+            for (const url of candidates) {
+              try {
+                const res = await fetch(url);
+                if (!res.ok) continue;
+                const doc = await res.json();
+                if (doc && Array.isArray(doc.origin)) {
+                  _districtOrigin.lat = doc.origin[0];
+                  _districtOrigin.lon = doc.origin[1];
+                }
+                return doc;
+              } catch (_) {
+                /* try the next candidate */
+              }
+            }
+            return null;
+          })();
+        }
+        return _districtDocPromise;
       }
 
       // glTF has no Lambert shader, so every Principled material arrives as MeshStandardMaterial
@@ -3037,10 +3253,24 @@
           collectGroundMeshes(cityRoot);
           const spawnNode = cityRoot.getObjectByName("HumanSpawn");
           const spawnJson = await loadSpawnJson();
+          const ddocEarly = await loadDistrictDoc();
+          const arrival = window.districtArrival;
           // spawn.json is the live district start. The baked HumanSpawn empty
           // stays at whatever the last city build used.
           if (spawnJson) applySpawnJson(spawnJson);
           else if (spawnNode) applySpawnFromNode(spawnNode);
+          if (arrival && ddocEarly && ddocEarly.origin) {
+            // Walked in across a border: keep the crossing point and heading.
+            const p = projectGateLatLon(arrival.lat, arrival.lon);
+            spawnPos.set(p.x, spawnPos.y, p.z);
+            clampWalkerXZ(spawnPos);
+            walkControls.getObject().position.copy(spawnPos);
+            thirdPerson.setYaw(arrival.yaw);
+            arrivedByBorder = true;
+            const u = new URL(location.href);
+            u.searchParams.delete("at");
+            history.replaceState(null, "", u.toString());
+          }
           setMode("walk");
           setLoad(0.94, "Starting traffic and trams");
           await nextFrame();
@@ -3049,9 +3279,11 @@
           if (traffic.setOnHitPlayer) traffic.setOnHitPlayer((speed) => hitByVehicle(speed));
           if (transit.setOnHitPlayer) transit.setOnHitPlayer((speed) => hitByVehicle(speed));
           // A handful of Aj, then the other bodies and the rest of the crowd after the city is up.
+          // Docks and sheds: a few dock workers, not a shopping-street crowd.
+          const industrial = window.__DISTRICT?.stylePolicy === "industrial";
           pedestrians = await createPedestrians(scene, THREE, {
-            count: 40,
-            firstCount: 5,
+            count: industrial ? 10 : 40,
+            firstCount: industrial ? 3 : 5,
             spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             playBounds: playBounds || { minX: -500, maxX: 200, minZ: -800, maxZ: 100 },
             groundAt,
@@ -3130,6 +3362,9 @@
             transitUrl:
               (typeof window.districtUrl === "function" && window.districtUrl("transit.json")) ||
               "./transit.json",
+            mapUrl:
+              (typeof window.districtUrl === "function" && window.districtUrl("map.json")) ||
+              "./map.json",
             landmarksUrl:
               (typeof window.districtUrl === "function" && window.districtUrl("landmarks.json")) ||
               "./landmarks.json",
@@ -3149,6 +3384,9 @@
             );
           }
           streetLocator = await createStreetLocator({
+            mapUrl:
+              (typeof window.districtUrl === "function" && window.districtUrl("map.json")) ||
+              "./map.json",
             roadsUrl:
               (typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
               "./roads.json",
@@ -3198,25 +3436,8 @@
                 : "Sunny day — click to walk";
           setupDistrictBounds(cityRoot);
           // District origin for border-gate projection (copied into viewer package).
-          try {
-            const id = districtMeta.id || "2018-harmonie";
-            const candidates = [
-              typeof window.districtUrl === "function" ? window.districtUrl("district.json") : null,
-              "./districts/" + id + "/district.json",
-            ].filter(Boolean);
-            for (const url of candidates) {
-              const ores = await fetch(url);
-              if (!ores.ok) continue;
-              const ddoc = await ores.json();
-              if (ddoc.origin) {
-                _districtOrigin.lat = ddoc.origin[0];
-                _districtOrigin.lon = ddoc.origin[1];
-              }
-              break;
-            }
-          } catch (_) {
-            /* keep defaults */
-          }
+          const ddoc = await loadDistrictDoc();
+          if (ddoc && ddoc.origin) setPlayRing(ddoc.boundary, projectGateLatLon);
 
           // Spatial chunks + landmark sidecars (background after core is on screen).
           try {
@@ -3236,6 +3457,7 @@
                   refreshGroundMeshes();
                 }, 120);
               };
+              removedBuildings = createRemovedBuildings(scene);
               chunkStream = createChunkStream({
                 THREE,
                 scene,
@@ -3243,6 +3465,7 @@
                 catalog,
                 onChunkLoaded: (chunkRoot) => {
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                  removedBuildings.apply(chunkRoot);
                   scheduleGroundRefresh();
                 },
                 onChunkUnloaded: () => scheduleGroundRefresh(),
@@ -3250,6 +3473,23 @@
               if (playBounds && chunkStream.expandBounds) {
                 playBounds = chunkStream.expandBounds(playBounds);
               }
+              farField = createFarField({ THREE, scene });
+              const ownStream = chunkStream;
+              void fetchJsonCached("./buildings.json")
+                .then((r) => (r.ok ? r.json() : null))
+                .then((doc) => {
+                  if (!doc) return;
+                  removedBuildings.add(doc);
+                  const n = farField.addSource({
+                    name: "own",
+                    doc,
+                    stream: ownStream,
+                    cellM: catalog.cell_m,
+                    coreR: catalog.core_r,
+                    coreAlwaysResident: true,
+                  });
+                  console.info(`[metropolis] far field: ${n} cells`);
+                });
               // Core is already on screen — stream nearby cells in the background.
               void chunkStream.prime(spawnPos.x, spawnPos.z).then(() => {
                 console.info(
@@ -3263,6 +3503,54 @@
           } catch (err) {
             console.warn("[metropolis] chunks.json unavailable", err);
           }
+          if (minimap && minimap.setBounds && playBounds) minimap.setBounds(playBounds);
+          // Built neighbours stream across the shared border so the city never ends at the seam.
+          try {
+            neighbours = await createNeighbourDistricts({
+              THREE,
+              scene,
+              loader,
+              origin: _districtOrigin,
+              project: projectGateLatLon,
+              onChunkLoaded: (chunkRoot) => {
+                if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                removedBuildings?.apply(chunkRoot);
+              },
+              onFootprints: (id, doc, t) => {
+                const n = outdoors?.addBuildings ? outdoors.addBuildings(doc, t) : 0;
+                console.info(`[metropolis] neighbour ${id}: ${n} footprints`);
+              },
+              onMapSource: (base, t) => {
+                minimap?.addSource?.(base, t);
+                streetLocator?.addSource?.(base, t);
+              },
+            });
+            for (const n of neighbours.neighbours) {
+              if (!farField) break;
+              void Promise.all([
+                fetchJsonCached(n.base + "buildings.json").then((r) => (r.ok ? r.json() : null)),
+                fetchJsonCached(n.base + "chunks.json").then((r) => (r.ok ? r.json() : null)),
+              ]).then(([doc, cat]) => {
+                if (!doc) return;
+                removedBuildings?.add(doc);
+                farField.addSource({
+                  name: n.id,
+                  doc,
+                  stream: n.stream,
+                  cellM: cat?.cell_m,
+                  coreR: cat?.core_r,
+                  transform: n.transform,
+                });
+              });
+            }
+            if (neighbours.neighbours.length) {
+              console.info(
+                `[metropolis] neighbours: ${neighbours.neighbours.map((n) => n.id).join(", ")}`,
+              );
+            }
+          } catch (err) {
+            console.warn("[metropolis] neighbour districts unavailable", err);
+          }
           districtBorder = createDistrictBorder({
             THREE,
             getPos: () => {
@@ -3270,8 +3558,12 @@
               return { x: p.x, z: p.z };
             },
             projectGate: projectGateLatLon,
+            unproject: unprojectXZ,
+            insideRing: insidePlayRing,
+            insideNeighbour: (id, x, z) => !!neighbours?.insideNeighbour(id, x, z),
+            getYaw: () => thirdPerson.yaw(),
             promptEl,
-            radiusM: 30,
+            radiusM: RING_BUFFER_M + 5,
           });
           await districtBorder.init();
           applyTimeOfDay(tod);
@@ -3313,7 +3605,14 @@
           thirdPerson.snap(walkControls.getObject().position);
           gamepad.poll();
           publishStatus();
-          menu.show();
+          if (arrivedByBorder && !TOUCH) {
+            sessionStarted = true;
+            helpShown = true;
+            const cue = document.getElementById("click-cue");
+            if (cue) cue.textContent = `Click to keep walking · ${districtMeta.title || "Antwerp"}`;
+          } else {
+            menu.show();
+          }
           setTimeout(() => document.getElementById("hud")?.classList.add("gone"), 9000);
           requestAnimationFrame(() => {
             pedestrians?.streamVariety?.();
@@ -3689,7 +3988,9 @@
           {
             const streamH = mode === "free" ? freeCam.height : 0;
             chunkStream?.update(walker.position.x, walker.position.z, mode, streamH);
+          neighbours?.update(walker.position.x, walker.position.z, mode, streamH);
             landmarkStream?.update(walker.position.x, walker.position.z, mode, streamH);
+            farField?.update(walker.position.x, walker.position.z);
           }
           if (pedestrians) {
             pedestrians.setClock?.(gameHour, gameDay);

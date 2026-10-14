@@ -72,10 +72,19 @@ CANONICAL_2000: list[dict[str, Any]] = [
     {
         "osm_id": 496929324,
         "osm_type": "way",
-        "name": "Huis Spaengien (Grote Markt guild terrace)",
-        "expected_custom": "grote_markt_terrace",
+        "name": "Huis Spaengien (Grote Markt 7)",
+        "expected_custom": "guild_house",
         "role": "guild_terrace",
-        "notes": "Representative guild-house terrace facing Grote Markt.",
+        "notes": "Tallest guild house on the north row; every Grote Markt frontage has its own spec in grote_markt_houses.json.",
+        "refs": {},
+    },
+    {
+        "osm_id": 497130589,
+        "osm_type": "way",
+        "name": "Hansahuis (Suikerrui 11)",
+        "expected_custom": "hansahuis",
+        "role": "dome",
+        "notes": "Domed corner building on Suikerrui seen from the Grote Markt (photo 03).",
         "refs": {},
     },
     {

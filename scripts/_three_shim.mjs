@@ -7,6 +7,8 @@ import { dirname, join, resolve, sep } from "node:path";
 export const viewerRoot = process.env.VIEWER_ROOT
   ? resolve(process.env.VIEWER_ROOT)
   : join(dirname(fileURLToPath(import.meta.url)), "..", "viewer");
+// DATA_ROOT points the JSON fetches at a district package (viewer/districts/<id>/).
+export const dataRoot = process.env.DATA_ROOT ? resolve(process.env.DATA_ROOT) : viewerRoot;
 
 export class Vector3 {
   constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
@@ -84,10 +86,10 @@ globalThis.document = {
   baseURI: "http://local/",
 };
 
-// Test-only fetch: serves files from viewer/ and refuses anything that escapes it.
+// Test-only fetch: serves files from the data root and refuses anything that escapes it.
 globalThis.fetch = async (url) => {
-  const file = resolve(viewerRoot, String(url));
-  if (!file.startsWith(resolve(viewerRoot) + sep)) throw new Error(`fetch outside viewer/: ${url}`);
+  const file = resolve(dataRoot, String(url));
+  if (!file.startsWith(dataRoot + sep)) throw new Error(`fetch outside ${dataRoot}: ${url}`);
   return { ok: true, json: async () => JSON.parse(readFileSync(file, "utf8")) };
 };
 

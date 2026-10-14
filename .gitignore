@@ -38,5 +38,7 @@ viewer/districts/**/*.premeshopt.glb
 *.blend1
 *.blend2
 .python-version
+# Antwerpen-in-3D CityJSON sectors (re-downloaded by cityview.city3d).
+assets/antwerp3d/json/
 # Rocketbox pack is huge — fetched locally, never committed.
 assets/rocketbox/

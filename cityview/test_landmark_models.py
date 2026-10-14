@@ -102,6 +102,56 @@ class BuilderTests(unittest.TestCase):
         lo, hi = m.bounds()
         self.assertLess(math.hypot((lo[0] + hi[0]) / 2 - node["x"], (lo[1] + hi[1]) / 2 - node["y"]), 4.0)
 
+    def test_every_grote_markt_spec_builds(self):
+        spec = json.loads(
+            (Path(__file__).resolve().parents[1] / "districts/2000-antwerpen/landmarks/grote_markt_houses.json").read_text()
+        )
+        ring = [(0.0, 0.0), (8.0, 0.0), (8.0, 12.0), (0.0, 12.0)]
+        for house in spec["houses"]:
+            with self.subTest(id=house["id"]):
+                custom = house.get("custom") or "guild_house"
+                m = LM.build_landmark(
+                    {
+                        "ring": ring,
+                        "holes": [],
+                        "landmark": {
+                            "custom": custom,
+                            "params": house.get("params") or {},
+                            "anchor_xy": (4.0, 0.0),
+                        },
+                    }
+                )
+                self.assertIsNotNone(m)
+                self.assertGreater(m.tri_count(), 80)
+                self.assertTrue(m.materials_used() <= K.MATERIALS)
+
+    def test_grote_markt_houses(self):
+        houses = [b for b in FIXTURE["buildings"] if b["landmark"]["custom"] in ("guild_house", "hansahuis")]
+        self.assertGreaterEqual(len(houses), 6)
+        for b in houses:
+            with self.subTest(id=b["id"]):
+                m = LM.build_landmark(b)
+                self.assertLessEqual(m.tri_count(), LM.TRI_BUDGET[b["landmark"]["custom"]])
+                self.assertGreater(m.tri_count(), 300)
+                self.assertTrue(m.materials_used() <= K.MATERIALS)
+        spaengien = next(b for b in houses if b["id"] == 496929324)
+        top = LM.build_landmark(spaengien).bounds()[1][2]
+        self.assertTrue(25.0 < top < 33.0)  # tallest gable on the north row, St George on top
+        dome = next(b for b in houses if b["id"] == 497130589)
+        m = LM.build_landmark(dome)
+        self.assertIn("zinc", m.materials_used())
+        self.assertGreater(m.bounds()[1][2], 25.0)
+
+    def test_brabo_node(self):
+        node = next(n for n in FIXTURE["nodes"] if n["custom"] == "brabo_fountain")
+        m = LM.build_node_landmark(node)
+        self.assertLessEqual(m.tri_count(), LM.TRI_BUDGET["brabo_fountain"])
+        self.assertTrue({"bronze", "rock", "water"} <= m.materials_used())
+        self.assertNotIn("gold", m.materials_used())
+        lo, hi = m.bounds()
+        self.assertTrue(8.0 < hi[2] < 13.0)
+        self.assertLess(math.hypot((lo[0] + hi[0]) / 2 - node["x"], (lo[1] + hi[1]) / 2 - node["y"]), 2.0)
+
     def test_unknown_kinds_return_none(self):
         self.assertIsNone(LM.build_landmark({"ring": [], "landmark": {"custom": "nope"}}))
         self.assertIsNone(LM.build_node_landmark({"custom": "nope"}))

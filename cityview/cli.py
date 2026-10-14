@@ -510,6 +510,19 @@ def district_command(args: argparse.Namespace) -> int:
 
         district_republish_shops(args.id)
         return 0
+    if action == "map":
+        from cityview.district_pipeline import district_republish_map
+
+        district_republish_map(args.id)
+        return 0
+    if action == "postcodes":
+        from cityview.menu_map import write_menu_map
+        from cityview.postcodes import refresh_postcodes
+
+        refresh_postcodes(use_osm=not args.no_osm)
+        write_districts_index()
+        write_menu_map()
+        return 0
     if action == "migrate":
         seed_2018_district_json(extend_to_bank=True)
         write_districts_index()
@@ -576,7 +589,8 @@ def build_parser() -> argparse.ArgumentParser:
     d_build = dsub.add_parser("build", help="Full district build into viewer/districts/<id>/")
     d_build.add_argument("id", nargs="?", default=None, help="District id (e.g. 2018-harmonie)")
     d_build.add_argument("--place", default=None, help="Legacy place alias")
-    d_build.add_argument("--out", default=str(OUTPUT))
+    # Default: output/<id>/ so parallel district builds never share a chunks/ folder.
+    d_build.add_argument("--out", default=None)
     d_build.add_argument("--refresh", action="store_true")
     d_build.add_argument("--no-render", action="store_true", default=True)
     d_build.add_argument("--skip-blender", action="store_true", help="Export JSON package only")
@@ -622,8 +636,22 @@ def build_parser() -> argparse.ArgumentParser:
     d_shops.add_argument("id", help="District id")
     d_shops.set_defaults(func=district_command)
 
+    d_map = dsub.add_parser(
+        "map",
+        help="Rewrite district-wide map.json + buildings.json (radar, street names, collision), no Blender",
+    )
+    d_map.add_argument("id", help="District id")
+    d_map.set_defaults(func=district_command)
+
     d_mig = dsub.add_parser("migrate", help="Seed 2018 package from current viewer/ assets")
     d_mig.set_defaults(func=district_command)
+
+    d_pc = dsub.add_parser(
+        "postcodes",
+        help="Refresh Antwerp postcode rings (OSM) and the Maps-menu payload",
+    )
+    d_pc.add_argument("--no-osm", action="store_true", help="Dissolve 3D sectors instead of OSM")
+    d_pc.set_defaults(func=district_command)
 
     return parser
 

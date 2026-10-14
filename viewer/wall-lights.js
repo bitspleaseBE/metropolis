@@ -78,7 +78,26 @@ export function wallLightAnchors({
   limit = 80,
 } = {}) {
   const lampPts = lamps.map((l) => ({ x: l.x, z: l.z }));
-  const segs = buildingSegments(buildings);
+  // buildings.json covers the whole district; only façades near the exported roads matter.
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const road of roads) {
+    for (const p of road.points || []) {
+      minX = Math.min(minX, p[0]);
+      maxX = Math.max(maxX, p[0]);
+      minZ = Math.min(minZ, -p[1]);
+      maxZ = Math.max(maxZ, -p[1]);
+    }
+  }
+  const segs = buildingSegments(buildings).filter(
+    (s) =>
+      Math.max(s.ax, s.bx) >= minX - reach &&
+      Math.min(s.ax, s.bx) <= maxX + reach &&
+      Math.max(s.az, s.bz) >= minZ - reach &&
+      Math.min(s.az, s.bz) <= maxZ + reach,
+  );
   const anchors = [];
   if (!segs.length) return anchors;
   for (const road of roads) {

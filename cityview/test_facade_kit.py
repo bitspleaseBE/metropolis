@@ -269,5 +269,35 @@ class TallBuildingTests(unittest.TestCase):
         self.assertLess(len(tower), len(houses))
 
 
+class DistrictDoorTests(unittest.TestCase):
+    def tearDown(self):
+        kit.ACTIVE_ATLAS_DIR = None
+
+    def test_district_atlas_uses_its_own_door_table(self):
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / kit.DOORS_FILE).write_text(json.dumps({"facade_03": [0.17, 0.15]}))
+            kit.ACTIVE_ATLAS_DIR = Path(tmp)
+            self.assertEqual(kit.door_table(), {"facade_03": (0.17, 0.15)})
+        kit.ACTIVE_ATLAS_DIR = None
+        self.assertEqual(kit.door_table()["facade_03"], kit.DOORS["facade_03"])
+
+    def test_painted_door_is_detected(self):
+        try:
+            from PIL import Image, ImageDraw
+        except ImportError:  # pragma: no cover
+            self.skipTest("Pillow not installed")
+        from cityview.district_facades import detect_door
+
+        img = Image.new("RGB", (288, 480), (150, 80, 60))
+        ImageDraw.Draw(img).rectangle([100, 394, 140, 476], fill=(55, 35, 28))
+        centre, width = detect_door(img)
+        self.assertAlmostEqual(centre, 120 / 288, delta=0.01)
+        self.assertAlmostEqual(width, 41 / 288, delta=0.01)
+        self.assertIsNone(detect_door(Image.new("RGB", (288, 480), (150, 80, 60))))
+
+
 if __name__ == "__main__":
     unittest.main()

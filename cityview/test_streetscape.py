@@ -68,6 +68,19 @@ class StreetEdgeTests(unittest.TestCase):
         # Bottom edge (y=0) should be included.
         self.assertTrue(any(e["i0"] == 0 for e in edges))
 
+    def test_open_space_edges_face_park_past_front_garden(self):
+        from cityview.streetscape import _RingGrid, open_space_edges
+
+        ring = [[0.0, 0.0], [10.0, 0.0], [10.0, 8.0], [0.0, 8.0]]
+        # Park starts 6 m north of the building (a front garden in between).
+        park = _RingGrid([[[-50.0, 14.0], [60.0, 14.0], [60.0, 90.0], [-50.0, 90.0]]])
+        edges = open_space_edges(ring, park, skip=set())
+        self.assertEqual([e["i0"] for e in edges], [2])
+        self.assertEqual(open_space_edges(ring, park, skip={2}), [])
+        # A neighbour against the wall: not an open front.
+        neighbour = _RingGrid([[[0.0, 8.0], [10.0, 8.0], [10.0, 13.0], [0.0, 13.0]]])
+        self.assertEqual(open_space_edges(ring, park, skip=set(), blockers=neighbour), [])
+
     def test_spawn_snaps_to_road(self):
         roads = [{"points": [[0.0, 0.0], [20.0, 0.0]], "width": 6.0}]
         sx, sy, yaw = nearest_road_pose(10.0, 4.0, roads)
@@ -149,6 +162,28 @@ class BuildingExportTests(unittest.TestCase):
         self.assertEqual(payload["buildings"][0]["id"], 1)
         self.assertTrue(point_in_ring(5.0, 4.0, payload["buildings"][0]["ring"]))
         self.assertFalse(point_in_ring(20.0, 20.0, payload["buildings"][0]["ring"]))
+
+    def test_export_skips_open_masses_and_keeps_courtyard_holes(self):
+        courtyard = [[1.0, 1.0], [9.0, 1.0], [9.0, 7.0], [1.0, 7.0]]
+        layout = {
+            "buildings": [
+                {
+                    "id": 10,
+                    "ring": [[0.0, 0.0], [10.0, 0.0], [10.0, 8.0], [0.0, 8.0]],
+                    "holes": [courtyard],
+                },
+                {
+                    "id": 11,
+                    "ring": [[0.0, 0.0], [4.0, 0.0], [4.0, 4.0], [0.0, 4.0]],
+                    "walker_solid": False,
+                },
+            ]
+        }
+        payload = export_buildings_near_spawn(
+            layout, {"x": 5.0, "y": 4.0}, radius=100.0, max_buildings=10
+        )
+        self.assertEqual([b["id"] for b in payload["buildings"]], [10])
+        self.assertEqual(payload["buildings"][0]["holes"], [courtyard])
 
 
 class MaxspeedTests(unittest.TestCase):

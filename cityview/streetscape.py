@@ -255,14 +255,36 @@ def _road_segments(roads: list[dict[str, Any]]) -> list[tuple[float, float, floa
     return segs
 
 
+class _SegmentGrid:
+    """Uniform grid over road segments (bbox grown by reach) for point-in-reach queries."""
+
+    CELL = 32.0
+
+    def __init__(self, segments: list[tuple[float, float, float, float, float]]) -> None:
+        self.cells: dict[tuple[int, int], list[tuple[float, float, float, float, float]]] = {}
+        c = self.CELL
+        for seg in segments:
+            ax, ay, bx, by, reach = seg
+            for ix in range(math.floor((min(ax, bx) - reach) / c), math.floor((max(ax, bx) + reach) / c) + 1):
+                for iy in range(math.floor((min(ay, by) - reach) / c), math.floor((max(ay, by) + reach) / c) + 1):
+                    self.cells.setdefault((ix, iy), []).append(seg)
+
+    def __bool__(self) -> bool:
+        return bool(self.cells)
+
+    def near(self, x: float, y: float) -> list[tuple[float, float, float, float, float]]:
+        return self.cells.get((math.floor(x / self.CELL), math.floor(y / self.CELL)), [])
+
+
 def street_facing_edges(
     ring: list[list[float]],
-    segments: list[tuple[float, float, float, float, float]],
+    segments: list[tuple[float, float, float, float, float]] | _SegmentGrid,
     min_length: float = 2.8,
 ) -> list[dict[str, Any]]:
     """Return ring edge indices that face a nearby road (outward toward asphalt)."""
     if len(ring) < 3 or not segments:
         return []
+    grid = segments if isinstance(segments, _SegmentGrid) else None
     cx, cy = _centroid(ring)
     edges: list[dict[str, Any]] = []
     n = len(ring)
@@ -279,7 +301,7 @@ def street_facing_edges(
         if (mx - cx) * nx + (my - cy) * ny < 0:
             nx, ny = -nx, -ny
         probe_x, probe_y = mx + nx * 3.0, my + ny * 3.0
-        for ax, ay, bx, by, reach in segments:
+        for ax, ay, bx, by, reach in grid.near(probe_x, probe_y) if grid else segments:
             if _point_segment_dist(probe_x, probe_y, ax, ay, bx, by) <= reach:
                 edges.append(
                     {
@@ -293,13 +315,89 @@ def street_facing_edges(
     return edges
 
 
+class _RingGrid:
+    """Uniform grid over polygon bounding boxes for point-in-polygon queries."""
+
+    CELL = 64.0
+
+    def __init__(self, rings: list[list[list[float]]]) -> None:
+        self.cells: dict[tuple[int, int], list[list[list[float]]]] = {}
+        c = self.CELL
+        for ring in rings:
+            if len(ring) < 3:
+                continue
+            xs = [p[0] for p in ring]
+            ys = [p[1] for p in ring]
+            for ix in range(math.floor(min(xs) / c), math.floor(max(xs) / c) + 1):
+                for iy in range(math.floor(min(ys) / c), math.floor(max(ys) / c) + 1):
+                    self.cells.setdefault((ix, iy), []).append(ring)
+
+    def __bool__(self) -> bool:
+        return bool(self.cells)
+
+    def contains(self, x: float, y: float) -> bool:
+        cell = self.cells.get((math.floor(x / self.CELL), math.floor(y / self.CELL)), [])
+        return any(point_in_ring(x, y, ring) for ring in cell)
+
+
+# Probes (metres out from the wall): one must land in a park / water polygon (front
+# gardens sit between many walls and the park edge).
+OPEN_SPACE_PROBES_M = (3.0, 8.0, 15.0)
+# The first probe inside another footprint means the wall is against a neighbour.
+OPEN_SPACE_CLEAR_M = 3.0
+
+
+def open_space_edges(
+    ring: list[list[float]],
+    open_space: _RingGrid,
+    skip: set[int],
+    blockers: _RingGrid | None = None,
+    min_length: float = 4.0,
+) -> list[dict[str, Any]]:
+    """Ring edges (not already street edges) that look out over a park or water."""
+    if len(ring) < 3 or not open_space:
+        return []
+    cx, cy = _centroid(ring)
+    n = len(ring)
+    edges: list[dict[str, Any]] = []
+    for i in range(n):
+        if i in skip:
+            continue
+        x1, y1 = ring[i]
+        x2, y2 = ring[(i + 1) % n]
+        length = _dist(x1, y1, x2, y2)
+        if length < min_length:
+            continue
+        mx, my = (x1 + x2) * 0.5, (y1 + y2) * 0.5
+        nx, ny = -(y2 - y1) / length, (x2 - x1) / length
+        if (mx - cx) * nx + (my - cy) * ny < 0:
+            nx, ny = -nx, -ny
+        if blockers and blockers.contains(mx + nx * OPEN_SPACE_CLEAR_M, my + ny * OPEN_SPACE_CLEAR_M):
+            continue
+        if any(open_space.contains(mx + nx * d, my + ny * d) for d in OPEN_SPACE_PROBES_M):
+            edges.append(
+                {"i0": i, "i1": (i + 1) % n, "length": round(length, 3), "outward": [round(nx, 5), round(ny, 5)]}
+            )
+    return edges
+
+
 def annotate_layout(layout: dict[str, Any]) -> dict[str, Any]:
-    """Cut building passages, then attach street_edges from road proximity."""
+    """Cut building passages, then attach street_edges from road proximity and
+    open_edges (walls over a park or water, which also get an elevation)."""
     apply_building_passages(layout)
-    segments = _road_segments(layout.get("roads") or [])
-    for bldg in layout.get("buildings") or []:
+    segments = _SegmentGrid(_road_segments(layout.get("roads") or []))
+    open_space = _RingGrid(
+        [p.get("ring") or [] for p in layout.get("parks") or []]
+        + [w.get("ring") or [] for w in layout.get("water") or []]
+    )
+    buildings = layout.get("buildings") or []
+    blockers = _RingGrid([b.get("ring") or [] for b in buildings]) if open_space else None
+    for bldg in buildings:
         ring = bldg.get("ring") or []
         bldg["street_edges"] = street_facing_edges(ring, segments)
+        bldg["open_edges"] = open_space_edges(
+            ring, open_space, {int(e["i0"]) for e in bldg["street_edges"]}, blockers
+        )
     return layout
 
 
@@ -1426,12 +1524,15 @@ def export_buildings_near_spawn(
     """Building footprint rings near spawn for runtime outdoors collision.
 
     Viewer keeps the walker outside these rings (solid extruded boxes have no
-    interiors). Rings use the same Blender XY as roads.json.
+    interiors). Courtyard holes are walkable. Underground masses, canopies and
+    open pavilions are omitted. Rings use the same Blender XY as roads.json.
     """
     sx = float(spawn["x"]) if spawn else 0.0
     sy = float(spawn["y"]) if spawn else 0.0
     scored: list[tuple[float, dict[str, Any]]] = []
     for bldg in layout.get("buildings") or []:
+        if bldg.get("walker_solid") is False:
+            continue
         ring = bldg.get("ring") or []
         if len(ring) < 3:
             continue
@@ -1439,20 +1540,103 @@ def export_buildings_near_spawn(
         dmin = min(_dist(sx, sy, p[0], p[1]) for p in pts)
         if dmin > radius:
             continue
-        scored.append(
-            (
-                dmin,
-                {
-                    "id": bldg.get("id"),
-                    "ring": pts,
-                },
-            )
-        )
+        entry: dict[str, Any] = {"id": bldg.get("id"), "ring": pts}
+        holes = []
+        for hole in bldg.get("holes") or []:
+            if len(hole) < 3:
+                continue
+            holes.append([[float(p[0]), float(p[1])] for p in hole])
+        if holes:
+            entry["holes"] = holes
+        scored.append((dmin, entry))
     scored.sort(key=lambda item: item[0])
     return {
         "spawn": {"x": sx, "y": sy},
         "radius": radius,
         "buildings": [item[1] for item in scored[:max_buildings]],
+    }
+
+
+def _simplify_ring(pts: list[list[float]], tol: float) -> list[list[float]]:
+    """Douglas-Peucker on a closed ring (keeps the two farthest-apart anchors)."""
+    if len(pts) <= 4:
+        return pts
+
+    def dp(seg: list[list[float]]) -> list[list[float]]:
+        ax, ay = seg[0]
+        bx, by = seg[-1]
+        dx, dy = bx - ax, by - ay
+        ll = math.hypot(dx, dy) or 1e-9
+        best, idx = -1.0, 0
+        for i in range(1, len(seg) - 1):
+            d = abs(dy * (seg[i][0] - ax) - dx * (seg[i][1] - ay)) / ll
+            if d > best:
+                best, idx = d, i
+        if best <= tol:
+            return [seg[0], seg[-1]]
+        return dp(seg[: idx + 1])[:-1] + dp(seg[idx:])
+
+    far = max(range(len(pts)), key=lambda i: _dist(pts[0][0], pts[0][1], pts[i][0], pts[i][1]))
+    if far == 0:
+        return pts
+    out = dp(pts[: far + 1])[:-1] + dp(pts[far:] + [pts[0]])[:-1]
+    return out if len(out) >= 3 else pts
+
+
+def export_walker_buildings(
+    layout: dict[str, Any],
+    spawn: dict[str, Any] | None,
+    *,
+    simplify_m: float = 0.15,
+) -> dict[str, Any]:
+    """Every solid footprint in the district for runtime outdoors collision.
+
+    Full postcode coverage (the walker can reach every street), LOD2 footprints
+    where measured. Rings are simplified to ``simplify_m`` and rounded to 0.1 m so
+    the file stays small; the viewer indexes them on a grid. Sorted by distance
+    to spawn so near buildings come first.
+    """
+    sx = float(spawn["x"]) if spawn else 0.0
+    sy = float(spawn["y"]) if spawn else 0.0
+    scored: list[tuple[float, dict[str, Any]]] = []
+
+    def compact(ring: list) -> list[list[float]]:
+        pts = [[float(p[0]), float(p[1])] for p in ring]
+        if len(pts) > 1 and pts[0] == pts[-1]:
+            pts = pts[:-1]
+        return [[round(p[0], 1), round(p[1], 1)] for p in _simplify_ring(pts, simplify_m)]
+
+    for bldg in layout.get("buildings") or []:
+        if bldg.get("walker_solid") is False:
+            continue
+        ring = bldg.get("ring") or []
+        if len(ring) < 3:
+            continue
+        pts = compact(ring)
+        if len(pts) < 3:
+            continue
+        entry: dict[str, Any] = {"id": bldg.get("id"), "ring": pts}
+        # LOD2 "height" is the lowest roof (often a rear annex); the skyline needs the top.
+        height = max(float(bldg.get("height") or 0.0), float((bldg.get("city3d") or {}).get("height_max") or 0.0))
+        if height > 0:
+            entry["h"] = round(height, 1)
+        if bldg.get("landmark") or bldg.get("landmark_id"):
+            entry["lm"] = 1
+        holes = [compact(h) for h in bldg.get("holes") or [] if len(h) >= 3]
+        holes = [h for h in holes if len(h) >= 3]
+        if holes:
+            entry["holes"] = holes
+        cx = sum(p[0] for p in pts) / len(pts)
+        cy = sum(p[1] for p in pts) / len(pts)
+        scored.append((_dist(sx, sy, cx, cy), entry))
+    scored.sort(key=lambda item: item[0])
+    return {
+        "spawn": {"x": sx, "y": sy},
+        "radius": None,
+        "coverage": "district",
+        "buildings": [item[1] for item in scored],
+        # Dropped from the layout after the GLBs were baked; the viewer hides their meshes.
+        "removed": list(layout.get("dropped_on_road") or []),
     }
 
 
@@ -1592,6 +1776,8 @@ def export_transit_near_spawn(
     radius: float = 280.0,
     max_paths: int = 48,
     max_stops: int = 80,
+    fallback_radius: float = 1500.0,
+    fallback_paths: int = 8,
 ) -> dict[str, Any]:
     """Transit paths + stops near spawn for runtime trams/buses."""
     sx = float(spawn["x"]) if spawn else 0.0
@@ -1606,7 +1792,7 @@ def export_transit_near_spawn(
         if line.get("tunnel"):
             continue
         dmin = min(_dist(sx, sy, float(p[0]), float(p[1])) for p in pts)
-        if dmin > radius:
+        if dmin > fallback_radius:
             continue
         lines = list(line.get("lines") or line.get("refs") or [])
         direction = _direction_code(line.get("direction"))
@@ -1629,7 +1815,14 @@ def export_transit_near_spawn(
             )
         )
     path_scored.sort(key=lambda item: item[0])
-    chosen_paths = [item[1] for item in path_scored[:max_paths]]
+    near = [item for item in path_scored if item[0] <= radius]
+    near_modes = {item[1]["mode"] for item in near}
+    # A mode with no line near spawn (Kiel's trams run ~400 m away) still gets its nearest
+    # lines, so the district keeps every mode it really has.
+    for mode in sorted({item[1]["mode"] for item in path_scored} - near_modes):
+        near += [item for item in path_scored if item[1]["mode"] == mode][:fallback_paths]
+    near.sort(key=lambda item: item[0])
+    chosen_paths = [item[1] for item in near[:max_paths]]
     # Undirected tram tracks: a parallel partner (right-hand traffic) fixes the direction.
     infer_parallel_track_directions([p for p in chosen_paths if p["mode"] in {"tram", "subway"}])
 

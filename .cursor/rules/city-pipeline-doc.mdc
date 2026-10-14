@@ -1,0 +1,24 @@
+---
+description: Keep docs/city-pipeline.md in step with the district build pipeline
+globs: cityview/**/*.py,blender/**/*.py,viewer/*.js
+alwaysApply: false
+---
+
+# Keep the pipeline doc current
+
+`docs/city-pipeline.md` is the maintainer map of how a district is built: the Mermaid flowchart, the data-source table, "What you edit vs what a rebuild overwrites", and "Stages, in order".
+
+When a change alters any of these, update the doc in the same change:
+
+- a stage is added, removed, reordered, or moves to another module
+- a data source, endpoint URL, layer number, or cache path changes
+- an output path or file in the viewer package changes
+- a threshold the doc quotes changes (budgets, `CORE_R`, cell size, dedupe distances, export radii)
+- collision / walkability policy the doc names changes
+
+Rules:
+
+- Check numbers and names against the code before writing them; do not copy from memory.
+- Keep every data-source node in the Mermaid diagram linked (`click`), and mirror it in the table, since GitHub ignores Mermaid links.
+- Describe how it works now; no changelog entries or "previously" notes.
+- Pure refactors and test-only edits need no doc change.

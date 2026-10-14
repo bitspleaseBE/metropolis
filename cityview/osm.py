@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -21,7 +22,7 @@ from cityview.directions import (
     parse_track_direction,
     route_way_directions,
 )
-from cityview.geo import project
+from cityview.geo import bbox_covers, project
 from cityview.landmarks import attach_landmark, landmark_nodes, load_manifest
 from cityview.parking import parse_road_parking
 from cityview.road_surface import carriageway_material
@@ -34,6 +35,7 @@ from cityview.streetscape import (
     roof_shape_for,
     safe_roof_shape,
 )
+from cityview.walkability import walker_solid_from_tags
 
 OVERPASS_URLS = (
     "https://overpass.private.coffee/api/interpreter",
@@ -102,6 +104,9 @@ HISTORIC_STYLES = [
 ]
 
 
+OSM_QUERY_VERSION = 2  # bump when overpass_query() gains tags, so older caches refetch
+
+
 def overpass_query(south: float, west: float, north: float, east: float) -> str:
     bbox = f"{south:.6f},{west:.6f},{north:.6f},{east:.6f}"
     return f"""
@@ -151,6 +156,9 @@ def overpass_query(south: float, west: float, north: float, east: float) -> str:
   way["amenity"~"^(bicycle_parking|shelter|fountain)$"]({bbox});
   node["emergency"="fire_hydrant"]({bbox});
   node["man_made"~"^(street_cabinet|flagpole)$"]({bbox});
+  node["man_made"="crane"]({bbox});
+  way["man_made"="crane"]({bbox});
+  way["landuse"~"^(industrial|port)$"]({bbox});
   node["leisure"="picnic_table"]({bbox});
   node["tourism"~"^(artwork|information)$"]({bbox});
   way["tourism"="artwork"]({bbox});
@@ -518,7 +526,10 @@ def _fetch_osm_map(south: float, west: float, north: float, east: float) -> dict
 
 def fetch_osm(bbox: tuple[float, float, float, float], cache_path: Path) -> dict[str, Any]:
     if cache_path.exists():
-        return json.loads(cache_path.read_text())
+        cached = json.loads(cache_path.read_text())
+        if bbox_covers(cached.get("bbox"), bbox) and cached.get("query") == OSM_QUERY_VERSION:
+            return cached
+        print(f"OSM cache {cache_path.name} does not cover {tuple(bbox)}; refetching")
     south, west, north, east = bbox
     try:
         payload = _fetch_overpass(south, west, north, east)
@@ -530,6 +541,8 @@ def fetch_osm(bbox: tuple[float, float, float, float], cache_path: Path) -> dict
                 f"OSM download failed for bbox {bbox}: "
                 f"overpass={overpass_exc}; map={map_exc}"
             ) from map_exc
+    payload["bbox"] = [south, west, north, east]
+    payload["query"] = OSM_QUERY_VERSION
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(payload))
     return payload
@@ -647,6 +660,15 @@ def building_type_for(osm_id: int, tags: dict[str, str], policy: str = "default"
     amenity = tags.get("amenity", "")
     shop = tags.get("shop", "")
     levels = _levels(tags)
+
+    if policy == "industrial":
+        if kind in {"industrial", "warehouse", "manufacture", "hangar", "shed", "service", "roof"}:
+            return "prefab-70s"
+        if kind in {"apartments", "office"} or (levels is not None and levels >= 6):
+            return "international"
+        if shop or kind in {"retail", "commercial"}:
+            return "cream-tile"
+        return "prefab-70s" if _stable_unit(osm_id + 5) < 0.6 else "yellow-brick"
 
     if policy == "historic":
         if kind in {"industrial", "warehouse", "manufacture"}:
@@ -868,6 +890,7 @@ def _make_building(
         "style": btype,
         "name": name,
         "osm_building": tags.get("building") or "",
+        "walker_solid": walker_solid_from_tags(tags),
         "_tags": dict(tags),
     }
     if use:
@@ -902,6 +925,8 @@ def finalize_building_heights(
     ``roof_shape`` and adds ``height_source``. Returns audit stats for the layout.
     """
     for bldg, tags in zip(buildings, tags_list):
+        if bldg.get("city3d"):
+            continue
         has_osm_numbers = bool(parse_height_m(tags) or parse_levels(tags))
         kind = tags.get("building", "")
         if not has_osm_numbers and (
@@ -913,6 +938,18 @@ def finalize_building_heights(
         source = bldg["height_source"]
         levels = int(bldg.pop("levels"))
         if source == "type_default":
+            continue
+        if source == "city3d":
+            m = bldg["city3d"]
+            bldg["height"] = float(m["eaves"])
+            bldg["roof_height"] = max(0.0, round(float(m["height_max"]) - float(m["eaves"]), 2))
+            bldg["floors"] = levels
+            btype = bldg.get("building_type") or ""
+            if levels >= 6 and btype not in {"church", "hospital", "school", "supermarket", "restaurant"}:
+                retyped = building_type_for(int(bldg["id"]), {**tags, "building:levels": str(levels)}, style_policy)
+                if retyped != btype:
+                    bldg["building_type"] = retyped
+                    bldg["style"] = retyped
             continue
         if source in {"inferred", "photo"}:
             eaves = levels * FLOOR_H
@@ -1127,6 +1164,230 @@ def add_relation_buildings(
     return stats
 
 
+# OSM keys that describe one occupant of a building, not every GRB part under it.
+_OCCUPANT_KEYS = ("name", "shop", "amenity", "brand", "brand:wikidata", "cuisine", "office", "tourism")
+# OSM keys LOD2 measurements replace outright.
+_MEASURED_KEYS = (
+    "height", "building:height", "building:levels", "building:min_level", "min_height",
+    "roof:shape", "roof:levels", "roof:height",
+)
+# GRB part label -> OSM-ish building kind (drives type / outbuilding logic).
+_GRB_PART_KIND = {
+    "bijgebouw": "shed",
+    "afdak": "roof",
+    "verdieping": "yes",
+    "hoofdgebouw": "yes",
+    "cultuur-historisch monument": "yes",
+    "waterbouwkundig constructie": "service",
+}
+
+
+def _representative_point(ring: list[list[float]]) -> tuple[float, float]:
+    """A point inside the ring (centroid when it is inside, else a scan-line midpoint)."""
+    cx, cy = _ring_centroid(ring)
+    if _point_in_ring(cx, cy, ring):
+        return cx, cy
+    ys = sorted(p[1] for p in ring)
+    y = (ys[0] + ys[-1]) / 2
+    xs = []
+    n = len(ring)
+    for i in range(n):
+        (x1, y1), (x2, y2) = ring[i], ring[(i + 1) % n]
+        if (y1 > y) != (y2 > y):
+            xs.append(x1 + (y - y1) * (x2 - x1) / (y2 - y1))
+    xs.sort()
+    if len(xs) >= 2:
+        return (xs[0] + xs[1]) / 2, y
+    return cx, cy
+
+
+class _RingGrid:
+    """Bounding-box grid over building rings for point-in-footprint lookups."""
+
+    CELL = 40.0
+
+    def __init__(self, rings: list[list[list[float]]]) -> None:
+        self.rings = rings
+        self.cells: dict[tuple[int, int], list[int]] = {}
+        for i, ring in enumerate(rings):
+            xs = [p[0] for p in ring]
+            ys = [p[1] for p in ring]
+            for gx in range(int(min(xs) // self.CELL), int(max(xs) // self.CELL) + 1):
+                for gy in range(int(min(ys) // self.CELL), int(max(ys) // self.CELL) + 1):
+                    self.cells.setdefault((gx, gy), []).append(i)
+
+    def containing(self, x: float, y: float) -> list[int]:
+        cand = self.cells.get((int(x // self.CELL), int(y // self.CELL)), [])
+        return [i for i in cand if _point_in_ring(x, y, self.rings[i])]
+
+
+def merge_city3d_buildings(
+    osm_buildings: list[dict[str, Any]],
+    city3d: dict[str, Any],
+    style_policy: str,
+    *,
+    ring_local: list[list[float]] | None = None,
+    manifest: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """LOD2 geometry wins; OSM tags ride along by footprint overlap.
+
+    * Each LOD2 part inherits the tags of the OSM building containing its interior point.
+      Only the largest part per OSM building keeps the occupant tags (name, shop …) so a
+      shop is not dressed on every GRB part of one address.
+    * LOD2 parts inside a hand-modelled landmark (manifest ``custom``) are suppressed; the
+      landmark keeps its OSM footprint and mesh.
+    * OSM buildings with no LOD2 part are dropped where the city data has coverage, and
+      kept (procedural extrusion) only in data gaps inside the district ring.
+    """
+    from cityview.landmarks import custom_landmark_entry
+
+    stats = {"lod2": 0, "lod2_tagged": 0, "lod2_suppressed": 0, "osm_kept_gap": 0,
+             "osm_kept_landmark": 0, "osm_dropped": 0}
+    custom = {
+        i for i, b in enumerate(osm_buildings)
+        if custom_landmark_entry(int(b.get("id") or 0), manifest)
+    }
+    grid = _RingGrid([b["ring"] for b in osm_buildings]) if osm_buildings else None
+    areas = [_area(b["ring"]) for b in osm_buildings]
+    matched: dict[int, list[int]] = {}
+    lod_parts = city3d.get("buildings") or []
+    host_of: list[int | None] = []
+    for k, rec in enumerate(lod_parts):
+        px, py = _representative_point(rec["ring"])
+        hosts = grid.containing(px, py) if grid else []
+        host = min(hosts, key=lambda i: areas[i]) if hosts else None
+        if host is not None and host in custom:
+            host_of.append(-1)
+            stats["lod2_suppressed"] += 1
+            continue
+        host_of.append(host)
+        if host is not None:
+            matched.setdefault(host, []).append(k)
+    # Largest LOD2 part per OSM building carries the occupant.
+    primary: set[int] = set()
+    for host, parts in matched.items():
+        primary.add(max(parts, key=lambda k: abs(_area(lod_parts[k]["ring"]))))
+
+    out: list[dict[str, Any]] = []
+    for k, rec in enumerate(lod_parts):
+        host = host_of[k]
+        if host == -1:
+            continue
+        if host is not None:
+            tags = dict(osm_buildings[host].get("_tags") or {})
+            stats["lod2_tagged"] += 1
+            if k not in primary:
+                for key in _OCCUPANT_KEYS:
+                    tags.pop(key, None)
+        else:
+            tags = {}
+        for key in _MEASURED_KEYS:
+            tags.pop(key, None)
+        part_kind = _GRB_PART_KIND.get(rec.get("part") or "", "yes")
+        if part_kind != "yes" or not tags.get("building"):
+            tags["building"] = part_kind if part_kind != "yes" else (tags.get("building") or "yes")
+        if rec.get("street") and "addr:street" not in tags:
+            tags["addr:street"] = rec["street"]
+        if rec.get("housenr") and "addr:housenumber" not in tags:
+            tags["addr:housenumber"] = str(rec["housenr"])
+        ring = [list(p) for p in rec["ring"]]
+        if len(ring) >= 2 and ring[0] == ring[-1]:
+            ring = ring[:-1]
+        bldg = _make_building(int(rec["id"]), ring, tags, style_policy)
+        if rec.get("holes"):
+            bldg["holes"] = [h[:-1] if len(h) >= 2 and h[0] == h[-1] else h for h in rec["holes"]]
+        bldg["lod2"] = rec["lod2"]
+        bldg["city3d"] = {
+            "eaves": rec["eaves"],
+            "height_max": rec["height_max"],
+            "storeys": rec.get("storeys"),
+            "roof_type": rec.get("roof_type") or "",
+            "part": rec.get("part") or "",
+            "seccode": rec.get("seccode") or "",
+            "floating": bool(rec.get("floating")),
+            "osm_host": int(osm_buildings[host]["id"]) if host is not None else None,
+        }
+        bldg["roof_shape"] = rec.get("roof_shape") or "lod2"
+        if rec.get("floating"):
+            bldg["walker_solid"] = False
+        out.append(bldg)
+        stats["lod2"] += 1
+
+    coverage = [c for c in city3d.get("coverage") or [] if len(c) >= 3]
+    for i, b in enumerate(osm_buildings):
+        if i in custom:
+            out.append(b)
+            stats["osm_kept_landmark"] += 1
+            continue
+        if i in matched:
+            continue
+        cx, cy = _representative_point(b["ring"])
+        covered = any(_point_in_ring(cx, cy, c) for c in coverage)
+        inside = ring_local is None or _point_in_ring(cx, cy, ring_local)
+        if not covered and inside:
+            out.append(b)
+            stats["osm_kept_gap"] += 1
+        else:
+            stats["osm_dropped"] += 1
+    return out, stats
+
+
+_THROUGH_ROAD_KINDS = frozenset({
+    "motorway", "trunk", "primary", "secondary", "tertiary",
+    "motorway_link", "trunk_link", "primary_link", "secondary_link", "tertiary_link",
+    "residential", "unclassified", "living_street",
+})
+ROAD_SEAL_M = 2.0
+
+
+def drop_unmatched_lod2_on_roads(
+    buildings: list[dict[str, Any]], road_lines: list[list[list[float]]], *, step_m: float = 0.5
+) -> list[int]:
+    """Drop LOD2 parts with no OSM building whose footprint an at-grade public road crosses.
+
+    Such parts are overhead structures (canopies, gates, bridge decks) in the city survey;
+    extruded to the ground they wall off a real street. Returns the dropped ids.
+    """
+    cell = 64.0
+    grid: dict[tuple[int, int], list[tuple[float, float, float, float]]] = {}
+    for pts in road_lines:
+        for (ax, ay), (bx, by) in zip(pts, pts[1:]):
+            for gx in range(int(math.floor(min(ax, bx) / cell)), int(math.floor(max(ax, bx) / cell)) + 1):
+                for gy in range(int(math.floor(min(ay, by) / cell)), int(math.floor(max(ay, by) / cell)) + 1):
+                    grid.setdefault((gx, gy), []).append((ax, ay, bx, by))
+
+    def sealed(ring: list[list[float]]) -> bool:
+        xs = [p[0] for p in ring]
+        ys = [p[1] for p in ring]
+        segs: set[tuple[float, float, float, float]] = set()
+        for gx in range(int(math.floor(min(xs) / cell)), int(math.floor(max(xs) / cell)) + 1):
+            for gy in range(int(math.floor(min(ys) / cell)), int(math.floor(max(ys) / cell)) + 1):
+                segs.update(grid.get((gx, gy), ()))
+        for ax, ay, bx, by in segs:
+            n = max(1, int(math.hypot(bx - ax, by - ay) / step_m))
+            run = 0
+            for i in range(n + 1):
+                t = i / n
+                if _point_in_ring(ax + (bx - ax) * t, ay + (by - ay) * t, ring):
+                    run += 1
+                    if (run - 1) * step_m >= ROAD_SEAL_M:
+                        return True
+                else:
+                    run = 0
+        return False
+
+    keep: list[dict[str, Any]] = []
+    dropped: list[int] = []
+    for b in buildings:
+        meta = b.get("city3d")
+        if meta and meta.get("osm_host") is None and not b.get("landmark") and sealed(b["ring"]):
+            dropped.append(int(b["id"]))
+            continue
+        keep.append(b)
+    buildings[:] = keep
+    return dropped
+
+
 def _is_park(tags: dict[str, str]) -> bool:
     return tags.get("leisure") in {"park", "garden"} or tags.get("landuse") in {"grass", "recreation_ground"}
 
@@ -1135,10 +1396,18 @@ def layout_from_osm(
     osm: dict[str, Any],
     origin: tuple[float, float],
     style_policy: str = "default",
+    *,
+    city3d: dict[str, Any] | None = None,
+    ring: list[list[float]] | None = None,
 ) -> dict[str, Any]:
+    """OSM -> layout. With ``city3d`` (``city3d.load_buildings``) LOD2 buildings replace
+    OSM footprints; ``ring`` is the district boundary in ``[lon, lat]``."""
+    # ``ring`` is reused as a loop variable below.
+    ring_local = [list(project(p[1], p[0], origin[0], origin[1])) for p in ring] if ring else None
     nodes, ways, rels = _index(osm.get("elements") or [])
     buildings: list[dict[str, Any]] = []
     roads: list[dict[str, Any]] = []
+    through_roads: list[list[list[float]]] = []
     water: list[dict[str, Any]] = []
     parks: list[dict[str, Any]] = []
     transit_lines: list[dict[str, Any]] = []
@@ -1249,6 +1518,14 @@ def layout_from_osm(
             if cycle_lanes:
                 road["cycleLanes"] = cycle_lanes
             roads.append(road)
+            if (
+                road["kind"] in _THROUGH_ROAD_KINDS
+                and "tunnel" not in tags
+                and tags.get("bridge", "no") == "no"
+                and tags.get("layer", "0") == "0"
+                and tags.get("covered", "no") == "no"
+            ):
+                through_roads.append(pts)
 
     multipolygon_stats = add_relation_buildings(buildings, rels, ways, nodes, origin, style_policy)
     multipolygon_stats["campus_outlines_dropped"] = 0
@@ -1310,10 +1587,18 @@ def layout_from_osm(
                 }
             )
 
+    manifest = load_manifest()
+    city3d_stats: dict[str, int] | None = None
+    if city3d and city3d.get("buildings"):
+        buildings, city3d_stats = merge_city3d_buildings(
+            buildings, city3d, style_policy, ring_local=ring_local, manifest=manifest
+        )
+        on_road = drop_unmatched_lod2_on_roads(buildings, through_roads)
+        city3d_stats["lod2_on_road_dropped"] = len(on_road)
+
     # Join amenity/shop nodes onto footprints, then reclassify from merged tags.
     pois = _collect_poi_nodes(nodes, origin)
     join_pois_to_buildings(buildings, pois)
-    manifest = load_manifest()
     finalized: list[dict[str, Any]] = []
     final_tags: list[dict[str, str]] = []
     for bldg in buildings:
@@ -1337,7 +1622,7 @@ def layout_from_osm(
             poi_name = tags.get("name") or ""
             if poi_name and (not bldg.get("name") or str(bldg.get("name", "")).isdigit()):
                 bldg["name"] = poi_name
-            if btype != prev and btype in {
+            if not bldg.get("lod2") and btype != prev and btype in {
                 "school",
                 "hospital",
                 "supermarket",
@@ -1357,10 +1642,12 @@ def layout_from_osm(
                         bldg["height"] = eh
                         bldg["roof_height"] = rh
                         bldg["floors"] = fl
-            if not tags.get("roof:shape"):
+            if not tags.get("roof:shape") and not bldg.get("lod2"):
                 bldg["roof_shape"] = safe_roof_shape(
                     roof_shape_for(tags, btype, osm_id), bldg["ring"]
                 )
+            floating = bool((bldg.get("city3d") or {}).get("floating"))
+            bldg["walker_solid"] = walker_solid_from_tags(tags) and not floating
         attach_landmark(bldg, manifest, origin)
         finalized.append(bldg)
         final_tags.append(tags)
@@ -1382,4 +1669,11 @@ def layout_from_osm(
         "multipolygon_stats": multipolygon_stats,
         "landmark_nodes": landmark_nodes(nodes, origin, manifest),
     }
+    if ring_local:
+        # Postcode ring in local metres: bbox-fetched layers (trees, park benches, Velo)
+        # clip to it so neighbouring districts never both plant the same survey point.
+        layout["boundary_local"] = ring_local
+    if city3d_stats is not None:
+        layout["city3d_stats"] = {**city3d_stats, **(city3d.get("stats") or {})}
+        layout["dropped_on_road"] = on_road
     return annotate_layout(layout)

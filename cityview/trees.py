@@ -37,7 +37,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Iterable
 
-from cityview.geo import project
+from cityview.geo import bbox_covers, project
 from cityview.paths import TREES_CACHE, is_allowed_cache_json
 from cityview.railclear import BED_HALF_SUBWAY, CLEAR_FURNITURE, CLEAR_TREE, RailIndex
 from cityview.roadclear import TRUNK_MARGIN, RoadIndex, snap_off_carriageway
@@ -90,6 +90,28 @@ MAX_TREE_HEIGHT = 22.0  # 4-6 storey terraces are ~13-18 m; nothing should tower
 GIRTH_SCALE_CM = 110.0
 # Narrow, upright habits (cultivar epithets) → thin crown.
 COLUMNAR_MARKS = ("fastigiata", "columnaris", "pyramidalis", "fontaine", "erecta", "fastigiate")
+
+# Crown archetypes (one instanced mesh each in Blender / the viewer). Unknown genera → round.
+ARCHETYPE_GENERA = {
+    "broad": ("Platanus", "Tilia", "Ulmus", "Zelkova", "Pterocarya", "Celtis"),
+    "round": ("Acer", "Aesculus", "Fagus", "Carpinus", "Liquidambar", "Catalpa", "Juglans"),
+    "irregular": ("Quercus", "Salix", "Morus", "Paulownia"),
+    "open": ("Betula", "Fraxinus", "Robinia", "Gleditsia", "Alnus", "Ginkgo", "Sophora", "Styphnolobium"),
+    "columnar": ("Populus",),
+    "ornamental": ("Prunus", "Malus", "Sorbus", "Pyrus", "Crataegus", "Amelanchier", "Magnolia",
+                   "Cercis", "Corylus", "Koelreuteria", "Parrotia"),
+}
+_GENUS_ARCHETYPE = {g: a for a, gs in ARCHETYPE_GENERA.items() for g in gs}
+ARCHETYPES = ("broad", "round", "irregular", "open", "columnar", "ornamental", "conifer")
+
+
+def archetype_for(genus: str, shape: str) -> str:
+    """Crown archetype from genus and habit (columnar cultivars / conifers override genus)."""
+    if shape == "conifer":
+        return "conifer"
+    if shape == "columnar":
+        return "columnar"
+    return _GENUS_ARCHETYPE.get(genus, "round")
 
 # --- placement tuning -----------------------------------------------------
 # A surveyed trunk only has to stay off the tram bed (+ kerb margin); its crown may
@@ -269,7 +291,9 @@ def fetch_tree_sources(
     """Load (or download once and commit) the raw tree payload for a tile."""
     cache_path = _checked_cache_path(cache_path)
     if cache_path.exists() and not refresh:
-        return json.loads(cache_path.read_text())
+        cached = json.loads(cache_path.read_text())
+        if bbox_covers(cached.get("bbox"), bbox):
+            return cached
     south, west, north, east = bbox
     padded = (south - FETCH_PAD_DEG, west - FETCH_PAD_DEG, north + FETCH_PAD_DEG, east + FETCH_PAD_DEG)
     payload: dict[str, Any] = {
@@ -496,6 +520,7 @@ def tree_traits(rec: dict[str, Any], x: float, y: float) -> dict[str, Any]:
         "height": round(fit_height_to_crown(height, radius, shape), 2),
         "radius": round(radius, 2),
         "shape": shape,
+        "archetype": archetype_for(genus, shape),
         "tone": round(tone, 3),
     }
 
@@ -691,9 +716,12 @@ def plan_trees(
     }
     trees: list[dict[str, Any]] = []
     grid = _PointGrid(cell=4.0)
+    boundary = layout.get("boundary_local") or None
     for cand in _real_candidates(payload, origin):
         x, y, src = cand["x"], cand["y"], cand["source"]
-        if not (xmin <= x <= xmax and ymin <= y <= ymax):
+        if not (xmin <= x <= xmax and ymin <= y <= ymax) or (
+            boundary and not _point_in_ring(x, y, boundary)
+        ):
             stats["dropped_outside"] += 1
             continue
         if grid.near(x, y, DEDUPE_M):
@@ -742,6 +770,8 @@ def plan_trees(
     bush_grid = _PointGrid(cell=4.0)
 
     def clear_of_world(x: float, y: float, building_margin: float) -> bool:
+        if boundary and not _point_in_ring(x, y, boundary):
+            return False
         if obstacles.on_rails(x, y) or obstacles.in_building(x, y, building_margin):
             return False
         return (

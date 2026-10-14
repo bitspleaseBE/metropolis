@@ -41,8 +41,6 @@ TRI_BUDGET = {
     "olv_cathedral": 80000,
     "stadhuis": 50000,
     "het_steen": 35000,
-    "grote_markt_terrace": 40000,
-    "brabo_fountain": 8000,
 }
 
 
@@ -1133,18 +1131,50 @@ def build_olv_cathedral(ring: list[Vec2], holes: list[list[Vec2]], lm: dict) -> 
     return m
 
 
+_FLAGS = (
+    ("frame_dark", "cloth_yellow", "cloth_red"),  # Belgium
+    ("cloth_blue",),  # Europe
+    ("cloth_red", "cloth_white", "cloth_red"),  # Antwerp
+    ("cloth_yellow", "frame_dark", "cloth_yellow"),  # Flanders
+    ("cloth_green", "cloth_white"),
+)
+
+
+def _flag(m: Mesh, f: Frame, a: float, z: float, k: int, length: float = 3.2) -> None:
+    """Flag on a pole raked out of the façade; vertical stripes along the pole."""
+    root = f.p(a, 0.15, z)
+    tip = f.p(a, 0.15 + length * 0.62, z + length * 0.78)
+    _strut(m, root, tip, 0.035, "iron", 4)
+    stripes = _FLAGS[k % len(_FLAGS)]
+    fw, fh = length * 0.55, length * 0.42
+    for i, mat in enumerate(stripes):
+        t0, t1 = i / len(stripes), (i + 1) / len(stripes)
+        # The cloth hangs from the upper part of the pole, slightly offset along the wall.
+        p0 = [root[j] + (tip[j] - root[j]) * (1.0 - t0 * fw / length) for j in range(3)]
+        p1 = [root[j] + (tip[j] - root[j]) * (1.0 - t1 * fw / length) for j in range(3)]
+        quad = [tuple(p0), tuple(p1), (p1[0], p1[1], p1[2] - fh), (p0[0], p0[1], p0[2] - fh)]
+        nrm = f.vec(1.0, 0.0, 0.0)
+        m.face(quad, mat, normal=nrm)
+        m.face(list(reversed(quad)), mat, normal=(-nrm[0], -nrm[1], -nrm[2]))
+
+
 def build_stadhuis(ring: list[Vec2], holes: list[list[Vec2]], lm: dict) -> Mesh:
-    """Antwerp City Hall (Floris, 1564) on Grote Markt: bluestone arcade, two floors of
-    cross windows between pilasters, open top loggia, hipped roof with dormers, and the
-    stepped central frontispiece (volutes, obelisks, niche statue, pediment, gilt eagle)."""
+    """Antwerp City Hall (Cornelis Floris, 1561-65) on Grote Markt.
+
+    Rusticated rose-stone arcade, two storeys of cross windows between pilasters, an open
+    columned loggia under the cornice, a tall slate roof with two rows of dormers and
+    chimneys, and the central frontispiece: three diminishing tiers with coloured marble
+    columns, bronze obelisks, the coat of arms, the Virgin in her niche and a gilt eagle.
+    A row of flags hangs from the first-floor balconies."""
     m = Mesh()
     f, outline, W, D, front = _span(ring, lm)
-    H = float(lm.get("height_m") or 22.0)
-    rh = float(lm.get("roof_height_m") or 6.0)
-    wall, base, trim = "stone_white", "bluestone", "stone_white"
-    zc = H * 0.8
-    lv = (0.0, H * 0.235, H * 0.425, H * 0.615, zc)
-    zr = zc + 0.7
+    p = lm.get("params") or {}
+    H = float(p.get("cornice_m") or 22.8)
+    rh = float(p.get("roof_m") or 9.0)
+    sc = H / 22.8
+    lv = (0.0, 6.0 * sc, 12.2 * sc, 17.8 * sc, H)
+    wall, rust, trim, marble = "stone_white", "stone_rose", "stone_white", "stone_rose"
+    zr = H + 0.8
     extrude_ring(m, outline, holes, 0.0, zr, "stone_grey", None, skip=_skip_facing(front.outward))
 
     fronts = [e for e in ring_edges(outline) if e.length > 2.0 and e.outward[0] * front.outward[0] + e.outward[1] * front.outward[1] > 0.72]
@@ -1163,57 +1193,92 @@ def build_stadhuis(ring: list[Vec2], holes: list[list[Vec2]], lm: dict) -> Mesh:
             else:
                 segments.append((e, 0.0, e.length, False))
 
+    flag_k = 0
     for e, a0, a1, centre in segments:
         fe = e.frame()
-        n = max(1, round((a1 - a0) / (4.2 if centre else 3.5)))
+        n = max(1, round((a1 - a0) / (5.2 if centre else 3.2)))
         bw = (a1 - a0) / n
         for k in range(n):
             b0, b1 = a0 + k * bw, a0 + (k + 1) * bw
             c = 0.5 * (b0 + b1)
-            door = centre and (k == n // 2 or (n % 2 == 0 and k == n // 2 - 1))
-            hole = opening(c, 0.05, bw * 0.62, lv[1] * 0.64, "round", 8)
-            cell(m, fe, b0, b1, 0.0, lv[1], hole, 0.0, -0.7, base, base)
-            pane(m, fe, hole, -0.7, "door" if door else "glass_dark")
+            door = centre and k == n // 2
+            # Rusticated arcade.
+            hole = opening(c, 0.05, bw * 0.56, lv[1] * 0.74, "round", 8)
+            cell(m, fe, b0, b1, 0.0, lv[1], hole, 0.0, -0.8, rust, rust)
+            pane(m, fe, hole, -0.8, "door" if door or k % 3 == 1 else "glass_dark")
+            for r in range(1, 6):
+                zj = lv[1] * r / 6.0
+                if zj < lv[1] * 0.74 - bw * 0.28:
+                    for lo, hi in ((b0, c - bw * 0.28), (c + bw * 0.28, b1)):
+                        rbox(m, fe, lo + 0.02, hi - 0.02, 0.0, 0.06, zj - 0.05, zj + 0.05, "bluestone")
+            # First and second floor cross windows.
             for z0, z1 in ((lv[1], lv[2]), (lv[2], lv[3])):
-                zt0, zt1 = z0 + 0.55, z1 - 0.7
-                hole = opening(c, zt0, bw * 0.52, zt1, "rect", 4)
-                cell(m, fe, b0, b1, z0, z1, hole, 0.0, -0.25, wall, trim)
-                pane(m, fe, hole, -0.25, "glass")
-                rbox(m, fe, c - 0.07, c + 0.07, -0.25, -0.12, zt0, zt1, trim)
-                zt = zt0 + (zt1 - zt0) * 0.66
-                rbox(m, fe, c - bw * 0.26, c + bw * 0.26, -0.25, -0.12, zt - 0.07, zt + 0.07, trim)
-                rbox(m, fe, c - bw * 0.3, c + bw * 0.3, 0.0, 0.22, zt0 - 0.18, zt0, base)
+                zt0, zt1 = z0 + 0.9, z1 - 0.7
+                hole = opening(c, zt0, bw * 0.5, zt1, "rect", 4)
+                cell(m, fe, b0, b1, z0, z1, hole, 0.0, -0.3, wall, trim)
+                pane(m, fe, hole, -0.3, "glass")
+                rbox(m, fe, c - 0.07, c + 0.07, -0.3, -0.16, zt0, zt1, trim)
+                zt = zt0 + (zt1 - zt0) * 0.62
+                rbox(m, fe, c - bw * 0.25, c + bw * 0.25, -0.3, -0.16, zt - 0.07, zt + 0.07, trim)
+                rbox(m, fe, c - bw * 0.31, c + bw * 0.31, 0.0, 0.25, zt0 - 0.2, zt0, trim)
+                rbox(m, fe, c - bw * 0.33, c + bw * 0.33, 0.0, 0.3, zt1, zt1 + 0.22, trim)
+            # Open loggia: two columns per bay in a deep gallery.
             z0, z1 = lv[3], lv[4]
-            ghw = bw * 0.37
-            hole = opening(c, z0 + 0.05, ghw * 2.0, z1 - 0.45 - ghw, "round", 6)
-            cell(m, fe, b0, b1, z0, z1, hole, 0.0, -1.6, wall, trim)
-            pane(m, fe, hole, -1.6, "render_shade")
-            rbox(m, fe, c - ghw, c + ghw, -0.55, -0.25, z0, z0 + 1.0, trim)
-        pil = "brick" if centre else "stone_grey"
+            rbox(m, fe, b0, b1, -2.2, -2.0, z0, z1, "glass_dark", skip=("bottom", "top"))
+            rbox(m, fe, b0, b1, -2.2, 0.0, z1 - 0.7, z1, wall, skip=("top",))
+            for t in (0.18, 0.82) if bw > 2.4 else (0.5,):
+                x, y, _ = fe.p(b0 + bw * t, -0.35, 0.0)
+                frustum(m, x, y, z0 + 1.0, z1 - 0.7, 0.2, 0.17, 6, trim, top=False, bottom=False)
+            for lo, hi in ((b0, b0 + 0.25), (b1 - 0.25, b1)):
+                rbox(m, fe, lo, hi, -2.0, 0.0, z0, z1 - 0.7, wall, skip=("bottom", "top"))
+            _balustrade(m, fe, b0 + 0.25, b1 - 0.25, z0, -0.4, -0.1, trim, h=1.0, pitch=0.35)
+            rbox(m, fe, b0, b1, -2.2, 0.0, z0 - 0.1, z0 + 0.02, wall, skip=("bottom",))
+            # Flags from the first-floor balustrade, every other bay of the flanks.
+            if not centre and k % 2 == 1:
+                _flag(m, fe, c, lv[1] + 0.9, flag_k, 4.6)
+                flag_k += 1
+        pil = marble if centre else trim
         for k in range(n + 1):
             b = a0 + k * bw
-            rbox(m, fe, b - 0.22, b + 0.22, 0.0, 0.2, lv[1], lv[3], pil)
-            rbox(m, fe, b - 0.18, b + 0.18, 0.0, 0.16, lv[3], lv[4], trim)
+            rbox(m, fe, b - 0.24, b + 0.24, 0.0, 0.22, lv[1], lv[3], pil)
         for i, z in enumerate((lv[1], lv[2], lv[3])):
-            rbox(m, fe, a0, a1, 0.0, 0.32, z - 0.16, z + 0.16, base if i == 0 else trim)
-        rbox(m, fe, a0 - 0.05, a1 + 0.05, 0.0, 0.7, zc, zr, trim)
-        if not centre:
-            for k in range(0, n, 2):
-                c = a0 + (k + 0.5) * bw
-                rbox(m, fe, c - 0.8, c + 0.8, -2.4, -1.0, zr, zr + 2.0, wall, skip=("bottom",))
-                pane(m, fe, opening(c, zr + 0.3, 0.9, zr + 1.3, "round", 4), -0.97, "glass_dark")
-                gable_roof(m, fe, c - 0.8, c + 0.8, -2.4, -1.0, zr + 2.0, zr + 2.9, "slate", ridge="d", gable_mat=wall, overhang=0.12)
+            rbox(m, fe, a0, a1, 0.0, 0.34, z - 0.18, z + 0.18, "bluestone" if i == 0 else trim)
+        _balustrade(m, fe, a0, a1, lv[1] + 0.18, 0.15, 0.55, trim, h=0.85, pitch=0.3)
+        rbox(m, fe, a0 - 0.05, a1 + 0.05, 0.0, 0.8, H, zr, trim)
 
-    # Hipped roof over the block.
+    # Tall hipped slate roof with two rows of dormers and chimneys.
     d_wing = min(f.local(*e.mid)[1] for e in fronts)
     hip_roof(m, f, 0.3, W - 0.3, -D + 0.3, d_wing - 0.3, zr, zr + rh, "slate", overhang=0.3)
+    slope = rh / max(1.0, (D - 0.6) * 0.5)
+    for e, a0, a1, centre in segments:
+        if centre:
+            continue
+        fe = e.frame()
+        n = max(1, round((a1 - a0) / 3.2))
+        bw = (a1 - a0) / n
+        for row, (dd, dw, dh) in enumerate(((1.4, 1.5, 2.1), (1.4 + 3.4 / max(slope, 0.6), 1.0, 1.4))):
+            zd = zr + (dd - 0.3) * slope - 0.3
+            for k in range(row, n, 2 if row == 0 else 3):
+                c = a0 + (k + 0.5) * bw
+                if c < a0 + 1.2 or c > a1 - 1.2:
+                    continue
+                rbox(m, fe, c - dw / 2, c + dw / 2, -dd - 1.6, -dd, zd, zd + dh, wall, skip=("bottom",))
+                pane(m, fe, opening(c, zd + 0.25, dw * 0.6, zd + dh - 0.3 - dw * 0.3, "round", 4), -dd + 0.02, "glass_dark")
+                gable_roof(m, fe, c - dw / 2, c + dw / 2, -dd - 1.6, -dd, zd + dh, zd + dh + dw * 0.55, "slate", ridge="d", gable_mat=wall, overhang=0.1)
+        for t in (0.2, 0.8):
+            x, y, _ = fe.p(a0 + (a1 - a0) * t, -D * 0.42, 0.0)
+            wbox(m, x, y, zr + rh * 0.45, 1.3, 0.8, rh * 0.75, _yaw(fe), "stone_white")
+            wbox(m, x, y, zr + rh * 1.2, 1.5, 1.0, 0.3, _yaw(fe), "stone_white")
 
-    # Central frontispiece: three diminishing tiers rising over the cornice.
+    # Central frontispiece: three diminishing tiers over the cornice.
     e, a0, a1, _ = next(s for s in segments if s[3])
     fe = e.frame()
     wc, cc = a1 - a0, 0.5 * (a0 + a1)
     yaw = _yaw(fe)
-    tiers = ((wc * 0.92, H * 0.24), (wc * 0.66, H * 0.2), (wc * 0.4, H * 0.16))
+    # Balcony across the frontispiece at the first floor.
+    rbox(m, fe, a0 + 0.3, a1 - 0.3, 0.0, 1.1, lv[1] - 0.1, lv[1] + 0.2, "bluestone")
+    _balustrade(m, fe, a0 + 0.3, a1 - 0.3, lv[1] + 0.2, 0.75, 1.05, trim, h=0.9, pitch=0.3)
+    tiers = ((wc * 0.9, 6.6 * sc), (wc * 0.62, 5.6 * sc), (wc * 0.36, 4.6 * sc))
     z = zr
     for i, (tw, th) in enumerate(tiers):
         t0, t1 = cc - tw / 2, cc + tw / 2
@@ -1223,24 +1288,31 @@ def build_stadhuis(ring: list[Vec2], holes: list[list[Vec2]], lm: dict) -> Mesh:
         for k in range(nb):
             b0, b1 = t0 + k * bwt, t0 + (k + 1) * bwt
             c = 0.5 * (b0 + b1)
-            if i == 2:
-                hole = opening(c, z + 0.4, bwt * 0.42, z + th - 0.6 - bwt * 0.21, "round", 8)
+            if i == 2 or (i == 1 and k == 1):
+                # Niche with the Virgin (top) / Justice and Prudence (middle).
+                hole = opening(c, z + 0.4, bwt * 0.46, z + th - 0.7 - bwt * 0.23, "round", 8)
                 cell(m, fe, b0, b1, z, z + th, hole, 0.0, -0.9, wall, trim)
                 pane(m, fe, hole, -0.9, "render_shade")
-                x, y, _ = fe.p(c, -0.5, 0.0)
-                frustum(m, x, y, z + 0.4, z + 0.7, 0.32, 0.32, 6, trim)
-                frustum(m, x, y, z + 0.7, z + 2.0, 0.3, 0.2, 6, trim)
-                frustum(m, x, y, z + 2.0, z + 2.3, 0.14, 0.12, 6, trim)
+                _statue(m, fe, c, -0.45, z + 0.45, min(2.4, th - 1.4), trim, canopy=False)
+                continue
+            if i == 0 and k == 1:
+                # Coat of arms under a pediment.
+                cell(m, fe, b0, b1, z, z + th, None, 0.0, 0.0, wall)
+                rbox(m, fe, c - 1.1, c + 1.1, 0.0, 0.25, z + 1.2, z + th - 1.6, "gold")
+                rbox(m, fe, c - 0.75, c + 0.75, 0.25, 0.32, z + 1.6, z + th - 2.0, "cloth_red")
+                profile_slab(m, fe, [(c - 1.4, z + th - 1.6), (c + 1.4, z + th - 1.6), (c, z + th - 0.8)], 0.0, 0.35, trim, back=True)
                 continue
             kind = "rect" if i == 0 else "round"
-            ht = z + th - 0.8 - (bwt * 0.25 if kind == "round" else 0.0)
-            hole = opening(c, z + 0.7, bwt * 0.5, ht, kind, 6)
+            ht = z + th - 0.9 - (bwt * 0.25 if kind == "round" else 0.0)
+            hole = opening(c, z + 0.8, bwt * 0.5, ht, kind, 6)
             cell(m, fe, b0, b1, z, z + th, hole, 0.0, -0.25, wall, trim)
             pane(m, fe, hole, -0.25, "glass")
         for k in range(nb + 1):
             b = t0 + k * bwt
-            rbox(m, fe, b - 0.2, b + 0.2, 0.0, 0.2, z, z + th - 0.45, "brick")
-        rbox(m, fe, t0 - 0.15, t1 + 0.15, 0.0, 0.45, z + th - 0.45, z + th, trim)
+            x, y, _ = fe.p(b, 0.35, 0.0)
+            frustum(m, x, y, z + 0.3, z + th - 0.5, 0.24, 0.2, 6, marble, top=False)
+            rbox(m, fe, b - 0.32, b + 0.32, 0.05, 0.62, z, z + 0.3, trim)
+        rbox(m, fe, t0 - 0.2, t1 + 0.2, 0.0, 0.7, z + th - 0.5, z + th, trim)
         prev_w = tiers[i - 1][0] if i > 0 else wc + 0.1
         for sgn in (-1.0, 1.0):
             x_in = cc + sgn * tw / 2
@@ -1249,19 +1321,24 @@ def build_stadhuis(ring: list[Vec2], holes: list[list[Vec2]], lm: dict) -> Mesh:
             if sgn > 0:
                 tri = [(x_in, z), (x_out, z), (x_in, z + th * 0.75)]
             profile_slab(m, fe, tri, -0.6, 0.0, trim, back=True)
-            x, y, _ = fe.p(cc + sgn * (prev_w / 2 - 0.4), -0.3, 0.0)
-            frustum(m, x, y, z, z + 0.5, 0.45, 0.45, 4, trim, phase=yaw + math.pi / 4)
-            frustum(m, x, y, z + 0.5, z + 3.4, 0.3, 0.05, 4, trim, phase=yaw + math.pi / 4)
-            frustum(m, x, y, z + 3.3, z + 3.7, 0.14, 0.0, 6, "gold")
+            # Verdigris obelisk on each shoulder (the tall green needles in the photos).
+            x, y, _ = fe.p(cc + sgn * (prev_w / 2 - 0.45), -0.3, 0.0)
+            oh = (5.5 if i == 0 else 3.8 if i == 1 else 2.8) * sc
+            frustum(m, x, y, z, z + 0.7, 0.55, 0.55, 4, trim, phase=yaw + math.pi / 4)
+            frustum(m, x, y, z + 0.7, z + 0.7 + oh, 0.36, 0.06, 4, "bronze", phase=yaw + math.pi / 4)
+            zo = z + 0.7 + oh
+            frustum(m, x, y, zo, zo + 0.35, 0.12, 0.0, 6, "gold")
         z += th
     tw = tiers[-1][0]
-    profile_slab(m, fe, [(cc - tw / 2 - 0.2, z), (cc + tw / 2 + 0.2, z), (cc, z + tw * 0.35)], -0.6, 0.15, trim, back=True)
+    profile_slab(m, fe, [(cc - tw / 2 - 0.3, z), (cc + tw / 2 + 0.3, z), (cc, z + tw * 0.35)], -0.6, 0.2, trim, back=True)
     top = z + tw * 0.35
+    # Gilt eagle on a plinth.
     x, y, _ = fe.p(cc, -0.2, 0.0)
-    frustum(m, x, y, top - 0.1, top + 0.5, 0.32, 0.26, 6, trim)
-    frustum(m, x, y, top + 0.5, top + 1.6, 0.26, 0.12, 6, "gold")
-    rbox(m, fe, cc - 1.0, cc + 1.0, -0.35, -0.08, top + 0.9, top + 1.35, "gold")
-    frustum(m, x, y, top + 1.6, top + 1.95, 0.14, 0.0, 6, "gold")
+    frustum(m, x, y, top - 0.1, top + 0.6, 0.36, 0.3, 6, trim)
+    frustum(m, x, y, top + 0.6, top + 1.5, 0.28, 0.14, 6, "gold")
+    for sgn in (-1.0, 1.0):
+        profile_slab(m, fe, [(cc, top + 0.9), (cc + sgn * 1.1, top + 1.9), (cc + sgn * 0.9, top + 1.2)], -0.26, -0.14, "gold", back=True)
+    frustum(m, x, y, top + 1.5, top + 1.85, 0.13, 0.0, 6, "gold")
     return m
 
 
@@ -1377,149 +1454,11 @@ def build_het_steen(ring: list[Vec2], holes: list[list[Vec2]], lm: dict) -> Mesh
     return m
 
 
-def build_grote_markt_terrace(ring: list[Vec2], holes: list[list[Vec2]], lm: dict) -> Mesh:
-    """Guild-house terrace on Grote Markt: one narrow house per plot, each with a
-    bluestone shopfront, cross-windowed floors and a coped stepped gable crowned by a
-    gilt figure; saddle roofs run back from the gables."""
-    m = Mesh()
-    f, outline, W, D, front = _span(ring, lm)
-    H = float(lm.get("height_m") or 14.0)
-    params = lm.get("params") or {}
-    houses = max(2, int(params.get("houses") or max(3, int(W / 5.5))))
-    hw = W / houses
-    dep = min(D, 12.0)
-    walls = ("brick", "stone_white", "brick_brown", "brick_dark", "stone_grey")
-    yaw = _yaw(f)
-    for i in range(houses):
-        a0, a1 = i * hw, (i + 1) * hw
-        wall = walls[i % len(walls)]
-        band = "bluestone" if wall == "stone_white" else "stone_white"
-        he = H * (0.66 + 0.06 * ((i * 2) % 3))
-        gh = min((a1 - a0) * 1.15, H * 0.45)
-        steps = 4 + (i % 3)
-        rbox(m, f, a0, a1, -dep, 0.0, 0.0, he, wall, skip=("+d", "bottom"))
-        g = min(4.2, he * 0.32)
-        floors = max(2, int((he - g) / 3.0))
-        fh = (he - g) / floors
-        nb = 3 if (a1 - a0) > 6.2 else 2
-        bw = (a1 - a0) / nb
-        for k in range(nb):
-            b0, b1 = a0 + k * bw, a0 + (k + 1) * bw
-            c = 0.5 * (b0 + b1)
-            kind = "round" if i % 2 == 0 else "rect"
-            hole = opening(c, 0.05, bw * 0.66, g * 0.62 if kind == "round" else g - 0.5, kind, 6)
-            cell(m, f, b0, b1, 0.0, g, hole, 0.0, -0.4, "bluestone", "bluestone")
-            pane(m, f, hole, -0.4, "door" if k == 0 else "glass_dark")
-            for r in range(floors):
-                z0, z1 = g + r * fh, g + (r + 1) * fh
-                zt0, zt1 = z0 + 0.6, z1 - 0.45
-                hole = opening(c, zt0, bw * 0.56, zt1, "rect", 4)
-                cell(m, f, b0, b1, z0, z1, hole, 0.0, -0.18, wall, "stone_white")
-                pane(m, f, hole, -0.18, "glass")
-                rbox(m, f, c - 0.05, c + 0.05, -0.18, -0.1, zt0, zt1, "frame_white")
-                zt = zt0 + (zt1 - zt0) * 0.66
-                rbox(m, f, c - bw * 0.28, c + bw * 0.28, -0.18, -0.1, zt - 0.05, zt + 0.05, "frame_white")
-        for r in range(floors + 1):
-            z = g + r * fh
-            rbox(m, f, a0, a1, 0.0, 0.14, z - 0.08, z + 0.08, band)
-        # Stepped gable with bluestone copings on every shoulder.
-        mid = 0.5 * (a0 + a1)
-        half = 0.5 * (a1 - a0) - 0.05
-        sh = gh / steps
-        for s in range(steps):
-            hk = half * (1.0 - s / steps)
-            nxt = half * (1.0 - (s + 1) / steps) if s < steps - 1 else 0.0
-            z0 = he + s * sh
-            rbox(m, f, mid - hk, mid + hk, -0.45, 0.04, z0, z0 + sh, wall, skip=("bottom",))
-            for sg in (-1.0, 1.0):
-                lo, hi = sorted((mid + sg * hk, mid + sg * nxt))
-                rbox(m, f, lo - (0.06 if sg < 0 else 0.0), hi + (0.06 if sg > 0 else 0.0), -0.5, 0.1, z0 + sh, z0 + sh + 0.14, "bluestone")
-        aw = min(1.0, half * 0.5)
-        attic = opening(mid, he + 0.5, aw, he + min(gh * 0.38, 2.2) - aw * 0.5, "round", 6)
-        pane(m, f, attic, 0.06, "glass_dark")
-        rbox(m, f, mid - aw * 0.5 - 0.15, mid + aw * 0.5 + 0.15, 0.0, 0.2, he + 0.35, he + 0.5, "bluestone")
-        zo = he + gh * 0.55
-        if half * (1.0 - 0.55) > 0.7:
-            pane(m, f, opening(mid, zo, 0.6, zo, "circle", 6), 0.06, "glass_dark")
-        # Gilt figure on the top step.
-        ztop = he + gh + 0.14
-        x, y, _ = f.p(mid, -0.2, 0.0)
-        frustum(m, x, y, ztop, ztop + 0.3, 0.3, 0.3, 6, "bluestone", phase=yaw)
-        frustum(m, x, y, ztop + 0.3, ztop + 1.2, 0.22, 0.14, 6, "gold", phase=yaw)
-        frustum(m, x, y, ztop + 1.2, ztop + 1.45, 0.12, 0.08, 6, "gold", phase=yaw)
-        gable_roof(m, f, a0 + 0.05, a1 - 0.05, -dep, -0.45, he, he + gh, "slate", ridge="d", gable_mat=wall, overhang=0.05)
-    return m
-
-
-def build_brabo_fountain(node: dict) -> Mesh:
-    """Brabo fountain (Lambeaux, 1887) on Grote Markt — octagonal basin with water, rocky
-    stepped pedestal with sea creatures, and the gilt Brabo hurling Antigoon's hand."""
-    m = Mesh()
-    x, y = float(node["x"]), float(node["y"])
-    fx, fy = node.get("facing_xy") or (x + 1.0, y)
-    nx, ny = fx - x, fy - y
-    ln = math.hypot(nx, ny) or 1.0
-    nx, ny = nx / ln, ny / ln
-    f = Frame(x, y, ny, -nx, nx, ny)
-    yaw = _yaw(f)
-    ph = yaw + math.pi / 8
-    # Step + octagonal basin with rim and water.
-    frustum(m, x, y, 0.0, 0.18, 4.3, 4.3, 8, "bluestone", phase=ph)
-    frustum(m, x, y, 0.18, 0.75, 3.8, 3.8, 8, "bluestone", phase=ph, top=False)
-    outer, inner = ngon(x, y, 3.8, 8, ph), ngon(x, y, 3.35, 8, ph)
-    m.cap(outer, [list(reversed(inner))], 0.75, "bluestone")
-    for i in range(8):
-        p0, p1 = inner[i], inner[(i + 1) % 8]
-        mx, my = 0.5 * (p0[0] + p1[0]), 0.5 * (p0[1] + p1[1])
-        m.face([(p0[0], p0[1], 0.45), (p1[0], p1[1], 0.45), (p1[0], p1[1], 0.75), (p0[0], p0[1], 0.75)], "bluestone", normal=(x - mx, y - my, 0.0))
-    m.cap(inner, [], 0.5, "water")
-    # Rocky pedestal: offset stacked drums + boulders.
-    for z0, z1, r0, r1, s, off in ((0.45, 1.9, 1.75, 1.45, 7, 0.0), (1.9, 3.0, 1.45, 1.05, 6, 0.4), (3.0, 3.9, 1.1, 0.75, 5, 1.1), (3.9, 4.4, 0.8, 0.6, 7, 0.2)):
-        frustum(m, x, y, z0, z1, r0, r1, s, "stone_grey", phase=yaw + off)
-    for k in range(6):
-        t = yaw + 0.3 + k * math.tau / 6
-        rr = 1.55 - 0.08 * (k % 3)
-        wbox(m, x + rr * math.cos(t), y + rr * math.sin(t), 0.5 + 0.35 * (k % 3), 0.9, 0.7, 0.8 + 0.2 * (k % 2), t + 0.5, "stone_grey")
-    for k in range(4):
-        t = yaw + math.pi / 4 + k * math.pi / 2
-        cx, cy = x + 1.95 * math.cos(t), y + 1.95 * math.sin(t)
-        frustum(m, cx, cy, 0.5, 1.15, 0.38, 0.22, 6, "gold", phase=t)
-        frustum(m, cx, cy, 1.15, 1.4, 0.14, 0.1, 6, "gold", phase=t)
-
-    zf = 4.4
-
-    def P(a: float, d: float, z: float) -> Vec3:
-        return f.p(a, d, zf + z)
-
-    # Antigoon's severed head under Brabo's right foot.
-    hx, hy, _ = f.p(0.45, 0.35, 0.0)
-    frustum(m, hx, hy, zf - 0.05, zf + 0.45, 0.45, 0.3, 7, "gold", phase=yaw)
-    # Legs (striding), torso, flowing cape, head.
-    _strut(m, P(-0.28, -0.05, 0.0), P(-0.12, 0.0, 1.35), 0.13, "gold", 5)
-    _strut(m, P(0.45, 0.3, 0.45), P(0.12, 0.05, 1.35), 0.13, "gold", 5)
-    frustum(m, x, y, zf + 1.25, zf + 2.25, 0.34, 0.42, 6, "gold", phase=yaw)
-    _strut(m, P(0.0, -0.28, 2.2), P(-0.2, -0.65, 0.85), 0.22, "gold", 5)
-    frustum(m, x, y, zf + 2.25, zf + 2.4, 0.12, 0.12, 6, "gold", phase=yaw)
-    frustum(m, x, y, zf + 2.4, zf + 2.75, 0.17, 0.12, 6, "gold", phase=yaw)
-    # Raised right arm flinging the hand; left arm low with the sword.
-    sh, el, hd = P(0.38, 0.0, 2.15), P(0.62, -0.15, 2.7), P(0.72, -0.05, 3.3)
-    _strut(m, sh, el, 0.09, "gold")
-    _strut(m, el, hd, 0.08, "gold")
-    _strut(m, hd, (hd[0], hd[1], hd[2] + 0.32), 0.12, "gold", 5)
-    lh = P(-0.55, 0.15, 1.45)
-    _strut(m, P(-0.38, 0.0, 2.15), lh, 0.085, "gold")
-    _strut(m, lh, P(-0.62, 0.38, 0.3), 0.04, "gold")
-    return m
-
-
 BUILDERS = {
     "nationale_bank": build_nationale_bank,
     "olv_cathedral": build_olv_cathedral,
     "stadhuis": build_stadhuis,
     "het_steen": build_het_steen,
-    "grote_markt_terrace": build_grote_markt_terrace,
 }
 
-NODE_BUILDERS = {
-    "brabo_fountain": build_brabo_fountain,
-}
+NODE_BUILDERS: dict = {}

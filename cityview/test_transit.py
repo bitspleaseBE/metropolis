@@ -171,11 +171,25 @@ class ExportTransitTests(unittest.TestCase):
                 {"id": 11, "mode": "bus", "name": "Far", "lines": ["bus 21"], "x": 500.0, "y": 500.0},
             ],
         }
-        payload = export_transit_near_spawn(layout, {"x": 0.0, "y": 0.0}, radius=100.0)
+        payload = export_transit_near_spawn(
+            layout, {"x": 0.0, "y": 0.0}, radius=100.0, fallback_radius=300.0
+        )
         self.assertEqual(len(payload["paths"]), 1)
         self.assertEqual(payload["paths"][0]["id"], 1)
         self.assertEqual(len(payload["stops"]), 1)
         self.assertEqual(payload["stops"][0]["name"], "Near")
+
+    def test_mode_missing_near_spawn_takes_its_nearest_lines(self):
+        layout = {
+            "transit_lines": [
+                {"id": 1, "mode": "bus", "lines": ["bus 21"], "points": [[0.0, 0.0], [40.0, 0.0]]},
+                {"id": 2, "mode": "tram", "lines": ["2"], "points": [[400.0, 0.0], [600.0, 0.0]]},
+                {"id": 3, "mode": "tram", "lines": ["6"], "points": [[900.0, 0.0], [1000.0, 0.0]]},
+                {"id": 4, "mode": "bus", "lines": ["bus 13"], "points": [[700.0, 0.0], [800.0, 0.0]]},
+            ],
+        }
+        payload = export_transit_near_spawn(layout, {"x": 0.0, "y": 0.0}, radius=280.0, fallback_paths=1)
+        self.assertEqual([p["id"] for p in payload["paths"]], [1, 2])
 
 
 if __name__ == "__main__":

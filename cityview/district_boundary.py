@@ -1,9 +1,8 @@
 """District boundaries from committed postcode polygons and place bboxes.
 
-Postcode rings live in ``assets/boundaries/be_postcodes.geojson`` (simplified
-Statbel-style polygons, WGS84, GeoJSON [lon, lat] rings). The 2018 Harmonie
-tile is not the full 2018 postcode: it starts from the place bbox in
-``scenes/antwerp_places.json`` and can be extended north to the Nationale Bank.
+Postcode rings come from ``assets/boundaries/antwerp_postcodes.geojson`` (OSM
+``boundary=postal_code``, see ``cityview/postcodes.py``), with the older simplified
+``be_postcodes.geojson`` as a fallback. Every district is a full postcode.
 """
 
 from __future__ import annotations
@@ -32,6 +31,14 @@ def load_postcodes(path: Path | None = None) -> dict[str, Any]:
 
 
 def postcode_ring(postcode: str, doc: dict[str, Any] | None = None) -> list[list[float]]:
+    if doc is None:
+        from cityview.postcodes import ANTWERP_POSTCODES_PATH, postcode_main_ring
+
+        if ANTWERP_POSTCODES_PATH.exists():
+            try:
+                return postcode_main_ring(postcode)
+            except KeyError:
+                pass
     doc = doc or load_postcodes()
     features = doc.get("features") or []
     for feat in features:
@@ -161,7 +168,11 @@ def clip_osm_to_ring(osm: dict[str, Any], ring: list[list[float]]) -> dict[str, 
             for m in members
         ):
             kept.append(el)
-    return {"version": osm.get("version", 0.6), "generator": "cityview.district_boundary", "elements": kept}
+    out = {"version": osm.get("version", 0.6), "generator": "cityview.district_boundary", "elements": kept}
+    for key in ("bbox", "query"):
+        if osm.get(key):
+            out[key] = osm[key]
+    return out
 
 
 def ring_excluding_bank_block(

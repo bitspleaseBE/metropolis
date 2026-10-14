@@ -29,6 +29,7 @@ def export_missing_landmark_glbs(
 
     if layout is None:
         for cand in (
+            Path("output") / district_id / f"district_{district_id.replace('-', '_')}_layout.json",
             Path("output") / f"district_{district_id.replace('-', '_')}_layout.json",
             paths.viewer / "buildings.json",
         ):

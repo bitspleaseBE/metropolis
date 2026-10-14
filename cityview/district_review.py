@@ -58,7 +58,7 @@ def _seed_tasks_2000(dossier: dict[str, Any], shops: list[dict], meta: dict) -> 
     steen = by_role.get("castle") or by_custom.get("het_steen") or {}
     hall = by_role.get("city_hall") or by_custom.get("stadhuis") or {}
     brabo = by_role.get("monument") or by_custom.get("brabo_fountain") or {}
-    terrace = by_role.get("guild_terrace") or by_custom.get("grote_markt_terrace") or {}
+    terrace = by_role.get("guild_terrace") or by_custom.get("guild_house") or {}
     shop_names = [s.get("name") for s in shops if s.get("name")][:12]
     elev = meta.get("elevations") or {}
     procedural_slots = [
@@ -106,7 +106,8 @@ def _seed_tasks_2000(dossier: dict[str, Any], shops: list[dict], meta: dict) -> 
             "geo": {"stadhuis": hall, "brabo": brabo, "terrace": terrace},
             "commands": [
                 "Confirm districts/2000-antwerpen/landmarks/manifest.json nodes/by_id",
-                "Rebuild streamed landmark GLBs for 22966134, 900000001, 496929324",
+                "python -m cityview.landmark_grote_markt sync 2000-antwerpen",
+                "Rebuild streamed landmark GLBs for 22966134, 900000001 and every guild_house / hansahuis entry",
             ],
             "proof": "review/proofs/grote-markt-setpiece.jpg",
         },

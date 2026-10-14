@@ -76,6 +76,18 @@ class RealTreeTests(unittest.TestCase):
         self.assertEqual(plan["stats"]["osm"], 1)
         self.assertEqual(plan["stats"]["dropped_duplicate"], 1)
 
+    def test_neighbouring_districts_never_both_plant_a_tree(self):
+        # Two postcodes share the x=50 border; their bboxes overlap, their rings do not.
+        pts = [(20.0, 20.0), (49.0, 30.0), (51.0, 30.0), (80.0, 20.0)]
+        west = _layout()
+        west["boundary_local"] = [[0.0, 0.0], [50.0, 0.0], [50.0, 60.0], [0.0, 60.0]]
+        east = _layout()
+        east["boundary_local"] = [[50.0, 0.0], [100.0, 0.0], [100.0, 60.0], [50.0, 60.0]]
+        w = plan_trees(west, _payload(pts), ORIGIN)["trees"]
+        e = plan_trees(east, _payload(pts), ORIGIN)["trees"]
+        self.assertEqual(sorted(round(t["x"]) for t in w), [20, 49])
+        self.assertEqual(sorted(round(t["x"]) for t in e), [51, 80])
+
     def test_nothing_inside_buildings(self):
         layout = _layout(buildings=[{"id": 1, "ring": _square(0.0, 0.0, 20.0)}])
         plan = plan_trees(layout, _payload([(10.0, 10.0), (40.0, 40.0)]), ORIGIN)

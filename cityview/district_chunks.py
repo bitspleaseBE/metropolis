@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -53,6 +54,22 @@ def is_always_core_name(name: str) -> bool:
     return any(n.startswith(p) for p in ALWAYS_CORE_PREFIXES)
 
 
+# District-wide batches split per cell carry their cell in the name: ``<batch>__c_3_-2``
+# or ``<batch>__core`` (rooftop boxes stream with the buildings they sit on).
+_CELL_TAG = re.compile(r"__(?:core|c_(-?\d+)_(-?\d+))(?:\.\d+)?$")
+
+
+def cell_tag(key: str | tuple[int, int]) -> str:
+    return "__core" if key == "core" else f"__c_{key[0]}_{key[1]}"
+
+
+def tagged_cell(name: str) -> str | tuple[int, int] | None:
+    m = _CELL_TAG.search(name or "")
+    if not m:
+        return None
+    return "core" if m.group(1) is None else (int(m.group(1)), int(m.group(2)))
+
+
 def assign_object(
     name: str,
     x: float,
@@ -63,6 +80,9 @@ def assign_object(
     core_r: float = CORE_R,
 ) -> str | tuple[int, int]:
     """Return ``\"core\"`` or ``(ix, iy)`` for an outer cell."""
+    tagged = tagged_cell(name)
+    if tagged is not None:
+        return tagged
     if is_always_core_name(name):
         return "core"
     if spawn_xy is not None:

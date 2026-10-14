@@ -19,9 +19,9 @@ export { LOAD_M, UNLOAD_M, overviewLatched };
 
 /** Whether this chunk should be resident. */
 export function chunkWanted(ctx, item) {
-  if (ctx.overview) return true;
+  if (ctx.overview && !item.neighbour) return true;
   const dist = Math.hypot(ctx.x - item.x, ctx.z - item.z);
-  return dist <= (ctx.loaded ? UNLOAD_M : LOAD_M);
+  return dist <= (ctx.loaded ? UNLOAD_M : LOAD_M) + (item.reach || 0);
 }
 
 function disposeObject(root) {
@@ -40,7 +40,8 @@ function disposeObject(root) {
   root.removeFromParent();
 }
 
-function resolveUrl(file) {
+function resolveUrl(file, baseUrl) {
+  if (baseUrl) return baseUrl + file.replace(/^\.\//, "");
   if (typeof window !== "undefined" && typeof window.districtUrl === "function") {
     return window.districtUrl(file);
   }
@@ -57,22 +58,47 @@ const yieldFrame = () => new Promise((r) => requestAnimationFrame(r));
  * @param {object} opts.catalog — chunks.json body
  * @param {(root: object) => void} [opts.onChunkLoaded]
  * @param {(root: object) => void} [opts.onChunkUnloaded]
+ * @param {string} [opts.baseUrl] — package dir ("./districts/<id>/") for a neighbour district
+ * @param {{ x: number, z: number, sx?: number, y?: number }} [opts.transform] — neighbour frame
+ *   → ours: x' = x·sx + x, z' = z + z (the east scale absorbs the cos(lat) difference)
+ * @param {{ id: string, file: string, cx: number, cy: number, reach?: number }[]} [opts.extraItems]
  */
-export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded, onChunkUnloaded }) {
+export function createChunkStream({
+  THREE,
+  scene,
+  loader,
+  catalog,
+  onChunkLoaded,
+  onChunkUnloaded,
+  baseUrl = "",
+  transform = null,
+  extraItems = [],
+  name = "DistrictChunks",
+}) {
   const cellM = Number(catalog?.cell_m) || 256;
-  const items = (catalog?.chunks || [])
+  const sx = transform ? Number(transform.sx) || 1 : 1;
+  const tx = transform ? Number(transform.x) || 0 : 0;
+  const tz = transform ? Number(transform.z) || 0 : 0;
+  const items = [...(catalog?.chunks || []), ...extraItems]
     .filter((p) => p.file && Number.isFinite(Number(p.cx)) && Number.isFinite(Number(p.cy)))
     .map((p) => ({
       id: String(p.id),
       file: String(p.file),
       // Blender XY → Three XZ (z = −y), same as landmarks.
-      x: Number(p.cx),
-      z: -Number(p.cy),
+      x: Number(p.cx) * sx + tx,
+      z: -Number(p.cy) + tz,
       cell_m: cellM,
+      reach: Number(p.reach) || 0,
+      neighbour: !!transform,
     }));
 
   const root = new THREE.Group();
-  root.name = "DistrictChunks";
+  root.name = name;
+  if (transform) {
+    root.position.set(tx, Number(transform.y) || 0, tz);
+    root.scale.x = sx;
+    root.updateMatrixWorld(true);
+  }
   scene.add(root);
 
   const resident = new Map();
@@ -126,7 +152,7 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
     const gen = st.gen;
     st.loading = true;
     try {
-      const url = resolveUrl(item.file);
+      const url = resolveUrl(item.file, baseUrl);
       const gltf = await loader.loadAsync(url);
       if (st.gen !== gen) {
         disposeObject(gltf.scene);
@@ -135,6 +161,11 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
       }
       const g = gltf.scene;
       g.name = `chunk_${item.id}`;
+      root.add(g);
+      g.updateMatrixWorld(true);
+      // Hooks may still move nodes (pavement lift); freeze world matrices afterwards.
+      onChunkLoaded?.(g);
+      g.updateMatrixWorld(true);
       g.traverse((obj) => {
         if (obj.isMesh) {
           obj.castShadow = false;
@@ -144,11 +175,8 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
         }
         obj.matrixWorldAutoUpdate = false;
       });
-      g.updateMatrixWorld(true);
-      root.add(g);
       st.group = g;
       st.loading = false;
-      onChunkLoaded?.(g);
     } catch (err) {
       st.loading = false;
       if (st.gen === gen) st.failed = true;
@@ -199,7 +227,7 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
 
   /** Expand play bounds from chunk centres (Three XZ). */
   function expandBounds(bounds) {
-    if (!bounds || !items.length) return bounds;
+    if (!bounds || !items.length || transform) return bounds;
     const pad = (cellM / Math.SQRT2) * 0.85;
     let { minX, maxX, minZ, maxZ } = bounds;
     for (const item of items) {
@@ -211,5 +239,11 @@ export function createChunkStream({ THREE, scene, loader, catalog, onChunkLoaded
     return { minX, maxX, minZ, maxZ };
   }
 
-  return { update, prime, expandBounds, items, root };
+  /** Whether chunk `id` is attached (its detailed meshes are on screen). */
+  function isResident(id) {
+    const st = resident.get(id);
+    return !!(st && st.group);
+  }
+
+  return { update, prime, expandBounds, isResident, items, root };
 }

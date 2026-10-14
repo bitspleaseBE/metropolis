@@ -1,6 +1,6 @@
 /**
  * Resolve the nearest named OSM street for a world (x, z) position.
- * roads.json points are Blender XY; Three.js uses z = -y.
+ * map.json (district-wide) / roads.json points are Blender XY; Three.js uses z = -y.
  */
 
 import { fetchJsonCached } from "./json-cache.js";
@@ -28,38 +28,68 @@ function distToSegment2(px, pz, ax, az, bx, bz) {
 export async function createStreetLocator(opts = {}) {
   const roadsUrl = opts.roadsUrl || "./roads.json";
   const sidewalkM = opts.sidewalkM ?? SIDEWALK_M;
-  /** @type {{ name: string, half: number, segments: Float32Array }[]} */
-  const named = [];
+  // Segments bucketed on a coarse grid: map.json names every street of the postcode.
+  const CELL = 48;
+  /** @type {Map<string, { name: string, half: number, seg: Float32Array }[]>} */
+  const grid = new Map();
 
-  try {
-    const res = await fetchJsonCached(roadsUrl);
-    if (res.ok) {
-      const data = await res.json();
-      for (const road of data.roads || []) {
-        const name = String(road.name || "").trim();
-        if (!name) continue;
-        const pts = road.points || [];
-        if (pts.length < 2) continue;
-        const half = (Number(road.width) || 6) * 0.5 + sidewalkM;
-        const segs = new Float32Array((pts.length - 1) * 4);
-        for (let i = 0; i < pts.length - 1; i++) {
-          const a = pts[i];
-          const b = pts[i + 1];
-          const ax = Array.isArray(a) ? a[0] : a.x || 0;
-          const ay = Array.isArray(a) ? a[1] : a.y || 0;
-          const bx = Array.isArray(b) ? b[0] : b.x || 0;
-          const by = Array.isArray(b) ? b[1] : b.y || 0;
-          const o = i * 4;
-          segs[o] = ax;
-          segs[o + 1] = -ay;
-          segs[o + 2] = bx;
-          segs[o + 3] = -by;
+  function addRoads(roads, t = null) {
+    const sx = t ? Number(t.sx) || 1 : 1;
+    const dx = t ? Number(t.x) || 0 : 0;
+    const dz = t ? Number(t.z) || 0 : 0;
+    for (const road of roads || []) {
+      const name = String(road.name || "").trim();
+      if (!name) continue;
+      const pts = road.points || [];
+      if (pts.length < 2) continue;
+      const half = (Number(road.width) || 6) * 0.5 + sidewalkM;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        const seg = new Float32Array([
+          (Array.isArray(a) ? a[0] : a.x || 0) * sx + dx,
+          -(Array.isArray(a) ? a[1] : a.y || 0) + dz,
+          (Array.isArray(b) ? b[0] : b.x || 0) * sx + dx,
+          -(Array.isArray(b) ? b[1] : b.y || 0) + dz,
+        ]);
+        const ix0 = Math.floor((Math.min(seg[0], seg[2]) - half) / CELL);
+        const ix1 = Math.floor((Math.max(seg[0], seg[2]) + half) / CELL);
+        const iz0 = Math.floor((Math.min(seg[1], seg[3]) - half) / CELL);
+        const iz1 = Math.floor((Math.max(seg[1], seg[3]) + half) / CELL);
+        const entry = { name, half, seg };
+        for (let ix = ix0; ix <= ix1; ix++) {
+          for (let iz = iz0; iz <= iz1; iz++) {
+            const k = ix + "," + iz;
+            let list = grid.get(k);
+            if (!list) grid.set(k, (list = []));
+            list.push(entry);
+          }
         }
-        named.push({ name, half, segments: segs });
       }
     }
-  } catch {
-    console.warn("StreetLocator: could not load roads");
+  }
+
+  async function load(url) {
+    try {
+      const res = await fetchJsonCached(url);
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const map = await load(opts.mapUrl || "./map.json");
+  if (map) addRoads(map.roads);
+  else {
+    const data = await load(roadsUrl);
+    if (data) addRoads(data.roads);
+    else console.warn("StreetLocator: could not load roads");
+  }
+
+  /** Merge a neighbour district's named streets, shifted by `t` = { x, z, sx }. */
+  async function addSource(base, t) {
+    const doc = await load(base + "map.json");
+    if (doc) addRoads(doc.roads, t);
   }
 
   let current = "";
@@ -70,15 +100,13 @@ export async function createStreetLocator(opts = {}) {
   function locate(x, z) {
     let bestName = "";
     let bestD2 = Infinity;
-    for (const road of named) {
-      const maxD2 = road.half * road.half;
-      const segs = road.segments;
-      for (let i = 0; i < segs.length; i += 4) {
-        const d2 = distToSegment2(x, z, segs[i], segs[i + 1], segs[i + 2], segs[i + 3]);
-        if (d2 <= maxD2 && d2 < bestD2) {
-          bestD2 = d2;
-          bestName = road.name;
-        }
+    const list = grid.get(Math.floor(x / CELL) + "," + Math.floor(z / CELL));
+    if (!list) return null;
+    for (const { name, half, seg } of list) {
+      const d2 = distToSegment2(x, z, seg[0], seg[1], seg[2], seg[3]);
+      if (d2 <= half * half && d2 < bestD2) {
+        bestD2 = d2;
+        bestName = name;
       }
     }
     return bestName || null;
@@ -116,5 +144,5 @@ export async function createStreetLocator(opts = {}) {
     return { street: current || null, changed: false };
   }
 
-  return { locate, update, get current() { return current || null; } };
+  return { locate, update, addSource, get current() { return current || null; } };
 }

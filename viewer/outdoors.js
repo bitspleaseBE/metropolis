@@ -1,7 +1,8 @@
 /**
  * Keep the walker outdoors: building footprints (empty extruded boxes) are
- * solid volumes with no interior. Rings come from buildings.json (Blender XY);
- * Three.js uses z = -y, same as roads.json / street-locate.js.
+ * solid volumes with no interior. Courtyard holes in buildings.json are
+ * walkable. Rings come from buildings.json (Blender XY); Three.js uses
+ * z = -y, same as roads.json / street-locate.js.
  */
 
 import { fetchJsonCached } from "./json-cache.js";
@@ -48,34 +49,64 @@ export async function createOutdoorsGuard(_opts = {}) {
   const buildings = [];
   /** @type {Float32Array[]} */
   const roadSegs = [];
+  /** OSM walk ways through a footprint (arcades, passages): open ground inside a solid. */
+  const passages = [];
+
+  /** Ingest a buildings.json body; `t` maps a neighbour frame into ours (x' = x·sx + dx). */
+  function ingest(data, t = null) {
+    const sx = t ? Number(t.sx) || 1 : 1;
+    const dx = t ? Number(t.x) || 0 : 0;
+    const dz = t ? Number(t.z) || 0 : 0;
+    const ringFrom = (pts) => {
+      const ring = new Float32Array(pts.length * 2);
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minZ = Infinity;
+      let maxZ = -Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const x = (Array.isArray(p) ? Number(p[0]) : Number(p.x) || 0) * sx + dx;
+        const y = Array.isArray(p) ? Number(p[1]) : Number(p.y) || 0;
+        const z = -y + dz;
+        ring[i * 2] = x;
+        ring[i * 2 + 1] = z;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (z < minZ) minZ = z;
+        if (z > maxZ) maxZ = z;
+      }
+      return { minX, maxX, minZ, maxZ, ring };
+    };
+    const added = [];
+    for (const b of (data && data.buildings) || []) {
+      const pts = b.ring || [];
+      if (pts.length < 3) continue;
+      const outer = ringFrom(pts);
+      const holes = [];
+      for (const hole of b.holes || []) {
+        if ((hole || []).length >= 3) holes.push(ringFrom(hole).ring);
+      }
+      added.push({ ...outer, holes });
+    }
+    for (const p of (data && data.passages) || []) {
+      if (!Array.isArray(p) || p.length < 5) continue;
+      const hw = Number(p[4]) || 1.2;
+      const ax = Number(p[0]) * sx + dx;
+      const az = -Number(p[1]) + dz;
+      const bx = Number(p[2]) * sx + dx;
+      const bz = -Number(p[3]) + dz;
+      passages.push({
+        ax, az, bx, bz, hw2: hw * hw,
+        minX: Math.min(ax, bx) - hw, maxX: Math.max(ax, bx) + hw,
+        minZ: Math.min(az, bz) - hw, maxZ: Math.max(az, bz) + hw,
+      });
+    }
+    return added;
+  }
 
   try {
     const res = await fetchJsonCached("./buildings.json");
-    if (res.ok) {
-      const data = await res.json();
-      for (const b of data.buildings || []) {
-        const pts = b.ring || [];
-        if (pts.length < 3) continue;
-        const ring = new Float32Array(pts.length * 2);
-        let minX = Infinity;
-        let maxX = -Infinity;
-        let minZ = Infinity;
-        let maxZ = -Infinity;
-        for (let i = 0; i < pts.length; i++) {
-          const p = pts[i];
-          const x = Array.isArray(p) ? Number(p[0]) : Number(p.x) || 0;
-          const y = Array.isArray(p) ? Number(p[1]) : Number(p.y) || 0;
-          const z = -y;
-          ring[i * 2] = x;
-          ring[i * 2 + 1] = z;
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (z < minZ) minZ = z;
-          if (z > maxZ) maxZ = z;
-        }
-        buildings.push({ minX, maxX, minZ, maxZ, ring });
-      }
-    }
+    if (res.ok) buildings.push(...ingest(await res.json()));
   } catch {
     console.warn("OutdoorsGuard: could not load buildings.json");
   }
@@ -108,10 +139,67 @@ export async function createOutdoorsGuard(_opts = {}) {
     console.warn("OutdoorsGuard: could not load roads.json");
   }
 
+  // buildings.json covers the whole postcode: bucket footprints on a coarse grid so
+  // a lookup only tests the handful of rings around the walker.
+  const CELL = 32;
+  const grid = new Map();
+  const cellKey = (ix, iz) => ix * 73856093 + iz * 19349663;
+  function bucket(b) {
+    const ix0 = Math.floor(b.minX / CELL);
+    const ix1 = Math.floor(b.maxX / CELL);
+    const iz0 = Math.floor(b.minZ / CELL);
+    const iz1 = Math.floor(b.maxZ / CELL);
+    for (let ix = ix0; ix <= ix1; ix++) {
+      for (let iz = iz0; iz <= iz1; iz++) {
+        const k = cellKey(ix, iz);
+        let list = grid.get(k);
+        if (!list) grid.set(k, (list = []));
+        list.push(b);
+      }
+    }
+  }
+  for (const b of buildings) bucket(b);
+  const passageGrid = new Map();
+  let passagesBucketed = 0;
+  function bucketPassages() {
+    for (; passagesBucketed < passages.length; passagesBucketed++) {
+      const p = passages[passagesBucketed];
+      for (let ix = Math.floor(p.minX / CELL); ix <= Math.floor(p.maxX / CELL); ix++) {
+        for (let iz = Math.floor(p.minZ / CELL); iz <= Math.floor(p.maxZ / CELL); iz++) {
+          const k = cellKey(ix, iz);
+          let list = passageGrid.get(k);
+          if (!list) passageGrid.set(k, (list = []));
+          list.push(p);
+        }
+      }
+    }
+  }
+  bucketPassages();
+  const EMPTY = [];
+
+  function inPassage(x, z) {
+    const cell = passageGrid.get(cellKey(Math.floor(x / CELL), Math.floor(z / CELL))) || EMPTY;
+    for (const p of cell) {
+      if (x < p.minX || x > p.maxX || z < p.minZ || z > p.maxZ) continue;
+      if (distToSegment2(x, z, p.ax, p.az, p.bx, p.bz).d2 <= p.hw2) return true;
+    }
+    return false;
+  }
+
   function insideBuilding(x, z) {
-    for (const b of buildings) {
+    if (inPassage(x, z)) return false;
+    const cell = grid.get(cellKey(Math.floor(x / CELL), Math.floor(z / CELL))) || EMPTY;
+    for (const b of cell) {
       if (x < b.minX || x > b.maxX || z < b.minZ || z > b.maxZ) continue;
-      if (pointInRing(x, z, b.ring)) return true;
+      if (!pointInRing(x, z, b.ring)) continue;
+      let inHole = false;
+      for (const hole of b.holes || []) {
+        if (pointInRing(x, z, hole)) {
+          inHole = true;
+          break;
+        }
+      }
+      if (!inHole) return true;
     }
     return false;
   }
@@ -135,15 +223,34 @@ export async function createOutdoorsGuard(_opts = {}) {
     return { x: sx, z: sz, yaw, d2: best };
   }
 
+  /** Closest open ground on rings of 16 samples, 1.5 m apart, out to 60 m. */
+  function nearestOpenGround(x, z) {
+    for (let r = 1.5; r <= 60; r += 1.5) {
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * Math.PI * 2;
+        const px = x + Math.cos(a) * r;
+        const pz = z + Math.sin(a) * r;
+        if (!insideBuilding(px, pz)) return { x: px, z: pz };
+      }
+    }
+    return null;
+  }
+
   /**
-   * If (x,z) is inside / against a building, snap to the nearest road centreline.
+   * If (x,z) is inside a building, move to the nearest road centreline when one is
+   * close, otherwise to the nearest open ground.
    * @returns {{ x: number, z: number, yaw: number, snapped: boolean }}
    */
   function snapOutdoors(x, z, yaw = 0) {
     if (!buildings.length) return { x, z, yaw, snapped: false };
     if (!insideBuilding(x, z)) return { x, z, yaw, snapped: false };
-    if (!roadSegs.length) return { x, z, yaw, snapped: false };
-    const pose = nearestRoadPose(x, z);
+    // roads.json only covers the streets around spawn; prefer a road when it is close.
+    const pose = roadSegs.length ? nearestRoadPose(x, z) : null;
+    if (!pose || pose.d2 > 30 * 30) {
+      const open = nearestOpenGround(x, z);
+      if (open) return { x: open.x, z: open.z, yaw, snapped: true };
+      if (!pose) return { x, z, yaw, snapped: false };
+    }
     // Prefer road yaw when we had to relocate; keep caller yaw if already outdoors.
     return { x: pose.x, z: pose.z, yaw: pose.yaw, snapped: true };
   }
@@ -185,10 +292,24 @@ export async function createOutdoorsGuard(_opts = {}) {
     return true;
   }
 
+  /** Merge a neighbour district's footprints (shifted into this frame) into the guard. */
+  function addBuildings(data, transform) {
+    const added = ingest(data, transform);
+    for (const b of added) {
+      buildings.push(b);
+      bucket(b);
+    }
+    bucketPassages();
+    return added.length;
+  }
+
   return {
     ready: buildings.length > 0,
-    count: buildings.length,
+    get count() {
+      return buildings.length;
+    },
     insideBuilding,
+    addBuildings,
     snapOutdoors,
     ensureOutdoors,
     rejectIfIndoors,

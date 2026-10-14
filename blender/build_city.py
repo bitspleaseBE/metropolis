@@ -12,14 +12,15 @@ from pathlib import Path
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
+from mathutils.geometry import tessellate_polygon
 
 # Pure-Python rail clearance helpers live in the cityview package (no bpy).
 _REPO_ROOT = str(Path(__file__).resolve().parents[1])
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 from cityview import facade_kit, surface_kit  # noqa: E402
-from cityview import landmark_kit, landmark_models  # noqa: E402
-from cityview import climbers, kerbs, railclear, rooftop  # noqa: E402
+from cityview import landmark_kit, landmark_models, lod2_mesh  # noqa: E402
+from cityview import city3d, climbers, district_chunks, kerbs, railclear, rooftop  # noqa: E402
 from cityview import parking as parking_plan  # noqa: E402
 from cityview.landmarks import LANDMARKS_DIR, resolve_landmark_photo  # noqa: E402
 from cityview.railclear import RailIndex  # noqa: E402
@@ -42,6 +43,7 @@ import benches_blender  # noqa: E402
 import barriers_blender  # noqa: E402
 import clutter_blender  # noqa: E402
 import courtyards_blender  # noqa: E402
+import port_blender  # noqa: E402
 import roadware_blender  # noqa: E402
 import trees_blender  # noqa: E402
 try:
@@ -625,6 +627,43 @@ def ring_mesh(
     return mesh
 
 
+def _tessellate(loops) -> list[tuple[int, int, int]]:
+    return [tuple(t) for t in tessellate_polygon([[Vector(p) for p in loop] for loop in loops])]
+
+
+def add_lod2_shell(name: str, lod2: dict, kind: str, mat, uv_tile_m: float | None) -> int:
+    """Real LOD2 walls or roof (city3d) as one mesh; returns the triangle count."""
+    verts = lod2.get("v") or []
+    tris = lod2_mesh.shell_triangles(lod2, kind, _tessellate)
+    if not tris:
+        return 0
+    bm = bmesh.new()
+    vmap: dict[int, bmesh.types.BMVert] = {}
+
+    def bv(i: int):
+        if i not in vmap:
+            vmap[i] = bm.verts.new(verts[i])
+        return vmap[i]
+
+    for a, b, c in tris:
+        try:
+            bm.faces.new((bv(a), bv(b), bv(c)))
+        except ValueError:  # same triangle twice (shared by two GRB solids of one building)
+            pass
+    bm.normal_update()
+    if uv_tile_m and kind == "wall":
+        apply_planar_uvs(bm.faces, bm.loops.layers.uv.verify(), uv_tile_m)
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    if uv_tile_m and kind == "roof":
+        apply_roof_uvs(mesh, uv_tile_m)
+    obj = bpy.data.objects.new(name, mesh)
+    assign(link(obj), mat)
+    return len(tris)
+
+
 def _ring_signed_area(ring: list[list[float]]) -> float:
     n = len(ring)
     if n < 3:
@@ -875,13 +914,14 @@ def add_lod2_roof(
         add_mansard_roof(name, ring, eaves_z, h, mat, uv_tile_m)
 
 
-# Chimneys and roof plant are merged into one mesh per material for the whole tile
-# (hundreds of tiny boxes as separate glTF nodes would bloat the GLB).
+# Chimneys and roof plant are merged into one mesh per material per chunk cell
+# (hundreds of tiny boxes as separate glTF nodes would bloat the GLB). The cell
+# tag makes each batch stream with the buildings it sits on.
 ROOFTOP_BM: dict[str, tuple] = {}
 
 
-def _rooftop_box(mat, size, center, yaw: float) -> None:
-    key = mat.name
+def _rooftop_box(mat, size, center, yaw: float, cell: str = "__core") -> None:
+    key = mat.name + cell
     if key not in ROOFTOP_BM:
         ROOFTOP_BM[key] = (bmesh.new(), mat)
     # Chimneys are flushed later as one mesh, so the pavement lift has to be
@@ -911,7 +951,14 @@ def flush_rooftop() -> int:
 
 
 def add_chimneys(
-    ring: list[list[float]], eaves_z: float, roof_h: float, shape: str, mats: dict, seed: int, pots: bool
+    ring: list[list[float]],
+    eaves_z: float,
+    roof_h: float,
+    shape: str,
+    mats: dict,
+    seed: int,
+    pots: bool,
+    cell: str = "__core",
 ) -> int:
     """Brick stacks on the ridge / party walls (``cityview.rooftop``): shaft, stone cap and,
     near the spawn, a corbelled course plus terracotta pots (a handful of boxes per stack)."""
@@ -922,22 +969,54 @@ def add_chimneys(
     for c in rooftop.plan_chimneys(ring, eaves_z, roof_h, shape, seed):
         x, y, yaw = c["x"], c["y"], c["yaw"]
         h = c["h"]
-        _rooftop_box(brick, (c["w"], c["d"], h), (x, y, c["z"] + h * 0.5), yaw)
+        _rooftop_box(brick, (c["w"], c["d"], h), (x, y, c["z"] + h * 0.5), yaw, cell)
         top = c["z"] + h
         if pots:  # LOD: the corbel is a near-spawn detail; far stacks are shaft + cap only
-            _rooftop_box(brick, (c["w"] + 0.1, c["d"] + 0.1, 0.1), (x, y, top - 0.22), yaw)
-        _rooftop_box(cap_mat, (c["w"] + 0.2, c["d"] + 0.2, 0.1), (x, y, top + 0.05), yaw)
+            _rooftop_box(brick, (c["w"] + 0.1, c["d"] + 0.1, 0.1), (x, y, top - 0.22), yaw, cell)
+        _rooftop_box(cap_mat, (c["w"] + 0.2, c["d"] + 0.2, 0.1), (x, y, top + 0.05), yaw, cell)
         if pots:
             n = int(c["pots"])
             for k in range(n):
                 off = (k - (n - 1) * 0.5) * (c["w"] * 0.62 / max(1, n - 1)) if n > 1 else 0.0
-                _rooftop_box(pot_mat, (0.17, 0.17, 0.36), (x + math.cos(yaw) * off, y + math.sin(yaw) * off, top + 0.28), yaw)
+                _rooftop_box(
+                    pot_mat, (0.17, 0.17, 0.36), (x + math.cos(yaw) * off, y + math.sin(yaw) * off, top + 0.28), yaw, cell
+                )
         placed += 1
     return placed
 
 
-def add_roof_plant(ring: list[list[float]], top_z: float, mats: dict, seed: int, detail: bool) -> int:
-    """Flat-roof stair head, plant units, vent stack and aerials (``cityview.rooftop``)."""
+# Roof heights under one plant box may differ by this much (else it would hang over a step).
+ROOF_PLANT_STEP_M = 0.35
+
+
+def _seat_on_roof(it: dict, roof_z) -> float | None:
+    """Base z for a plant box on a measured roof: centre + corners must all land on it."""
+    c, s = math.cos(it["yaw"]), math.sin(it["yaw"])
+    hx, hy = it["sx"] * 0.5, it["sy"] * 0.5
+    zs = []
+    for u, v in ((0.0, 0.0), (hx, hy), (-hx, hy), (hx, -hy), (-hx, -hy)):
+        z = roof_z(it["x"] + u * c - v * s, it["y"] + u * s + v * c)
+        if z is None:
+            return None
+        zs.append(z)
+    if max(zs) - min(zs) > ROOF_PLANT_STEP_M:
+        return None
+    return max(zs) - 0.02
+
+
+def add_roof_plant(
+    ring: list[list[float]],
+    top_z: float,
+    mats: dict,
+    seed: int,
+    detail: bool,
+    cell: str = "__core",
+    roof_z=None,
+) -> int:
+    """Flat-roof stair head, plant units, vent stack and aerials (``cityview.rooftop``).
+
+    ``roof_z(x, y)`` (measured LOD2 roof) seats each box on the roof level under it and
+    drops boxes that would straddle a step or overhang the roof edge."""
     box_mat = mats.get("roof_box") or mats["roof"]
     metal = mats.get("roof_metal") or box_mat
     placed = 0
@@ -945,10 +1024,23 @@ def add_roof_plant(ring: list[list[float]], top_z: float, mats: dict, seed: int,
         kind = it["kind"]
         if kind in {"vent", "aerial"} and not detail:
             continue
+        if roof_z is not None:
+            z = _seat_on_roof(it, roof_z)
+            if z is None:
+                continue
+            it["z"] = z
         sz = it["sz"]
-        _rooftop_box(box_mat if kind == "stair" else metal, (it["sx"], it["sy"], sz), (it["x"], it["y"], it["z"] + sz * 0.5), it["yaw"])
+        _rooftop_box(
+            box_mat if kind == "stair" else metal,
+            (it["sx"], it["sy"], sz),
+            (it["x"], it["y"], it["z"] + sz * 0.5),
+            it["yaw"],
+            cell,
+        )
         if kind == "stair":
-            _rooftop_box(metal, (it["sx"] + 0.15, it["sy"] + 0.15, 0.12), (it["x"], it["y"], it["z"] + sz + 0.04), it["yaw"])
+            _rooftop_box(
+                metal, (it["sx"] + 0.15, it["sy"] + 0.15, 0.12), (it["x"], it["y"], it["z"] + sz + 0.04), it["yaw"], cell
+            )
         placed += 1
     return placed
 
@@ -1302,6 +1394,10 @@ def add_photo_facade(
     return True
 
 
+# Lowest street wall that still gets a front (lower: boundary walls, bike sheds).
+LOW_FACADE_MIN_M = 2.8
+
+
 def add_street_facade(
     name: str,
     p0: list[float],
@@ -1327,12 +1423,17 @@ def add_street_facade(
     x0, y0 = p0
     x1, y1 = p1
     length = math.hypot(x1 - x0, y1 - y0)
-    if length < 2.6 or eaves_z < 4.0:
+    if length < 2.6 or eaves_z < LOW_FACADE_MIN_M:
         return
     # Churches skip the townhouse photo atlas — arched procedural elevations instead.
+    # Single-storey walls (garages, kiosks, shop extensions) are too low for the
+    # 10-17 m atlas elevations and get the procedural one-storey front.
+    if eaves_z < 4.0:
+        floors = 1
     if (
         FACADE_PHOTO_MAT is not None
         and not prefer_procedural
+        and eaves_z >= 4.0
         and add_photo_facade(
             name, p0, p1, outward, eaves_z, floors, style_name, mats, mat_key, detail, near_spawn, climber
         )
@@ -1436,7 +1537,7 @@ def add_street_facade(
             px = ox + math.cos(yaw) * along + nx * 0.14
             py = oy + math.sin(yaw) * along + ny * 0.14
             if fi == 0 and bi == door_bay:
-                dh = min(2.35, floor_h * 0.75)
+                dh = min(2.35, floor_h * 0.75, eaves_z - plinth_h - 0.2)
                 door_w = min(1.15, win_w * 0.9)
                 openings.append((along, door_w * 0.5 + 0.1, plinth_h, plinth_h + dh))
                 # Recessed door plane — stoop starts at the reveal and steps out.
@@ -1629,6 +1730,17 @@ def add_street_facade(
 
 DORMER_STATS = {"dormers": 0}
 ROOF_STATS: dict[str, int] = {"measured": 0, "fallback": 0}
+LOD2_STATS: dict[str, int] = {"buildings": 0, "wall_tris": 0, "roof_tris": 0, "annex": 0}
+FACADE_STATS: dict[str, int] = {"measured": 0, "raised": 0, "lowered": 0, "kept": 0, "open_space": 0, "pilotis": 0}
+
+
+PILOTIS_FACADE_MAX_M2 = 3000.0
+
+
+def lift_object(name: str, dz: float) -> None:
+    obj = bpy.data.objects.get(name)
+    if obj is not None:
+        obj.location.z += dz
 
 
 def add_dormers(
@@ -2308,6 +2420,14 @@ def make_landmark_materials(surface_mat_fn, church_mats: dict) -> dict:
         "door": (principled("lm_door", (0.13, 0.07, 0.04, 1.0), 0.8), 2.0),
         "canopy": (principled("lm_canopy", (0.84, 0.82, 0.74, 1.0), 0.8), 2.0),
         "water": (principled("lm_water", (0.07, 0.11, 0.12, 1.0), 0.08), 2.0),
+        "stone_rose": (textured("lm_stone_rose", stone_img, (0.72, 0.56, 0.52, 1.0), 0.8, tint=(1.0, 0.84, 0.8)), tile("stone_buff")),
+        "bronze": (principled("lm_bronze", (0.24, 0.42, 0.36, 1.0), 0.45, metallic=0.7), 2.0),
+        "rock": (principled("lm_rock", (0.16, 0.15, 0.14, 1.0), 0.7), 2.0),
+        "cloth_red": (principled("lm_cloth_red", (0.62, 0.06, 0.06, 1.0), 0.9), 2.0),
+        "cloth_yellow": (principled("lm_cloth_yellow", (0.86, 0.68, 0.06, 1.0), 0.9), 2.0),
+        "cloth_blue": (principled("lm_cloth_blue", (0.06, 0.16, 0.52, 1.0), 0.9), 2.0),
+        "cloth_white": (principled("lm_cloth_white", (0.86, 0.86, 0.84, 1.0), 0.9), 2.0),
+        "cloth_green": (principled("lm_cloth_green", (0.08, 0.38, 0.16, 1.0), 0.9), 2.0),
     }
 
 
@@ -2825,6 +2945,12 @@ def add_building(
     eaves = float(bldg.get("height", 12.0))
     roof_h = float(bldg.get("roof_height") or max(1.2, eaves * 0.15))
     floors = int(bldg.get("floors") or max(1, round(eaves / 3.15)))
+    # Measured Antwerpen 3D solid: real walls + roof replace the extrusion and roof kit.
+    lod2 = None if standin else bldg.get("lod2")
+    measured = bldg.get("city3d") or {}
+    annex = facade_kit.facade_class(floors, str(measured.get("part") or "")) == "annex"
+    if lod2:
+        roof_h = float(bldg.get("roof_height") or 0.0)
     type_roof = (bldg.get("palette") or {}).get("roof_kind") or STYLES.get(type_id, {}).get("roof_kind")
     shape = bldg.get("roof_shape") or type_roof or "mansard"
     wall = mats["wall"].get(style_name) or mats["wall"].get(type_id) or mats["wall"]["eclectic"]
@@ -2837,10 +2963,11 @@ def add_building(
     body_h = max(2.5, eaves)
     church_mats = mats.get("church") or {}
     if type_id == "church":
-        body_h = min(18.0, max(13.0, eaves * 0.65))
-        shape = "hip"
-        # Steeper slate nave pitch (Heilige Geest saddle reads ~40–45°).
-        roof_h = max(5.5, body_h * 0.42)
+        if not lod2:
+            body_h = min(18.0, max(13.0, eaves * 0.65))
+            shape = "hip"
+            # Steeper slate nave pitch (Heilige Geest saddle reads ~40–45°).
+            roof_h = max(5.5, body_h * 0.42)
         if church_mats.get("brick") is not None:
             wall = church_mats["brick"]
         if church_mats.get("slate") is not None:
@@ -2851,11 +2978,20 @@ def add_building(
     wall_tile_m = float(facade_kit.WALL_TILES[facade_kit.wall_tile_for_type(base_type, TYPES_DOC)]["tile_m"])
     if type_id == "church" and church_mats.get("brick_tile_m"):
         wall_tile_m = float(church_mats["brick_tile_m"])
-    add_ring(name, ring, body_h, 0.0, wall, uv_tile_m=wall_tile_m, holes=holes)
+    if lod2:
+        LOD2_STATS["buildings"] += 1
+        LOD2_STATS["annex"] += int(annex)
+        LOD2_STATS["wall_tris"] += add_lod2_shell(name, lod2, "wall", wall, wall_tile_m)
+    else:
+        add_ring(name, ring, body_h, 0.0, wall, uv_tile_m=wall_tile_m, holes=holes)
     roof_uv_tile = None
     roof_pool = mats.get("roof_tex") or {}
-    # Irregular footprints fall back to a mansard stack inside add_lod2_roof.
-    eff_shape = "mansard" if shape in {"gable", "hip"} and not _prism_roof_ok(ring) else shape
+    if lod2:
+        # RoofType picks the roof family: flat membrane vs pitched tile / slate.
+        eff_shape = "flat" if shape == "flat" else (shape if shape in {"hip", "mansard"} else "gable")
+    else:
+        # Irregular footprints fall back to a mansard stack inside add_lod2_roof.
+        eff_shape = "mansard" if shape in {"gable", "hip"} and not _prism_roof_ok(ring) else shape
     if type_id == "church" and church_mats.get("slate") is not None:
         # Churches always wear slate — matches spire/turret and the real Harmonie roofs.
         roof = church_mats["slate"]
@@ -2863,9 +2999,11 @@ def add_building(
         ROOF_STATS["roof_slate"] = ROOF_STATS.get("roof_slate", 0) + 1
     elif roof_pool:
         bseed = int(bid) if str(bid).lstrip("-").isdigit() else 1
-        measured = surface_kit.roof_choice(ROOF_AERIAL, bid, eff_shape)
-        if measured and measured[0] in roof_pool:
-            surf, cluster = measured  # the roof colour seen from above in the orthophoto
+        # LOD2 parts reuse the aerial sample of the OSM building they were joined to.
+        aerial_id = measured.get("osm_host") or bid
+        aerial = surface_kit.roof_choice(ROOF_AERIAL, aerial_id, eff_shape)
+        if aerial and aerial[0] in roof_pool:
+            surf, cluster = aerial  # the roof colour seen from above in the orthophoto
         else:
             surf = surface_kit.pick_roof_surface(eff_shape, bseed)
             cluster = surface_kit.pick_roof_cluster(ROOF_AERIAL, surf, bseed)
@@ -2874,11 +3012,19 @@ def add_building(
             roof = variants[cluster % len(variants)]
             roof_uv_tile = surface_kit.surface_tile_m(surf)
             ROOF_STATS[surf] = ROOF_STATS.get(surf, 0) + 1
-            ROOF_STATS["measured" if measured else "fallback"] += 1
-    add_lod2_roof(f"{name}_roof", ring, body_h, roof_h, shape, roof, uv_tile_m=roof_uv_tile, holes=holes)
+            ROOF_STATS["measured" if aerial else "fallback"] += 1
+    if lod2:
+        LOD2_STATS["roof_tris"] += add_lod2_shell(f"{name}_roof", lod2, "roof", roof, roof_uv_tile or 2.0)
+    else:
+        add_lod2_roof(f"{name}_roof", ring, body_h, roof_h, shape, roof, uv_tile_m=roof_uv_tile, holes=holes)
 
     cx = sum(p[0] for p in ring) / len(ring)
     cy = sum(p[1] for p in ring) / len(ring)
+    # Same cell as the peel gives this building's wall mesh (bounding-box centre).
+    xs, ys = [p[0] for p in ring], [p[1] for p in ring]
+    roof_cell = district_chunks.cell_tag(
+        district_chunks.assign_object(name, (min(xs) + max(xs)) * 0.5, (min(ys) + max(ys)) * 0.5, spawn_xy=spawn_xy)
+    )
     detail = "full"
     dist = 0.0
     near_spawn = False
@@ -2888,6 +3034,27 @@ def add_building(
         if dist > 140.0:
             detail = "simple"
     primary = _primary_street_edge(bldg, ring, spawn_xy)
+
+    def facade_height(p0, p1, default_h: float, default_floors: int) -> tuple[float, int]:
+        # A LOD2 solid's "eaves" is its lowest roof (often a rear annex); each street
+        # elevation follows the measured wall it covers instead.
+        z = city3d.street_edge_eaves(bldg, p0, p1) if lod2 else None
+        if z is None:
+            return default_h, default_floors
+        FACADE_STATS["measured"] += 1
+        FACADE_STATS["raised" if z > default_h + 1.5 else "lowered" if z < default_h - 1.5 else "kept"] += 1
+        h = max(2.5, z)
+        return h, city3d.facade_floors(measured.get("storeys"), default_floors, default_h - base_z, h - base_z)
+
+    # Parts on pilotis: elevations start at the underside of the solid, not the pavement.
+    # Very large floating parts are hall roofs and canopies (Centraal's train shed),
+    # which keep their measured walls.
+    base_z = 0.0
+    if lod2 and measured.get("floating"):
+        if abs(city3d.polygon_area_2d(ring)) > PILOTIS_FACADE_MAX_M2:
+            return
+        base_z = max(0.0, min(float(p[2]) for p in lod2["v"]))
+        FACADE_STATS["pilotis"] += 1
 
     # Landmark churches/hospitals keep tower + street detail even when far — skyline
     # recognition matters more than LOD savings on a handful of sites.
@@ -2918,9 +3085,11 @@ def add_building(
                 "stone_tile_m": 2.4,
                 "slate_tile_m": 1.8,
             }
-            add_church_tower(name, ring, body_h, massing, cm, primary)
+            if not lod2:
+                # The LOD2 solid already carries the measured tower and spire.
+                add_church_tower(name, ring, body_h, massing, cm, primary)
             # Mesh-only west front owns portals + lancets — NEVER a facade photograph.
-            if primary is not None:
+            if primary is not None and not lod2:
                 i0, i1 = int(primary["i0"]), int(primary["i1"])
                 p0, p1 = ring[i0], ring[i1]
                 nx, ny = primary.get("outward") or [0.0, 1.0]
@@ -2965,13 +3134,14 @@ def add_building(
                 continue
             # Churches force the textured church brick wall mat on procedural sides.
             side_style = "church" if type_id == "church" and "church" in mats["wall"] else style_name
+            edge_h, edge_floors = facade_height(ring[i0], ring[i1], body_h, floors)
             add_street_facade(
                 f"{name}_facade{ei}",
                 ring[i0],
                 ring[i1],
                 edge.get("outward") or [0.0, 1.0],
-                body_h,
-                max(3, min(5, floors)) if type_id == "church" else floors,
+                edge_h,
+                max(3, min(5, edge_floors)) if type_id == "church" else edge_floors,
                 side_style,
                 mats,
                 detail=detail,
@@ -2985,22 +3155,45 @@ def add_building(
     # corbels, pots, vents and aerials are near-spawn only.
     # Stand-in chimneys land in the shared rooftop batch, which cannot be hidden
     # when the detailed GLB replaces this one building.
-    if standin or far or holes:
+    if lod2:
+        # Chimneys / dormers assume the procedural roof planes; only flat LOD2 roofs get plant.
+        if eff_shape == "flat" and not (far or holes or annex):
+            ROOFTOP_STATS["plant"] += add_roof_plant(
+                ring,
+                float(measured.get("height_max") or eaves),
+                {**mats, "roof": roof},
+                abs(seed_id) or 1,
+                near_spawn,
+                roof_cell,
+                roof_z=lambda x, y: city3d.roof_z_at(bldg, x, y),
+            )
+        if str(measured.get("part") or "") in facade_kit.OPEN_PARTS:
+            return  # canopies / shelters: plain wall, no street elevation
+    elif standin or far or holes:
         pass
     elif eff_shape != "flat" and seed_id % 2 == 0:
         ROOFTOP_STATS["chimneys"] += add_chimneys(
-            ring, max(2.5, eaves), roof_h, eff_shape, {**mats, "roof": roof}, abs(seed_id) or 1, near_spawn
+            ring, max(2.5, eaves), roof_h, eff_shape, {**mats, "roof": roof}, abs(seed_id) or 1, near_spawn, roof_cell
         )
     elif eff_shape == "flat":
         flat_top = max(2.5, eaves) + min(0.55, max(0.35, roof_h))
-        ROOFTOP_STATS["plant"] += add_roof_plant(ring, flat_top, {**mats, "roof": roof}, abs(seed_id) or 1, near_spawn)
+        ROOFTOP_STATS["plant"] += add_roof_plant(
+            ring, flat_top, {**mats, "roof": roof}, abs(seed_id) or 1, near_spawn, roof_cell
+        )
 
-    for ei, edge in enumerate(bldg.get("street_edges") or []):
+    street_edges = list(bldg.get("street_edges") or [])
+    # Walls over a park or water are seen as much as street fronts; they get the
+    # elevation but no shop fascia, dormers or climbing plant.
+    facade_edges = street_edges + list(bldg.get("open_edges") or [])
+    for ei, edge in enumerate(facade_edges):
         i0 = int(edge["i0"])
         i1 = int(edge["i1"])
         if i0 >= len(ring) or i1 >= len(ring):
             continue
-        if detail == "full" and eff_shape == "mansard" and roof_h >= 1.5:
+        on_street = ei < len(street_edges)
+        if not on_street:
+            FACADE_STATS["open_space"] += 1
+        if detail == "full" and on_street and eff_shape == "mansard" and roof_h >= 1.5 and not lod2:
             DORMER_STATS["dormers"] += add_dormers(
                 f"{name}_dormers{ei}",
                 ring[i0],
@@ -3014,22 +3207,26 @@ def add_building(
                 mats["trim"].get(style_name) or mats["trim"]["eclectic"],
                 int(bid) if str(bid).lstrip("-").isdigit() else 1,
             )
+        edge_h, edge_floors = facade_height(ring[i0], ring[i1], max(2.5, eaves), floors)
         add_street_facade(
             f"{name}_facade{ei}",
             ring[i0],
             ring[i1],
             edge.get("outward") or [0.0, 1.0],
-            max(2.5, eaves),
-            floors,
+            edge_h - base_z,
+            edge_floors,
             style_name,
             mats,
-            detail=detail,
+            # A part on pilotis has no pavement under its walls: no stoops or awnings.
+            detail="simple" if base_z > 0.0 else detail,
             window_kind=window_kind,
             near_spawn=near_spawn,
-            climber=CLIMBERS.get((int(bid), ei)) if detail == "full" else None,
+            climber=CLIMBERS.get((int(bid), ei)) if detail == "full" and on_street else None,
         )
+        if base_z > 0.0:
+            lift_object(f"{name}_facade{ei}", base_z)
         brand_key = bldg.get("brand_key") or (bldg.get("use") or {}).get("brand_key")
-        if detail == "full" and edge is primary and brand_key:
+        if detail == "full" and on_street and edge is primary and brand_key:
             add_supermarket_fascia(
                 f"{name}_fascia{ei}",
                 ring[i0],
@@ -4394,7 +4591,9 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     )
     print(f"Sidewalk/curb strips: {walks}")
 
-    veg = trees_blender.add_vegetation(layout, RAILS, trunk_mat, canopy_mats, conifer_mat, bush_mats)
+    veg = trees_blender.add_vegetation(
+        layout, RAILS, trunk_mat, canopy_mats, conifer_mat, bush_mats, spawn_xy=spawn_xy
+    )
     print(f"Trees and shrubs (surveyed + sparse-park fill): {veg}")
     park_am = add_park_amenities(layout.get("parks") or [], spawn_xy, path_mat, hedge_mat)
     print(f"Park amenities: {park_am}")
@@ -4413,6 +4612,17 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     print(f"Courtyard barriers (OSM walls, hedges, fences): {barrier_stats}")
     clutter_stats = clutter_blender.add_clutter(layout, RAILS, clutter_mats)
     print(f"Street clutter (OSM-mapped bins, hoops, bollards, hydrants, ...): {clutter_stats}")
+    if layout.get("port_containers") or layout.get("port_cranes"):
+        port_mats = {
+            "container_red": principled("container_red", (0.42, 0.06, 0.04, 1.0), 0.7),
+            "container_blue": principled("container_blue", (0.04, 0.12, 0.32, 1.0), 0.7),
+            "container_green": principled("container_green", (0.06, 0.24, 0.12, 1.0), 0.7),
+            "container_grey": principled("container_grey", (0.36, 0.37, 0.38, 1.0), 0.7),
+            "container_orange": principled("container_orange", (0.62, 0.22, 0.03, 1.0), 0.7),
+            "crane": principled("crane_steel", (0.55, 0.06, 0.04, 1.0), 0.6, metallic=0.4),
+        }
+        port_stats = port_blender.add_port_props(layout, port_mats)
+        print(f"Port props (container stacks, OSM cranes): {port_stats}")
     if velo_blender is not None:
         # Linear form of sRGB #E10613. The exporter writes this socket straight into
         # baseColorFactor and the viewer applies the sRGB curve, so a hex-like
@@ -4426,7 +4636,7 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
             "tire": principled("velo_tire", (0.08, 0.08, 0.08, 1.0), 0.95),
             "signal_red": principled("velo_accent_red", velo_red, 0.38),
         }
-        velo_stats = velo_blender.add_velo_stations(layout, RAILS, velo_mats)
+        velo_stats = velo_blender.add_velo_stations(layout, RAILS, velo_mats, spawn_xy=spawn_xy)
         print(f"Velo docks (GBFS stations): {velo_stats}")
 
     signal_placements = collect_signal_placements(layout, spawn_xy=spawn_xy)
@@ -4529,6 +4739,8 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     print(f"Mansard dormers: {DORMER_STATS['dormers']}; textured roof families: {sorted((mats.get('roof_tex') or {}))}")
     print(f"Climbing-plant leaf clusters: {CLIMBER_STATS['leaves']}")
     print(f"Aerial-matched roofs: {ROOF_STATS}")
+    print(f"LOD2 (Antwerpen 3D) shells: {LOD2_STATS}")
+    print(f"Street elevations on measured walls: {FACADE_STATS}")
     print(
         f"Photo facades: {STATS['photo_edges']} street edges, {STATS['photo_quads']} textured quads "
         f"(atlas {'on' if FACADE_PHOTO_MAT is not None else 'OFF'}); doorsteps: {STATS['door_steps']}; awnings: {STATS['awnings']}; window reveals: {STATS['reveals']}; downpipes: {STATS['downpipes']}"
@@ -4631,6 +4843,8 @@ def peel_spatial_chunks(
         # Cameras stay in core via name prefixes; skip other non-exportables.
         if obj.type == "CAMERA":
             continue
+        if obj.parent is not None:
+            continue  # travels with its parent (instanced tree groups)
         x, y = _world_xy(obj)
         key = assign_object(obj.name, x, y, spawn_xy=spawn_xy, cell_m=cell_m, core_r=core_r)
         if key == "core":
@@ -4649,6 +4863,7 @@ def peel_spatial_chunks(
         if not objs:
             continue
         bpy.ops.object.select_all(action="DESELECT")
+        objs = objs + [c for o in objs for c in o.children_recursive]
         for obj in objs:
             if obj is None or obj.name not in bpy.data.objects:
                 continue
@@ -4670,6 +4885,8 @@ def peel_spatial_chunks(
             export_jpeg_quality=85,
             export_yup=True,
             export_cameras=False,
+            export_gpu_instances=True,
+            export_vertex_color="MATERIAL",
         )
         print(f"Wrote {path} ({path.stat().st_size / 1e6:.2f} MB, {len(live)} objs)")
         exported_cells.append((ix, iy))
@@ -4713,6 +4930,8 @@ def export_outputs(
         export_jpeg_quality=85,
         export_cameras=True,
         export_yup=True,
+        export_gpu_instances=True,
+        export_vertex_color="MATERIAL",
     )
     # Compat: publish + legacy paths still look for {scene_name}.glb.
     import shutil as _shutil
@@ -4810,6 +5029,8 @@ def main() -> None:
             export_jpeg_quality=85,
             export_cameras=True,
             export_yup=True,
+            export_gpu_instances=True,
+            export_vertex_color="MATERIAL",
         )
         import shutil as _shutil
 
