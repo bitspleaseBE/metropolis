@@ -23,8 +23,11 @@
       button.on, .row.on { background: #2a3344; color: #fff; }
       #stage { position: relative; }
       #stage canvas { display: block; width: 100%; height: 100%; }
-      #clips { position: absolute; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
-      #clips button { width: auto; background: rgba(20, 22, 28, 0.8); border: 1px solid #3a4150; }
+      #clips { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; gap: 8px; max-width: calc(100% - 24px); }
+      .combo { display: flex; flex-direction: column; gap: 4px; }
+      .combo label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #9aa3b2; text-shadow: 0 1px 2px #000; }
+      .combo .opts { display: flex; gap: 4px; flex-wrap: wrap; }
+      #clips button { width: auto; background: rgba(20, 22, 28, 0.8); border: 1px solid #3a4150; padding: 5px 8px; }
       #clips button.on { background: #3d6df0; border-color: #3d6df0; }
       #status { position: absolute; left: 12px; bottom: 12px; right: 12px; color: #d5dbe6; font-size: 13px; text-shadow: 0 1px 2px #000; }
       .pass { color: #8ddeaf; }
@@ -45,7 +48,7 @@
   <body>
     <aside>
       <h1>Movement</h1>
-      <p class="note">Click a person. Drag the view to turn around them, and scroll to zoom. The cast is the game's own avatar, driven at the game's speeds over a scrolling grid. The Velo and the step are the game's vehicles at their real size. Crowd riders show the bicycle, the bakfiets, and the step.</p>
+      <p class="note">Click a person. Drag the view to turn around them, and scroll to zoom. Pick a gait, an action, and a mode — punch on idle stands still; walk + punch mixes like the game. The cast uses the game avatar; crowd riders use the bicycle, bakfiets, and step.</p>
       <button id="check" type="button">Check cast and crowd</button>
       <h2>Cast</h2>
       <ul id="cast"></ul>
@@ -76,34 +79,109 @@
       import { JUMP, MOVE, makeJump, stepJump } from "./player-motion.js";
 
       const CAST = ["pieter", "mo", "jacob"];
-      // The cast is the game's own avatar (viewer/players.js) driven like index.html drives it:
-      // the same speeds, strikes, hop, Velo, and share scooter. The ground scrolls at the speed,
-      // so a sliding foot shows. Speeds come from viewer/player-motion.js.
-      const DRIVE = {
+      // Three independent rows compose the gallery drive. The game mixes gait + action itself;
+      // here you pick each row to test combinations (punch defaults to idle = standing still).
+      const GAIT = {
         Idle: { speed: 0 },
-        // A light push on the touch / pad stick: the walk clip slowed right down.
-        Creep: { speed: 0.6 },
-        Walk: { speed: 1.3 },
+        Creep: { speed: 1.0 },
+        Walk: { speed: 1.5 },
         Jog: { speed: MOVE.walk.speed },
         Run: { speed: MOVE.walk.speed * MOVE.walk.boost },
         Jump: { speed: JUMP.hop, jump: true },
-        // Punch overlays the upper body on the gait — keep moving so legs stay in stride.
-        Punch: { speed: MOVE.walk.speed * MOVE.walk.boost * 0.9, strike: "punch" },
-        Kick: { speed: 0, strike: "kick" },
-        Velo: { speed: MOVE.velo.speed * 0.75, kind: "velo" },
-        Step: { speed: MOVE.scooter.speed * 0.75, kind: "scooter" },
-        // Combat (viewer/player-armed.js): aimed walk is the jog at the game's 0.55 aim pace.
-        Pistol: { speed: 0, weapon: "pistol", aim: 1 },
-        "Aim walk": { speed: MOVE.walk.speed * 0.55, weapon: "rifle", aim: 1 },
-        Strafe: { speed: MOVE.walk.speed * 0.55, weapon: "rifle", aim: 1, strafe: Math.PI / 2 },
-        // W+D while aiming: forward plus the 0.85 strafe pace, blended aimWalk + aimStrafe.
-        "Aim diagonal": { speed: Math.hypot(1, 0.85) * MOVE.walk.speed * 0.55, weapon: "rifle", aim: 1, strafe: Math.atan2(0.85, 1) },
-        Reload: { speed: 0, weapon: "rifle", aim: 0, act: "reload" },
-        Stab: { speed: 0, weapon: "knife", act: "stab" },
       };
-      const CAST_CLIPS = Object.keys(DRIVE);
+      const ACTION = {
+        Idle: {},
+        Punch: { strike: "punch" },
+        Kick: { strike: "kick" },
+        Pistol: { weapon: "pistol", aim: 1 },
+        Aim: { weapon: "rifle", aim: 1 },
+        "Diagonal aim": { weapon: "rifle", aim: 1, strafe: Math.atan2(0.85, 1), diagonal: true },
+        Reload: { weapon: "rifle", aim: 0, act: "reload" },
+        Stab: { weapon: "knife", act: "stab" },
+      };
+      const MODE = {
+        "On foot": { kind: "walk" },
+        Velo: { kind: "velo", speed: MOVE.velo.speed * 0.75 },
+        Step: { kind: "scooter", speed: MOVE.scooter.speed * 0.75 },
+        Bicycle: { kind: "bicycle", speed: MOVE.velo.speed * 0.75 },
+      };
+      const GAIT_OPTS = Object.keys(GAIT);
+      const ACTION_OPTS = Object.keys(ACTION);
+      const CAST_MODE_OPTS = ["On foot", "Velo", "Step", "Bicycle"];
+      const NPC_GAIT_OPTS = ["Idle", "Walk"];
+      const NPC_ACTION_OPTS = ["Idle"];
+      const NPC_MODE_OPTS = ["On foot", "Bicycle", "Bakfiets", "Step"];
+      const combo = { gait: "Idle", action: "Idle", mode: "On foot" };
       const CAST_YAW = Math.PI; // the avatar faces −Z at yaw 0; turn it toward the camera
       const RIDERS = ["Remy", "James"];
+
+      /** Merge the three combo rows into one drive spec for the cast avatar. */
+      function driveSpec() {
+        const gait = GAIT[combo.gait] || GAIT.Idle;
+        const action = ACTION[combo.action] || ACTION.Idle;
+        const mode = MODE[combo.mode] || MODE["On foot"];
+        if (mode.kind === "velo" || mode.kind === "scooter" || mode.kind === "bicycle") {
+          // Cast Bicycle rides the game Velo (same avatar path); NPCs use the micromobility bicycle.
+          return {
+            kind: mode.kind === "scooter" ? "scooter" : "velo",
+            speed: mode.speed,
+            strike: action.strike,
+            weapon: action.weapon,
+            aim: action.aim,
+            act: action.act,
+            strafe: action.strafe || 0,
+          };
+        }
+        let speed = gait.speed ?? 0;
+        // Aimed feet use the game's 0.55 aim pace when the gait is moving.
+        if (action.aim && speed > 0) {
+          speed = action.diagonal
+            ? Math.hypot(1, 0.85) * MOVE.walk.speed * 0.55
+            : MOVE.walk.speed * 0.55;
+        }
+        return {
+          kind: "walk",
+          speed,
+          jump: gait.jump,
+          strike: action.strike,
+          weapon: action.weapon,
+          aim: action.aim,
+          act: action.act,
+          strafe: action.strafe || 0,
+        };
+      }
+
+      function comboLabel() {
+        return [combo.gait, combo.action, combo.mode].join(" · ");
+      }
+
+      /** Pick the pass rule for the current combo (action wins, then mode, then gait). */
+      function verdictKey() {
+        if (combo.mode !== "On foot") return combo.mode;
+        if (combo.action === "Aim") return combo.gait === "Idle" ? "Pistol" : "Aim";
+        if (combo.action !== "Idle") return combo.action;
+        return combo.gait;
+      }
+
+      // Default-row presets for Check — punch stands on Idle, aim walks when gait moves.
+      const CAST_CHECKS = [
+        { gait: "Idle", action: "Idle", mode: "On foot", label: "Idle" },
+        { gait: "Creep", action: "Idle", mode: "On foot", label: "Creep" },
+        { gait: "Walk", action: "Idle", mode: "On foot", label: "Walk" },
+        { gait: "Jog", action: "Idle", mode: "On foot", label: "Jog" },
+        { gait: "Run", action: "Idle", mode: "On foot", label: "Run" },
+        { gait: "Jump", action: "Idle", mode: "On foot", label: "Jump" },
+        { gait: "Idle", action: "Punch", mode: "On foot", label: "Punch" },
+        { gait: "Idle", action: "Kick", mode: "On foot", label: "Kick" },
+        { gait: "Idle", action: "Idle", mode: "Velo", label: "Velo" },
+        { gait: "Idle", action: "Idle", mode: "Step", label: "Step" },
+        { gait: "Idle", action: "Idle", mode: "Bicycle", label: "Bicycle" },
+        { gait: "Idle", action: "Pistol", mode: "On foot", label: "Pistol" },
+        { gait: "Walk", action: "Aim", mode: "On foot", label: "Aim" },
+        { gait: "Walk", action: "Diagonal aim", mode: "On foot", label: "Diagonal aim" },
+        { gait: "Idle", action: "Reload", mode: "On foot", label: "Reload" },
+        { gait: "Idle", action: "Stab", mode: "On foot", label: "Stab" },
+      ];
       const BONE = {
         pelvis: ["bip01pelvis", "hips"],
         head: ["bip01head", "head"],
@@ -231,13 +309,13 @@
       scene.add(castVelo, castScooter);
       const avatar = createPlayerAvatar(THREE, scene, { remember: false });
       avatar.setVisible(false);
-      const drive = { name: "Idle", t: 0, travel: 0, jump: makeJump(), rest: 0, presses: 0 };
+      const drive = { t: 0, travel: 0, jump: makeJump(), rest: 0, presses: 0 };
       // Aim at a point 20 m ahead of the avatar (it faces +Z here), as the crosshair would.
       const castFight = { aim: 0, aimPoint: new THREE.Vector3(0, 1.45, 20), moveYaw: CAST_YAW, dead: false };
 
       /** One game frame for the cast: vehicle first, then the avatar, as index.html does. */
       function driveCast(dt) {
-        const spec = DRIVE[drive.name] || DRIVE.Idle;
+        const spec = driveSpec();
         const kind = spec.kind || "walk";
         const speed = spec.speed;
         drive.t += dt;
@@ -293,13 +371,36 @@
         grid.position.z = -(Math.cos(a) * drive.travel) % GRID_CELL;
       }
 
-      function setDrive(name) {
-        Object.assign(drive, { name, t: 0, rest: 0.25, presses: 0, jump: makeJump() });
+      function resetDrive() {
+        Object.assign(drive, { t: 0, rest: 0.25, presses: 0, jump: makeJump() });
       }
 
       let current = null;
-      let clipName = "Walk";
+      let clipName = "Walk"; // NPC vehicle / walk clip name derived from combo.mode
       const clock = new THREE.Clock();
+
+      function renderComboRows(rows, onPick) {
+        clipsEl.replaceChildren(
+          ...rows.map(({ key, label, opts, value }) => {
+            const row = document.createElement("div");
+            row.className = "combo";
+            const lab = document.createElement("label");
+            lab.textContent = label;
+            const optsEl = document.createElement("div");
+            optsEl.className = "opts";
+            for (const n of opts) {
+              const b = document.createElement("button");
+              b.type = "button";
+              b.textContent = n;
+              b.className = n === value ? "on" : "";
+              b.onclick = () => onPick(key, n);
+              optsEl.appendChild(b);
+            }
+            row.append(lab, optsEl);
+            return row;
+          })
+        );
+      }
 
       function dropScale(clip) {
         if (!clip?.tracks?.length) return clip || null;
@@ -431,7 +532,7 @@
           const pass = m.hand >= 0.2;
           return { pass, text: `hand ${(m.hand * 100).toFixed(0)} cm` };
         }
-        if (name === "Aim walk" || name === "Strafe" || name === "Aim diagonal") {
+        if (name === "Aim" || name === "Diagonal aim" || name === "Aim walk" || name === "Strafe" || name === "Aim diagonal") {
           // Arms are locked on the gun; only the feet travel.
           const pass = m.foot >= 0.2;
           return { pass, text: `feet ${(m.foot * 100).toFixed(0)} cm` };
@@ -715,10 +816,10 @@
         return { kind: "cast", id };
       }
 
-      /** The cast avatar starts each clip from standing, then settles for a moment. */
-      function startCast(name) {
+      /** The cast avatar starts each combo from standing, then settles for a moment. */
+      function startCast() {
         clearStage();
-        setDrive(name);
+        resetDrive();
         avatar.update(0, { x: 0, y: MOVE.walk.eye, z: 0 }, 0, CAST_YAW, "walk");
         for (let i = 0; i < 24; i++) driveCast(1 / 60);
         avatar.setVisible(true);
@@ -726,43 +827,45 @@
       }
 
       function playCast(model) {
-        if (!CAST_CLIPS.includes(clipName)) clipName = "Walk";
-        orbit.target.set(0, DRIVE[clipName].kind ? 1.0 : 0.9, 0);
-        clipsEl.replaceChildren(
-          ...CAST_CLIPS.map((n) => {
-            const b = document.createElement("button");
-            b.type = "button";
-            b.textContent = n;
-            b.className = n === clipName ? "on" : "";
-            b.onclick = () => {
-              clipName = n;
-              playCast(model);
-            };
-            return b;
-          })
+        if (!GAIT_OPTS.includes(combo.gait)) combo.gait = "Idle";
+        if (!ACTION_OPTS.includes(combo.action)) combo.action = "Idle";
+        if (!CAST_MODE_OPTS.includes(combo.mode)) combo.mode = "On foot";
+        const spec = driveSpec();
+        orbit.target.set(0, spec.kind !== "walk" ? 1.0 : 0.9, 0);
+        renderComboRows(
+          [
+            { key: "gait", label: "Gait", opts: GAIT_OPTS, value: combo.gait },
+            { key: "action", label: "Action", opts: ACTION_OPTS, value: combo.action },
+            { key: "mode", label: "Mode", opts: CAST_MODE_OPTS, value: combo.mode },
+          ],
+          (key, n) => {
+            combo[key] = n;
+            playCast(model);
+          }
         );
-        const v = verdict(clipName, measureCast(clipName));
-        startCast(clipName);
+        const label = comboLabel();
+        const v = verdict(verdictKey(), measureCast());
+        startCast();
         statusEl.replaceChildren();
         const mark = document.createElement("span");
         mark.className = v.pass ? "pass" : "fail";
         mark.textContent = v.pass ? "Natural" : "Stiff";
-        const sp = DRIVE[clipName].speed;
-        statusEl.append(mark, ` — ${clipName}${sp ? ` at ${sp.toFixed(1)} m/s` : ""}: ${v.text}`);
+        const sp = spec.speed;
+        statusEl.append(mark, ` — ${label}${sp ? ` at ${sp.toFixed(1)} m/s` : ""}: ${v.text}`);
       }
 
-      /** Run the game avatar through one clip off-screen and measure how far the limbs travel. */
-      function measureCast(name) {
-        setDrive(name);
+      /** Run the game avatar through the current combo off-screen and measure limb travel. */
+      function measureCast() {
+        resetDrive();
         avatar.update(0, { x: 0, y: MOVE.walk.eye, z: 0 }, 0, CAST_YAW, "walk");
         for (let i = 0; i < 30; i++) driveCast(1 / 60);
         const seconds =
-          name === "Idle" || name === "Pistol"
-            ? 1.2
-            : name === "Punch" || name === "Kick" || name === "Reload"
-              ? 2.4
-              : name === "Jump"
-                ? 1.6
+          combo.action === "Punch" || combo.action === "Kick" || combo.action === "Reload"
+            ? 2.4
+            : combo.gait === "Jump"
+              ? 1.6
+              : combo.gait === "Idle" && (combo.action === "Idle" || combo.action === "Pistol")
+                ? 1.2
                 : 1.5;
         return measure(avatar.root, { update: driveCast }, seconds);
       }
@@ -777,6 +880,8 @@
         fit(root);
         const mixer = new THREE.AnimationMixer(root);
         const clips = new Map();
+        const walk = dropScale(body.animations[0]);
+        if (walk) clips.set("Walk", walk);
         if (riding) {
           clips.set("Bicycle", riding);
           clips.set("Bakfiets", riding);
@@ -805,24 +910,45 @@
         return { root, mixer, clips, kind: "crowd" };
       }
 
+      /** Map NPC combo rows onto a clip name the rider/crowd loaders already know. */
+      function npcClipName(model) {
+        if (combo.mode === "Bicycle" && model.clips.has("Bicycle")) return "Bicycle";
+        if (combo.mode === "Bakfiets" && model.clips.has("Bakfiets")) return "Bakfiets";
+        if (combo.mode === "Step" && model.clips.has("Step")) return "Step";
+        if (combo.mode === "On foot") {
+          if (combo.gait === "Idle" && model.clips.has("Idle")) return "Idle";
+          if (model.clips.has("Walk")) return "Walk";
+        }
+        const order = ["Walk", "Bicycle", "Bakfiets", "Step"];
+        return order.find((n) => model.clips.has(n)) || [...model.clips.keys()][0];
+      }
+
       function playLoaded(model) {
         if (model.kind === "cast") return playCast(model);
-        const order = ["Walk", "Bicycle", "Bakfiets", "Step"];
-        const names = order.filter((n) => model.clips.has(n));
-        if (!names.includes(clipName)) clipName = names[0] || "Walk";
+        const gaitOpts = NPC_GAIT_OPTS.filter((n) => n === "Idle" || model.clips.has("Walk") || model.clips.has(n));
+        const modeOpts = NPC_MODE_OPTS.filter((n) => {
+          if (n === "On foot") return model.clips.has("Walk") || model.clips.has("Idle") || model.kind === "rider";
+          return model.clips.has(n);
+        });
+        if (!gaitOpts.includes(combo.gait)) combo.gait = gaitOpts.includes("Idle") ? "Idle" : gaitOpts[0] || "Walk";
+        if (!NPC_ACTION_OPTS.includes(combo.action)) combo.action = "Idle";
+        if (!modeOpts.includes(combo.mode)) combo.mode = modeOpts.includes("On foot") ? "On foot" : modeOpts[0] || "On foot";
+        clipName = npcClipName(model);
+        if (!clipName) {
+          statusEl.textContent = "No clip";
+          return;
+        }
         orbit.target.set(0, 0.9, clipName === "Bakfiets" ? 0.3 : 0);
-        clipsEl.replaceChildren(
-          ...names.map((n) => {
-            const b = document.createElement("button");
-            b.type = "button";
-            b.textContent = n;
-            b.className = n === clipName ? "on" : "";
-            b.onclick = () => {
-              clipName = n;
-              playLoaded(model);
-            };
-            return b;
-          })
+        renderComboRows(
+          [
+            { key: "gait", label: "Gait", opts: gaitOpts, value: combo.gait },
+            { key: "action", label: "Action", opts: NPC_ACTION_OPTS, value: combo.action },
+            { key: "mode", label: "Mode", opts: modeOpts, value: combo.mode },
+          ],
+          (key, n) => {
+            combo[key] = n;
+            playLoaded(model);
+          }
         );
         const clip = model.clips.get(clipName);
         if (!clip) {
@@ -830,17 +956,30 @@
           return;
         }
         const action = model.mixer.clipAction(clip);
+        // Idle on foot: freeze the walk at the bind-ish first frame.
+        const idleFeet = combo.mode === "On foot" && combo.gait === "Idle";
         show(model.root, model.mixer, action);
-        const m = measure(model.root, model.mixer, Math.min(clip.duration, clipName === "Idle" ? 1.2 : clip.duration));
-        const v = verdict(clipName, m);
+        if (idleFeet) {
+          action.paused = true;
+          action.time = 0;
+          model.mixer.update(0);
+        }
+        const m = measure(
+          model.root,
+          idleFeet ? { update: () => {} } : model.mixer,
+          idleFeet ? 1.2 : Math.min(clip.duration, 1.4)
+        );
+        const v = verdict(idleFeet ? "Idle" : clipName, m);
         statusEl.replaceChildren();
         const mark = document.createElement("span");
         mark.className = v.pass ? "pass" : "fail";
         mark.textContent = v.pass ? "Natural" : "Stiff";
-        statusEl.append(mark, ` — ${clipName}: ${v.text}`);
-        action.reset().play();
-        model.mixer.update(0);
-        ridePose(model.root, clipName, 0);
+        statusEl.append(mark, ` — ${comboLabel()}: ${v.text}`);
+        if (!idleFeet) {
+          action.reset().play();
+          model.mixer.update(0);
+          ridePose(model.root, clipName, 0);
+        }
       }
 
       const castList = document.getElementById("cast");
@@ -864,10 +1003,16 @@
         const b = document.createElement("button");
         b.type = "button";
         b.textContent = id[0].toUpperCase() + id.slice(1);
-        b.onclick = () => select(b, () => loadCast(id));
+        b.onclick = () => {
+          Object.assign(combo, { gait: "Idle", action: "Idle", mode: "On foot" });
+          select(b, () => loadCast(id));
+        };
         li.appendChild(b);
         castList.appendChild(li);
-        if (id === "pieter") select(b, () => loadCast(id));
+        if (id === "pieter") {
+          Object.assign(combo, { gait: "Idle", action: "Idle", mode: "On foot" });
+          select(b, () => loadCast(id));
+        }
       }
 
       for (const name of RIDERS) {
@@ -876,7 +1021,7 @@
         b.type = "button";
         b.textContent = name;
         b.onclick = () => {
-          clipName = "Bicycle";
+          Object.assign(combo, { gait: "Idle", action: "Idle", mode: "Bicycle" });
           select(b, () => loadRider(name));
         };
         li.appendChild(b);
@@ -890,7 +1035,7 @@
         b.type = "button";
         b.textContent = person.id.replaceAll("_", " ");
         b.onclick = () => {
-          clipName = "Walk";
+          Object.assign(combo, { gait: "Idle", action: "Idle", mode: "On foot" });
           select(b, () => loadCrowd(person.file, person.id));
         };
         li.appendChild(b);
@@ -909,18 +1054,21 @@
         summaryEl.textContent = "Checking…";
         const rows = [];
         const shownCast = current?.kind === "cast" ? avatar.playerId : null;
+        const saved = { ...combo };
         current = null;
         for (const id of CAST) {
           await loadCast(id);
-          for (const name of CAST_CLIPS) {
-            const v = verdict(name, measureCast(name));
-            rows.push({ label: `${id} ${name}`, ...v });
-            addResult(`${id} ${name}`, v.pass, v.text);
+          for (const check of CAST_CHECKS) {
+            Object.assign(combo, check);
+            const v = verdict(verdictKey(), measureCast());
+            rows.push({ label: `${id} ${check.label}`, ...v });
+            addResult(`${id} ${check.label}`, v.pass, v.text);
           }
         }
+        Object.assign(combo, saved);
         if (shownCast) {
           await loadCast(shownCast);
-          startCast(clipName);
+          startCast();
         } else {
           avatar.setVisible(false);
         }
@@ -985,7 +1133,8 @@
         if (current?.kind === "cast") {
           driveCast(dt);
         } else if (current) {
-          current.mixer.update(dt);
+          const idleFeet = combo.mode === "On foot" && combo.gait === "Idle";
+          if (!idleFeet) current.mixer.update(dt);
           const mesh = VEHICLE[clipName];
           if (mesh?.visible) {
             const dur = current.action.getClip()?.duration || 1;

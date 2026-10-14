@@ -176,9 +176,10 @@ export function createCombatPlayer(THREE, o) {
     get raised() {
       return combat.armed && combat.aimBlend > 0.35;
     },
-    /** While raised the body turns with the camera, otherwise it faces travel. */
+    /** While aiming the body turns with the camera; otherwise it faces travel so a
+     *  post-shot aim blend does not leave you walking sideways. */
     bodyYaw(travelYaw) {
-      return this.raised ? thirdPerson.yaw() : travelYaw;
+      return combat.armed && combat.aiming ? thirdPerson.yaw() : travelYaw;
     },
     /** Walking pace multiplier while aiming (GTA slows you to an aimed walk). */
     get footScale() {

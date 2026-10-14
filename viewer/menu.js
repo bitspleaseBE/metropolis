@@ -39,6 +39,7 @@ export function createMenu(hooks) {
         <button type="button" class="cm-item" data-action="maps">Maps</button>
         <button type="button" class="cm-item" data-action="characters">Characters</button>
         <button type="button" class="cm-item" data-action="controls">Controls</button>
+        <button type="button" class="cm-item" data-action="about">About</button>
       </nav>
       <p class="cm-status" id="cm-status">Keyboard &amp; mouse ready</p>
     </div>
@@ -110,6 +111,20 @@ export function createMenu(hooks) {
         <button type="button" class="cm-hid" id="cm-disconnect" hidden>Disconnect</button>
       </div>
       <ul class="cm-controls-list" id="cm-controls-list"></ul>
+      <button type="button" class="cm-back" data-back>Back</button>
+    </div>
+    <div class="cm-panel" id="cm-about" hidden>
+      <p class="cm-eyebrow">About</p>
+      <h2>Metropolis Antwerp</h2>
+      <p class="cm-about-lead">I love Antwerp. It's just for fun.</p>
+      <ul class="cm-about-sources">
+        <li>Bron: Stad Antwerpen — Team Data &amp; Digitaal Vlaanderen.</li>
+        <li>
+          Map data ©
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
+          contributors.
+        </li>
+      </ul>
       <button type="button" class="cm-back" data-back>Back</button>
     </div>
     <footer class="cm-footer">
@@ -574,6 +589,7 @@ export function createMenu(hooks) {
     root.querySelector("#cm-maps").hidden = next !== "maps";
     root.querySelector("#cm-cast").hidden = next !== "cast";
     root.querySelector("#cm-controls").hidden = next !== "controls";
+    root.querySelector("#cm-about").hidden = next !== "about";
     const plate = root.querySelector("#cm-portrait-wrap");
     if (plate) plate.hidden = next !== "home";
     if (next === "cast") setCastView();
@@ -640,6 +656,8 @@ export function createMenu(hooks) {
       showView("cast");
     } else if (action === "controls") {
       showView("controls");
+    } else if (action === "about") {
+      showView("about");
     }
   }
 

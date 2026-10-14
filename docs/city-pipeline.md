@@ -2,7 +2,7 @@
 
 This is the maintainer note for the generated Antwerp tiles. Read it when you need to fix a street you cannot walk, add a landmark, or understand what a district rebuild will overwrite.
 
-The walk viewer is free in the horizontal plane. Nothing paints a navmesh. After each step the player is pushed out of **building rings**, **props** (fences, hedges, trunks, benches), **Velo rails**, **café tables**, and **vehicles**. Streets, parks and squares stay walkable only if those solids leave a gap. That contract lives in code (`cityview/walkability.py`) and is checked at the end of every district build.
+The walk viewer is free in the horizontal plane. Nothing paints a navmesh. After each step the player is pushed out of **building rings**, **props** (fences, hedges, trunks, benches), **Velo rails**, **café tables**, **vehicles**, and **deep water** (Scheldt, docks). Shallow ponds are not solids: you wade through them (slower gait, feet on the silt `bed_y`). Streets, parks and squares stay walkable only if those solids leave a gap. That contract lives in code (`cityview/walkability.py`) and is checked at the end of every district build.
 
 ## What you edit vs what a rebuild overwrites
 
@@ -12,7 +12,7 @@ A rebuild (`python3 -m cityview district build <id>`) rewrites the viewer packag
 |---|---|
 | `cityview/districts.py` `DISTRICT_REGISTRY` — postcode, spawn, menu name, facade styles | `districts/<id>/district.json` `spawn` / `boundary` (re-synced from the registry on every build; `origin` is kept) |
 | `districts/<id>/cache/*.json` — OSM, trees, benches, Velo, GTFS, CityJSON sectors | `output/<id>/` — layout JSON, Blender job, `.blend`, `core.glb`, `chunks/` (one folder per district, so parallel builds never share files) |
-| `assets/boundaries/antwerp_postcodes.geojson`, `antwerp_water.json` | `viewer/districts/<id>/buildings.json`, `roads.json`, `map.json`, `props.json`, `velo.json`, `shops.json` |
+| `assets/boundaries/antwerp_postcodes.geojson`, `antwerp_water.json` | `viewer/districts/<id>/buildings.json`, `roads.json`, `map.json`, `props.json`, `velo.json`, `shops.json`, `water.json` |
 | `districts/<id>/landmarks/manifest.json` | `viewer/districts/<id>/core.glb`, `chunks/*.glb`, `chunks.json`, `landmarks.json`, streamed `landmarks/*.glb` |
 | `districts/<id>/facades/elevations/` | `districts/<id>/facades/atlas/` (atlas, bands, `facade_doors.json`) and its copy under the viewer |
 | `districts/<id>/vegetation_overrides.json`, `shop_overrides.json` | derived tree / shop placement in the GLB and `shops.json` |
@@ -104,13 +104,13 @@ Agent finishing work after a build is in [district-agent.md](district-agent.md):
 ### Stages, in order
 
 1. **Registry + boundary** (`cityview/districts.py`, `postcodes.py`). The postcode ring, origin and spawn. `ring` is reprojected once into `layout["boundary_local"]`.
-2. **OSM → layout** (`cityview/osm.py`). Roads, parks, water, transit tracks, POIs. Multipolygon courtyards become `holes`. Tags that are not a wall (`building=roof`, `location=underground`, bandstands) are marked `walker_solid: false`.
+2. **OSM → layout** (`cityview/osm.py`). Roads, parks, water, transit tracks, POIs. Water rings are classified in `cityview/water.py` (shallow pond vs deep river/dock; Scheldt by name; `bank` natural vs built). Multipolygon courtyards become `holes`. Tags that are not a wall (`building=roof`, `location=underground`, bandstands) are marked `walker_solid: false`.
 3. **LOD2 buildings** (`cityview/city3d.py`). Antwerpen 3D CityJSON per statistical sector, filtered on `POSTCODE`, Lambert 72 → local metres. The footprint is the plan outline of all ground facets (`plan_outline`). LOD2 wins; OSM tags ride along by overlap; OSM footprints are kept only in data gaps inside the postcode ring (`osm_kept_gap`). A sector that fails to download is skipped and its blocks fall back to OSM. Floating parts (canopies, pilotis towers) are not walker-solid.
 4. **Transit** (`gtfs_delijn.py`, `gtfs_nmbs.py`). Tram/bus routes and stops; trains where the profile has them.
 5. **Street furniture**, all clipped to the postcode ring. Trees: Groeninventaris + OSM, deduped within 1.8 m, snapped off carriageways, Poisson fill only in sparse parks. A specimen shorter than two humans (`MIN_TREE_HEIGHT` 3.4 m) is emitted as a bush mound, not a trunk+crown; tree crowns keep ≥ 2 m walker clearance. Benches: city registers + OSM, deduped within 1.5 m. Velo: GBFS dock rails only — Blender does not bake the bikes; `viewer/velo.js` instances `velo.glb` in each slot. Clutter and barriers from OSM; barriers are sampled every 0.8 m and cut where a gate, footway or square crosses them.
 6. **Spawn + facades.** `district.json` `spawn` projected to local metres (`snap_road: false` keeps a plaza/park point as given). Missing district elevations are generated; `pack_district_atlas` writes the atlas, storey bands and `facade_doors.json` (door positions read off that district's own pictures — the hand-read `facade_kit.DOORS` only matches the shared 2018 set).
-7. **Blender** (`blender/build_city.py`). LOD2 shells; photo facades on street edges and on walls facing parks/water (`open_edges`) at the measured eave height of that wall (`street_edge_eaves`); pilotis towers get facades from their underside; doorsteps, awnings, sills from the atlas tables. Everything within `CORE_R` (160 m) of spawn goes in `core.glb`, the rest into 256 m cells (`district_chunks.py`; rooftop batches carry a `__c_ix_iy` tag so they peel with their building).
-8. **Publish.** `export_walker_buildings` writes every solid footprint in the postcode (rings + holes). `export_props_for_viewer` writes trunks, boxes, barrier segments within 450 m of spawn. Roads become `roads.json`, the minimap `map.json`.
+7. **Blender** (`blender/build_city.py`). LOD2 shells; photo facades on street edges and on walls facing parks/water (`open_edges`) at the measured eave height of that wall (`street_edge_eaves`); pilotis towers get facades from their underside; doorsteps, awnings, sills from the atlas tables. Park grass subtracts overlapping water rings (`water_holes_for_ring`); shallow water is a silt bed plus surface disc, deep water a single opaque disc. Everything within `CORE_R` (160 m) of spawn goes in `core.glb`, the rest into 256 m cells (`district_chunks.py`; rooftop batches carry a `__c_ix_iy` tag so they peel with their building).
+8. **Publish.** `export_walker_buildings` writes every solid footprint in the postcode (rings + holes). `export_props_for_viewer` writes trunks, boxes, barrier segments within 450 m of spawn. Roads become `roads.json`, the minimap `map.json`, and `export_water_for_viewer` writes `water.json` (wade / deep rings, `bed_y`, `bank`).
 9. **Check.** Package files, size budgets (`budgets.py`: core ≤ 80 MB / 3 M tris, chunk ≤ 13 MB / 900 k tris), spawn not inside a ring, streamed landmark GLBs, unique facade hashes, then **walkability**: no 3 m stretch of street sealed across its width, no public gate or path/fence crossing still on a collider.
 
 ### In the viewer
@@ -121,11 +121,12 @@ Agent finishing work after a build is in [district-agent.md](district-agent.md):
 
 There is no walkable mask. `viewer/player-motion.js` integrates WASD. Each frame:
 
-1. A downward ray against meshes named `sidewalk`, `road_`, `park_`, `curb`, `ground`, `tram_`, `courtyard_`, `rail_` sets foot height. It never blocks XZ.
+1. A downward ray against meshes named `sidewalk`, `road_`, `park_`, `curb`, `ground`, `tram_`, `courtyard_`, `rail_` sets foot height. It never blocks XZ. Water meshes are not in that set.
 2. `viewer/outdoors.js` rejects a step that lands inside a `buildings.json` ring, unless that point is in a courtyard `holes` polygon. Slide along the façade, or snap back.
-3. `viewer/props-collide.js` pushes the 0.34 m body out of circles, boxes and thick segments from `props.json`.
-4. Live solids: Velo rails (`hw` 0.45 m), open café tables (radius 0.48 m), cars / trams / buses.
-5. A soft clamp keeps you inside the district box.
+3. `viewer/water.js` samples `water.json`: shallow rings slow the gait and put the feet on `bed_y` (soil under the surface — not `Math.max(0, groundAt)`); deep rings (Scheldt, docks) push you back like a soft wall. Blender draws a silt bed plus either an inset natural shoreline or a straight built kerb. The viewer also upgrades `water*` materials to a transparent liquid with light ripples.
+4. `viewer/props-collide.js` pushes the 0.34 m body out of circles, boxes and thick segments from `props.json`.
+5. Live solids: Velo rails (`hw` 0.45 m), open café tables (radius 0.48 m), cars / trams / buses.
+6. A soft clamp keeps you inside the district box.
 
 So an “invisible wall” is almost always a collider that is bigger than the mesh, or a mesh that should not have been a collider: a fence drawn as posts with a continuous capsule, a gate left sealed, a Velo rail that was 2 m deep, an underground footprint, a `building=roof` canopy, a courtyard whose hole never made it into `buildings.json`.
 
