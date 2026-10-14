@@ -52,6 +52,7 @@ from cityview.road_surface import surfaces_from_layout
 from cityview.osm import fetch_osm, layout_from_osm
 from cityview.paths import BLENDER_SCRIPTS, OUTPUT, ROOT, VIEWER
 from cityview.props import export_props_for_viewer
+from cityview.water import export_water_for_viewer
 from cityview.places import fetch_places
 from cityview.shops import district_shop_inputs, export_shops_for_viewer, plan_shops
 from cityview.streetscape import (
@@ -379,6 +380,7 @@ def _publish_package(
     osm = layout.get("_osm") or {"elements": []}
     shops = export_shops_for_viewer(plan_shops(osm, layout, origin, **district_shop_inputs(paths)), spawn)
     props = export_props_for_viewer(layout, spawn)
+    water = export_water_for_viewer(layout)
 
     for name, payload in (
         ("roads.json", roads),
@@ -388,6 +390,7 @@ def _publish_package(
         ("velo.json", velo),
         ("shops.json", shops),
         ("props.json", props),
+        ("water.json", water),
     ):
         text = json.dumps(payload) + "\n"
         (paths.viewer / name).write_text(text)
