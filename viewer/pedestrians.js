@@ -936,8 +936,13 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     }
     if (single) found.sort((a, b) => a.along - b.along);
     const take = single ? found.slice(0, 1) : found;
-    const out = [];
-    for (const { m, p } of take) {
+    return take.map(({ m }) => knockDown(m, damage, ux, uz));
+  }
+
+  /** Take `damage` and go down along (ux, uz). Returns { x, z, dead }. */
+  function knockDown(m, damage, ux, uz) {
+    const p = m.mesh.position;
+    {
         const age = m.mesh.userData.person?.template.person.age;
         m.health ??= 100 * (FRAILTY[age] || 1);
         m.health -= damage;
@@ -971,9 +976,70 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         };
         m.offX = p.x - (m.routeX ?? p.x);
         m.offZ = p.z - (m.routeZ ?? p.z);
-        out.push({ x: p.x, z: p.z, dead });
+        return { x: p.x, z: p.z, dead };
+    }
+  }
+
+  /**
+   * Standing people as hitscan targets: { x, y, z, r, h, kind, ref }, feet at y.
+   * Only those within `range` of (x, z) so a shot doesn't test the whole city.
+   */
+  function shootables(x, z, range, out = []) {
+    out.length = 0;
+    const r2 = range * range;
+    for (const g of groups) {
+      for (const m of g.members) {
+        if (m.down?.dead || !m.mesh.visible) continue;
+        const p = m.mesh.position;
+        const dx = p.x - x;
+        const dz = p.z - z;
+        if (dx * dx + dz * dz > r2) continue;
+        const scale = m.prof.scale || 1;
+        const t = (m._shot ??= { kind: "pedestrian", ref: m, dead: false, r: 0.26, h: 1.75 });
+        t.x = p.x;
+        t.y = p.y - (m.mesh.userData.baseY || 0);
+        t.z = p.z;
+        // Knocked over but alive: a low, wide body you can still finish off.
+        t.r = (m.down ? 0.5 : 0.26) * scale;
+        t.h = (m.down ? 0.45 : 1.75) * scale;
+        t.headR = m.down ? 0 : undefined;
+        out.push(t);
+      }
     }
     return out;
+  }
+
+  /** A bullet hit: knock the person down along (dx, dz). */
+  function shoot(m, damage, dx, dz) {
+    if (m.down?.dead) return null;
+    const len = Math.hypot(dx, dz) || 1;
+    return knockDown(m, damage, dx / len, dz / len);
+  }
+
+  const PANIC_S = 9;
+  /** Gunfire nearby: everyone within `radius` hurries off for a while. */
+  function panic(x, z, radius) {
+    const r2 = radius * radius;
+    for (const g of groups) {
+      for (const m of g.members) {
+        if (m.down) continue;
+        const p = m.mesh.position;
+        if ((p.x - x) ** 2 + (p.z - z) ** 2 > r2) continue;
+        if (!m.panic) m.calmSpeed = m.speed;
+        m.panic = PANIC_S;
+        m.speed = (m.calmSpeed || WALK_SPEED) * 2.3;
+        // Faster cadence so the hurried walk doesn't skate.
+        if (m.mesh.userData.mixer) m.mesh.userData.mixer.timeScale = 1.9;
+      }
+    }
+  }
+
+  function calm(m, dt) {
+    if (!m.panic) return;
+    m.panic = Math.max(0, m.panic - dt);
+    if (m.panic) return;
+    m.speed = m.calmSpeed || m.speed;
+    if (m.mesh.userData.mixer) m.mesh.userData.mixer.timeScale = 1;
   }
 
   function updateDown(m, dt) {
@@ -1197,6 +1263,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         const result = advanceTrip(g, dt, { crossingOk, speed });
         if (result === "done") replanGroup(g);
         for (const m of g.members) {
+          calm(m, dt);
           if (m.down && updateDown(m, dt)) continue;
           if (m.recover > 0) recoverStep(m, dt);
           setWalkAnim(m, !m.waiting && result !== "wait");
@@ -1205,6 +1272,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         continue;
       }
       for (const m of g.members) {
+        calm(m, dt);
         if (m.down && updateDown(m, dt)) continue;
         if (m.recover > 0) recoverStep(m, dt);
 
@@ -1233,7 +1301,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
       }
     }
     if (bodies.length <= MAX_BODIES) return;
-    bodies.sort((a, b) => (b.down.deadFor || 0) - (a.down.deadFor || 0));
+    bodies.sort((a, b) => (a.down.deadFor || 0) - (b.down.deadFor || 0));
     for (let i = MAX_BODIES; i < bodies.length; i++) {
       const m = bodies[i];
       m.down.deadFor = Math.max(m.down.deadFor || 0, BODY_CLEAR_S + 1);
@@ -1271,6 +1339,9 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     routes: walkRoutes,
     hitTest,
     strike,
+    shootables,
+    shoot,
+    panic,
     roadPeople,
     setBlocker(fn) {
       blocked = typeof fn === "function" ? fn : () => false;

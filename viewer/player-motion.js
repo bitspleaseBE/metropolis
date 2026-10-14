@@ -69,8 +69,10 @@ export function createPlayerMotion(THREE, playerObject, getYaw, setYaw) {
   }
 
   /**
-   * Integrate one frame. `keys` = { w, a, s, d, shift }. Returns how far the player moved
-   * so callers can animate wheels / footsteps.
+   * Integrate one frame. `keys` = { w, a, s, d, shift, stick? }. On foot an analog
+   * `stick` ({ x: right, y: forward }, length 0..1) replaces the digital W/A/S/D so a
+   * half push walks slower. Returns how far the player moved so callers can animate
+   * wheels / footsteps.
    */
   function step(dt, keys, kind = "walk") {
     const cfg = MOVE[kind] || MOVE.walk;
@@ -82,9 +84,10 @@ export function createPlayerMotion(THREE, playerObject, getYaw, setYaw) {
     const onWheels = kind !== "walk";
     const sprint = !!(keys.shift || keys.Shift);
     const top = cfg.speed * (sprint ? cfg.boost : 1) * (onWheels ? 1 : state.footScale);
-    const fwdIn = (keys.w ? 1 : 0) - (keys.s ? 1 : 0);
-    const sideIn = (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
-    const fwdTarget = fwdIn > 0 ? top : fwdIn < 0 ? -(onWheels ? cfg.reverse : top * 0.8) : 0;
+    const stick = !onWheels && keys.stick;
+    const fwdIn = stick ? stick.y : (keys.w ? 1 : 0) - (keys.s ? 1 : 0);
+    const sideIn = stick ? stick.x : (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
+    const fwdTarget = fwdIn > 0 ? top * fwdIn : fwdIn < 0 ? (onWheels ? cfg.reverse : top * 0.8) * fwdIn : 0;
     // Snap into the jog a bit faster than a normal walk start so Shift feels immediate.
     const accel = sprint && !onWheels ? cfg.accel * 1.4 : cfg.accel;
     state.fwd = approach(state.fwd, fwdTarget, accel, cfg.brake, dt);

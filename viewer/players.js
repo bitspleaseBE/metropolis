@@ -9,6 +9,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { VELO_FWD, VELO_RIDE } from "./velo.js";
 import { leanToBars } from "./ride-lean.js";
+import { createArmedRig } from "./player-armed.js";
+import { captureSoles, createFootPlant } from "./foot-plant.js";
 
 export const PLAYERS = [
   {
@@ -70,6 +72,7 @@ export function preloadPlayer(id = getStoredPlayerId()) {
   return Promise.all([
     load(`${id}_Walking.glb`),
     load(`clips/${id}_moves.glb`).catch(() => null),
+    load(`clips/${id}_combat.glb`).catch(() => null),
   ]);
 }
 
@@ -108,6 +111,9 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   let airPoseSaved = false;
   /** Hips XZ (root space) to hold. Pieter's walk translates the pelvis a full stride per loop. */
   let pelvisPin = null;
+  /** Gun layer (player-armed.js). Null until the combat clips load. */
+  let armed = null;
+  let pendingWeapon = "unarmed";
   const _airBase = {
     lThigh: new THREE.Quaternion(),
     rThigh: new THREE.Quaternion(),
@@ -140,6 +146,10 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   const _seatCfg = { fwd: VELO_FWD, y: 0, z: 0, x: 0 };
   const _seatW = new THREE.Vector3();
   let visualBaseY = 0;
+  /** Sole contact on foot; null until the rig is built. `lift` raises the ankle-grounded body onto its soles. */
+  let plantFeet = null;
+  let soleDrop = 0;
+  let lift = 0;
   const _gripL = new THREE.Vector3();
   const _gripR = new THREE.Vector3();
   const _ikA = new THREE.Vector3();
@@ -166,12 +176,70 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     return fixed;
   }
 
+  const STRIDE_KEYS = ["walk", "jog", "run", "aimWalk", "aimWalkBack", "aimStrafeL", "aimStrafeR", "aimRun"];
+  const _stL = new THREE.Vector3();
+  const _stR = new THREE.Vector3();
+  /**
+   * Ground speed of an in-place gait clip on the loaded rig: how fast the planted
+   * (lower) foot travels under the body along the gait's axis (sideways for strafes;
+   * the ankle rolls across that axis), in metres per second of clip time.
+   */
+  function strideSpeed(clip, lateral = false) {
+    const lf = bodyBones?.lFoot;
+    const rf = bodyBones?.rFoot;
+    if (!clip || !lf || !rf || !(clip.duration > 0.1)) return 0;
+    const saved = [];
+    visual.traverse((o) => saved.push([o, o.position.clone(), o.quaternion.clone(), o.scale.clone()]));
+    const probe = new THREE.AnimationMixer(visual);
+    probe.clipAction(clip).play();
+    root.updateMatrixWorld(true);
+    const N = 60;
+    const pts = [];
+    for (let i = 0; i <= N; i++) {
+      probe.setTime((clip.duration * i) / N);
+      normalizeImportScale(visual);
+      visual.updateMatrixWorld(true);
+      pts.push([root.worldToLocal(lf.getWorldPosition(_stL)).clone(), root.worldToLocal(rf.getWorldPosition(_stR)).clone()]);
+    }
+    probe.stopAllAction();
+    probe.uncacheRoot(visual);
+    for (const [o, p, q, s] of saved) {
+      o.position.copy(p);
+      o.quaternion.copy(q);
+      o.scale.copy(s);
+    }
+    visual.updateMatrixWorld(true);
+    // A planted foot is near its lowest and the slower of the two; strafes shuffle the
+    // swing foot low too, and runs have flight frames where neither is down.
+    const dt = clip.duration / N;
+    const floor = [0, 1].map((k) => Math.min(...pts.map((p) => p[k].y)) + 0.03);
+    const v = [];
+    for (let i = 0; i < N; i++) {
+      const sp = [0, 1].map((k) => Math.abs(lateral ? pts[i + 1][k].x - pts[i][k].x : pts[i + 1][k].z - pts[i][k].z) / dt);
+      const k = sp[0] < sp[1] ? 0 : 1;
+      if (pts[i][k].y < floor[k] && pts[i + 1][k].y < floor[k]) v.push(sp[k]);
+    }
+    if (v.length < 4) return 0;
+    v.sort((x, y) => x - y);
+    return v[Math.floor(v.length / 2)];
+  }
+
   /** Drop scale tracks — FBX keys identity scale and fights normalizeImportScale. */
   function sanitizeClip(clip) {
     if (!clip?.tracks?.length) return clip;
     const tracks = clip.tracks.filter((t) => !t.name.endsWith(".scale"));
     if (tracks.length === clip.tracks.length) return clip;
     return new THREE.AnimationClip(clip.name, clip.duration, tracks);
+  }
+
+  /** Mixamo loops often key from one frame in; the gap before the first key would hold
+   * a frozen pose once a cycle (the feet stall while the body moves). */
+  function loopClip(clip) {
+    if (!clip?.tracks?.length) return clip;
+    const t0 = Math.min(...clip.tracks.map((t) => t.times[0] ?? 0));
+    if (!(t0 > 1e-3) || !(clip.duration - t0 > 0.1)) return clip;
+    const tracks = clip.tracks.map((t) => t.clone().shift(-t0));
+    return new THREE.AnimationClip(clip.name, clip.duration - t0, tracks);
   }
 
   /** Bone name from a track path like `Bip01 L Thigh.quaternion`. */
@@ -181,6 +249,8 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
 
   /** Legs + hips stay on the gait; punches overlay everything else. */
   function isLowerBodyBone(name) {
+    // The rig root carries the gait's bob and sway; without it a planted foot floats.
+    if (/^bip01$/i.test(name || "")) return true;
     const n = (name || "")
       .replace(/^mixamorig\d*:?/i, "")
       .replace(/^bip01[_\s]?/i, "");
@@ -728,6 +798,7 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       visual = null;
       armBones = null;
     }
+    armed = null;
     mixer = null;
     actions = { walk: null, ride: null, scooter: null };
     current = null;
@@ -813,8 +884,12 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     });
 
     let moves = null;
+    let combatClips = null;
     try {
-      moves = await load(`clips/${id}_moves.glb`);
+      [moves, combatClips] = await Promise.all([
+        load(`clips/${id}_moves.glb`),
+        load(`clips/${id}_combat.glb`).catch(() => null),
+      ]);
     } catch {
       moves = null;
     }
@@ -825,12 +900,20 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     } catch {
       /* baked defaults */
     }
+    try {
+      const res = await fetch(new URL("clips/combat.json", base));
+      if (res.ok) {
+        for (const [k, v] of Object.entries(await res.json())) speeds[k[0].toLowerCase() + k.slice(1)] = v;
+      }
+    } catch {
+      /* combat clips play at 1x */
+    }
     if (gen !== buildGen) return;
 
     const byName = new Map((moves?.animations || []).map((c) => [c.name, sanitizeClip(c)]));
     const add = (key, clip, loop) => {
       if (!clip) return;
-      const action = mixer.clipAction(clip);
+      const action = mixer.clipAction(loop ? loopClip(clip) : clip);
       action.enabled = true;
       action.setEffectiveWeight(0);
       action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
@@ -867,8 +950,40 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       const walkClipRaw =
         walkGltf.animations.find((c) => /walk/i.test(c.name)) || walkGltf.animations[0];
       const walkClip = walkClipRaw ? sanitizeClip(walkClipRaw) : null;
-      if (walkClip) actions.walk = mixer.clipAction(walkClip);
+      if (walkClip) actions.walk = mixer.clipAction(loopClip(walkClip));
     }
+    root.add(visual);
+    cacheArmBones(visual);
+    // Still in the bind pose: soles flat, ankle on the floor.
+    const soles = captureSoles(THREE, visual, [bodyBones?.lFoot, bodyBones?.rFoot]);
+    plantFeet = soles ? createFootPlant(THREE, soles) : null;
+    soleDrop = soles ? Math.max(...soles.map((s) => s.drop)) : 0;
+    lift = soleDrop;
+    if (combatClips?.animations?.length && armBones) {
+      armed = createArmedRig(THREE, {
+        root,
+        visual,
+        mixer,
+        actions,
+        arms: armBones,
+        body: bodyBones,
+        ik: ccdArmIK,
+        clips: new Map(combatClips.animations.map((c) => [c.name, sanitizeClip(c)])),
+        speeds,
+        upper: upperBodyClip,
+        legs: legsOnlyClip,
+        loop: loopClip,
+        fist: () => gripPose,
+      });
+      if (pendingWeapon !== "unarmed") armed.setWeapon(pendingWeapon);
+    }
+    // The baked speeds are the Mixamo source's hips path (sway included, source leg
+    // length); playback rate must follow this rig's own stride or the feet skate.
+    for (const key of STRIDE_KEYS) {
+      const v = actions[key] && strideSpeed(actions[key].getClip(), /Strafe/.test(key));
+      if (v > 0.2) speeds[key] = v;
+    }
+
     const start = actions.idle || actions.walk;
     if (start) {
       start.enabled = true;
@@ -876,15 +991,20 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       start.play();
       current = actions.idle ? "idle" : "walk";
     }
-
-    root.add(visual);
-    cacheArmBones(visual);
     playerId = id;
     // Fetch the ride clips now, so the first frames on a scooter don't show the walk.
     clipLoads = { ride: null, scooter: null };
     if (!actions.ride) ensureClip("ride");
     ensureClip("scooter");
     await Promise.all(Object.values(clipLoads).filter(Boolean));
+  }
+
+  /** Strafe legs while aiming. The rig blends its own clips; just fade the gait out. */
+  function useArmedLegs() {
+    if (current === "armed") return;
+    const prev = current ? actions[current] : null;
+    if (prev) prev.fadeOut(0.15);
+    current = "armed";
   }
 
   function setAction(name, fade = 0.16, once = false, force = false) {
@@ -931,7 +1051,8 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     if (gait === "idle" || native < 0.2) action.setEffectiveTimeScale(1);
     else {
       const rate = Math.abs(moveSpeed) / native;
-      action.setEffectiveTimeScale(Math.max(0.7, Math.min(2.1, rate)));
+      // Wide enough for an analog stick's slow creep and the jog's top end.
+      action.setEffectiveTimeScale(Math.max(0.4, Math.min(2.4, rate)));
     }
   }
 
@@ -1005,7 +1126,7 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
      * @param {{ x: number, y: number, z: number, yaw: number } | null} [deck]
      *   Scooter grip surface in world space. Feet are solved onto it.
      */
-    update(dt, pos, moveSpeed, targetYaw, kind = "walk", deck = null) {
+    update(dt, pos, moveSpeed, targetYaw, kind = "walk", deck = null, fight = null) {
       if (!visual) return;
       root.position.x = pos.x;
       root.position.z = pos.z;
@@ -1028,7 +1149,17 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         jumpLatch = false;
       }
 
-      if (kind === "velo") {
+      const dead = !!fight?.dead;
+      const aimLegs =
+        !!armed?.ready && onFoot && !airborne && !melee && !dead && (fight?.aim ?? 0) > 0.5 && armed.weapon !== "unarmed" && armed.weapon !== "knife";
+      if (dead && actions.death) {
+        if (current !== "death") {
+          armed?.clear();
+          melee = null;
+          meleeQueue = null;
+          setAction("death", 0.12, true, true);
+        }
+      } else if (kind === "velo") {
         if (actions.ride) setAction("ride", 0.2);
         else ensureClip("ride");
       } else if (kind === "scooter") {
@@ -1047,6 +1178,8 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         }
         // Punches/crosses keep the stride; kicks still own the whole body.
         if (UPPER_STRIKE.has(melee) && mocap) driveGait(moveSpeed, true);
+      } else if (aimLegs) {
+        useArmedLegs();
       } else if (airborne && actions.jump) {
         if (!jumpLatch) {
           jumpLatch = true;
@@ -1056,7 +1189,8 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         actions.jump.setEffectiveTimeScale(1.75);
       } else if (mocap) {
         if (jumpLatch) jumpLatch = false;
-        driveGait(moveSpeed, false);
+        // Three.js averages every clip on a bone, so a full-body gait would halve a reload.
+        driveGait(moveSpeed, !!armed?.busy);
       } else {
         setAction("walk");
         if (airborne) airBlend = Math.min(1, airBlend + dt * 9);
@@ -1074,6 +1208,15 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         actions.scooter.setEffectiveTimeScale(Math.max(0.2, Math.min(1.8, Math.abs(moveSpeed) / 3.5)));
       }
 
+      armed?.drive(dt, {
+        legsOwned: current === "armed",
+        aim: dead ? 0 : (fight?.aim ?? 0),
+        moveSpeed,
+        moveYaw: fight?.moveYaw ?? targetYaw,
+        facing,
+        onFoot,
+        dead,
+      });
       if (mixer) mixer.update(dt);
       // Walk clips re-assert the tiny FBX armature scale after mixer.update.
       normalizeImportScale(visual);
@@ -1116,12 +1259,57 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         polishRideGrips(kind, targetYaw, deck);
         closeGrip();
       }
+      if (onFoot && plantFeet) {
+        // In the air the lift holds, so a jump doesn't drop the hips.
+        if (!airborne && !dead) {
+          root.updateMatrixWorld(true);
+          // The sole's rim reaches a little below the heel, ball and toe points.
+          const want = plantFeet(root, { still: Math.abs(moveSpeed) < 0.15 && !melee }) + 0.02;
+          lift += (Math.min(soleDrop + 0.12, Math.max(0, want)) - lift) * (1 - Math.exp(-60 * dt));
+        } else if (dead) {
+          lift += (soleDrop - lift) * (1 - Math.exp(-6 * dt));
+        }
+        visual.position.y = visualBaseY + lift;
+      }
+      if (armed && onFoot && !dead) {
+        root.updateMatrixWorld(true);
+        armed.post(dt, fight?.aimPoint || null);
+      }
       root.visible = true;
     },
     setVisible(v) {
       root.visible = !!v;
     },
     strike,
+    /** Put a weapon in the right hand ("unarmed" empties it). */
+    setWeapon(id) {
+      pendingWeapon = id;
+      armed?.setWeapon(id);
+    },
+    /** Recoil kick for one shot. */
+    fire(def) {
+      armed?.fire(def);
+    },
+    reload(dur) {
+      return armed?.reload(dur) ?? false;
+    },
+    /** Knife attack (`move` "slash" or "stab"); falls back to a jab without the clips. */
+    stab(move = "stab") {
+      if (!armed?.stab(move)) strike("punch");
+    },
+    hitReact() {
+      armed?.hitReact();
+    },
+    /** World muzzle position and barrel direction. False when no gun is in hand. */
+    muzzle(outPos, outDir) {
+      return armed?.muzzle(outPos, outDir) ?? false;
+    },
+    get armedReady() {
+      return !!armed?.ready;
+    },
+    get weapon() {
+      return pendingWeapon;
+    },
     /** 0–1 through the pedal revolution, for the Velo crank. */
     pedalPhase() {
       return pedal;
