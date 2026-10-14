@@ -57,6 +57,31 @@ class ClassifyWaterTests(unittest.TestCase):
         self.assertTrue(info["wade"])
 
 
+class WaterHoleTests(unittest.TestCase):
+    def test_pond_inside_park_becomes_hole(self):
+        from cityview.water import water_holes_for_ring
+
+        park = [[0, 0], [100, 0], [100, 100], [0, 100]]
+        pond = {"id": 1, "ring": [[20, 20], [40, 20], [40, 40], [20, 40]]}
+        holes = water_holes_for_ring(park, [pond])
+        self.assertEqual(len(holes), 1)
+        self.assertEqual(holes[0][0], [20.0, 20.0])
+
+    def test_water_outside_park_is_not_a_hole(self):
+        from cityview.water import water_holes_for_ring
+
+        park = [[0, 0], [10, 0], [10, 10], [0, 10]]
+        pond = {"id": 1, "ring": [[50, 50], [60, 50], [60, 60], [50, 60]]}
+        self.assertEqual(water_holes_for_ring(park, [pond]), [])
+
+    def test_water_as_large_as_park_is_skipped(self):
+        from cityview.water import water_holes_for_ring
+
+        park = [[0, 0], [10, 0], [10, 10], [0, 10]]
+        # Same ring → would delete the whole park.
+        self.assertEqual(water_holes_for_ring(park, [{"id": 1, "ring": park}]), [])
+
+
 class ExportWaterTests(unittest.TestCase):
     def test_export_keeps_wade_fields(self):
         pond = annotate_water_entry(

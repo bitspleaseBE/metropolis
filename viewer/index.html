@@ -3176,7 +3176,7 @@ let knifeLunge = null;
             if (n.startsWith("zebra") || n.startsWith("dash")) return { factor: 0, units: 0 };
             if (n.startsWith("road_") || n.startsWith("park_path")) return { factor: 1, units: 1 };
             if (n.startsWith("park_")) return { factor: 2, units: 2 };
-            // water (−0.02) sits under park grass; bed (−0.28) under the gravel yard.
+            // Water fills a hole cut from park grass; bed is below the gravel yard.
             if (n.startsWith("water_bed")) return { factor: 5, units: 5 };
             if (n.startsWith("water")) return { factor: 3, units: 3 };
             if (n === "ground") return { factor: 4, units: 4 };

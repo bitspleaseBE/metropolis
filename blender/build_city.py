@@ -24,6 +24,7 @@ from cityview import parking as parking_plan  # noqa: E402
 from cityview.landmarks import LANDMARKS_DIR, resolve_landmark_photo  # noqa: E402
 from cityview.railclear import RailIndex  # noqa: E402
 from cityview.shop_brands import fascia_for_brand  # noqa: E402
+from cityview.water import water_holes_for_ring  # noqa: E402
 from cityview.signals import (  # noqa: E402
     face_dir,
     in_carriageway,
@@ -3052,9 +3053,11 @@ def add_building(
 # resolves ~2 cm). Rails are the highest flat layer: they can never sink under
 # asphalt, sidewalks, kerbs or park/ground polygons.
 Z_GROUND = -0.15
-Z_WATER_BED = -0.28  # silt under shallow ponds (below the gravel yard)
-Z_WATER = -0.02  # surface just under park grass — banks read, no z-fight
+Z_WATER_BED = -0.28  # silt in the basin cut out of park grass
 Z_PARK = 0.00
+# Surface sits in the park hole, slightly above the grass rim so ponds read as water
+# (not under a covering Stadspark polygon). Parks get water rings as holes below.
+Z_WATER = 0.02
 Z_ROAD = 0.04
 Z_PARK_PATH = 0.05
 Z_DASH = 0.07  # box centre; 2 cm thick
@@ -4344,7 +4347,8 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     spawn = layout.get("spawn") or {}
     spawn_xy = (float(spawn["x"]), float(spawn["y"])) if spawn.get("x") is not None else None
 
-    for i, pond in enumerate(layout.get("water") or []):
+    water_list = layout.get("water") or []
+    for i, pond in enumerate(water_list):
         wid = pond.get("id", i)
         ring = pond["ring"]
         deep = str(pond.get("depth") or "shallow") == "deep"
@@ -4353,7 +4357,10 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
         else:
             add_ring(f"water_bed_{wid}", ring, 0.0, Z_WATER_BED, water_bed_mat)
             add_ring(f"water_{wid}", ring, 0.0, Z_WATER, water_shallow_mat)
+
     for i, park in enumerate(layout.get("parks") or []):
+        # Subtract ponds from park grass (Stadspark covers Stadsparkvijver otherwise).
+        holes = water_holes_for_ring(park["ring"], water_list)
         add_ring(
             f"park_{park.get('id', i)}",
             park["ring"],
@@ -4361,6 +4368,7 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
             Z_PARK,
             park_mat,
             uv_tile_m=surface_kit.surface_tile_m("grass"),
+            holes=holes or None,
         )
     courtyard_mats = {
         # Private lots wear differently from the street: same asphalt, a little paler and bluer.

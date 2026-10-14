@@ -176,6 +176,50 @@ def annotate_water_entry(
     return entry
 
 
+def _point_in_ring(x: float, y: float, ring: list[list[float]]) -> bool:
+    inside = False
+    n = len(ring)
+    for i in range(n):
+        x1, y1 = ring[i]
+        x2, y2 = ring[(i + 1) % n]
+        if ((y1 > y) != (y2 > y)) and (x < (x2 - x1) * (y - y1) / ((y2 - y1) or 1e-12) + x1):
+            inside = not inside
+    return inside
+
+
+def _ring_centroid(ring: list[list[float]]) -> tuple[float, float]:
+    if not ring:
+        return 0.0, 0.0
+    return sum(p[0] for p in ring) / len(ring), sum(p[1] for p in ring) / len(ring)
+
+
+def water_holes_for_ring(
+    outer: list[list[float]], water: list[dict[str, Any]]
+) -> list[list[list[float]]]:
+    """Water rings whose centroid lies inside ``outer`` — cut these out of grass/ground.
+
+    Stadspark's park polygon covers Stadsparkvijver; without a hole the grass disc
+    sits on top of the pond. Only rings that fit inside the outer area are returned
+    (centroid test + area smaller than the host).
+    """
+    if len(outer) < 3:
+        return []
+    host_area = _area_m2(outer)
+    holes: list[list[list[float]]] = []
+    for body in water or []:
+        ring = body.get("ring") or []
+        if len(ring) < 3:
+            continue
+        cx, cy = _ring_centroid(ring)
+        if not _point_in_ring(cx, cy, outer):
+            continue
+        # Skip water that is as large as (or larger than) the host — Scheldt vs quay park.
+        if _area_m2(ring) >= host_area * 0.95:
+            continue
+        holes.append([[float(p[0]), float(p[1])] for p in ring])
+    return holes
+
+
 def export_water_for_viewer(layout: dict[str, Any]) -> dict[str, Any]:
     """District water rings for wade / deep push-out (Blender XY metres)."""
     bodies: list[dict[str, Any]] = []
