@@ -1,0 +1,1562 @@
+{
+  "id": "2030-haven",
+  "title": "Haven \u00b7 2030",
+  "menu_name": "Port of Antwerp",
+  "postcode": "2030",
+  "description": "Docks, warehouses and cranes north of Eilandje",
+  "bbox": [
+    51.2307588,
+    4.3008128,
+    51.3176697,
+    4.4286359
+  ],
+  "boundary": [
+    [
+      4.352007,
+      51.2400916
+    ],
+    [
+      4.349594,
+      51.2409412
+    ],
+    [
+      4.3453757,
+      51.242665
+    ],
+    [
+      4.3419747,
+      51.2445658
+    ],
+    [
+      4.3388955,
+      51.2462515
+    ],
+    [
+      4.3351189,
+      51.2481856
+    ],
+    [
+      4.330881,
+      51.2501197
+    ],
+    [
+      4.328467,
+      51.2507443
+    ],
+    [
+      4.3261388,
+      51.2513419
+    ],
+    [
+      4.3234244,
+      51.2520806
+    ],
+    [
+      4.3187467,
+      51.2529065
+    ],
+    [
+      4.3126849,
+      51.2539138
+    ],
+    [
+      4.306453,
+      51.2549354
+    ],
+    [
+      4.3036747,
+      51.2560907
+    ],
+    [
+      4.3015275,
+      51.2576856
+    ],
+    [
+      4.3011035,
+      51.2601921
+    ],
+    [
+      4.3008379,
+      51.2614888
+    ],
+    [
+      4.3008128,
+      51.2623846
+    ],
+    [
+      4.3018983,
+      51.2640253
+    ],
+    [
+      4.3080192,
+      51.2695521
+    ],
+    [
+      4.3170349,
+      51.2775729
+    ],
+    [
+      4.3195012,
+      51.2822885
+    ],
+    [
+      4.3194996,
+      51.2856316
+    ],
+    [
+      4.3173013,
+      51.2882593
+    ],
+    [
+      4.3076674,
+      51.2930493
+    ],
+    [
+      4.3128791,
+      51.2958461
+    ],
+    [
+      4.3142524,
+      51.297483
+    ],
+    [
+      4.3151537,
+      51.2987442
+    ],
+    [
+      4.3157974,
+      51.3002468
+    ],
+    [
+      4.3160267,
+      51.3013499
+    ],
+    [
+      4.316012,
+      51.3016958
+    ],
+    [
+      4.3159714,
+      51.3021525
+    ],
+    [
+      4.3159261,
+      51.3026617
+    ],
+    [
+      4.3381754,
+      51.3076239
+    ],
+    [
+      4.337758,
+      51.3079728
+    ],
+    [
+      4.3377153,
+      51.3082244
+    ],
+    [
+      4.3358141,
+      51.3097064
+    ],
+    [
+      4.335097,
+      51.3120984
+    ],
+    [
+      4.3333292,
+      51.3127595
+    ],
+    [
+      4.341254,
+      51.3150422
+    ],
+    [
+      4.3436458,
+      51.3157414
+    ],
+    [
+      4.3457318,
+      51.316275
+    ],
+    [
+      4.346983,
+      51.316485
+    ],
+    [
+      4.3534276,
+      51.3176697
+    ],
+    [
+      4.3548918,
+      51.3165956
+    ],
+    [
+      4.3547867,
+      51.3158863
+    ],
+    [
+      4.354749,
+      51.315632
+    ],
+    [
+      4.3550837,
+      51.3146611
+    ],
+    [
+      4.3557365,
+      51.3136823
+    ],
+    [
+      4.3559648,
+      51.313495
+    ],
+    [
+      4.3572542,
+      51.3123153
+    ],
+    [
+      4.3586204,
+      51.3115878
+    ],
+    [
+      4.3592987,
+      51.3108395
+    ],
+    [
+      4.3597902,
+      51.3102309
+    ],
+    [
+      4.3603738,
+      51.3099948
+    ],
+    [
+      4.3611034,
+      51.3097158
+    ],
+    [
+      4.3619789,
+      51.3093939
+    ],
+    [
+      4.3667055,
+      51.3077853
+    ],
+    [
+      4.3766447,
+      51.3043137
+    ],
+    [
+      4.3867866,
+      51.3007925
+    ],
+    [
+      4.3885847,
+      51.3001682
+    ],
+    [
+      4.3887468,
+      51.3001119
+    ],
+    [
+      4.3974501,
+      51.2970851
+    ],
+    [
+      4.3969667,
+      51.2969537
+    ],
+    [
+      4.3974817,
+      51.2967893
+    ],
+    [
+      4.3982917,
+      51.2965008
+    ],
+    [
+      4.3997079,
+      51.2959977
+    ],
+    [
+      4.4018376,
+      51.2951356
+    ],
+    [
+      4.4030017,
+      51.2945788
+    ],
+    [
+      4.4042087,
+      51.2939347
+    ],
+    [
+      4.4047987,
+      51.2935389
+    ],
+    [
+      4.4053052,
+      51.2931948
+    ],
+    [
+      4.40548,
+      51.293076
+    ],
+    [
+      4.4062364,
+      51.2924822
+    ],
+    [
+      4.406602,
+      51.2921099
+    ],
+    [
+      4.4066548,
+      51.2920562
+    ],
+    [
+      4.4070679,
+      51.2916167
+    ],
+    [
+      4.4074112,
+      51.2911537
+    ],
+    [
+      4.4076274,
+      51.2907197
+    ],
+    [
+      4.4079025,
+      51.2901975
+    ],
+    [
+      4.4081978,
+      51.2895718
+    ],
+    [
+      4.4085133,
+      51.288857
+    ],
+    [
+      4.4085395,
+      51.2887976
+    ],
+    [
+      4.4085653,
+      51.2887157
+    ],
+    [
+      4.4085745,
+      51.2886866
+    ],
+    [
+      4.4088072,
+      51.2879477
+    ],
+    [
+      4.4079995,
+      51.2879669
+    ],
+    [
+      4.4073586,
+      51.2879682
+    ],
+    [
+      4.4068364,
+      51.2879514
+    ],
+    [
+      4.4063835,
+      51.2879368
+    ],
+    [
+      4.4055498,
+      51.2878766
+    ],
+    [
+      4.4052152,
+      51.2878461
+    ],
+    [
+      4.402951,
+      51.2875665
+    ],
+    [
+      4.4025276,
+      51.2875276
+    ],
+    [
+      4.4019665,
+      51.2874745
+    ],
+    [
+      4.4012123,
+      51.2874087
+    ],
+    [
+      4.4009152,
+      51.2873985
+    ],
+    [
+      4.4005195,
+      51.287397
+    ],
+    [
+      4.3995402,
+      51.2873362
+    ],
+    [
+      4.3987401,
+      51.2872929
+    ],
+    [
+      4.3967563,
+      51.2872241
+    ],
+    [
+      4.3962352,
+      51.2872069
+    ],
+    [
+      4.3955612,
+      51.2871397
+    ],
+    [
+      4.3951633,
+      51.2871141
+    ],
+    [
+      4.394322,
+      51.2871447
+    ],
+    [
+      4.3933967,
+      51.2871715
+    ],
+    [
+      4.3921065,
+      51.2871933
+    ],
+    [
+      4.3908861,
+      51.2872068
+    ],
+    [
+      4.3904248,
+      51.2871665
+    ],
+    [
+      4.3899554,
+      51.287096
+    ],
+    [
+      4.3895048,
+      51.2869971
+    ],
+    [
+      4.3889952,
+      51.2868394
+    ],
+    [
+      4.3886572,
+      51.2866901
+    ],
+    [
+      4.3883424,
+      51.2865041
+    ],
+    [
+      4.3883131,
+      51.286485
+    ],
+    [
+      4.3882867,
+      51.2864678
+    ],
+    [
+      4.3879732,
+      51.2862544
+    ],
+    [
+      4.3877283,
+      51.286044
+    ],
+    [
+      4.3875593,
+      51.2858612
+    ],
+    [
+      4.3873324,
+      51.2855874
+    ],
+    [
+      4.3872491,
+      51.2854697
+    ],
+    [
+      4.3870372,
+      51.2848163
+    ],
+    [
+      4.3869084,
+      51.2842761
+    ],
+    [
+      4.3867475,
+      51.2826655
+    ],
+    [
+      4.386557,
+      51.2815885
+    ],
+    [
+      4.3865513,
+      51.2815247
+    ],
+    [
+      4.3865396,
+      51.2813945
+    ],
+    [
+      4.3865344,
+      51.2813364
+    ],
+    [
+      4.3862281,
+      51.2781204
+    ],
+    [
+      4.386104,
+      51.2773694
+    ],
+    [
+      4.38592,
+      51.2765375
+    ],
+    [
+      4.3878163,
+      51.2765212
+    ],
+    [
+      4.4004781,
+      51.2763827
+    ],
+    [
+      4.4012083,
+      51.2763763
+    ],
+    [
+      4.401222,
+      51.276155
+    ],
+    [
+      4.4012713,
+      51.275837
+    ],
+    [
+      4.4013275,
+      51.2756522
+    ],
+    [
+      4.4014058,
+      51.2754246
+    ],
+    [
+      4.4020754,
+      51.2741015
+    ],
+    [
+      4.402307,
+      51.2735482
+    ],
+    [
+      4.4027737,
+      51.2735516
+    ],
+    [
+      4.4032404,
+      51.2735583
+    ],
+    [
+      4.4036521,
+      51.2735684
+    ],
+    [
+      4.4040008,
+      51.2735826
+    ],
+    [
+      4.4043039,
+      51.2736036
+    ],
+    [
+      4.4045336,
+      51.2736219
+    ],
+    [
+      4.4047035,
+      51.2736355
+    ],
+    [
+      4.4047599,
+      51.2733544
+    ],
+    [
+      4.4048685,
+      51.2730381
+    ],
+    [
+      4.4050294,
+      51.2725481
+    ],
+    [
+      4.4052386,
+      51.2720581
+    ],
+    [
+      4.4054693,
+      51.2716017
+    ],
+    [
+      4.4057214,
+      51.2711587
+    ],
+    [
+      4.4060326,
+      51.2706955
+    ],
+    [
+      4.4063973,
+      51.2702257
+    ],
+    [
+      4.4066763,
+      51.2698766
+    ],
+    [
+      4.4070652,
+      51.2694671
+    ],
+    [
+      4.40721,
+      51.2693245
+    ],
+    [
+      4.4073576,
+      51.2691785
+    ],
+    [
+      4.4075775,
+      51.2689754
+    ],
+    [
+      4.407784,
+      51.2687959
+    ],
+    [
+      4.4080281,
+      51.2685978
+    ],
+    [
+      4.4086128,
+      51.2681179
+    ],
+    [
+      4.4094631,
+      51.2675372
+    ],
+    [
+      4.4100478,
+      51.2671781
+    ],
+    [
+      4.4106889,
+      51.266824
+    ],
+    [
+      4.4112843,
+      51.2665236
+    ],
+    [
+      4.4122392,
+      51.2661007
+    ],
+    [
+      4.4130546,
+      51.2657784
+    ],
+    [
+      4.4139907,
+      51.2654612
+    ],
+    [
+      4.4149804,
+      51.2651692
+    ],
+    [
+      4.4160801,
+      51.2649007
+    ],
+    [
+      4.4167453,
+      51.2647681
+    ],
+    [
+      4.4174963,
+      51.2646372
+    ],
+    [
+      4.4182862,
+      51.2645289
+    ],
+    [
+      4.4186806,
+      51.2644777
+    ],
+    [
+      4.4188998,
+      51.2644492
+    ],
+    [
+      4.4191191,
+      51.2644207
+    ],
+    [
+      4.4195348,
+      51.2643787
+    ],
+    [
+      4.4200981,
+      51.26433
+    ],
+    [
+      4.4209778,
+      51.2642612
+    ],
+    [
+      4.4221365,
+      51.2641991
+    ],
+    [
+      4.4229519,
+      51.2641672
+    ],
+    [
+      4.4243628,
+      51.2641135
+    ],
+    [
+      4.425382,
+      51.2640833
+    ],
+    [
+      4.4265407,
+      51.2640489
+    ],
+    [
+      4.4272944,
+      51.2640263
+    ],
+    [
+      4.4279435,
+      51.2639994
+    ],
+    [
+      4.4286359,
+      51.2639846
+    ],
+    [
+      4.4277774,
+      51.2612879
+    ],
+    [
+      4.4270478,
+      51.2591126
+    ],
+    [
+      4.4262153,
+      51.2568835
+    ],
+    [
+      4.4259578,
+      51.2562389
+    ],
+    [
+      4.4258205,
+      51.2557017
+    ],
+    [
+      4.4256145,
+      51.2549604
+    ],
+    [
+      4.4254171,
+      51.2541009
+    ],
+    [
+      4.4248763,
+      51.2515385
+    ],
+    [
+      4.4247047,
+      51.2498355
+    ],
+    [
+      4.4246703,
+      51.2474178
+    ],
+    [
+      4.4247414,
+      51.2460743
+    ],
+    [
+      4.424842,
+      51.2443123
+    ],
+    [
+      4.4250308,
+      51.2414001
+    ],
+    [
+      4.4255286,
+      51.2406586
+    ],
+    [
+      4.4270907,
+      51.23853
+    ],
+    [
+      4.4257089,
+      51.2389705
+    ],
+    [
+      4.4225626,
+      51.2399272
+    ],
+    [
+      4.420331,
+      51.2404668
+    ],
+    [
+      4.4203573,
+      51.2398791
+    ],
+    [
+      4.4204222,
+      51.2384464
+    ],
+    [
+      4.4203615,
+      51.2351503
+    ],
+    [
+      4.42035,
+      51.2321868
+    ],
+    [
+      4.4202793,
+      51.2316287
+    ],
+    [
+      4.420118,
+      51.231421
+    ],
+    [
+      4.4199287,
+      51.2312806
+    ],
+    [
+      4.4197581,
+      51.2311737
+    ],
+    [
+      4.4194427,
+      51.2310201
+    ],
+    [
+      4.4190362,
+      51.2308959
+    ],
+    [
+      4.4184513,
+      51.2308069
+    ],
+    [
+      4.4142744,
+      51.2307851
+    ],
+    [
+      4.4136037,
+      51.2307588
+    ],
+    [
+      4.413655,
+      51.2313279
+    ],
+    [
+      4.4138908,
+      51.2315652
+    ],
+    [
+      4.4139516,
+      51.2319574
+    ],
+    [
+      4.4144529,
+      51.232196
+    ],
+    [
+      4.4143797,
+      51.2353212
+    ],
+    [
+      4.4140143,
+      51.2353202
+    ],
+    [
+      4.4032548,
+      51.2352893
+    ],
+    [
+      4.4005919,
+      51.2352817
+    ],
+    [
+      4.3996897,
+      51.2366215
+    ],
+    [
+      4.3984609,
+      51.2375032
+    ],
+    [
+      4.3934779,
+      51.2389405
+    ],
+    [
+      4.3866623,
+      51.2393457
+    ],
+    [
+      4.3866139,
+      51.2387531
+    ],
+    [
+      4.3792978,
+      51.2388328
+    ],
+    [
+      4.3728552,
+      51.2389299
+    ],
+    [
+      4.3708185,
+      51.2389462
+    ],
+    [
+      4.365489,
+      51.2388221
+    ],
+    [
+      4.3601373,
+      51.2388476
+    ],
+    [
+      4.358684,
+      51.2389081
+    ],
+    [
+      4.3566062,
+      51.2390686
+    ],
+    [
+      4.354699,
+      51.2393596
+    ],
+    [
+      4.352007,
+      51.2400916
+    ]
+  ],
+  "origin": [
+    51.27421425,
+    4.3647243499999995
+  ],
+  "style_policy": "industrial",
+  "spawn": {
+    "label": "Havenhuis",
+    "lat": 51.2386,
+    "lon": 4.4036,
+    "eye_height": 1.7
+  },
+  "access": "menu",
+  "standalone": true,
+  "viewer_glb": "city.glb",
+  "profile": {
+    "summary": "Scheldt quays, trams, trains, port industry",
+    "modes": {
+      "tram": true,
+      "premetro": false,
+      "bus": true,
+      "velo": true,
+      "train": true,
+      "water": true,
+      "port": true
+    },
+    "velo_stations_hint": 10,
+    "building_eras": {
+      "brick_townhouse": 3298,
+      "other": 2510,
+      "art_nouveau": 1,
+      "art_deco": 1
+    },
+    "materials": {
+      "steel": 315,
+      "metal": 2,
+      "concrete": 2
+    },
+    "roof_mix": {},
+    "shops": [
+      "Burger King",
+      "Carrefour",
+      "IKON",
+      "Canada",
+      "Centrum",
+      "Matiate",
+      "Hollywood Caf\u00e9",
+      "TakeTwo",
+      "Axxes",
+      "Martinique",
+      "Salsa",
+      "Govaerts Elektro",
+      "D\u2019Ieteren Mobility Center Antwerpen",
+      "Mercedes Hedin",
+      "Carglass",
+      "Boels",
+      "Nassau",
+      "Sligro",
+      "Q-Action",
+      "Horeca Totaal",
+      "Paesano",
+      "The Club",
+      "Sunny Europe",
+      "Volvo Truck Center",
+      "C.B.C. Merksem",
+      "nucleus",
+      "Best Buy",
+      "Bakkerij Ceuppens",
+      "Hechi",
+      "Beerens Haven",
+      "Chez Ve'ke",
+      "Toyota Beerens Antwerpen",
+      "Frituur Jan",
+      "Juno's",
+      "Breakpoint Noorderlaan",
+      "Night and Day",
+      "Schaftlokaal 410",
+      "Brico",
+      "Decathlon",
+      "Kerkschip Sint-Jozef"
+    ],
+    "landmarks": [
+      {
+        "osm_id": 124895085,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouw-Boodschapkerk",
+        "score": 217.4,
+        "heritage": true,
+        "wikidata": "Q107338975",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 22997687,
+        "osm_type": "way",
+        "name": "Wilmarsdonksteenweg",
+        "score": 107.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 23008386,
+        "osm_type": "way",
+        "name": "Oosterweelsteenweg",
+        "score": 107.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 29092404,
+        "osm_type": "way",
+        "name": "Ekersesteenweg",
+        "score": 105.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 74508771,
+        "osm_type": "way",
+        "name": "Kattendijksluis",
+        "score": 101.0,
+        "heritage": true,
+        "wikidata": "Q2013426",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 790981331,
+        "osm_type": "way",
+        "name": "Sint-Jan-de-Doperkerk",
+        "score": 93.5,
+        "heritage": true,
+        "wikidata": "Q74042824",
+        "building": "church",
+        "amenity": null,
+        "historic": "church"
+      },
+      {
+        "osm_id": 319261272,
+        "osm_type": "way",
+        "name": "Kattendijkdok",
+        "score": 88.1,
+        "heritage": true,
+        "wikidata": "Q1809382",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 25217579,
+        "osm_type": "way",
+        "name": "Hogere Zeevaartschool",
+        "score": 79.0,
+        "heritage": true,
+        "wikidata": "Q2262236",
+        "building": null,
+        "amenity": "college",
+        "historic": null
+      },
+      {
+        "osm_id": 172349724,
+        "osm_type": "way",
+        "name": "Kerktoren Sint-Laurentiuskerk",
+        "score": 76.6,
+        "heritage": true,
+        "wikidata": "Q107094054",
+        "building": "yes",
+        "amenity": null,
+        "historic": "tower"
+      },
+      {
+        "osm_id": 1182287082,
+        "osm_type": "way",
+        "name": "Fort Sint-Filips",
+        "score": 71.9,
+        "heritage": true,
+        "wikidata": "Q2191373",
+        "building": null,
+        "amenity": null,
+        "historic": "fort"
+      },
+      {
+        "osm_id": 2396271176,
+        "osm_type": "node",
+        "name": "Noordkasteel",
+        "score": 69.8,
+        "heritage": true,
+        "wikidata": "Q2590557",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 23374043,
+        "osm_type": "way",
+        "name": "Schouwburg Luchtbal",
+        "score": 67.8,
+        "heritage": false,
+        "wikidata": "Q33100223",
+        "building": "civic",
+        "amenity": "theatre",
+        "historic": null
+      },
+      {
+        "osm_id": 173346069,
+        "osm_type": "way",
+        "name": "Central Europe Pipeline System",
+        "score": 67.0,
+        "heritage": false,
+        "wikidata": "Q872940",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 231221276,
+        "osm_type": "way",
+        "name": "osm-231221276",
+        "score": 65.1,
+        "heritage": true,
+        "wikidata": "Q56550319",
+        "building": "yes",
+        "amenity": null,
+        "historic": "building"
+      },
+      {
+        "osm_id": 195718563,
+        "osm_type": "way",
+        "name": "Van Cauwelaertsluis",
+        "score": 62.6,
+        "heritage": false,
+        "wikidata": "Q2114152",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4403124,
+        "osm_type": "way",
+        "name": "Park Spoor Noord",
+        "score": 61.4,
+        "heritage": false,
+        "wikidata": "Q2685872",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1340721325,
+        "osm_type": "way",
+        "name": "M477 Oudenaarde",
+        "score": 61.1,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "ship"
+      },
+      {
+        "osm_id": 23135762,
+        "osm_type": "way",
+        "name": "Straatsburgbrug",
+        "score": 61.0,
+        "heritage": false,
+        "wikidata": "Q2915440",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4362284,
+        "osm_type": "way",
+        "name": "Tweede Havendok",
+        "score": 61.0,
+        "heritage": false,
+        "wikidata": "Q1880029",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1143855243,
+        "osm_type": "way",
+        "name": "Vierde Havendok",
+        "score": 61.0,
+        "heritage": false,
+        "wikidata": "Q2778112",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 8038299,
+        "osm_type": "way",
+        "name": "Vijfde Havendok",
+        "score": 61.0,
+        "heritage": false,
+        "wikidata": "Q4754892",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 195718562,
+        "osm_type": "way",
+        "name": "Boudewijnsluis",
+        "score": 60.6,
+        "heritage": false,
+        "wikidata": "Q1817284",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 9498539,
+        "osm_type": "way",
+        "name": "Derde Havendok",
+        "score": 60.6,
+        "heritage": false,
+        "wikidata": "Q2323334",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 9499072,
+        "osm_type": "way",
+        "name": "Straatsburgdok",
+        "score": 60.6,
+        "heritage": false,
+        "wikidata": "Q2805618",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1143855260,
+        "osm_type": "way",
+        "name": "Zesde Havendok",
+        "score": 60.6,
+        "heritage": false,
+        "wikidata": "Q1974267",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1340715752,
+        "osm_type": "way",
+        "name": "West-Hinder 3",
+        "score": 60.3,
+        "heritage": true,
+        "wikidata": null,
+        "building": "ship",
+        "amenity": null,
+        "historic": "ship"
+      },
+      {
+        "osm_id": 4532837,
+        "osm_type": "way",
+        "name": "Churchilldok",
+        "score": 59.8,
+        "heritage": false,
+        "wikidata": "Q13467484",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4363006,
+        "osm_type": "way",
+        "name": "Industriedok",
+        "score": 59.8,
+        "heritage": false,
+        "wikidata": "Q43674154",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 474050481,
+        "osm_type": "way",
+        "name": "De Kuifeend",
+        "score": 59.4,
+        "heritage": false,
+        "wikidata": "Q2678893",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4533251,
+        "osm_type": "way",
+        "name": "Marshalldok",
+        "score": 59.4,
+        "heritage": false,
+        "wikidata": "Q2490786",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 195722537,
+        "osm_type": "way",
+        "name": "Royerssluis",
+        "score": 59.4,
+        "heritage": false,
+        "wikidata": "Q2026562",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 32566446,
+        "osm_type": "way",
+        "name": "Amerikadok",
+        "score": 59.0,
+        "heritage": false,
+        "wikidata": "Q1819975",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1143855256,
+        "osm_type": "way",
+        "name": "Leopolddok",
+        "score": 59.0,
+        "heritage": false,
+        "wikidata": "Q2190604",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 9701939,
+        "osm_type": "way",
+        "name": "Albertdok",
+        "score": 58.6,
+        "heritage": false,
+        "wikidata": "Q2757693",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1143855241,
+        "osm_type": "way",
+        "name": "Hansadok",
+        "score": 58.2,
+        "heritage": false,
+        "wikidata": "Q2219322",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 493501027,
+        "osm_type": "way",
+        "name": "Asiadok",
+        "score": 57.8,
+        "heritage": false,
+        "wikidata": "Q2191742",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 493501025,
+        "osm_type": "way",
+        "name": "Houtdok",
+        "score": 57.8,
+        "heritage": false,
+        "wikidata": "Q3338045",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 742699628,
+        "osm_type": "way",
+        "name": "Schelde",
+        "score": 57.8,
+        "heritage": false,
+        "wikidata": "Q37620",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1143855261,
+        "osm_type": "way",
+        "name": "Graandok",
+        "score": 54.2,
+        "heritage": false,
+        "wikidata": "Q2633688",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 525035803,
+        "osm_type": "way",
+        "name": "Havenrondvaart",
+        "score": 50.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      }
+    ],
+    "facade_brief": {
+      "styles": [
+        "brick_sandstone_band",
+        "narrow_plot",
+        "neo_flemish",
+        "art_nouveau",
+        "art_deco",
+        "warehouse_quay"
+      ],
+      "eras": [
+        "brick_townhouse",
+        "other",
+        "art_nouveau",
+        "art_deco"
+      ],
+      "materials": [
+        "steel",
+        "metal",
+        "concrete"
+      ],
+      "notes": "District-local elevations only. Do not reuse another district's facade files. Variety from frontage width, gable type, storey bands, shop inserts, roof tint."
+    },
+    "stages": {
+      "osm": true,
+      "gtfs_delijn": true,
+      "gtfs_nmbs": true,
+      "velo": true,
+      "trees": true,
+      "benches": true,
+      "aerial": true,
+      "facades": true,
+      "monuments": true,
+      "port_props": true,
+      "train_meshes": true
+    },
+    "building_count": 5810,
+    "highway_count": 4442
+  },
+  "stages": {
+    "osm": true,
+    "gtfs_delijn": true,
+    "gtfs_nmbs": true,
+    "velo": true,
+    "trees": true,
+    "benches": true,
+    "aerial": true,
+    "facades": true,
+    "monuments": true,
+    "port_props": true,
+    "train_meshes": true
+  },
+  "seam": {
+    "nationale_bank": {
+      "lat": 51.21285,
+      "lon": 4.40655
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import unittest
 
 from cityview.menu_map import menu_map_payload, water_rings
-from cityview.viewer_map import export_viewer_map
+from cityview.viewer_map import export_viewer_map, is_underground_road_name
 
 
 class ViewerMapTests(unittest.TestCase):
@@ -26,6 +26,23 @@ class ViewerMapTests(unittest.TestCase):
         self.assertEqual(doc["rails"][0]["mode"], "tram")
         self.assertEqual(len(doc["water"]), 1)
         self.assertEqual(doc["parks"], [])  # below MIN_AREA_M2
+
+    def test_tunnel_facility_names_stay_off_the_map(self):
+        self.assertTrue(is_underground_road_name("Bolivartunnel"))
+        self.assertTrue(is_underground_road_name("Sint-Annatunnel"))
+        self.assertTrue(is_underground_road_name("Kennedyfietstunnel"))
+        self.assertTrue(is_underground_road_name("Tunnel Demerstraat"))
+        self.assertFalse(is_underground_road_name("Tunnelplaats"))
+        self.assertFalse(is_underground_road_name("Frankrijklei"))
+        layout = {
+            "roads": [
+                {"kind": "secondary", "name": "Van Eycktunnel", "width": 8, "points": [[0, 0], [40, 0]]},
+                {"kind": "residential", "name": "Tunnelplaats", "width": 6, "points": [[0, 10], [40, 10]]},
+                {"kind": "motorway", "name": "Bolivartunnel", "tunnel": True, "width": 16, "points": [[0, 20], [40, 20]]},
+            ],
+        }
+        names = [r["name"] for r in export_viewer_map(layout)["roads"]]
+        self.assertEqual(names, ["Tunnelplaats"])
 
 
 class MenuWaterTests(unittest.TestCase):

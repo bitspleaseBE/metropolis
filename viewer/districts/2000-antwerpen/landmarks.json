@@ -30,12 +30,420 @@
       "file": "landmarks/29067925.glb"
     },
     {
+      "id": "496929320",
+      "name": "Den bonte Mantel",
+      "kind": "civic",
+      "x": 1.88,
+      "y": 212.78,
+      "file": "landmarks/496929320.glb"
+    },
+    {
+      "id": "496929321",
+      "name": "De Pauw",
+      "kind": "civic",
+      "x": -4.53,
+      "y": 215.71,
+      "file": "landmarks/496929321.glb"
+    },
+    {
+      "id": "496929322",
+      "name": "Den Arend",
+      "kind": "civic",
+      "x": -10.05,
+      "y": 225.31,
+      "file": "landmarks/496929322.glb"
+    },
+    {
+      "id": "496929323",
+      "name": "De Spieghel",
+      "kind": "civic",
+      "x": -15.77,
+      "y": 223.68,
+      "file": "landmarks/496929323.glb"
+    },
+    {
       "id": "496929324",
-      "name": "Huis Spaengien",
+      "name": "Huis Spaengien (Oude Voetboog)",
       "kind": "civic",
       "x": -25.1,
       "y": 229.83,
       "file": "landmarks/496929324.glb"
+    },
+    {
+      "id": "496929325",
+      "name": "De Mouwe",
+      "kind": "civic",
+      "x": -35.37,
+      "y": 228.34,
+      "file": "landmarks/496929325.glb"
+    },
+    {
+      "id": "496929326",
+      "name": "Den Witten Engel",
+      "kind": "civic",
+      "x": -42.64,
+      "y": 223.39,
+      "file": "landmarks/496929326.glb"
+    },
+    {
+      "id": "496929345",
+      "name": "Grote Markt 33",
+      "kind": "civic",
+      "x": 81.53,
+      "y": 179.11,
+      "file": "landmarks/496929345.glb"
+    },
+    {
+      "id": "496929346",
+      "name": "Grote Markt 31",
+      "kind": "civic",
+      "x": 80.41,
+      "y": 189.42,
+      "file": "landmarks/496929346.glb"
+    },
+    {
+      "id": "496929347",
+      "name": "Grote Markt 29",
+      "kind": "civic",
+      "x": 67.68,
+      "y": 190.73,
+      "file": "landmarks/496929347.glb"
+    },
+    {
+      "id": "496929348",
+      "name": "Grote Markt 27",
+      "kind": "civic",
+      "x": 61.5,
+      "y": 193.45,
+      "file": "landmarks/496929348.glb"
+    },
+    {
+      "id": "496929349",
+      "name": "Grote Markt 25",
+      "kind": "civic",
+      "x": 53.24,
+      "y": 197.24,
+      "file": "landmarks/496929349.glb"
+    },
+    {
+      "id": "496929350",
+      "name": "Grote Markt 21",
+      "kind": "civic",
+      "x": 43.06,
+      "y": 204.44,
+      "file": "landmarks/496929350.glb"
+    },
+    {
+      "id": "496929352",
+      "name": "Grote Markt 17",
+      "kind": "civic",
+      "x": 25.61,
+      "y": 205.08,
+      "file": "landmarks/496929352.glb"
+    },
+    {
+      "id": "496929353",
+      "name": "Grote Markt 15",
+      "kind": "civic",
+      "x": 17.46,
+      "y": 204.27,
+      "file": "landmarks/496929353.glb"
+    },
+    {
+      "id": "496944385",
+      "name": "Grote Markt 2",
+      "kind": "civic",
+      "x": -58.9,
+      "y": 108.03,
+      "file": "landmarks/496944385.glb"
+    },
+    {
+      "id": "496944386",
+      "name": "Grote Markt 4",
+      "kind": "civic",
+      "x": -57.01,
+      "y": 115.91,
+      "file": "landmarks/496944386.glb"
+    },
+    {
+      "id": "496944388",
+      "name": "Grote Markt 8",
+      "kind": "civic",
+      "x": -58.97,
+      "y": 127.1,
+      "file": "landmarks/496944388.glb"
+    },
+    {
+      "id": "496944389",
+      "name": "Grote Markt 6",
+      "kind": "civic",
+      "x": -63.87,
+      "y": 117.82,
+      "file": "landmarks/496944389.glb"
+    },
+    {
+      "id": "496944390",
+      "name": "Grote Markt 10",
+      "kind": "civic",
+      "x": -49.52,
+      "y": 128.99,
+      "file": "landmarks/496944390.glb"
+    },
+    {
+      "id": "496944391",
+      "name": "Bella Patio",
+      "kind": "civic",
+      "x": -42.04,
+      "y": 132.38,
+      "file": "landmarks/496944391.glb"
+    },
+    {
+      "id": "496944393",
+      "name": "Grote Markt 14",
+      "kind": "civic",
+      "x": -38.52,
+      "y": 128.47,
+      "file": "landmarks/496944393.glb"
+    },
+    {
+      "id": "496944394",
+      "name": "Compagnie Belge",
+      "kind": "civic",
+      "x": -29.78,
+      "y": 126.57,
+      "file": "landmarks/496944394.glb"
+    },
+    {
+      "id": "496944396",
+      "name": "Lacos",
+      "kind": "civic",
+      "x": -25.93,
+      "y": 130.79,
+      "file": "landmarks/496944396.glb"
+    },
+    {
+      "id": "496944400",
+      "name": "Grote Markt 20",
+      "kind": "civic",
+      "x": -17.71,
+      "y": 127.55,
+      "file": "landmarks/496944400.glb"
+    },
+    {
+      "id": "496944402",
+      "name": "Grote Markt 22",
+      "kind": "civic",
+      "x": -16.97,
+      "y": 133.69,
+      "file": "landmarks/496944402.glb"
+    },
+    {
+      "id": "496944409",
+      "name": "Grote Markt 24",
+      "kind": "civic",
+      "x": -9.65,
+      "y": 128.94,
+      "file": "landmarks/496944409.glb"
+    },
+    {
+      "id": "496944512",
+      "name": "Grote Markt 28",
+      "kind": "civic",
+      "x": 11.05,
+      "y": 144.09,
+      "file": "landmarks/496944512.glb"
+    },
+    {
+      "id": "496944513",
+      "name": "Grote Markt 30",
+      "kind": "civic",
+      "x": 11.06,
+      "y": 150.18,
+      "file": "landmarks/496944513.glb"
+    },
+    {
+      "id": "496944514",
+      "name": "Grote Markt 32-34",
+      "kind": "civic",
+      "x": 4.4,
+      "y": 159.53,
+      "file": "landmarks/496944514.glb"
+    },
+    {
+      "id": "496944515",
+      "name": "Grote Markt 36",
+      "kind": "civic",
+      "x": 10.62,
+      "y": 157.99,
+      "file": "landmarks/496944515.glb"
+    },
+    {
+      "id": "496944516",
+      "name": "Grote Markt 42",
+      "kind": "civic",
+      "x": 33.46,
+      "y": 149.39,
+      "file": "landmarks/496944516.glb"
+    },
+    {
+      "id": "496944517",
+      "name": "Grote Markt 44",
+      "kind": "civic",
+      "x": 40.38,
+      "y": 147.95,
+      "file": "landmarks/496944517.glb"
+    },
+    {
+      "id": "496944518",
+      "name": "Grote Markt 46",
+      "kind": "civic",
+      "x": 45.09,
+      "y": 155.32,
+      "file": "landmarks/496944518.glb"
+    },
+    {
+      "id": "496944519",
+      "name": "Grote Markt 50",
+      "kind": "civic",
+      "x": 54.66,
+      "y": 152.12,
+      "file": "landmarks/496944519.glb"
+    },
+    {
+      "id": "496944521",
+      "name": "Grote Markt 54",
+      "kind": "civic",
+      "x": 69.16,
+      "y": 144.96,
+      "file": "landmarks/496944521.glb"
+    },
+    {
+      "id": "496944522",
+      "name": "Grote Markt 56",
+      "kind": "civic",
+      "x": 77.23,
+      "y": 145.58,
+      "file": "landmarks/496944522.glb"
+    },
+    {
+      "id": "496944523",
+      "name": "Grote Markt 58",
+      "kind": "civic",
+      "x": 82.91,
+      "y": 147.56,
+      "file": "landmarks/496944523.glb"
+    },
+    {
+      "id": "496944524",
+      "name": "Grote Markt 26",
+      "kind": "civic",
+      "x": 9.72,
+      "y": 140.54,
+      "file": "landmarks/496944524.glb"
+    },
+    {
+      "id": "496944525",
+      "name": "Grote Markt 38",
+      "kind": "civic",
+      "x": 17.56,
+      "y": 150.0,
+      "file": "landmarks/496944525.glb"
+    },
+    {
+      "id": "496944526",
+      "name": "Grote Markt 40",
+      "kind": "civic",
+      "x": 27.63,
+      "y": 147.48,
+      "file": "landmarks/496944526.glb"
+    },
+    {
+      "id": "496944527",
+      "name": "Grote Markt 48",
+      "kind": "civic",
+      "x": 48.06,
+      "y": 149.63,
+      "file": "landmarks/496944527.glb"
+    },
+    {
+      "id": "496944528",
+      "name": "Grote Markt 52",
+      "kind": "civic",
+      "x": 62.76,
+      "y": 145.25,
+      "file": "landmarks/496944528.glb"
+    },
+    {
+      "id": "496944529",
+      "name": "Grote Markt 60",
+      "kind": "civic",
+      "x": 88.5,
+      "y": 151.76,
+      "file": "landmarks/496944529.glb"
+    },
+    {
+      "id": "496946389",
+      "name": "Grote Markt 23",
+      "kind": "civic",
+      "x": 46.52,
+      "y": 197.26,
+      "file": "landmarks/496946389.glb"
+    },
+    {
+      "id": "497130588",
+      "name": "Hansahuis (Kaasstraat front)",
+      "kind": "civic",
+      "x": -160.69,
+      "y": 191.73,
+      "file": "landmarks/497130588.glb"
+    },
+    {
+      "id": "497130589",
+      "name": "Hansahuis (Suikerrui / Kaasstraat corner)",
+      "kind": "civic",
+      "x": -164.71,
+      "y": 175.19,
+      "file": "landmarks/497130589.glb"
+    },
+    {
+      "id": "497130590",
+      "name": "Hansahuis",
+      "kind": "civic",
+      "x": -173.5,
+      "y": 175.01,
+      "file": "landmarks/497130590.glb"
+    },
+    {
+      "id": "497130592",
+      "name": "Hansahuis (quay corner)",
+      "kind": "civic",
+      "x": -195.65,
+      "y": 181.13,
+      "file": "landmarks/497130592.glb"
+    },
+    {
+      "id": "497130594",
+      "name": "Hansahuis (quay front)",
+      "kind": "civic",
+      "x": -173.11,
+      "y": 197.36,
+      "file": "landmarks/497130594.glb"
+    },
+    {
+      "id": "497130595",
+      "name": "Hansahuis (quay front)",
+      "kind": "civic",
+      "x": -189.54,
+      "y": 190.74,
+      "file": "landmarks/497130595.glb"
+    },
+    {
+      "id": "12470557",
+      "name": "Nationale Bank van Belgi\u00eb",
+      "kind": "civic",
+      "x": 537.99,
+      "y": -847.29,
+      "file": "landmarks/12470557.glb"
     },
     {
       "id": "900000001",

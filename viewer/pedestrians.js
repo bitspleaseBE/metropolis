@@ -53,6 +53,9 @@ const SPLIT_STEP_M = 1.0; // indoor sampling step along a route
 const PAVEMENT_Y = 0.12; // sidewalk default when we skip groundAt raycasts
 const PED_R = 0.32; // body radius for car / bus avoidance
 const CAR_LOOK_M = 2.8; // steer around a vehicle this far ahead on the path
+// Prefer sidewalks near arrival / camera so border handoffs still show a crowd.
+const NEAR_SPAWN_M = 95;
+const NEAR_SPAWN_FALLBACK_M = 165;
 
 const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
@@ -95,6 +98,8 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   const COUNT = opts.count || 40;
   const FIRST = Math.min(COUNT, opts.firstCount ?? COUNT);
   const SPAWN_CENTER = opts.spawnCenter || { x: -218.5, z: -432.1 };
+  // Hoisted: crowdFocus / spawnGroup run before the redress block further down.
+  const camera = opts.camera || null;
   const WALK_SPEED = 1.25; // m/s
   const BOBBLE_AMP = 0.02;
   const BOBBLE_FREQ = 9.0;
@@ -424,15 +429,50 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     return pool[(Math.random() * Math.min(3, pool.length)) | 0].c;
   }
 
+  /** Shortest distance from (x,z) to any sample on a walk route. */
+  function routeNearness(route, x, z) {
+    let best = Infinity;
+    const pts = route.points || [];
+    for (let i = 0; i < pts.length; i++) {
+      const d = Math.hypot(pts[i].x - x, pts[i].z - z);
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
+  /** Focus point for fresh spawns: live camera when available, else district arrival. */
+  function crowdFocus() {
+    if (camera?.position) return { x: camera.position.x, z: camera.position.z };
+    return { x: SPAWN_CENTER.x, z: SPAWN_CENTER.z };
+  }
+
+  /**
+   * Pick a sidewalk near the walker. Border handoffs set SPAWN_CENTER to the seam;
+   * without this bias everyone lands on plaza walks a kilometre away and stays COLD-hidden.
+   */
+  function pickSpawnRoute(routes, near = null) {
+    const pool = routes?.length ? routes : spawnPool;
+    if (!pool.length) return null;
+    const focus = near || crowdFocus();
+    const bands = [NEAR_SPAWN_M, NEAR_SPAWN_FALLBACK_M];
+    for (const lim of bands) {
+      const hit = [];
+      for (const r of pool) {
+        if (routeNearness(r, focus.x, focus.z) <= lim) hit.push(r);
+      }
+      if (hit.length) return hit[(Math.random() * hit.length) | 0];
+    }
+    const scored = pool.map((r) => ({ r, d: routeNearness(r, focus.x, focus.z) }));
+    scored.sort((a, b) => a.d - b.d);
+    const closest = scored.slice(0, Math.min(12, scored.length));
+    return closest[(Math.random() * closest.length) | 0].r;
+  }
+
   /** Hop onto another long sidewalk instead of pacing a stub forever. */
   function relocateMember(m) {
     const pool = spawnPool.length ? spawnPool : walkRoutes.filter((r) => r.kind !== "crossing");
     if (!pool.length) return false;
-    let dest = pool[(Math.random() * pool.length) | 0];
-    for (let k = 0; k < 6; k++) {
-      const cand = pool[(Math.random() * pool.length) | 0];
-      if (cand !== walkRoutes[m.routeIdx] && cand.length >= (dest.length || 0)) dest = cand;
-    }
+    const dest = pickSpawnRoute(pool) || pool[(Math.random() * pool.length) | 0];
     const idx = walkRoutes.indexOf(dest);
     if (idx < 0) return false;
     const rLen = routeLength(dest);
@@ -480,7 +520,9 @@ export async function createPedestrians(scene, THREE, opts = {}) {
 
   /** `at` keeps an existing group's place ({ routeIdx, s, dir, side0 }) when re-dressing it. */
   function spawnGroup(profiles, routes, groupId, at) {
-    const route = at ? walkRoutes[at.routeIdx] : routes[(Math.random() * routes.length) | 0];
+    const route = at
+      ? walkRoutes[at.routeIdx]
+      : pickSpawnRoute(routes) || routes[(Math.random() * routes.length) | 0];
     const routeIdx = walkRoutes.indexOf(route);
     const rLen = routeLength(route);
     const startS = at ? at.s : Math.random() * Math.max(1, rLen - 4);
@@ -543,19 +585,18 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     }
     const g = { members, routeIdx, route, kind, side0, trip: null, tripS: 0, tripGraph: null };
     // Prefer a ~2 min POI trip when the graph can route it; else keep junction wandering.
+    // Always start the trip from this sidewalk seat — assignTrip teleports to path[0],
+    // so a random far POI would yank the whole group away from the arrival seam.
     if (pedGraph?.nodes?.length) {
-      const camObj = opts.camera;
-      const cam = camObj?.position
-        ? { x: camObj.position.x, z: camObj.position.z }
-        : { x: SPAWN_CENTER.x, z: SPAWN_CENTER.z };
+      const seat = routePosition(route, startS);
       const trip = planTrip({
         pedGraph,
         pois,
         hour: gameHour,
         day: gameDay,
         mode: "walk",
-        from: at ? null : null,
-        camera: cam,
+        from: { x: seat.x, z: seat.z },
+        camera: crowdFocus(),
       });
       if (trip) assignTrip(g, trip, pedGraph);
     }
@@ -795,7 +836,6 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     return info;
   }
 
-  const camera = opts.camera || null;
   const _frustum = new THREE.Frustum();
   const _pv = new THREE.Matrix4();
   const _sphere = new THREE.Sphere(new THREE.Vector3(), 1.2);
@@ -813,17 +853,22 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     order.sort((a, b) => wearsRetiring(b) - wearsRetiring(a));
     for (const gi of order) {
       const g = groups[gi];
+      let far = false;
       const hidden = g.members.every((m) => {
         if (m.down && !(m.down.dead && m.down.deadFor > BODY_CLEAR_S)) return false;
         const d = m.mesh.position.distanceTo(cam);
-        if (d > REDRESS_FAR_M) return true;
+        if (d > REDRESS_FAR_M) {
+          far = true;
+          return true;
+        }
         _sphere.center.copy(m.mesh.position).y += 0.9;
         return d > REDRESS_HIDDEN_M && !_frustum.intersectsSphere(_sphere);
       });
       if (!hidden) continue;
       const lead = g.members[0];
       releaseGroup(g);
-      const at = { routeIdx: lead.routeIdx, s: lead.s, dir: lead.dir, side0: g.side0 };
+      // Cold / far groups re-seat near the camera; nearby hidden ones keep their sidewalk.
+      const at = far ? null : { routeIdx: lead.routeIdx, s: lead.s, dir: lead.dir, side0: g.side0 };
       const fresh = spawnGroup(PROFILES, spawnPool, gi, at);
       for (const m of fresh.members) {
         root.add(m.mesh);

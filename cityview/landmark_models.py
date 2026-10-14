@@ -65,7 +65,7 @@ TRI_BUDGET = {
     "bonifacius": 35000,
     "heilig_hart": 40000,
     "heilig_hart_klooster": 28000,
-    "nationale_bank": 45000,
+    "nationale_bank": 60000,
     "olv_cathedral": 80000,
     "stadhuis": 50000,
     "het_steen": 35000,

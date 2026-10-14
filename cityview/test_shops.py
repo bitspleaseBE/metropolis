@@ -152,13 +152,23 @@ class ShopPlanTests(unittest.TestCase):
         self.assertEqual(front_for({}, "pub", "horeca"), "bar")
         self.assertEqual(front_for({}, "clothes", "retail"), "boutique")
         self.assertEqual(front_for({"name": "Frituur Max"}, "fast_food", "horeca"), "frituur")
+        self.assertEqual(front_for({"cuisine": "friture"}, "fast_food", "horeca"), "frituur")
+        self.assertEqual(front_for({"cuisine": "kebab"}, "fast_food", "horeca"), "kebab")
+        self.assertEqual(front_for({"name": "Pita Uniek"}, "fast_food", "horeca"), "kebab")
+        self.assertEqual(front_for({"cuisine": "pizza"}, "fast_food", "horeca"), "pizza")
+        self.assertEqual(front_for({"cuisine": "italian_pizza"}, "restaurant", "horeca"), "pizza")
+        self.assertEqual(front_for({"name": "METRO PRESS"}, "newsagent", "retail"), "newsstand")
+        self.assertEqual(front_for({}, "newsagent", "retail"), "newsstand")
         self.assertEqual(front_for({}, "fast_food", "horeca"), "fastfood")
         self.assertEqual(front_for({}, "books", "retail"), "heritage")
         self.assertEqual(front_for({}, "chocolate", "food"), "chocolatier")
         self.assertEqual(shopfront_style({"brand": "Zara"}, "clothes", "retail", 1)["front"], "boutique")
+        self.assertEqual(shopfront_style({"name": "M-Press"}, "newsagent", "retail", 1)["front"], "newsstand")
+        self.assertEqual(shopfront_style({"brand": "Domino's"}, "fast_food", "horeca", 1)["front"], "pizza")
         stripe = awning_for("market", "greengrocer", (0.2, 0.4, 0.2), (1, 1, 1), 3, False)
         self.assertIsNotNone(stripe["stripe"])
         self.assertIsNone(awning_for("boutique", "clothes", (0, 0, 0), (1, 1, 1), 3, False))
+        self.assertIsNone(awning_for("newsstand", "newsagent", (0.9, 0.9, 0.9), (0.8, 0.1, 0.1), 3, False))
 
     def test_places_overrides_and_dedupe(self):
         osm = {"elements": [_node(20, 4.0, 2.0, amenity="pub", name="Den Engel")]}

@@ -1,13 +1,542 @@
-# Agent review — Klein Antwerpen · Harmonie · 2018
+# Agent review — Klein Antwerpen · 2018
 
 - **District**: `2018-harmonie`
-- **Run**: `20261012T164242Z`
-- **Spawn**: Harmoniepark (51.20170236549149, 4.411358124617046)
+- **Run**: `20261014T155009Z`
+- **Spawn**: Stadspark (51.211471, 4.412035)
 - **Instructions**: see [docs/district-agent.md](../../../docs/district-agent.md)
 - **Dossier**: `districts/2018-harmonie/special_buildings.json`
 - **Catalog**: `viewer/districts/2018-harmonie/buildings/catalog.html`
 
 Mark a task done by changing `Status: [ ] todo` → `Status: [x] done` and attaching proof.
+
+---
+
+### `plaza-trees-koningin-astridplein` — Match plaza trees to aerial — Koningin Astridplein
+
+**Goal:** Tree layout on Koningin Astridplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `koningin-astridplein` / `Koningin Astridplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Koningin Astridplein",
+  "slug": "koningin-astridplein",
+  "area_m2": 33350.1,
+  "osm_way_ids": [
+    488848869,
+    488848870,
+    488848871,
+    550003027,
+    749488985,
+    749792240,
+    749792241,
+    749792246,
+    749792253,
+    749794802,
+    787060498
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/koningin-astridplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/koningin-astridplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/koningin-astridplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/koningin-astridplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Koningin Astridplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/koningin-astridplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-koningin-astridplein.jpg`
+
+---
+
+### `plaza-trees-kievitplein` — Match plaza trees to aerial — Kievitplein
+
+**Goal:** Tree layout on Kievitplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `kievitplein` / `Kievitplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Kievitplein",
+  "slug": "kievitplein",
+  "area_m2": 25954.3,
+  "osm_way_ids": [
+    47504359,
+    191567487,
+    191567488,
+    191567491,
+    781603724,
+    781608060,
+    781608061,
+    1111521866,
+    1111521867
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/kievitplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/kievitplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/kievitplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/kievitplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Kievitplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/kievitplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-kievitplein.jpg`
+
+---
+
+### `plaza-trees-groenplaats` — Match plaza trees to aerial — Groenplaats
+
+**Goal:** Tree layout on Groenplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `groenplaats` / `Groenplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Groenplaats",
+  "slug": "groenplaats",
+  "area_m2": 19320.2,
+  "osm_way_ids": [
+    805009630,
+    805009631
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/groenplaats.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/groenplaats.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/groenplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/groenplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Groenplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/groenplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-groenplaats.jpg`
+
+---
+
+### `plaza-trees-dageraadplaats` — Match plaza trees to aerial — Dageraadplaats
+
+**Goal:** Tree layout on Dageraadplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `dageraadplaats` / `Dageraadplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Dageraadplaats",
+  "slug": "dageraadplaats",
+  "area_m2": 17926.7,
+  "osm_way_ids": [
+    5088688,
+    210459403
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/dageraadplaats.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/dageraadplaats.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/dageraadplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/dageraadplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Dageraadplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/dageraadplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-dageraadplaats.jpg`
+
+---
+
+### `plaza-trees-paradeplein` — Match plaza trees to aerial — Paradeplein
+
+**Goal:** Tree layout on Paradeplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `paradeplein` / `Paradeplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Paradeplein",
+  "slug": "paradeplein",
+  "area_m2": 15004.8,
+  "osm_way_ids": [
+    155508150,
+    482669087,
+    683662722,
+    1329765987
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/paradeplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/paradeplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/paradeplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/paradeplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Paradeplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/paradeplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-paradeplein.jpg`
+
+---
+
+### `plaza-trees-bolivarplaats` — Match plaza trees to aerial — Bolivarplaats
+
+**Goal:** Tree layout on Bolivarplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `bolivarplaats` / `Bolivarplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Bolivarplaats",
+  "slug": "bolivarplaats",
+  "area_m2": 9806.1,
+  "osm_way_ids": [
+    87530458
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/bolivarplaats.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/bolivarplaats.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/bolivarplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/bolivarplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Bolivarplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/bolivarplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-bolivarplaats.jpg`
+
+---
+
+### `plaza-trees-wachthuisplein` — Match plaza trees to aerial — Wachthuisplein
+
+**Goal:** Tree layout on Wachthuisplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `wachthuisplein` / `Wachthuisplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Wachthuisplein",
+  "slug": "wachthuisplein",
+  "area_m2": 8839.1,
+  "osm_way_ids": [
+    490963101
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/wachthuisplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/wachthuisplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/wachthuisplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/wachthuisplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Wachthuisplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/wachthuisplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-wachthuisplein.jpg`
+
+---
+
+### `plaza-trees-theodoor-van-rijswijckplaats` — Match plaza trees to aerial — Theodoor Van Rijswijckplaats
+
+**Goal:** Tree layout on Theodoor Van Rijswijckplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `theodoor-van-rijswijckplaats` / `Theodoor Van Rijswijckplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Theodoor Van Rijswijckplaats",
+  "slug": "theodoor-van-rijswijckplaats",
+  "area_m2": 5835.5,
+  "osm_way_ids": [
+    210598363,
+    210598364,
+    210598365
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/theodoor-van-rijswijckplaats.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/theodoor-van-rijswijckplaats.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/theodoor-van-rijswijckplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/theodoor-van-rijswijckplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Theodoor Van Rijswijckplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/theodoor-van-rijswijckplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-theodoor-van-rijswijckplaats.jpg`
+
+---
+
+### `plaza-trees-infirmerieplein` — Match plaza trees to aerial — Infirmerieplein
+
+**Goal:** Tree layout on Infirmerieplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `infirmerieplein` / `Infirmerieplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Infirmerieplein",
+  "slug": "infirmerieplein",
+  "area_m2": 5388.3,
+  "osm_way_ids": [
+    1491398945
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/infirmerieplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/infirmerieplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/infirmerieplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/infirmerieplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Infirmerieplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/infirmerieplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-infirmerieplein.jpg`
+
+---
+
+### `plaza-trees-flamingoplein` — Match plaza trees to aerial — Flamingoplein
+
+**Goal:** Tree layout on Flamingoplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `flamingoplein` / `Flamingoplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Flamingoplein",
+  "slug": "flamingoplein",
+  "area_m2": 4915.8,
+  "osm_way_ids": [
+    755161538
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/flamingoplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/flamingoplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/flamingoplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/flamingoplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Flamingoplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/flamingoplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-flamingoplein.jpg`
+
+---
+
+### `plaza-trees-binnenplein-den-bell` — Match plaza trees to aerial — Binnenplein Den Bell
+
+**Goal:** Tree layout on Binnenplein Den Bell must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `binnenplein-den-bell` / `Binnenplein Den Bell` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Binnenplein Den Bell",
+  "slug": "binnenplein-den-bell",
+  "area_m2": 4128.0,
+  "osm_way_ids": [
+    44171343
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/binnenplein-den-bell.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/binnenplein-den-bell.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/binnenplein-den-bell.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/binnenplein-den-bell.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Binnenplein Den Bell** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/binnenplein-den-bell.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-binnenplein-den-bell.jpg`
+
+---
+
+### `plaza-trees-coxplein` — Match plaza trees to aerial — Coxplein
+
+**Goal:** Tree layout on Coxplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `coxplein` / `Coxplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Coxplein",
+  "slug": "coxplein",
+  "area_m2": 3435.2,
+  "osm_way_ids": [
+    766783058
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/coxplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/coxplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/coxplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/coxplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Coxplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/coxplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-coxplein.jpg`
+
+---
+
+### `plaza-trees-burgemeester-e-ryckaertsplein` — Match plaza trees to aerial — Burgemeester E. Ryckaertsplein
+
+**Goal:** Tree layout on Burgemeester E. Ryckaertsplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `burgemeester-e-ryckaertsplein` / `Burgemeester E. Ryckaertsplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Burgemeester E. Ryckaertsplein",
+  "slug": "burgemeester-e-ryckaertsplein",
+  "area_m2": 3235.2,
+  "osm_way_ids": [
+    117266916
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/burgemeester-e-ryckaertsplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/burgemeester-e-ryckaertsplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/burgemeester-e-ryckaertsplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/burgemeester-e-ryckaertsplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Burgemeester E. Ryckaertsplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/burgemeester-e-ryckaertsplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-burgemeester-e-ryckaertsplein.jpg`
+
+---
+
+### `plaza-trees-troonplaats` — Match plaza trees to aerial — Troonplaats
+
+**Goal:** Tree layout on Troonplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `troonplaats` / `Troonplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Troonplaats",
+  "slug": "troonplaats",
+  "area_m2": 3090.6,
+  "osm_way_ids": [
+    150788231
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/troonplaats.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/troonplaats.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/troonplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/troonplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Troonplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/troonplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-troonplaats.jpg`
 
 ---
 
@@ -47,6 +576,78 @@ Proof: `review/proofs/plaza-trees-leopoldplaats.jpg`
 
 ---
 
+### `plaza-trees-moorkensplein` — Match plaza trees to aerial — Moorkensplein
+
+**Goal:** Tree layout on Moorkensplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `moorkensplein` / `Moorkensplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Moorkensplein",
+  "slug": "moorkensplein",
+  "area_m2": 2879.0,
+  "osm_way_ids": [
+    508239730
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/moorkensplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/moorkensplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/moorkensplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/moorkensplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Moorkensplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/moorkensplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-moorkensplein.jpg`
+
+---
+
+### `plaza-trees-mediaplein` — Match plaza trees to aerial — Mediaplein
+
+**Goal:** Tree layout on Mediaplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `mediaplein` / `Mediaplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Mediaplein",
+  "slug": "mediaplein",
+  "area_m2": 2607.0,
+  "osm_way_ids": [
+    39970105
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/mediaplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/mediaplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/mediaplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/mediaplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Mediaplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/mediaplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-mediaplein.jpg`
+
+---
+
 ### `plaza-trees-loosplaats` — Match plaza trees to aerial — Loosplaats
 
 **Goal:** Tree layout on Loosplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
@@ -83,39 +684,39 @@ Proof: `review/proofs/plaza-trees-loosplaats.jpg`
 
 ---
 
-### `plaza-trees-mechelseplein` — Match plaza trees to aerial — Mechelseplein
+### `plaza-trees-teniersplaats` — Match plaza trees to aerial — Teniersplaats
 
-**Goal:** Tree layout on Mechelseplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+**Goal:** Tree layout on Teniersplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
 
-**Acceptance:** vegetation_overrides.json has a `mechelseplein` / `Mechelseplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+**Acceptance:** vegetation_overrides.json has a `teniersplaats` / `Teniersplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
 
 **Geo / context:**
 ```json
 {
-  "name": "Mechelseplein",
-  "slug": "mechelseplein",
-  "area_m2": 1767.1,
+  "name": "Teniersplaats",
+  "slug": "teniersplaats",
+  "area_m2": 1745.6,
   "osm_way_ids": [
-    587017507
+    758838620
   ],
   "inventory_inside": null,
   "canopy_blobs": null,
-  "aerial": "districts/2018-harmonie/cache/aerial/plazas/mechelseplein.jpg",
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/teniersplaats.jpg",
   "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
 }
 ```
 
 **Commands:**
-- `Open districts/2018-harmonie/cache/aerial/plazas/mechelseplein.jpg`
+- `Open districts/2018-harmonie/cache/aerial/plazas/teniersplaats.jpg`
 - `Edit districts/2018-harmonie/vegetation_overrides.json`
 - `python -m cityview district build 2018-harmonie`
 
-**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/mechelseplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/teniersplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
 
-**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/mechelseplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Mechelseplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/mechelseplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/teniersplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Teniersplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/teniersplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
 
 Status: [ ] todo
-Proof: `review/proofs/plaza-trees-mechelseplein.jpg`
+Proof: `review/proofs/plaza-trees-teniersplaats.jpg`
 
 ---
 
@@ -152,6 +753,150 @@ Proof: `review/proofs/plaza-trees-mechelseplein.jpg`
 
 Status: [ ] todo
 Proof: `review/proofs/plaza-trees-verdraagzaamheidsplein.jpg`
+
+---
+
+### `plaza-trees-square-488775410` — Match plaza trees to aerial — square-488775410
+
+**Goal:** Tree layout on square-488775410 must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `square-488775410` / `square-488775410` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "square-488775410",
+  "slug": "square-488775410",
+  "area_m2": 1192.1,
+  "osm_way_ids": [
+    488775410
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/square-488775410.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/square-488775410.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/square-488775410.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/square-488775410.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **square-488775410** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/square-488775410.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-square-488775410.jpg`
+
+---
+
+### `plaza-trees-hospitaalplein` — Match plaza trees to aerial — Hospitaalplein
+
+**Goal:** Tree layout on Hospitaalplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `hospitaalplein` / `Hospitaalplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Hospitaalplein",
+  "slug": "hospitaalplein",
+  "area_m2": 720.3,
+  "osm_way_ids": [
+    677073475
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/hospitaalplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/hospitaalplein.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/hospitaalplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/hospitaalplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Hospitaalplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/hospitaalplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-hospitaalplein.jpg`
+
+---
+
+### `plaza-trees-fransenplaats` — Match plaza trees to aerial — Fransenplaats
+
+**Goal:** Tree layout on Fransenplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `fransenplaats` / `Fransenplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Fransenplaats",
+  "slug": "fransenplaats",
+  "area_m2": 466.9,
+  "osm_way_ids": [
+    488775100
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/fransenplaats.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/fransenplaats.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/fransenplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/fransenplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Fransenplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/fransenplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-fransenplaats.jpg`
+
+---
+
+### `plaza-trees-square-1552958437` — Match plaza trees to aerial — square-1552958437
+
+**Goal:** Tree layout on square-1552958437 must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `square-1552958437` / `square-1552958437` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "square-1552958437",
+  "slug": "square-1552958437",
+  "area_m2": 227.6,
+  "osm_way_ids": [
+    1552958437
+  ],
+  "inventory_inside": null,
+  "canopy_blobs": null,
+  "aerial": "districts/2018-harmonie/cache/aerial/plazas/square-1552958437.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2018-harmonie/cache/aerial/plazas/square-1552958437.jpg`
+- `Edit districts/2018-harmonie/vegetation_overrides.json`
+- `python -m cityview district build 2018-harmonie`
+
+**Aerial:** `districts/2018-harmonie/cache/aerial/plazas/square-1552958437.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2018-harmonie/cache/aerial/plazas/square-1552958437.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **square-1552958437** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2018-harmonie/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2018-harmonie/cache/aerial/plazas/square-1552958437.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2018-harmonie` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-square-1552958437.jpg`
 
 ---
 

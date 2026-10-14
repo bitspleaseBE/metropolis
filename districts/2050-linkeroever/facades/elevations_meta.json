@@ -1,0 +1,355 @@
+{
+  "district_id": "2050-linkeroever",
+  "elevations": {
+    "facade_01": {
+      "file": "facade_01.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "brick_sandstone_band",
+      "sha256": "cd738e609a33f5344f21a28df425cb42fb117ea01392fb8472d6ed9a8109a69f"
+    },
+    "facade_02": {
+      "file": "facade_02.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "narrow_plot",
+      "sha256": "123c9215234aeea9d23af47adc29cc20f2eeb990710b3d5d0c1dc011d8f3ea65"
+    },
+    "facade_03": {
+      "file": "facade_03.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "neo_flemish",
+      "sha256": "082159a67f3ea550e5ca5c3d38e57d718ab2beab8f8b203ff09dc9a6a4b676b9"
+    },
+    "facade_04": {
+      "file": "facade_04.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "social_block",
+      "sha256": "5b838383b8014ec9add5ff52aaab0a2de5ae1083aa01842f2ac25d455cd6e808"
+    },
+    "facade_05": {
+      "file": "facade_05.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "brick_sandstone_band",
+      "sha256": "8536429cf323fa11c0bb130e1ff706517632e241ae83dd238c8ef6b5673ec0c9"
+    },
+    "facade_06": {
+      "file": "facade_06.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "narrow_plot",
+      "sha256": "7c7b2787b4cf4f1e28e73706e0283882d9dbee1a8e754b9a48185f5192c0d064"
+    },
+    "facade_07": {
+      "file": "facade_07.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "neo_flemish",
+      "sha256": "a75cc6857496279dfeea7f2f8be480210573df2993574e9076db924f8187b384"
+    },
+    "facade_08": {
+      "file": "facade_08.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "warehouse_quay",
+      "sha256": "99ba3e25fe53f082617b5dc50b0e8364a23192e86ea2fbaba7a7e4b807b1b72a"
+    },
+    "facade_09": {
+      "file": "facade_09.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "postwar_block",
+      "sha256": "b439679d6a1456e66d4e5ee3ac73a0b490af9e501ec4853c66b342793ca21b48"
+    },
+    "facade_10": {
+      "file": "facade_10.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "narrow_plot",
+      "sha256": "6b8a06264bac33b1275e12fcc115eceae2da0b7ee242baa43d114b1c91ab8405"
+    },
+    "facade_11": {
+      "file": "facade_11.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "warehouse_quay",
+      "sha256": "8aa656a83b45904f87feb2b0bf509a90d8688e441f12c85351de1548a1c0d059"
+    },
+    "facade_12": {
+      "file": "facade_12.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "c19320025c32a91d8bf4a1c56b7c85c39303da6666b2d87f95e0cd5805bc3911"
+    },
+    "facade_13": {
+      "file": "facade_13.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_meir",
+      "sha256": "b9b2337dc90539a0da04a06346f004325a81f635d052e13b20a37a2cf787d14d"
+    },
+    "facade_14": {
+      "file": "facade_14.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "narrow_plot",
+      "sha256": "0650ee7b97662964896a14bbf342eb591a6c32181da94c3a2841ad0cfb673f0e"
+    },
+    "facade_15": {
+      "file": "facade_15.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "glass_tower",
+      "sha256": "8d0913accc1c58e2698e53322b8770e5d6276559acfecd6597f72b2feb98471a"
+    },
+    "facade_16": {
+      "file": "facade_16.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "96d44d7c7bd540f22f3c6a3effe8a59ad41aa4c688ab2de9fcda94fe154b24b6"
+    },
+    "facade_17": {
+      "file": "facade_17.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "brick_sandstone_band",
+      "sha256": "dd90ad34b4fdd5fb1c43991d8257825c85d34f92a8581db313b8ef0aa04ecf31"
+    },
+    "facade_18": {
+      "file": "facade_18.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "narrow_plot",
+      "sha256": "ac9d51ed73c7d6d43b9b1bf5003c300172f7d415bdb3a7ca2376c321b4f42e46"
+    },
+    "facade_19": {
+      "file": "facade_19.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "neo_flemish",
+      "sha256": "37e3aa639ea730247221ce74b30956b297d8b28f1544eb8b1589d84e19247565"
+    },
+    "facade_20": {
+      "file": "facade_20.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "634d8fd09d3092d838a63f4a936e98bc7f4fd43554fe2d3e85046e69dafd0eeb"
+    },
+    "facade_21": {
+      "file": "facade_21.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "social_block",
+      "sha256": "aa0b7ed6d4aa95377f2688a7bf9612a7b3ae0a3af3e32cb1e2549d1245aed77a"
+    },
+    "facade_22": {
+      "file": "facade_22.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "aa4d458922f89b17b9ae350a262cdc332b99b5156f82d7884ac52cb63775433e"
+    },
+    "facade_23": {
+      "file": "facade_23.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "neo_flemish",
+      "sha256": "e70b927e9e1a810a6362a8cf457acc5289d5ab8ab9b01b3d726bd21a631a2dc6"
+    },
+    "facade_24": {
+      "file": "facade_24.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "3706db225646cc855a39d2faf3d345bf8264c4b04f59357fc218aba9e16ebe26"
+    },
+    "facade_25": {
+      "file": "facade_25.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "brick_sandstone_band",
+      "sha256": "6e42e9a6fae6ef419432f245df3e505608263395f02b3a28d94cff63461291a1"
+    },
+    "facade_26": {
+      "file": "facade_26.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "narrow_plot",
+      "sha256": "493183f3e3550e92b0e3a7a60637e2dcda287a3aff78bb83801bb28b79af08bb"
+    },
+    "facade_27": {
+      "file": "facade_27.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "postwar_block",
+      "sha256": "5a00b6b60072c769526208743cd52c80d3d9921ab3e83d0c8b73a768faf70bc2"
+    },
+    "facade_28": {
+      "file": "facade_28.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "warehouse_quay",
+      "sha256": "380f8ced0e3a9de308eeb7b61786fcd4a46ea6c122d2b733fecf4e1896fbb4bd"
+    },
+    "facade_29": {
+      "file": "facade_29.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "brick_sandstone_band",
+      "sha256": "6f6d20b408afd6a6dda926b62a1b4674a4055417543b99e8b13bfe8e6ceb16ed"
+    },
+    "facade_30": {
+      "file": "facade_30.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "narrow_plot",
+      "sha256": "83ca1d9d1420eafd4ccdea13558efc9cd454667175bfadf333c5f652a6e17999"
+    },
+    "facade_31": {
+      "file": "facade_31.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_meir",
+      "sha256": "6273543b81350e077dba2ad07955c1425e665744d731947e45dcbf665afef985"
+    },
+    "facade_32": {
+      "file": "facade_32.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "87c9cecda2f0d8d78cc722a5d32640119dc3f7335651c7a8c18ada20ca1fc105"
+    },
+    "facade_33": {
+      "file": "facade_33.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "warehouse_quay",
+      "sha256": "aae23ef9e2ffcee2c002ef8c2a076e88ad2c456ec03bee7187ffba11b7348639"
+    },
+    "facade_34": {
+      "file": "facade_34.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "glass_tower",
+      "sha256": "edb9305d2cda8b31345f28aa0909ec9bb450e81f787241f069690c456d01caf5"
+    },
+    "facade_35": {
+      "file": "facade_35.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "neo_flemish",
+      "sha256": "a2ef8ff1f29952701b406c00fc811869fccf32b0ba8c88e2184de8d64e40ca69"
+    },
+    "facade_36": {
+      "file": "facade_36.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "warehouse_quay",
+      "sha256": "22ae6c671d496b85e82941d06e5ce175769d4fd78d96d40ff9c499051fdd8fe9"
+    },
+    "facade_37": {
+      "file": "facade_37.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "brick_sandstone_band",
+      "sha256": "2b6b75bd6525f97e031fca4748ff50b45f901097992fcff1df9a76775fee96b1"
+    },
+    "facade_38": {
+      "file": "facade_38.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "narrow_plot",
+      "sha256": "1d691008baed18ee5c0bce2cf69fbb56558b6e4a854ce8694c148c4b0c2b9603"
+    },
+    "facade_39": {
+      "file": "facade_39.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "social_block",
+      "sha256": "745ac59cc53044508eb9e2b936ec81d63059439f7bb1c1cd7d6512d3e05ad049"
+    },
+    "facade_40": {
+      "file": "facade_40.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "88361072f971fc5dbf644ae68277130f93c65f9b86ca7584d9538f3cbfed452e"
+    },
+    "facade_41": {
+      "file": "facade_41.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "brick_sandstone_band",
+      "sha256": "2d302c3d92bb63fd7429658ef5583f2b66e50c112bb821ae6b90d458d50d5ccd"
+    },
+    "facade_42": {
+      "file": "facade_42.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "narrow_plot",
+      "sha256": "dd4030f81d9396a6de026e76bdfcb6348b1503c6fbc45b135832c2a4abc66b0c"
+    },
+    "facade_43": {
+      "file": "facade_43.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_meir",
+      "sha256": "3928234b6e71e01bbb2211347ad69ae506b49ac7096a9a722b22ef4a341baf79"
+    },
+    "facade_44": {
+      "file": "facade_44.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "postwar_block",
+      "sha256": "d9a642f4efc2aad0b3c530ba24dd5432f5336650a9c9ae8756858d4b9ad1576e"
+    },
+    "facade_45": {
+      "file": "facade_45.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "brick_sandstone_band",
+      "sha256": "c15e514ae5770719c3a93e53677c5ca01995b24cf9be48dda7c5928e68564669"
+    },
+    "facade_46": {
+      "file": "facade_46.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "narrow_plot",
+      "sha256": "90c9c574470c77374fa302e24b7a544c8c3873d454b563d8026ee9cfbfb45cf6"
+    },
+    "facade_47": {
+      "file": "facade_47.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "neo_flemish",
+      "sha256": "3bf09d74fdad526ab9162776f96b77838a493a9b1054b12059bce2b5773fa5b7"
+    },
+    "facade_48": {
+      "file": "facade_48.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "8c1d5e226359d21b15360ddba02e9b0282c65ea6a7fbd9735990be0618e5a64a"
+    },
+    "facade_49": {
+      "file": "facade_49.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "glass_tower",
+      "sha256": "d02409e1cbe012d8ad40c99bbd11c1cdbfa4cc2780c11d17c07317366975df20"
+    },
+    "facade_50": {
+      "file": "facade_50.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "narrow_plot",
+      "sha256": "069d4355a6194a3f6d75768745e474cd74e52fe42669df9fa7fd227bd27f22dd"
+    }
+  }
+}

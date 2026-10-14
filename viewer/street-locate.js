@@ -1,6 +1,9 @@
 /**
  * Resolve the nearest named OSM street for a world (x, z) position.
  * map.json (district-wide) / roads.json points are Blender XY; Three.js uses z = -y.
+ *
+ * Underground tunnels are out of scope: never announce Bolivartunnel / Sint-Annatunnel
+ * etc. at ground level. Surface streets above them keep their own names.
  */
 
 import { fetchJsonCached } from "./json-cache.js";
@@ -8,6 +11,14 @@ import { fetchJsonCached } from "./json-cache.js";
 const SIDEWALK_M = 7;
 const HOLD_FRAMES = 4;
 const MIN_ANNOUNCE_MS = 400;
+
+/** Tunnel / underpass facility names (not surface streets like Tunnelplaats). */
+const TUNNEL_FACILITY_NAME = /(?:^tunnel\s)|(?:fietstunnel|spoortunnel|premetro)|tunnel$/i;
+
+export function isUndergroundRoadName(name) {
+  const text = String(name || "").trim();
+  return Boolean(text) && TUNNEL_FACILITY_NAME.test(text);
+}
 
 function distToSegment2(px, pz, ax, az, bx, bz) {
   const abx = bx - ax;
@@ -38,8 +49,9 @@ export async function createStreetLocator(opts = {}) {
     const dx = t ? Number(t.x) || 0 : 0;
     const dz = t ? Number(t.z) || 0 : 0;
     for (const road of roads || []) {
+      if (road.tunnel) continue;
       const name = String(road.name || "").trim();
-      if (!name) continue;
+      if (!name || isUndergroundRoadName(name)) continue;
       const pts = road.points || [];
       if (pts.length < 2) continue;
       const half = (Number(road.width) || 6) * 0.5 + sidewalkM;

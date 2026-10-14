@@ -1,0 +1,1088 @@
+{
+  "id": "2050-linkeroever",
+  "title": "Linkeroever \u00b7 2050",
+  "menu_name": "Left Bank",
+  "postcode": "2050",
+  "description": "Modernist slabs and towers across the Scheldt",
+  "bbox": [
+    51.2019092,
+    4.338121,
+    51.2400916,
+    4.3980208
+  ],
+  "boundary": [
+    [
+      4.3714201,
+      51.2061758
+    ],
+    [
+      4.3605876,
+      51.2029322
+    ],
+    [
+      4.3569155,
+      51.2019092
+    ],
+    [
+      4.3558614,
+      51.2037313
+    ],
+    [
+      4.3556581,
+      51.2040826
+    ],
+    [
+      4.3525382,
+      51.2093436
+    ],
+    [
+      4.3514149,
+      51.20996
+    ],
+    [
+      4.3512903,
+      51.2101216
+    ],
+    [
+      4.3506114,
+      51.2110025
+    ],
+    [
+      4.3504569,
+      51.2113412
+    ],
+    [
+      4.3502784,
+      51.2118219
+    ],
+    [
+      4.3500535,
+      51.2124273
+    ],
+    [
+      4.3494527,
+      51.2128521
+    ],
+    [
+      4.3489089,
+      51.2133566
+    ],
+    [
+      4.3486748,
+      51.2134368
+    ],
+    [
+      4.3485151,
+      51.2135679
+    ],
+    [
+      4.3478281,
+      51.2140213
+    ],
+    [
+      4.3477448,
+      51.2140766
+    ],
+    [
+      4.346147,
+      51.215152
+    ],
+    [
+      4.3459974,
+      51.2152233
+    ],
+    [
+      4.3448034,
+      51.2157921
+    ],
+    [
+      4.3457197,
+      51.2160929
+    ],
+    [
+      4.3472924,
+      51.2166093
+    ],
+    [
+      4.3473217,
+      51.2187507
+    ],
+    [
+      4.3473268,
+      51.2191273
+    ],
+    [
+      4.3454664,
+      51.2211719
+    ],
+    [
+      4.3451954,
+      51.2215985
+    ],
+    [
+      4.345162,
+      51.2217213
+    ],
+    [
+      4.3453383,
+      51.2224083
+    ],
+    [
+      4.3453414,
+      51.2225311
+    ],
+    [
+      4.3452462,
+      51.2228913
+    ],
+    [
+      4.3449966,
+      51.2230345
+    ],
+    [
+      4.3448476,
+      51.223183
+    ],
+    [
+      4.3444194,
+      51.2231805
+    ],
+    [
+      4.3442681,
+      51.2232145
+    ],
+    [
+      4.3440883,
+      51.2233001
+    ],
+    [
+      4.3439109,
+      51.2234115
+    ],
+    [
+      4.3437178,
+      51.2235779
+    ],
+    [
+      4.3434905,
+      51.2239655
+    ],
+    [
+      4.3432754,
+      51.2243119
+    ],
+    [
+      4.342334,
+      51.2254189
+    ],
+    [
+      4.342837,
+      51.2254608
+    ],
+    [
+      4.3425231,
+      51.2256417
+    ],
+    [
+      4.3423888,
+      51.2257806
+    ],
+    [
+      4.342365,
+      51.2258436
+    ],
+    [
+      4.342389,
+      51.2259214
+    ],
+    [
+      4.3422024,
+      51.2262671
+    ],
+    [
+      4.3420434,
+      51.2263877
+    ],
+    [
+      4.3419767,
+      51.2264454
+    ],
+    [
+      4.3419132,
+      51.2265637
+    ],
+    [
+      4.3418897,
+      51.2266879
+    ],
+    [
+      4.3417975,
+      51.2268565
+    ],
+    [
+      4.3414442,
+      51.2273063
+    ],
+    [
+      4.3413791,
+      51.2274452
+    ],
+    [
+      4.3413532,
+      51.227542
+    ],
+    [
+      4.3412937,
+      51.2282424
+    ],
+    [
+      4.3412288,
+      51.2282768
+    ],
+    [
+      4.3412315,
+      51.2284414
+    ],
+    [
+      4.3412556,
+      51.2285644
+    ],
+    [
+      4.3412396,
+      51.2290018
+    ],
+    [
+      4.3412582,
+      51.2292179
+    ],
+    [
+      4.3413962,
+      51.2295151
+    ],
+    [
+      4.3414334,
+      51.2297469
+    ],
+    [
+      4.3414125,
+      51.2298632
+    ],
+    [
+      4.3413661,
+      51.2299644
+    ],
+    [
+      4.3413033,
+      51.2300411
+    ],
+    [
+      4.3407774,
+      51.2300244
+    ],
+    [
+      4.3405241,
+      51.2299516
+    ],
+    [
+      4.340028,
+      51.2297497
+    ],
+    [
+      4.338121,
+      51.2298266
+    ],
+    [
+      4.3382155,
+      51.230007
+    ],
+    [
+      4.3383488,
+      51.230189
+    ],
+    [
+      4.3384869,
+      51.230309
+    ],
+    [
+      4.3386868,
+      51.2304169
+    ],
+    [
+      4.3391374,
+      51.2305844
+    ],
+    [
+      4.3397386,
+      51.2307428
+    ],
+    [
+      4.3399958,
+      51.2308975
+    ],
+    [
+      4.3402259,
+      51.231062
+    ],
+    [
+      4.3403352,
+      51.2311944
+    ],
+    [
+      4.3403026,
+      51.231394
+    ],
+    [
+      4.3402183,
+      51.2314411
+    ],
+    [
+      4.3401599,
+      51.2317108
+    ],
+    [
+      4.3402151,
+      51.2319548
+    ],
+    [
+      4.3406637,
+      51.2324897
+    ],
+    [
+      4.3407952,
+      51.2327148
+    ],
+    [
+      4.340837,
+      51.2329153
+    ],
+    [
+      4.3408767,
+      51.2329972
+    ],
+    [
+      4.3413271,
+      51.2332607
+    ],
+    [
+      4.3416699,
+      51.2333404
+    ],
+    [
+      4.342236,
+      51.2335277
+    ],
+    [
+      4.3423661,
+      51.2336014
+    ],
+    [
+      4.3424753,
+      51.2337278
+    ],
+    [
+      4.3426208,
+      51.2339324
+    ],
+    [
+      4.3426236,
+      51.2342446
+    ],
+    [
+      4.3427696,
+      51.2345887
+    ],
+    [
+      4.3430877,
+      51.2349413
+    ],
+    [
+      4.3434301,
+      51.235179
+    ],
+    [
+      4.3436453,
+      51.2352846
+    ],
+    [
+      4.3438258,
+      51.2353224
+    ],
+    [
+      4.3441309,
+      51.2353046
+    ],
+    [
+      4.3446035,
+      51.2351971
+    ],
+    [
+      4.3452368,
+      51.2352196
+    ],
+    [
+      4.3455083,
+      51.2352645
+    ],
+    [
+      4.3457061,
+      51.2353563
+    ],
+    [
+      4.3451791,
+      51.2363921
+    ],
+    [
+      4.3485007,
+      51.2378254
+    ],
+    [
+      4.352007,
+      51.2400916
+    ],
+    [
+      4.354699,
+      51.2393596
+    ],
+    [
+      4.3566062,
+      51.2390686
+    ],
+    [
+      4.358684,
+      51.2389081
+    ],
+    [
+      4.3601373,
+      51.2388476
+    ],
+    [
+      4.365489,
+      51.2388221
+    ],
+    [
+      4.3708185,
+      51.2389462
+    ],
+    [
+      4.3728552,
+      51.2389299
+    ],
+    [
+      4.3792978,
+      51.2388328
+    ],
+    [
+      4.3866139,
+      51.2387531
+    ],
+    [
+      4.3865135,
+      51.2377365
+    ],
+    [
+      4.3909936,
+      51.2375279
+    ],
+    [
+      4.3941892,
+      51.2369988
+    ],
+    [
+      4.3969621,
+      51.2360728
+    ],
+    [
+      4.3979735,
+      51.2344372
+    ],
+    [
+      4.3980208,
+      51.2327147
+    ],
+    [
+      4.3955136,
+      51.2264451
+    ],
+    [
+      4.3907873,
+      51.218437
+    ],
+    [
+      4.3857012,
+      51.2133818
+    ],
+    [
+      4.3785959,
+      51.2090945
+    ],
+    [
+      4.3714201,
+      51.2061758
+    ]
+  ],
+  "origin": [
+    51.2210004,
+    4.3680709
+  ],
+  "style_policy": "default",
+  "spawn": {
+    "label": "Frederik van Eedenplein",
+    "lat": 51.2212,
+    "lon": 4.3878,
+    "eye_height": 1.7
+  },
+  "access": "menu",
+  "standalone": true,
+  "viewer_glb": "city.glb",
+  "profile": {
+    "summary": "Scheldt quays, trains, port industry",
+    "modes": {
+      "tram": false,
+      "premetro": false,
+      "bus": true,
+      "velo": true,
+      "train": true,
+      "water": true,
+      "port": true
+    },
+    "velo_stations_hint": 22,
+    "building_eras": {
+      "brick_townhouse": 2702,
+      "other": 571
+    },
+    "materials": {},
+    "roof_mix": {},
+    "shops": [
+      "Colruyt",
+      "Hedin Automotive",
+      "Frame",
+      "Replay",
+      "Rato Education",
+      "De Chinese Muur",
+      "Bocadillos",
+      "Leo's Place",
+      "Poisson Pilote",
+      "Pain D'or",
+      "Skenderbeu",
+      "Het Taartenhuis Vermeeren",
+      "Slagerij De Boever",
+      "Traiteur Wauters",
+      "Hemelaer Interior",
+      "New Avenue",
+      "Vaporshop",
+      "Lieve Hemel",
+      "Instroom",
+      "Proxy Delhaize",
+      "Picco Bello",
+      "Doorland",
+      "Het Petatje",
+      "Manfar",
+      "San Marco",
+      "Spar",
+      "Van Puyvelde",
+      "Wassalon Linkeroever",
+      "Bakkerij Bezekoek",
+      "royal yacht club Belgie (RYCB)",
+      "Pizza Toni",
+      "Chalo",
+      "Brasserie Regatta",
+      "ALDI",
+      "Shurgard Self-Storage",
+      "Plaasjkaffee",
+      "KAS",
+      "Minerva Caf\u00e9",
+      "An's Hoeve",
+      "Blvd. De Boelevaard"
+    ],
+    "landmarks": [
+      {
+        "osm_id": 180051361,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouw-ter-Scheldekapel",
+        "score": 153.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": "chapel",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 60582816,
+        "osm_type": "way",
+        "name": "Toegangsgebouw Sint-Annatunnel",
+        "score": 87.1,
+        "heritage": true,
+        "wikidata": null,
+        "building": "public",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 29415713,
+        "osm_type": "way",
+        "name": "Sint-Anna-ten-Drie\u00ebnkerk",
+        "score": 84.9,
+        "heritage": false,
+        "wikidata": "Q109450253",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 29084511,
+        "osm_type": "way",
+        "name": "Sint-Lucaskerk",
+        "score": 80.8,
+        "heritage": false,
+        "wikidata": "Q107070798",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 199418023,
+        "osm_type": "way",
+        "name": "Molen van Sint-Anneke",
+        "score": 73.6,
+        "heritage": true,
+        "wikidata": "Q5207718",
+        "building": "industrial",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 147447606,
+        "osm_type": "way",
+        "name": "Sint-Annatunnel",
+        "score": 71.0,
+        "heritage": true,
+        "wikidata": "Q691988",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1697679,
+        "osm_type": "relation",
+        "name": "Bus 821: Antwerpen Van Eendenplein \u2192 Sint-Niklaas Grote Markt",
+        "score": 60.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1611045,
+        "osm_type": "relation",
+        "name": "Bus 821: Sint-Niklaas Grote Markt \u2192 Antwerpen Van Eedenplein",
+        "score": 60.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 131243738,
+        "osm_type": "way",
+        "name": "Brabotunnel",
+        "score": 59.4,
+        "heritage": false,
+        "wikidata": "Q2310154",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 675487881,
+        "osm_type": "way",
+        "name": "Sint-Petruskapel",
+        "score": 56.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": "chapel",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 13432050,
+        "osm_type": "relation",
+        "name": "F4 Fietssnelweg Zwijndrecht - Antwerpen (omleiding)",
+        "score": 45.0,
+        "heritage": false,
+        "wikidata": "Q65560464",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 13538883,
+        "osm_type": "relation",
+        "name": "F4 Fietssnelweg Zwijndrecht - Antwerpen (wenslijn)",
+        "score": 45.0,
+        "heritage": false,
+        "wikidata": "Q65560464",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 13036626,
+        "osm_type": "relation",
+        "name": "FR10 Fietssnelweg ringfietspad Antwerpen (wenslijn)",
+        "score": 45.0,
+        "heritage": false,
+        "wikidata": "Q107465129",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 558507498,
+        "osm_type": "way",
+        "name": "Maria Van Genechten - Hauquierstraat",
+        "score": 44.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 11202,
+        "osm_type": "relation",
+        "name": "Tram 15: P+R Linkeroever \u2192 Boechout P+R Boechout",
+        "score": 44.2,
+        "heritage": false,
+        "wikidata": "Q959739",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 13790829841,
+        "osm_type": "node",
+        "name": "Stadsloket Antwerpen - Linkeroever",
+        "score": 43.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": "townhall",
+        "historic": null
+      },
+      {
+        "osm_id": 558507511,
+        "osm_type": "way",
+        "name": "Maria Meerbergen-De Visserstraat",
+        "score": 42.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 142891416,
+        "osm_type": "way",
+        "name": "De baarbeekse dump bergen (MTB)",
+        "score": 42.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 28812772,
+        "osm_type": "way",
+        "name": "Prosper van Langendonckstraat",
+        "score": 41.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 932389254,
+        "osm_type": "way",
+        "name": "Werf knooppunt Antwerpen-West",
+        "score": 41.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 12847659,
+        "osm_type": "relation",
+        "name": "Kunststedenroute - 06 - Temse - Antwerpen",
+        "score": 41.4,
+        "heritage": false,
+        "wikidata": "Q106529274",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1316990173,
+        "osm_type": "way",
+        "name": "Antoinette Feuerwerkerstraat",
+        "score": 41.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 817654400,
+        "osm_type": "way",
+        "name": "Natuurreservaat Blokkersdijk",
+        "score": 41.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 13036651,
+        "osm_type": "relation",
+        "name": "FR10 Fietssnelweg ringfietspad Antwerpen",
+        "score": 41.0,
+        "heritage": false,
+        "wikidata": "Q107465129",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 29415581,
+        "osm_type": "way",
+        "name": "Edmond de Coussemakerstraat",
+        "score": 40.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 1021254582,
+        "osm_type": "way",
+        "name": "Maria Van De Weygaertstraat",
+        "score": 40.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 3420996,
+        "osm_type": "relation",
+        "name": "Tram 15: P+R Boechout \u2192 P+R Linkeroever",
+        "score": 40.6,
+        "heritage": false,
+        "wikidata": "Q959739",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 29415576,
+        "osm_type": "way",
+        "name": "Anton Van Duinkerkenstraat",
+        "score": 40.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 22982573,
+        "osm_type": "way",
+        "name": "Festivalweide Middenvijver",
+        "score": 40.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 190312410,
+        "osm_type": "way",
+        "name": "Joris Van Spilbergenstraat",
+        "score": 40.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 147433976,
+        "osm_type": "way",
+        "name": "Victor dela Montagnestraat",
+        "score": 40.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 517342267,
+        "osm_type": "way",
+        "name": "osm-517342267",
+        "score": 40.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": "house",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 27147603,
+        "osm_type": "way",
+        "name": "August Van Cauwelaertlaan",
+        "score": 40.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 147446105,
+        "osm_type": "way",
+        "name": "Constantijn Huygensstraat",
+        "score": 40.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 28907031,
+        "osm_type": "way",
+        "name": "Elodie Van Stiepelteenpad",
+        "score": 40.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 147433962,
+        "osm_type": "way",
+        "name": "Jonker van der Nootstraat",
+        "score": 40.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 10800,
+        "osm_type": "relation",
+        "name": "Tram 9: Keerlus Groenenhoek \u2192 Regatta",
+        "score": 39.8,
+        "heritage": false,
+        "wikidata": "Q1891687",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 3419131,
+        "osm_type": "relation",
+        "name": "Tram 9: Regatta \u2192 Keerlus Groenenhoek",
+        "score": 39.8,
+        "heritage": false,
+        "wikidata": "Q1891687",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 824511395,
+        "osm_type": "way",
+        "name": "Zeescouts aan de stroom",
+        "score": 39.7,
+        "heritage": false,
+        "wikidata": "Q2134478",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 29348085,
+        "osm_type": "way",
+        "name": "Lodewijk van Velthemlaan",
+        "score": 39.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      }
+    ],
+    "facade_brief": {
+      "styles": [
+        "brick_sandstone_band",
+        "narrow_plot",
+        "neo_flemish",
+        "warehouse_quay"
+      ],
+      "eras": [
+        "brick_townhouse",
+        "other"
+      ],
+      "materials": [],
+      "notes": "District-local elevations only. Do not reuse another district's facade files. Variety from frontage width, gable type, storey bands, shop inserts, roof tint."
+    },
+    "stages": {
+      "osm": true,
+      "gtfs_delijn": true,
+      "gtfs_nmbs": true,
+      "velo": true,
+      "trees": true,
+      "benches": true,
+      "aerial": true,
+      "facades": true,
+      "monuments": true,
+      "port_props": true,
+      "train_meshes": true
+    },
+    "building_count": 3273,
+    "highway_count": 2348
+  },
+  "stages": {
+    "osm": true,
+    "gtfs_delijn": true,
+    "gtfs_nmbs": true,
+    "velo": true,
+    "trees": true,
+    "benches": true,
+    "aerial": true,
+    "facades": true,
+    "monuments": true,
+    "port_props": true,
+    "train_meshes": true
+  },
+  "seam": {
+    "nationale_bank": {
+      "lat": 51.21285,
+      "lon": 4.40655
+    }
+  }
+}

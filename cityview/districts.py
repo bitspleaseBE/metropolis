@@ -47,7 +47,11 @@ DISTRICT_REGISTRY: dict[str, dict[str, Any]] = {
         # Handschoenmarkt, off the Grote Markt, facing the cathedral's west front.
         "spawn": {"label": "Grote Markt · Kathedraal", "lat": 51.220482, "lon": 4.399963, "eye_height": 1.7,
                   "yaw": -1.7467, "snap_road": False},
-        "facade_styles": ["baroque_civic", "stepped_gable", "shopfront_meir", "warehouse_quay", "postwar_block", "glass_tower"],
+        "facade_styles": [
+            "baroque_civic", "stepped_gable", "shopfront_meir",
+            "shopfront_newsstand", "shopfront_kebab", "shopfront_frituur", "shopfront_pizza",
+            "warehouse_quay", "postwar_block", "glass_tower",
+        ],
         "access": "border",
     },
     ID_2018: {
@@ -59,7 +63,11 @@ DISTRICT_REGISTRY: dict[str, dict[str, Any]] = {
         # Footpath at the west tip of the Stadspark pond, looking down the water.
         "spawn": {"label": "Stadspark", "lat": 51.211471, "lon": 4.412035, "eye_height": 1.7,
                   "yaw": -1.5797, "snap_road": False},
-        "facade_styles": ["neo_flemish", "art_nouveau", "brick_sandstone_band", "postwar_block", "glass_tower"],
+        "facade_styles": [
+            "neo_flemish", "art_nouveau", "brick_sandstone_band",
+            "shopfront_meir", "shopfront_newsstand", "shopfront_kebab", "shopfront_frituur", "shopfront_pizza",
+            "postwar_block", "glass_tower",
+        ],
         "access": "border",
         "legacy_viewer_glb": "klein_antwerpen.glb",
     },

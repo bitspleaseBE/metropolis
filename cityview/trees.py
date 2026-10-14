@@ -87,6 +87,10 @@ GENUS_MAX_HEIGHT = {
 }
 DEFAULT_MAX_HEIGHT = 14.0
 MAX_TREE_HEIGHT = 22.0  # 4-6 storey terraces are ~13-18 m; nothing should tower 2×
+# Two adult humans (~1.7 m). Anything shorter is a bush, not a tree.
+MIN_TREE_HEIGHT = 3.4
+# Foliage must clear a walker; Blender crowns sit on top of this clearance.
+MIN_CROWN_CLEARANCE = 2.0
 GIRTH_SCALE_CM = 110.0
 # Narrow, upright habits (cultivar epithets) → thin crown.
 COLUMNAR_MARKS = ("fastigiata", "columnaris", "pyramidalis", "fontaine", "erecta", "fastigiate")
@@ -478,7 +482,11 @@ def _parse_metres(raw: Any) -> float | None:
 
 
 def tree_traits(rec: dict[str, Any], x: float, y: float) -> dict[str, Any]:
-    """Height / crown / shape from species, trunk girth and tags."""
+    """Height / crown / shape from species, trunk girth and tags.
+
+    Heights below ``MIN_TREE_HEIGHT`` (two humans) are left as-is so the planner
+    can demote them to bushes — they are never inflated into stubby "trees".
+    """
     species = (rec.get("species") or "").strip()
     genus = (rec.get("genus") or (species.split(" ")[0] if species else "")).strip().capitalize()
     low = species.lower()
@@ -498,7 +506,7 @@ def tree_traits(rec: dict[str, Any], x: float, y: float) -> dict[str, Any]:
         else:
             height = 6.5 + tone * 4.5
         height *= 0.93 + 0.14 * tone
-    height = max(3.5, min(h_max, MAX_TREE_HEIGHT, height))
+    height = min(h_max, MAX_TREE_HEIGHT, float(height))
     if conifer:
         height = min(height, 16.0)
 
@@ -507,28 +515,66 @@ def tree_traits(rec: dict[str, Any], x: float, y: float) -> dict[str, Any]:
         radius = crown_d * 0.5
     else:
         # Open-grown urban broadleaves: crown spread ≈ 0.55–0.7 × height.
-        radius = 0.3 * height + 0.3 + (tone - 0.5) * 0.7
+        radius = 0.3 * max(height, MIN_TREE_HEIGHT) + 0.3 + (tone - 0.5) * 0.7
     if columnar:
         radius *= 0.5
     elif conifer:
         radius *= 0.75
-    radius = max(1.0, min(7.0, radius))
+    radius = max(0.6, min(7.0, radius))
     shape = "conifer" if conifer else ("columnar" if columnar else "broadleaf")
+    height = fit_height_to_crown(height, radius, shape)
+    # Street trees keep walker clearance under the crown; grow a short specimen up
+    # rather than letting foliage sit on the ground (unless it belongs as a bush).
+    if height >= MIN_TREE_HEIGHT:
+        height = max(height, MIN_CROWN_CLEARANCE + max(1.4, 0.55 * radius))
+        height = fit_height_to_crown(min(height, h_max, MAX_TREE_HEIGHT), radius, shape)
+        # Still too short after the crown-fit → bush territory.
+        if height < MIN_TREE_HEIGHT:
+            height = round(height, 2)
     return {
         "genus": genus,
         "species": species,
-        "height": round(fit_height_to_crown(height, radius, shape), 2),
+        "height": round(height, 2),
         "radius": round(radius, 2),
         "shape": shape,
         "archetype": archetype_for(genus, shape),
         "tone": round(tone, 3),
+        "clearance": round(crown_clearance(height, shape), 2),
     }
 
 
 def fit_height_to_crown(height: float, radius: float, shape: str) -> float:
     """Cap height so a crown never sits on a bare pole (pruned / narrow crowns)."""
     ratio = {"broadleaf": 3.4, "columnar": 7.0, "conifer": 5.0}.get(shape, 3.4)
-    return max(3.5, min(height, 2.4 + ratio * radius))
+    return min(height, 2.4 + ratio * radius)
+
+
+def crown_clearance(height: float, shape: str) -> float:
+    """Approximate foliage bottom height (metres) matching ``blender/trees_blender``."""
+    if shape == "conifer":
+        # Still a tree: keep the skirt above a crouched walker, taper above that.
+        return max(1.5, 0.22 * height)
+    return max(MIN_CROWN_CLEARANCE, 0.38 * height)
+
+
+def is_tree_sized(traits: dict[str, Any]) -> bool:
+    """True when this specimen is tall enough to draw as a tree (not a bush)."""
+    return float(traits.get("height") or 0.0) >= MIN_TREE_HEIGHT
+
+
+def bush_from_traits(x: float, y: float, traits: dict[str, Any]) -> dict[str, Any]:
+    """Low multi-stem shrub record for specimens that are too small to be trees."""
+    h = float(traits.get("height") or 1.2)
+    r = float(traits.get("radius") or 0.8)
+    return {
+        "x": round(x, 2),
+        "y": round(y, 2),
+        "w": round(max(1.0, min(3.2, r * 2.1)), 2),
+        "h": round(max(0.7, min(2.4, h if h > 0.5 else r * 1.1)), 2),
+        "tone": float(traits.get("tone") or 0.0),
+        "source": "survey_shrub",
+        "genus": traits.get("genus") or "",
+    }
 
 
 # Plaza tree layout is not hard-coded per square. Agents match Digitaal Vlaanderen
@@ -711,11 +757,14 @@ def plan_trees(
         "dropped_rail": 0,
         "dropped_outside": 0,
         "bushes": 0,
+        "demoted_bush": 0,
         "parks_filled": 0,
         "parks_sparse_total": 0,
     }
     trees: list[dict[str, Any]] = []
+    bushes: list[dict[str, Any]] = []
     grid = _PointGrid(cell=4.0)
+    bush_grid = _PointGrid(cell=4.0)
     boundary = layout.get("boundary_local") or None
     for cand in _real_candidates(payload, origin):
         x, y, src = cand["x"], cand["y"], cand["source"]
@@ -724,7 +773,7 @@ def plan_trees(
         ):
             stats["dropped_outside"] += 1
             continue
-        if grid.near(x, y, DEDUPE_M):
+        if grid.near(x, y, DEDUPE_M) or bush_grid.near(x, y, DEDUPE_M):
             stats["dropped_duplicate"] += 1
             continue
         if obstacles.on_rails(x, y, CLEAR_REAL_TRUNK):
@@ -744,6 +793,7 @@ def plan_trees(
                     not obstacles.on_rails(px, py, CLEAR_REAL_TRUNK)
                     and not obstacles.in_building(px, py, BUILDING_MARGIN_REAL)
                     and not grid.near(px, py, DEDUPE_M)
+                    and not bush_grid.near(px, py, DEDUPE_M)
                 ),
             )
             if spot is None:
@@ -751,23 +801,31 @@ def plan_trees(
                 continue
             x, y = spot
             stats["relocated_road"] += 1
-        grid.add(x, y)
-        tree = {"x": round(x, 2), "y": round(y, 2), "source": src}
-        tree.update(tree_traits(cand["rec"], x, y))
+        traits = tree_traits(cand["rec"], x, y)
         # Keep the crown clear of the tram bed even though it may overhang the track.
         rail_d = obstacles.rails.distance(x, y, limit=8.0)
-        if rail_d < tree["radius"] + BED_HALF_SUBWAY:
-            tree["radius"] = round(max(0.9, rail_d - BED_HALF_SUBWAY - 0.1), 2)
+        if rail_d < traits["radius"] + BED_HALF_SUBWAY:
+            traits["radius"] = round(max(0.6, rail_d - BED_HALF_SUBWAY - 0.1), 2)
             # Tram-side trees are pruned as a whole, not just stripped on one side.
-            tree["height"] = round(
-                fit_height_to_crown(tree["height"], tree["radius"], tree["shape"]), 2
+            traits["height"] = round(
+                fit_height_to_crown(traits["height"], traits["radius"], traits["shape"]), 2
             )
+            traits["clearance"] = round(crown_clearance(traits["height"], traits["shape"]), 2)
+        # Shorter than two humans → bush mound (different mesh, no trunk).
+        if not is_tree_sized(traits):
+            bush = bush_from_traits(x, y, traits)
+            bushes.append(bush)
+            bush_grid.add(x, y)
+            stats["bushes"] += 1
+            stats["demoted_bush"] += 1
+            continue
+        grid.add(x, y)
+        tree = {"x": round(x, 2), "y": round(y, 2), "source": src}
+        tree.update(traits)
         trees.append(tree)
         stats[src] += 1
 
     # --- fallback: Poisson fill only inside parks the survey barely covers ---
-    bushes: list[dict[str, Any]] = []
-    bush_grid = _PointGrid(cell=4.0)
 
     def clear_of_world(x: float, y: float, building_margin: float) -> bool:
         if boundary and not _point_in_ring(x, y, boundary):
@@ -807,9 +865,17 @@ def plan_trees(
                 for x, y in spots:
                     rec = {"height": "", "girth_cm": None}
                     tone = _stable_unit(pid, round(x, 1), round(y, 1))
-                    rec["girth_cm"] = 60.0 + tone * 110.0
+                    # Fill trees are park standards — never seedlings (always ≥ two humans).
+                    rec["girth_cm"] = 80.0 + tone * 120.0
+                    traits = tree_traits(rec, x, y)
+                    if not is_tree_sized(traits):
+                        traits["height"] = MIN_TREE_HEIGHT + 0.4 + tone * 2.0
+                        traits["radius"] = max(traits["radius"], 1.4)
+                        traits["clearance"] = round(
+                            crown_clearance(traits["height"], traits["shape"]), 2
+                        )
                     tree = {"x": round(x, 2), "y": round(y, 2), "source": "fill"}
-                    tree.update(tree_traits(rec, x, y))
+                    tree.update(traits)
                     trees.append(tree)
                     grid.add(x, y)
                     stats["fill"] += 1
@@ -832,9 +898,10 @@ def plan_trees(
                 {
                     "x": round(x, 2),
                     "y": round(y, 2),
-                    "w": round(1.2 + u * 0.9, 2),
-                    "h": round(0.9 + (1.0 - u) * 0.6, 2),
+                    "w": round(1.2 + u * 1.1, 2),
+                    "h": round(0.8 + (1.0 - u) * 1.0, 2),
                     "tone": round(u, 3),
+                    "source": "park_fill",
                 }
             )
             bush_grid.add(x, y)

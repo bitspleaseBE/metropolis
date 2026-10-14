@@ -1,0 +1,1238 @@
+{
+  "district_id": "2060-noord",
+  "spawn": {
+    "label": "Sint-Jansplein",
+    "lat": 51.2282,
+    "lon": 4.4176
+  },
+  "count": 40,
+  "buildings": [
+    {
+      "name": "Sint-Willibrorduskerk",
+      "osm_id": 32134683,
+      "osm_type": "way",
+      "role": "",
+      "score": 124.1,
+      "wikidata": "Q28525954",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": "church",
+      "lat": 51.219674654081636,
+      "lon": 4.432268110204082,
+      "xy": [
+        252.769,
+        -1000.917
+      ],
+      "spawn_distance_m": 1390.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q28525954"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Willibrorduskerk",
+        "label_nl": "Sint-Willibrorduskerk",
+        "description_en": "church in Antwerpen, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Amanduskerk",
+      "osm_id": 230505309,
+      "osm_type": "way",
+      "role": "",
+      "score": 121.9,
+      "wikidata": "Q2654106",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.226380768518524,
+      "lon": 4.423602598148149,
+      "xy": [
+        -351.304,
+        -259.623
+      ],
+      "spawn_distance_m": 464.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2654106"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Amanduskerk",
+        "label_nl": "Sint-Amanduskerk",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Eligiuskerk",
+      "osm_id": 230505310,
+      "osm_type": "way",
+      "role": "",
+      "score": 121.9,
+      "wikidata": "Q28530544",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.22525732125,
+      "lon": 4.43528257625,
+      "xy": [
+        462.908,
+        -383.809
+      ],
+      "spawn_distance_m": 1274.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q28530544"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Eligiuskerk",
+        "label_nl": "Sint-Eligiuskerk",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Willy Vandersteenplein",
+      "osm_id": 285292596,
+      "osm_type": "way",
+      "role": "",
+      "score": 108.8,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2244973,
+      "lon": 4.429852966666667,
+      "xy": [
+        84.41,
+        -467.822
+      ],
+      "spawn_distance_m": 947.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Steenborgerweert",
+      "osm_id": 31353557,
+      "osm_type": "way",
+      "role": "",
+      "score": 106.4,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23682192,
+      "lon": 4.4219926,
+      "xy": [
+        -463.537,
+        894.542
+      ],
+      "spawn_distance_m": 1001.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Oudesteenweg",
+      "osm_id": 692498072,
+      "osm_type": "way",
+      "role": "",
+      "score": 104.8,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.22616865714286,
+      "lon": 4.420572171428572,
+      "xy": [
+        -562.555,
+        -283.07
+      ],
+      "spawn_distance_m": 305.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "AFAS Dome",
+      "osm_id": 23634249,
+      "osm_type": "way",
+      "role": "",
+      "score": 98.6,
+      "wikidata": "Q731520",
+      "heritage": true,
+      "building": "stadium",
+      "amenity": "events_venue",
+      "historic": "building",
+      "lat": 51.231118421874996,
+      "lon": 4.440849075,
+      "xy": [
+        850.949,
+        264.077
+      ],
+      "spawn_distance_m": 1652.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q731520"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "AFAS Dome",
+        "label_nl": "AFAS Dome",
+        "description_en": "multipurpose indoor arena in Antwerp, Belgium",
+        "description_nl": "multifunctionele evenementenhal in Antwerpen"
+      }
+    },
+    {
+      "name": "Sint-Lambertuskerk",
+      "osm_id": 501390581,
+      "osm_type": "way",
+      "role": "",
+      "score": 92.5,
+      "wikidata": "Q107348115",
+      "heritage": true,
+      "building": "church",
+      "amenity": "events_venue",
+      "historic": null,
+      "lat": 51.231648428571425,
+      "lon": 4.428095507142857,
+      "xy": [
+        -38.103,
+        322.664
+      ],
+      "spawn_distance_m": 825.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107348115"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Lambertuskerk",
+        "label_nl": "Sint-Lambertuskerk",
+        "description_en": "church in Dam, Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Klooster en kapel van de zusters Franciscanessen",
+      "osm_id": 2390026790,
+      "osm_type": "node",
+      "role": "",
+      "score": 84.2,
+      "wikidata": "Q2330144",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "monastery",
+      "lat": 51.2234123,
+      "lon": 4.438633,
+      "xy": [
+        696.466,
+        -587.758
+      ],
+      "spawn_distance_m": 1558.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2330144"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Franciscanessenklooster",
+        "label_nl": "Franciscanessenklooster in de Lange Kongostraat",
+        "description_en": "monastery in Antwerp, Belgium",
+        "description_nl": "kloostercomplex in Antwerpen (stad), Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Heilig-Hartkerk",
+      "osm_id": 489256648,
+      "osm_type": "way",
+      "role": "",
+      "score": 81.4,
+      "wikidata": "Q107348113",
+      "heritage": false,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.22088625833333,
+      "lon": 4.422316321666667,
+      "xy": [
+        -440.97,
+        -866.986
+      ],
+      "spawn_distance_m": 872.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107348113"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Helig Hartkerk",
+        "label_nl": "Heilig Hartkerk",
+        "description_en": "church building at Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Koninklijk Atheneum",
+      "osm_id": 226933,
+      "osm_type": "relation",
+      "role": "",
+      "score": 72.6,
+      "wikidata": "Q33100553",
+      "heritage": true,
+      "building": "school",
+      "amenity": null,
+      "historic": "school",
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q33100553"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Koninklijk Atheneum Antwerpen",
+        "label_nl": "Koninklijk Atheneum Antwerpen",
+        "description_en": "school building at Franklin Rooseveltplaats 11, Antwerp, Belgium",
+        "description_nl": "school in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "osm-505854846",
+      "osm_id": 505854846,
+      "osm_type": "way",
+      "role": "",
+      "score": 65.1,
+      "wikidata": "Q37936235",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "building",
+      "lat": 51.2208610625,
+      "lon": 4.4269429125,
+      "xy": [
+        -118.45,
+        -869.772
+      ],
+      "spawn_distance_m": 1040.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q37936235"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Festa Cinema",
+        "label_nl": "Festa Cinema",
+        "description_en": "former cinema in Antwerp, Belgium",
+        "description_nl": "voormalige bioscoop in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Fietsbrug IJzerlaan",
+      "osm_id": 759620698,
+      "osm_type": "way",
+      "role": "",
+      "score": 62.6,
+      "wikidata": "Q2355698",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23525050000001,
+      "lon": 4.4310418,
+      "xy": [
+        167.283,
+        720.837
+      ],
+      "spawn_distance_m": 1218.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2355698"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "IJzerlaanbrug",
+        "label_nl": "IJzerlaanbrug",
+        "description_en": "bridge in Antwerp, Belgium",
+        "description_nl": "brug in Antwerpen (stad), Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Van Wesenbekestraat",
+      "osm_id": 8061266,
+      "osm_type": "way",
+      "role": "",
+      "score": 62.6,
+      "wikidata": "Q2932425",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.21988031666667,
+      "lon": 4.4207547,
+      "xy": [
+        -549.831,
+        -978.183
+      ],
+      "spawn_distance_m": 945.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2932425"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Van Wesenbekestraat",
+        "label_nl": "Van Wesenbekestraat",
+        "description_en": "street in Antwerp (city), Belgium",
+        "description_nl": "straat in Antwerpen (stad), Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Viaduct van Merksem",
+      "osm_id": 791139160,
+      "osm_type": "way",
+      "role": "",
+      "score": 62.6,
+      "wikidata": "Q2435830",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23522773692307,
+      "lon": 4.43216374,
+      "xy": [
+        245.494,
+        718.321
+      ],
+      "spawn_distance_m": 1278.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2435830"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Flyover of Merksem",
+        "label_nl": "Viaduct van Merksem",
+        "description_en": "Flyover",
+        "description_nl": "brug in Antwerpen (stad)"
+      }
+    },
+    {
+      "name": "Park Spoor Noord",
+      "osm_id": 4403124,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.4,
+      "wikidata": "Q2685872",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23059802682927,
+      "lon": 4.423826325203252,
+      "xy": [
+        -335.708,
+        206.552
+      ],
+      "spawn_distance_m": 508.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2685872"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Park Spoor Noord",
+        "label_nl": "Park Spoor Noord",
+        "description_en": "park in Antwerp",
+        "description_nl": "landschapspark in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "De Coninckplein",
+      "osm_id": 8060138,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.0,
+      "wikidata": "Q2323524",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2217092,
+      "lon": 4.42039866,
+      "xy": [
+        -574.65,
+        -776.018
+      ],
+      "spawn_distance_m": 743.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2323524"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "De Coninckplein",
+        "label_nl": "De Coninckplein",
+        "description_en": "square in Antwerp, Belgium",
+        "description_nl": "plein in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Noorderlaanbrug",
+      "osm_id": 440197572,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.0,
+      "wikidata": "Q2420826",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.24034635238095,
+      "lon": 4.420352014285714,
+      "xy": [
+        -577.902,
+        1284.132
+      ],
+      "spawn_distance_m": 1356.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2420826"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Noorderlaanbrug",
+        "label_nl": "Noorderlaanbrug",
+        "description_en": "bridge in Antwerp",
+        "description_nl": "brug in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Lovelingstraat",
+      "osm_id": 838900683,
+      "osm_type": "way",
+      "role": "",
+      "score": 60.6,
+      "wikidata": "Q684376",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.21989602727273,
+      "lon": 4.4316727,
+      "xy": [
+        211.263,
+        -976.447
+      ],
+      "spawn_distance_m": 1343.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q684376"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Virginie Loveling",
+        "label_nl": "Virginie Loveling",
+        "description_en": "author of poetry, novels, essays and children's stories from Flanders, Belgium (1836-1923)",
+        "description_nl": "Belgisch schrijfster (1836\u20131923)"
+      }
+    },
+    {
+      "name": "Albertkanaal",
+      "osm_id": 775722223,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.8,
+      "wikidata": "Q835090",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23653539705882,
+      "lon": 4.469489038235294,
+      "xy": [
+        2847.441,
+        862.869
+      ],
+      "spawn_distance_m": 3732.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q835090"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Albert Canal",
+        "label_nl": "Albertkanaal",
+        "description_en": "canal in north-eastern Belgium, between Antwerp and Li\u00e8ge",
+        "description_nl": "kanaal in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Carnotstraat",
+      "osm_id": 8061264,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.8,
+      "wikidata": "Q2963359",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.218887375,
+      "lon": 4.42213015,
+      "xy": [
+        -453.948,
+        -1087.943
+      ],
+      "spawn_distance_m": 1076.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2963359"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Carnotstraat",
+        "label_nl": "Carnotstraat",
+        "description_en": "street in Antwerp (city), Belgium",
+        "description_nl": "straat in Antwerpen (stad), Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Lobroekdok",
+      "osm_id": 775722225,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.0,
+      "wikidata": "Q2161316",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2305574,
+      "lon": 4.438090333333333,
+      "xy": [
+        658.637,
+        202.062
+      ],
+      "spawn_distance_m": 1452.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2161316"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Lobroekdok",
+        "label_nl": "Lobroekdok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Antwerpen Trust church",
+      "osm_id": 505266006,
+      "osm_type": "way",
+      "role": "",
+      "score": 58.8,
+      "wikidata": null,
+      "heritage": false,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.221198693333335,
+      "lon": 4.422431326666667,
+      "xy": [
+        -432.953,
+        -832.45
+      ],
+      "spawn_distance_m": 844.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Stedelijk Zwembad Veldstraat",
+      "osm_id": 87758192,
+      "osm_type": "way",
+      "role": "",
+      "score": 51.7,
+      "wikidata": null,
+      "heritage": true,
+      "building": "sports_centre",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.22686098571428,
+      "lon": 4.432790235714285,
+      "xy": [
+        289.167,
+        -206.54
+      ],
+      "spawn_distance_m": 1069.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Islamitisch Cultuur Centrum van Republiek Bosni\u00eb Herzegovina",
+      "osm_id": 5032473574,
+      "osm_type": "node",
+      "role": "",
+      "score": 50.0,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.2265821,
+      "lon": 4.4246198,
+      "xy": [
+        -280.395,
+        -237.368
+      ],
+      "spawn_distance_m": 521.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Panamarenkohuis",
+      "osm_id": 507365210,
+      "osm_type": "way",
+      "role": "",
+      "score": 46.0,
+      "wikidata": "Q110042867",
+      "heritage": false,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2273566,
+      "lon": 4.422590433333333,
+      "xy": [
+        -421.862,
+        -151.755
+      ],
+      "spawn_distance_m": 360.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q110042867"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Panamarenko House",
+        "label_nl": "Panamarenkohuis",
+        "description_en": "house museum in Antwerp, Belgium",
+        "description_nl": "huismuseum in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "De Kindertuin",
+      "osm_id": 2390026782,
+      "osm_type": "node",
+      "role": "",
+      "score": 45.2,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": "kindergarten",
+      "historic": null,
+      "lat": 51.2245818,
+      "lon": 4.4191196,
+      "xy": [
+        -663.814,
+        -458.481
+      ],
+      "spawn_distance_m": 413.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Chinatown",
+      "osm_id": 996504876,
+      "osm_type": "way",
+      "role": "",
+      "score": 45.1,
+      "wikidata": "Q2932425",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.220252862500004,
+      "lon": 4.4207055625,
+      "xy": [
+        -553.256,
+        -937.002
+      ],
+      "spawn_distance_m": 904.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2932425"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Van Wesenbekestraat",
+        "label_nl": "Van Wesenbekestraat",
+        "description_en": "street in Antwerp (city), Belgium",
+        "description_nl": "straat in Antwerpen (stad), Belgi\u00eb"
+      }
+    },
+    {
+      "name": "FR10 Fietssnelweg Ringfietspad Sportpaleis (wenslijn)",
+      "osm_id": 19084414,
+      "osm_type": "relation",
+      "role": "",
+      "score": 45.0,
+      "wikidata": "Q107465129",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107465129"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "FR10 bicycle highway",
+        "label_nl": "Fietssnelweg FR10",
+        "description_en": "bicycle ring highway around Antwerp, Belgium",
+        "description_nl": "fietssnelwegring rond Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "De Vuurtoren",
+      "osm_id": 2390026791,
+      "osm_type": "node",
+      "role": "",
+      "score": 44.8,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": "school",
+      "historic": null,
+      "lat": 51.223641,
+      "lon": 4.4378906,
+      "xy": [
+        644.713,
+        -562.477
+      ],
+      "spawn_distance_m": 1501.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "FR10 Fietssnelweg Ringfietspad Merksem (wenslijn)",
+      "osm_id": 19084472,
+      "osm_type": "relation",
+      "role": "",
+      "score": 44.6,
+      "wikidata": "Q107465129",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107465129"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "FR10 bicycle highway",
+        "label_nl": "Fietssnelweg FR10",
+        "description_en": "bicycle ring highway around Antwerp, Belgium",
+        "description_nl": "fietssnelwegring rond Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "International Christian Fellowship",
+      "osm_id": 6712707769,
+      "osm_type": "node",
+      "role": "",
+      "score": 43.6,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.2222039,
+      "lon": 4.4209659,
+      "xy": [
+        -535.108,
+        -721.334
+      ],
+      "spawn_distance_m": 703.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "AP hogeschool- Campus Spoor Noord - Lichttoren",
+      "osm_id": 1255780374,
+      "osm_type": "way",
+      "role": "",
+      "score": 43.6,
+      "wikidata": "Q13430595",
+      "heritage": false,
+      "building": null,
+      "amenity": "college",
+      "historic": null,
+      "lat": 51.23027346,
+      "lon": 4.41842356,
+      "xy": [
+        -712.335,
+        170.675
+      ],
+      "spawn_distance_m": 236.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q13430595"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "AP University of Applied Sciences and Arts",
+        "label_nl": "AP Hogeschool Antwerpen",
+        "description_en": "university in Belgium",
+        "description_nl": "hogeschool in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Ongebruikt metrostation Sint-Willibrordus",
+      "osm_id": 3528435499,
+      "osm_type": "node",
+      "role": "",
+      "score": 41.4,
+      "wikidata": "Q2877180",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2187268,
+      "lon": 4.431981,
+      "xy": [
+        232.755,
+        -1105.693
+      ],
+      "spawn_distance_m": 1449.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2877180"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Willibrordus premetro station",
+        "label_nl": "Sint-Willibrordus",
+        "description_en": "premetro station in Antwerp, Belgium",
+        "description_nl": "premetrostation in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "AP Hogeschool - Campus Ellermanstraat",
+      "osm_id": 339616477,
+      "osm_type": "way",
+      "role": "",
+      "score": 41.3,
+      "wikidata": "Q13430595",
+      "heritage": false,
+      "building": null,
+      "amenity": "college",
+      "historic": null,
+      "lat": 51.23022261999999,
+      "lon": 4.41594525,
+      "xy": [
+        -885.098,
+        165.055
+      ],
+      "spawn_distance_m": 251.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q13430595"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "AP University of Applied Sciences and Arts",
+        "label_nl": "AP Hogeschool Antwerpen",
+        "description_en": "university in Belgium",
+        "description_nl": "hogeschool in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "FR10 Fietssnelweg Ringfietspad Antwerpen",
+      "osm_id": 9180380,
+      "osm_type": "relation",
+      "role": "",
+      "score": 41.0,
+      "wikidata": "Q107465129",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107465129"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "FR10 bicycle highway",
+        "label_nl": "Fietssnelweg FR10",
+        "description_en": "bicycle ring highway around Antwerp, Belgium",
+        "description_nl": "fietssnelwegring rond Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "AP Hogeschool - Campus Dambruggestraat",
+      "osm_id": 1255780375,
+      "osm_type": "way",
+      "role": "",
+      "score": 40.6,
+      "wikidata": "Q13430595",
+      "heritage": false,
+      "building": null,
+      "amenity": "college",
+      "historic": null,
+      "lat": 51.229247914285715,
+      "lon": 4.4216388,
+      "xy": [
+        -488.2,
+        57.311
+      ],
+      "spawn_distance_m": 304.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q13430595"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "AP University of Applied Sciences and Arts",
+        "label_nl": "AP Hogeschool Antwerpen",
+        "description_en": "university in Belgium",
+        "description_nl": "hogeschool in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "S35 Antwerpen-Centraal - Noorderkempen",
+      "osm_id": 18081319,
+      "osm_type": "relation",
+      "role": "",
+      "score": 40.2,
+      "wikidata": "Q125298427",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q125298427"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "",
+        "label_nl": "",
+        "description_en": "",
+        "description_nl": ""
+      }
+    },
+    {
+      "name": "S35 Noorderkempen - Antwerpen-Centraal",
+      "osm_id": 18081345,
+      "osm_type": "relation",
+      "role": "",
+      "score": 40.2,
+      "wikidata": "Q125298427",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q125298427"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "",
+        "label_nl": "",
+        "description_en": "",
+        "description_nl": ""
+      }
+    },
+    {
+      "name": "Tram 12: Centraal Station \u2192 Vis\u00e9straat",
+      "osm_id": 11212,
+      "osm_type": "relation",
+      "role": "",
+      "score": 40.2,
+      "wikidata": "Q2200976",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2200976"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Antwerp tram line 12",
+        "label_nl": "Tramlijn 12",
+        "description_en": "",
+        "description_nl": "Antwerpen"
+      }
+    }
+  ]
+}

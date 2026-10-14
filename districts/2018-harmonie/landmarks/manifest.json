@@ -287,15 +287,15 @@
       "name": "Nationale Bank van Belgi\u00eb",
       "kind": "civic",
       "custom": "nationale_bank",
-      "levels": 5,
-      "height_m": 18.5,
-      "roof_height_m": 1.5,
+      "levels": 6,
+      "height_m": 28.5,
+      "roof_height_m": 8.0,
       "anchor": [
         51.21167,
         4.40831
       ],
       "source_url": "https://www.openstreetmap.org/relation/12470557",
-      "attribution": "Nationale Bank / Leopoldplaats \u2014 mesh kit massing",
+      "attribution": "Nationale Bank / Leopoldplaats \u2014 Neo-Renaissance LOD3 mesh kit",
       "stream": true
     }
   },
@@ -365,15 +365,15 @@
       "name": "Nationale Bank van Belgi\u00eb",
       "kind": "civic",
       "custom": "nationale_bank",
-      "levels": 5,
-      "height_m": 18.5,
-      "roof_height_m": 1.5,
+      "levels": 6,
+      "height_m": 28.5,
+      "roof_height_m": 8.0,
       "anchor": [
         51.21167,
         4.40831
       ],
       "source_url": "https://www.openstreetmap.org/relation/12470557",
-      "attribution": "Nationale Bank / Leopoldplaats \u2014 mesh kit massing",
+      "attribution": "Nationale Bank / Leopoldplaats \u2014 Neo-Renaissance LOD3 mesh kit",
       "stream": true
     },
     "nationale bank": {
@@ -381,15 +381,15 @@
       "name": "Nationale Bank van Belgi\u00eb",
       "kind": "civic",
       "custom": "nationale_bank",
-      "levels": 5,
-      "height_m": 18.5,
-      "roof_height_m": 1.5,
+      "levels": 6,
+      "height_m": 28.5,
+      "roof_height_m": 8.0,
       "anchor": [
         51.21167,
         4.40831
       ],
       "source_url": "https://www.openstreetmap.org/relation/12470557",
-      "attribution": "Nationale Bank / Leopoldplaats \u2014 mesh kit massing",
+      "attribution": "Nationale Bank / Leopoldplaats \u2014 Neo-Renaissance LOD3 mesh kit",
       "stream": true
     }
   },

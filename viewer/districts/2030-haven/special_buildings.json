@@ -1,0 +1,1283 @@
+{
+  "district_id": "2030-haven",
+  "spawn": {
+    "label": "Havenhuis",
+    "lat": 51.2386,
+    "lon": 4.4036
+  },
+  "count": 40,
+  "buildings": [
+    {
+      "name": "Onze-Lieve-Vrouw-Boodschapkerk",
+      "osm_id": 124895085,
+      "osm_type": "way",
+      "role": "",
+      "score": 217.4,
+      "wikidata": "Q107338975",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.251047908333334,
+      "lon": 4.421213466666667,
+      "xy": [
+        3933.964,
+        -2560.807
+      ],
+      "spawn_distance_m": 1843.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107338975"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Onze-Lieve-Vrouw-Boodschapskerk",
+        "label_nl": "Onze-Lieve-Vrouw-Boodschapskerk",
+        "description_en": "church building in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Wilmarsdonksteenweg",
+      "osm_id": 22997687,
+      "osm_type": "way",
+      "role": "",
+      "score": 107.6,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.25787174,
+      "lon": 4.38421298,
+      "xy": [
+        1357.21,
+        -1806.501
+      ],
+      "spawn_distance_m": 2522.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Oosterweelsteenweg",
+      "osm_id": 23008386,
+      "osm_type": "way",
+      "role": "",
+      "score": 107.2,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.243119125,
+      "lon": 4.392699741666667,
+      "xy": [
+        1948.237,
+        -3437.255
+      ],
+      "spawn_distance_m": 908.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Ekersesteenweg",
+      "osm_id": 29092404,
+      "osm_type": "way",
+      "role": "",
+      "score": 105.6,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2630406,
+      "lon": 4.417717875,
+      "xy": [
+        3690.528,
+        -1235.135
+      ],
+      "spawn_distance_m": 2875.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Kattendijksluis",
+      "osm_id": 74508771,
+      "osm_type": "way",
+      "role": "",
+      "score": 101.0,
+      "wikidata": "Q2013426",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23514325833334,
+      "lon": 4.404183691666667,
+      "xy": [
+        2747.992,
+        -4318.907
+      ],
+      "spawn_distance_m": 384.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2013426"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Kattendijksluis",
+        "label_nl": "Kattendijksluis",
+        "description_en": "",
+        "description_nl": "sluis in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Jan-de-Doperkerk",
+      "osm_id": 790981331,
+      "osm_type": "way",
+      "role": "",
+      "score": 93.5,
+      "wikidata": "Q74042824",
+      "heritage": true,
+      "building": "church",
+      "amenity": null,
+      "historic": "church",
+      "lat": 51.24368385333333,
+      "lon": 4.3852537866666665,
+      "xy": [
+        1429.693,
+        -3374.83
+      ],
+      "spawn_distance_m": 1395.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q74042824"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Jan-de-Doperkerk",
+        "label_nl": "Sint-Jan-de-Doperkerk",
+        "description_en": "church in Oosterweel (Antwerp)",
+        "description_nl": "kerkgebouw in Oosterweel (Antwerpen), Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Kattendijkdok",
+      "osm_id": 319261272,
+      "osm_type": "way",
+      "role": "",
+      "score": 88.1,
+      "wikidata": "Q1809382",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23765233493976,
+      "lon": 4.406202512650602,
+      "xy": [
+        2888.585,
+        -4041.554
+      ],
+      "spawn_distance_m": 209.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1809382"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Kattendijkdok",
+        "label_nl": "Kattendijkdok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Hogere Zeevaartschool",
+      "osm_id": 25217579,
+      "osm_type": "way",
+      "role": "",
+      "score": 79.0,
+      "wikidata": "Q2262236",
+      "heritage": true,
+      "building": null,
+      "amenity": "college",
+      "historic": null,
+      "lat": 51.240938775,
+      "lon": 4.3977455625,
+      "xy": [
+        2299.634,
+        -3678.271
+      ],
+      "spawn_distance_m": 482.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2262236"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Antwerp Maritime Academy",
+        "label_nl": "Hogere Zeevaartschool Antwerpen - HZS",
+        "description_en": "",
+        "description_nl": "school in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Kerktoren Sint-Laurentiuskerk",
+      "osm_id": 172349724,
+      "osm_type": "way",
+      "role": "",
+      "score": 76.6,
+      "wikidata": "Q107094054",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "tower",
+      "lat": 51.275177299999996,
+      "lon": 4.37509474,
+      "xy": [
+        722.205,
+        106.456
+      ],
+      "spawn_distance_m": 4504.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107094054"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Laurentiuskerk",
+        "label_nl": "Sint-Laurentiuskerk",
+        "description_en": "church in Wilmarsdonk, Belgium",
+        "description_nl": "kerkgebouw in Wilmarsdonk, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Fort Sint-Filips",
+      "osm_id": 1182287082,
+      "osm_type": "way",
+      "role": "",
+      "score": 71.9,
+      "wikidata": "Q2191373",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "fort",
+      "lat": 51.25916109166667,
+      "lon": 4.307767216666667,
+      "xy": [
+        -3966.558,
+        -1663.976
+      ],
+      "spawn_distance_m": 7050.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2191373"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Fort van Sint-Filips",
+        "label_nl": "Fort van Sint-Filips",
+        "description_en": "",
+        "description_nl": "bouwwerk in Antwerpen (provincie)"
+      }
+    },
+    {
+      "name": "Noordkasteel",
+      "osm_id": 2396271176,
+      "osm_type": "node",
+      "role": "",
+      "score": 69.8,
+      "wikidata": "Q2590557",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2411155,
+      "lon": 4.3965635,
+      "xy": [
+        2217.314,
+        -3658.736
+      ],
+      "spawn_distance_m": 563.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2590557"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Noordkasteel",
+        "label_nl": "Noordkasteel",
+        "description_en": "citadel that was built in 1862 on the territory of the disappeared polder village of Oosterweel",
+        "description_nl": "Fort van de Stelling van Antwerpen"
+      }
+    },
+    {
+      "name": "Schouwburg Luchtbal",
+      "osm_id": 23374043,
+      "osm_type": "way",
+      "role": "",
+      "score": 67.8,
+      "wikidata": "Q33100223",
+      "heritage": false,
+      "building": "civic",
+      "amenity": "theatre",
+      "historic": null,
+      "lat": 51.248409141176474,
+      "lon": 4.423316817647058,
+      "xy": [
+        4080.444,
+        -2852.497
+      ],
+      "spawn_distance_m": 1749.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q33100223"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "CC Luchtbal",
+        "label_nl": "CC Luchtbal",
+        "description_en": "",
+        "description_nl": "cultureel centrum in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Central Europe Pipeline System",
+      "osm_id": 173346069,
+      "osm_type": "way",
+      "role": "",
+      "score": 67.0,
+      "wikidata": "Q872940",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.26731992734375,
+      "lon": 4.45057170703125,
+      "xy": [
+        5978.505,
+        -762.098
+      ],
+      "spawn_distance_m": 4558.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q872940"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Central Europe Pipeline System",
+        "label_nl": "Central Europe Pipeline System",
+        "description_en": "NATO Pipeline System to deliver fuel for air and ground vehicles around Europe",
+        "description_nl": "netwerk van pijpleidingen van de NAVO voor het transport van brandstoffen"
+      }
+    },
+    {
+      "name": "osm-231221276",
+      "osm_id": 231221276,
+      "osm_type": "way",
+      "role": "",
+      "score": 65.1,
+      "wikidata": "Q56550319",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "building",
+      "lat": 51.24033097647059,
+      "lon": 4.401719552941176,
+      "xy": [
+        2576.387,
+        -3745.457
+      ],
+      "spawn_distance_m": 231.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q56550319"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "",
+        "label_nl": "Sluismeesterswoning bij de Royerssluis",
+        "description_en": "house at Royerssluis, Antwerp, Belgium",
+        "description_nl": "woonhuis aan Royerssluis, Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Van Cauwelaertsluis",
+      "osm_id": 195718563,
+      "osm_type": "way",
+      "role": "",
+      "score": 62.6,
+      "wikidata": "Q2114152",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.27585945,
+      "lon": 4.330796275,
+      "xy": [
+        -2362.789,
+        181.86
+      ],
+      "spawn_distance_m": 6532.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2114152"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Van Cauwelaertsluis",
+        "label_nl": "Van Cauwelaertsluis",
+        "description_en": "",
+        "description_nl": "sluis in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Park Spoor Noord",
+      "osm_id": 4403124,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.4,
+      "wikidata": "Q2685872",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23059802682927,
+      "lon": 4.423826325203252,
+      "xy": [
+        4115.927,
+        -4821.337
+      ],
+      "spawn_distance_m": 1663.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2685872"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Park Spoor Noord",
+        "label_nl": "Park Spoor Noord",
+        "description_en": "park in Antwerp",
+        "description_nl": "landschapspark in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "M477 Oudenaarde",
+      "osm_id": 1340721325,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.1,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "ship",
+      "lat": 51.240073123529406,
+      "lon": 4.404075858823529,
+      "xy": [
+        2740.483,
+        -3773.96
+      ],
+      "spawn_distance_m": 166.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Straatsburgbrug",
+      "osm_id": 23135762,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.0,
+      "wikidata": "Q2915440",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.24102475714285,
+      "lon": 4.411886485714286,
+      "xy": [
+        3284.423,
+        -3668.767
+      ],
+      "spawn_distance_m": 636.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2915440"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Straatsburg bridge",
+        "label_nl": "Straatsburgbrug",
+        "description_en": "bridge in Antwerp, Belgium",
+        "description_nl": "brug in het Antwerpse havengebied, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Tweede Havendok",
+      "osm_id": 4362284,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.0,
+      "wikidata": "Q1880029",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.25495895555556,
+      "lon": 4.410581566666667,
+      "xy": [
+        3193.547,
+        -2128.48
+      ],
+      "spawn_distance_m": 1872.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1880029"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Tweede Havendok",
+        "label_nl": "Tweede Havendok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Vierde Havendok",
+      "osm_id": 1143855243,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.0,
+      "wikidata": "Q2778112",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.25425706666667,
+      "lon": 4.376628362745098,
+      "xy": [
+        829.009,
+        -2206.067
+      ],
+      "spawn_distance_m": 2554.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2778112"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Vierde Havendok",
+        "label_nl": "Vierde Havendok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Vijfde Havendok",
+      "osm_id": 8038299,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.0,
+      "wikidata": "Q4754892",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.24832489666667,
+      "lon": 4.37277616,
+      "xy": [
+        560.737,
+        -2861.809
+      ],
+      "spawn_distance_m": 2400.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q4754892"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Vijfde Havendok",
+        "label_nl": "Vijfde Havendok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Boudewijnsluis",
+      "osm_id": 195718562,
+      "osm_type": "way",
+      "role": "",
+      "score": 60.6,
+      "wikidata": "Q1817284",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.277708625,
+      "lon": 4.332965875,
+      "xy": [
+        -2211.695,
+        386.268
+      ],
+      "spawn_distance_m": 6548.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1817284"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "",
+        "label_nl": "Boudewijnsluis",
+        "description_en": "",
+        "description_nl": "Antwerpen"
+      }
+    },
+    {
+      "name": "Derde Havendok",
+      "osm_id": 9498539,
+      "osm_type": "way",
+      "role": "",
+      "score": 60.6,
+      "wikidata": "Q2323334",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.259162550000006,
+      "lon": 4.407847216666667,
+      "xy": [
+        3003.124,
+        -1663.815
+      ],
+      "spawn_distance_m": 2292.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2323334"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Derde Havendok",
+        "label_nl": "Derde Havendok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Straatsburgdok",
+      "osm_id": 9499072,
+      "osm_type": "way",
+      "role": "",
+      "score": 60.6,
+      "wikidata": "Q2805618",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.24134993,
+      "lon": 4.4156673699999995,
+      "xy": [
+        3547.728,
+        -3632.822
+      ],
+      "spawn_distance_m": 893.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2805618"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Straatsburgdok",
+        "label_nl": "Straatsburgdok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Zesde Havendok",
+      "osm_id": 1143855260,
+      "osm_type": "way",
+      "role": "",
+      "score": 60.6,
+      "wikidata": "Q1974267",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.270391107142856,
+      "lon": 4.360512714285714,
+      "xy": [
+        -293.303,
+        -422.61
+      ],
+      "spawn_distance_m": 4621.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1974267"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Zesde Havendok",
+        "label_nl": "Zesde Havendok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "West-Hinder 3",
+      "osm_id": 1340715752,
+      "osm_type": "way",
+      "role": "",
+      "score": 60.3,
+      "wikidata": null,
+      "heritage": true,
+      "building": "ship",
+      "amenity": null,
+      "historic": "ship",
+      "lat": 51.239692188235296,
+      "lon": 4.404433905882352,
+      "xy": [
+        2765.417,
+        -3816.069
+      ],
+      "spawn_distance_m": 134.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Churchilldok",
+      "osm_id": 4532837,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.8,
+      "wikidata": "Q13467484",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.2807969,
+      "lon": 4.3601797125,
+      "xy": [
+        -316.494,
+        727.646
+      ],
+      "spawn_distance_m": 5558.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q13467484"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Churchilldok",
+        "label_nl": "Churchilldok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Industriedok",
+      "osm_id": 4363006,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.8,
+      "wikidata": "Q43674154",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.247761888888895,
+      "lon": 4.353452666666667,
+      "xy": [
+        -784.972,
+        -2924.044
+      ],
+      "spawn_distance_m": 3636.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q43674154"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "",
+        "label_nl": "Industriedok",
+        "description_en": "",
+        "description_nl": ""
+      }
+    },
+    {
+      "name": "De Kuifeend",
+      "osm_id": 474050481,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.4,
+      "wikidata": "Q2678893",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.29883136396396,
+      "lon": 4.349400366666667,
+      "xy": [
+        -1067.179,
+        2721.176
+      ],
+      "spawn_distance_m": 7653.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2678893"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "De Kuifeend",
+        "label_nl": "De Kuifeend",
+        "description_en": "natural landscape in Antwerp, Belgium",
+        "description_nl": "natuurgebied in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Marshalldok",
+      "osm_id": 4533251,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.4,
+      "wikidata": "Q2490786",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.261602856862744,
+      "lon": 4.331068221568628,
+      "xy": [
+        -2343.85,
+        -1394.063
+      ],
+      "spawn_distance_m": 5655.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2490786"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Marshalldok",
+        "label_nl": "Marshalldok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Royerssluis",
+      "osm_id": 195722537,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.4,
+      "wikidata": "Q2026562",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.241213666666674,
+      "lon": 4.402481900000001,
+      "xy": [
+        2629.477,
+        -3647.884
+      ],
+      "spawn_distance_m": 299.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2026562"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Royers Lock",
+        "label_nl": "Royerssluis",
+        "description_en": "lock in Antwerp, Belgium",
+        "description_nl": "sluis in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Amerikadok",
+      "osm_id": 32566446,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.0,
+      "wikidata": "Q1819975",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.244537479487185,
+      "lon": 4.39952995897436,
+      "xy": [
+        2423.901,
+        -3280.47
+      ],
+      "spawn_distance_m": 714.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1819975"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Amerikadok",
+        "label_nl": "Amerikadok",
+        "description_en": "dock in Antwerp, Belgium",
+        "description_nl": "dok in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Leopolddok",
+      "osm_id": 1143855256,
+      "osm_type": "way",
+      "role": "",
+      "score": 59.0,
+      "wikidata": "Q2190604",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.26069873888889,
+      "lon": 4.377513816666667,
+      "xy": [
+        890.673,
+        -1494.005
+      ],
+      "spawn_distance_m": 3044.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2190604"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Leopolddok",
+        "label_nl": "Leopolddok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Albertdok",
+      "osm_id": 9701939,
+      "osm_type": "way",
+      "role": "",
+      "score": 58.6,
+      "wikidata": "Q2757693",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.254681052173915,
+      "lon": 4.400319473913044,
+      "xy": [
+        2478.884,
+        -2159.2
+      ],
+      "spawn_distance_m": 1792.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2757693"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Albertdok",
+        "label_nl": "Albertdok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Hansadok",
+      "osm_id": 1143855241,
+      "osm_type": "way",
+      "role": "",
+      "score": 58.2,
+      "wikidata": "Q2219322",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.256893987603306,
+      "lon": 4.35275068677686,
+      "xy": [
+        -833.859,
+        -1914.582
+      ],
+      "spawn_distance_m": 4077.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2219322"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Hansadok",
+        "label_nl": "Hansadok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Asiadok",
+      "osm_id": 493501027,
+      "osm_type": "way",
+      "role": "",
+      "score": 57.8,
+      "wikidata": "Q2191742",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23685456,
+      "lon": 4.41887702,
+      "xy": [
+        3771.252,
+        -4129.74
+      ],
+      "spawn_distance_m": 1081.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2191742"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Asiadok",
+        "label_nl": "Asiadok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Houtdok",
+      "osm_id": 493501025,
+      "osm_type": "way",
+      "role": "",
+      "score": 57.8,
+      "wikidata": "Q3338045",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.23680736,
+      "lon": 4.41356216,
+      "xy": [
+        3401.119,
+        -4134.958
+      ],
+      "spawn_distance_m": 721.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q3338045"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Houtdok",
+        "label_nl": "Houtdok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Schelde",
+      "osm_id": 742699628,
+      "osm_type": "way",
+      "role": "",
+      "score": 57.8,
+      "wikidata": "Q37620",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.3220303,
+      "lon": 4.273337043181818,
+      "xy": [
+        -6364.313,
+        5285.586
+      ],
+      "spawn_distance_m": 12936.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q37620"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Scheldt",
+        "label_nl": "Schelde",
+        "description_en": "river in France, Belgium and the Netherlands",
+        "description_nl": "rivier in Frankrijk, Belgi\u00eb en Nederland"
+      }
+    },
+    {
+      "name": "Graandok",
+      "osm_id": 1143855261,
+      "osm_type": "way",
+      "role": "",
+      "score": 54.2,
+      "wikidata": "Q2633688",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.27714516923077,
+      "lon": 4.353816107692308,
+      "xy": [
+        -759.662,
+        323.984
+      ],
+      "spawn_distance_m": 5493.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2633688"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Graandok",
+        "label_nl": "Graandok",
+        "description_en": "dock in Antwerp",
+        "description_nl": "dok in Antwerpen"
+      }
+    },
+    {
+      "name": "Havenrondvaart",
+      "osm_id": 525035803,
+      "osm_type": "way",
+      "role": "",
+      "score": 50.6,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.25538330877193,
+      "lon": 4.373953937719298,
+      "xy": [
+        642.759,
+        -2081.572
+      ],
+      "spawn_distance_m": 2775.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    }
+  ]
+}

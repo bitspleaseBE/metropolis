@@ -1,0 +1,1203 @@
+{
+  "district_id": "2020-kiel",
+  "spawn": {
+    "label": "Kielpark",
+    "lat": 51.1918,
+    "lon": 4.3925
+  },
+  "count": 40,
+  "buildings": [
+    {
+      "name": "Onze-Lieve-Vrouwekapel",
+      "osm_id": 311605502,
+      "osm_type": "way",
+      "role": "",
+      "score": 188.8,
+      "wikidata": null,
+      "heritage": true,
+      "building": "chapel",
+      "amenity": "place_of_worship",
+      "historic": "wayside_chapel",
+      "lat": 51.180933440000004,
+      "lon": 4.408280400000001,
+      "xy": [
+        1895.473,
+        -1093.529
+      ],
+      "spawn_distance_m": 1629.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Christus Koningkerk",
+      "osm_id": 205538785,
+      "osm_type": "way",
+      "role": "",
+      "score": 123.3,
+      "wikidata": "Q4421168",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.18717128403362,
+      "lon": 4.391614360504201,
+      "xy": [
+        732.726,
+        -403.998
+      ],
+      "spawn_distance_m": 515.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q4421168"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Kristus-Koningkerk",
+        "label_nl": "Kristus-Koningkerk",
+        "description_en": "church building in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Bernardsesteenweg",
+      "osm_id": 23217550,
+      "osm_type": "way",
+      "role": "",
+      "score": 108.8,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.19423234,
+      "lon": 4.38220886,
+      "xy": [
+        76.529,
+        376.531
+      ],
+      "spawn_distance_m": 766.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Boomsesteenweg",
+      "osm_id": 24377204,
+      "osm_type": "way",
+      "role": "",
+      "score": 105.6,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.19030918333333,
+      "lon": 4.3866197,
+      "xy": [
+        384.262,
+        -57.134
+      ],
+      "spawn_distance_m": 442.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Nachtegalenpark",
+      "osm_id": 10661811,
+      "osm_type": "way",
+      "role": "",
+      "score": 101.0,
+      "wikidata": "Q1892753",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "yes",
+      "lat": 51.182553952,
+      "lon": 4.411303128,
+      "xy": [
+        2106.361,
+        -914.398
+      ],
+      "spawn_distance_m": 1663.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1892753"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Nachtegalen Park",
+        "label_nl": "Nachtegalenpark",
+        "description_en": "park in Antwerp, Belgium",
+        "description_nl": "park in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Catharinakerk",
+      "osm_id": 208485300,
+      "osm_type": "way",
+      "role": "",
+      "score": 82.6,
+      "wikidata": "Q107348116",
+      "heritage": false,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.19292975684211,
+      "lon": 4.379802481052631,
+      "xy": [
+        -91.358,
+        232.544
+      ],
+      "spawn_distance_m": 894.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107348116"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Catharinakerk",
+        "label_nl": "Sint-Catharinakerk",
+        "description_en": "church in Kiel (Antwerp), Belgium",
+        "description_nl": "kerkgebouw in Kiel (Antwerpen), Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Middelheimpark",
+      "osm_id": 10660986,
+      "osm_type": "way",
+      "role": "",
+      "score": 75.6,
+      "wikidata": "Q2098074",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.18080290384615,
+      "lon": 4.415066011538462,
+      "xy": [
+        2368.887,
+        -1107.959
+      ],
+      "spawn_distance_m": 1989.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2098074"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Middelheim Museum",
+        "label_nl": "Middelheimmuseum",
+        "description_en": "open air museum in Antwerp, Belgium",
+        "description_nl": "openluchtmuseum in Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Braempaviljoen",
+      "osm_id": 231139349,
+      "osm_type": "way",
+      "role": "",
+      "score": 70.7,
+      "wikidata": "Q27681118",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.178673149999995,
+      "lon": 4.413474355,
+      "xy": [
+        2257.842,
+        -1343.382
+      ],
+      "spawn_distance_m": 2060.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q27681118"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Braem Pavilion",
+        "label_nl": "Braempaviljoen",
+        "description_en": "exhibition pavillion in Middelheim Museum, designed by Renaat Braem",
+        "description_nl": "tentoonstellingspaviljoen in het Middelheimmuseum naar ontwerp van Renaat Braem"
+      }
+    },
+    {
+      "name": "Maison Guiette",
+      "osm_id": 449740906,
+      "osm_type": "way",
+      "role": "",
+      "score": 70.6,
+      "wikidata": "Q23707656",
+      "heritage": true,
+      "building": "house",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.183629571428575,
+      "lon": 4.393275585714286,
+      "xy": [
+        848.626,
+        -795.499
+      ],
+      "spawn_distance_m": 904.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q23707656"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Les Peupliers",
+        "label_nl": "Maison Guiette",
+        "description_en": "House by Le Corbusier in Antwerp, Belgium",
+        "description_nl": "bouwwerk in 1926 ontworpen door de Franse architect Le Corbusier"
+      }
+    },
+    {
+      "name": "B.P.-building",
+      "osm_id": 205847345,
+      "osm_type": "way",
+      "role": "",
+      "score": 70.6,
+      "wikidata": "Q56558294",
+      "heritage": true,
+      "building": "office",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.192405928571425,
+      "lon": 4.397729592857143,
+      "xy": [
+        1159.37,
+        174.64
+      ],
+      "spawn_distance_m": 371.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q56558294"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "BP building",
+        "label_nl": "BP-building",
+        "description_en": "high-rise office building in Antwerp, Belgium",
+        "description_nl": "kantoorgebouw in Antwerpen"
+      }
+    },
+    {
+      "name": "Den Brandt",
+      "osm_id": 219268446,
+      "osm_type": "way",
+      "role": "",
+      "score": 69.1,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "castle",
+      "lat": 51.183001576923076,
+      "lon": 4.405848723076923,
+      "xy": [
+        1725.821,
+        -864.917
+      ],
+      "spawn_distance_m": 1346.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Coin Punitif (Childhood Memory)",
+      "osm_id": 886239482,
+      "osm_type": "way",
+      "role": "",
+      "score": 67.4,
+      "wikidata": "Q27616520",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.18004666666667,
+      "lon": 4.4112812,
+      "xy": [
+        2104.831,
+        -1191.553
+      ],
+      "spawn_distance_m": 1845.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q27616520"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Coin Punitif",
+        "label_nl": "Coin Punitif",
+        "description_en": "",
+        "description_nl": "installatie van Cel\u00e7uk Mutlu"
+      }
+    },
+    {
+      "name": "osm-2376124863",
+      "osm_id": 2376124863,
+      "osm_type": "node",
+      "role": "",
+      "score": 65.0,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "memorial",
+      "lat": 51.1874652,
+      "lon": 4.4083776,
+      "xy": [
+        1902.254,
+        -371.508
+      ],
+      "spawn_distance_m": 1206.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Lode Craeybeckxtunnel",
+      "osm_id": 4337941,
+      "osm_type": "way",
+      "role": "",
+      "score": 63.4,
+      "wikidata": "Q201337",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.17689765333333,
+      "lon": 4.416604680000001,
+      "xy": [
+        2476.236,
+        -1539.645
+      ],
+      "spawn_distance_m": 2354.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q201337"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Craeybeckxtunnel",
+        "label_nl": "Craeybeckxtunnel",
+        "description_en": "tunnel in Antwerp, Belgium",
+        "description_nl": "tunnel in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Park aan de Stroom",
+      "osm_id": 19190643,
+      "osm_type": "way",
+      "role": "",
+      "score": 62.2,
+      "wikidata": "Q135406900",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.20575547,
+      "lon": 4.3785542133333335,
+      "xy": [
+        -178.447,
+        1650.298
+      ],
+      "spawn_distance_m": 1823.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q135406900"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Park aan de Stroom",
+        "label_nl": "Park aan de Stroom",
+        "description_en": "",
+        "description_nl": ""
+      }
+    },
+    {
+      "name": "Bevrijdingstunnel",
+      "osm_id": 4310637,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.8,
+      "wikidata": "Q2332904",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1828744,
+      "lon": 4.391172857142857,
+      "xy": [
+        701.924,
+        -878.975
+      ],
+      "spawn_distance_m": 991.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2332904"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "",
+        "label_nl": "Bevrijdingstunnel",
+        "description_en": "tunnel in Antwerp, Belgium",
+        "description_nl": "tunnel in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Jan De Vostunnel",
+      "osm_id": 4412343,
+      "osm_type": "way",
+      "role": "",
+      "score": 61.4,
+      "wikidata": "Q2169362",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1864255625,
+      "lon": 4.3899105375000005,
+      "xy": [
+        613.855,
+        -486.43
+      ],
+      "spawn_distance_m": 621.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2169362"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Jan De Vostunnel",
+        "label_nl": "Jan De Vostunnel",
+        "description_en": "tunnel in Antwerp, Belgium",
+        "description_nl": "tunnel in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Kielpark",
+      "osm_id": 30169973,
+      "osm_type": "way",
+      "role": "",
+      "score": 58.2,
+      "wikidata": "Q62065600",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.192746706818184,
+      "lon": 4.383946772727272,
+      "xy": [
+        197.778,
+        212.309
+      ],
+      "spawn_distance_m": 605.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q62065600"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Kielpark",
+        "label_nl": "Kielpark",
+        "description_en": "park in Antwerp, Belgium",
+        "description_nl": "park in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Heilige Damiaankerk",
+      "osm_id": 517879529,
+      "osm_type": "way",
+      "role": "",
+      "score": 57.8,
+      "wikidata": null,
+      "heritage": false,
+      "building": "chapel",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.1765793,
+      "lon": 4.412637827272727,
+      "xy": [
+        2199.479,
+        -1574.836
+      ],
+      "spawn_distance_m": 2192.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Appartementsgebouw met atelierwoning Panzer",
+      "osm_id": 205847955,
+      "osm_type": "way",
+      "role": "",
+      "score": 57.2,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1919205125,
+      "lon": 4.3908068875,
+      "xy": [
+        676.391,
+        120.982
+      ],
+      "spawn_distance_m": 118.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Cromwell-Tank",
+      "osm_id": 5118534123,
+      "osm_type": "node",
+      "role": "",
+      "score": 55.2,
+      "wikidata": "Q304303",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": "memorial",
+      "lat": 51.1925083,
+      "lon": 4.3992139,
+      "xy": [
+        1262.926,
+        185.956
+      ],
+      "spawn_distance_m": 474.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q304303"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Cromwell",
+        "label_nl": "Cromwelltank",
+        "description_en": "British WWII cruiser tank",
+        "description_nl": ""
+      }
+    },
+    {
+      "name": "ZAS Middelheim",
+      "osm_id": 4382283,
+      "osm_type": "way",
+      "role": "",
+      "score": 55.0,
+      "wikidata": "Q30281288",
+      "heritage": false,
+      "building": null,
+      "amenity": "hospital",
+      "historic": null,
+      "lat": 51.18143327435897,
+      "lon": 4.4211004,
+      "xy": [
+        2789.891,
+        -1038.277
+      ],
+      "spawn_distance_m": 2301.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q30281288"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "ZAS Middelheim Hospital",
+        "label_nl": "ZAS Middelheimziekenhuis",
+        "description_en": "hospital in Antwerp, Belgium",
+        "description_nl": "Algemeen ziekenhuis in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Campus Groenenborger Universiteit Antwerpen",
+      "osm_id": 4382349,
+      "osm_type": "way",
+      "role": "",
+      "score": 53.7,
+      "wikidata": "Q1940352",
+      "heritage": false,
+      "building": null,
+      "amenity": "university",
+      "historic": null,
+      "lat": 51.17832645217391,
+      "lon": 4.415760060869565,
+      "xy": [
+        2417.31,
+        -1381.706
+      ],
+      "spawn_distance_m": 2202.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q1940352"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Campus Groenenborger",
+        "label_nl": "Campus Groenenborger",
+        "description_en": "campus of the University of Antwerp, Belgium",
+        "description_nl": "campus van de Universiteit Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Melkerij Nachtegalenpark",
+      "osm_id": 141046220,
+      "osm_type": "way",
+      "role": "",
+      "score": 49.7,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": "restaurant",
+      "historic": "yes",
+      "lat": 51.18555023571429,
+      "lon": 4.410465067857143,
+      "xy": [
+        2047.891,
+        -583.189
+      ],
+      "spawn_distance_m": 1431.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Villa La Chapelle (RUCA)",
+      "osm_id": 190358189,
+      "osm_type": "way",
+      "role": "",
+      "score": 49.7,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.181696109090915,
+      "lon": 4.40619853030303,
+      "xy": [
+        1750.226,
+        -1009.224
+      ],
+      "spawn_distance_m": 1470.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Campus Middelheim Universiteit Antwerpen",
+      "osm_id": 4342051,
+      "osm_type": "way",
+      "role": "",
+      "score": 49.6,
+      "wikidata": "Q2426496",
+      "heritage": false,
+      "building": null,
+      "amenity": "university",
+      "historic": null,
+      "lat": 51.18464736428571,
+      "lon": 4.4197337,
+      "xy": [
+        2694.54,
+        -682.992
+      ],
+      "spawn_distance_m": 2058.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2426496"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Campus Middelheim",
+        "label_nl": "Campus Middelheim",
+        "description_en": "campus of the University of Antwerp, Belgium",
+        "description_nl": "campus van de Universiteit Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Baak Hospitality",
+      "osm_id": 219268649,
+      "osm_type": "way",
+      "role": "",
+      "score": 46.5,
+      "wikidata": null,
+      "heritage": true,
+      "building": "commercial",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.18353552857143,
+      "lon": 4.406284585714286,
+      "xy": [
+        1756.23,
+        -805.894
+      ],
+      "spawn_distance_m": 1326.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "IJzer & goud in de lucht, stuifmeel & rook op de grond",
+      "osm_id": 4357801068,
+      "osm_type": "node",
+      "role": "",
+      "score": 45.0,
+      "wikidata": "Q27616439",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1814469,
+      "lon": 4.4135334,
+      "xy": [
+        2261.961,
+        -1036.771
+      ],
+      "spawn_distance_m": 1860.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q27616439"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "IRON & GOLD IN THE AIR DUST & SMOKE ON THE GROUND",
+        "label_nl": "Wind en De Wilgen",
+        "description_en": "wall painting by Weiner, Lawrence in Middelheim Museum, Antwerp, Belgium",
+        "description_nl": "muurschildering van Lawrence Weiner"
+      }
+    },
+    {
+      "name": "Les murs ont des oreilles que la raison ne connait pas",
+      "osm_id": 3151450197,
+      "osm_type": "node",
+      "role": "",
+      "score": 45.0,
+      "wikidata": "Q27616001",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1796883,
+      "lon": 4.4153308,
+      "xy": [
+        2387.361,
+        -1231.167
+      ],
+      "spawn_distance_m": 2080.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q27616001"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Les murs ont des oreilles que la raison ne conna\u00eet pas",
+        "label_nl": "Les murs ont des oreilles que la raison ne conna\u00eet pas",
+        "description_en": "",
+        "description_nl": "beeldhouwwerk van Reinhoud D'Haese"
+      }
+    },
+    {
+      "name": "Acaciahof",
+      "osm_id": 188956208,
+      "osm_type": "way",
+      "role": "",
+      "score": 43.7,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": "yes",
+      "lat": 51.18464729473684,
+      "lon": 4.402236263157895,
+      "xy": [
+        1473.789,
+        -683.0
+      ],
+      "spawn_distance_m": 1042.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Het Huis",
+      "osm_id": 311605500,
+      "osm_type": "way",
+      "role": "",
+      "score": 43.3,
+      "wikidata": "Q27681013",
+      "heritage": false,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.18204682777778,
+      "lon": 4.409873755555555,
+      "xy": [
+        2006.637,
+        -970.455
+      ],
+      "spawn_distance_m": 1622.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q27681013"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "The House",
+        "label_nl": "Het Huis",
+        "description_en": "exhibition pavillion in Middelheim Museum, designed by Robbrecht & Daem",
+        "description_nl": "tentoonstellingspaviljoen in Middelheimmuseum, ontworpen door Robbrecht & Daem"
+      }
+    },
+    {
+      "name": "WINGTIPsection STANDS by Draake Manufactures",
+      "osm_id": 5716404893,
+      "osm_type": "node",
+      "role": "",
+      "score": 42.6,
+      "wikidata": "Q55190008",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1795834,
+      "lon": 4.4155383,
+      "xy": [
+        2401.838,
+        -1242.763
+      ],
+      "spawn_distance_m": 2099.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q55190008"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "WINGTIPsection STANDS by Draake Manufactures",
+        "label_nl": "WINGTIPsection STANDS by Draake Manufactures",
+        "description_en": "sculpture by Florian Mertens",
+        "description_nl": "Sculptuur van Florian Mertens"
+      }
+    },
+    {
+      "name": "Het Zwarte Schaap - Hommage aan James Ensor",
+      "osm_id": 3173024672,
+      "osm_type": "node",
+      "role": "",
+      "score": 42.2,
+      "wikidata": "Q27616518",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1795553,
+      "lon": 4.4142035,
+      "xy": [
+        2308.712,
+        -1245.869
+      ],
+      "spawn_distance_m": 2031.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q27616518"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "",
+        "label_nl": "Zwart Schaap",
+        "description_en": "",
+        "description_nl": "installatie van Johan Muyle"
+      }
+    },
+    {
+      "name": "Zo kwam ze in mijn wereld met een oogopslag",
+      "osm_id": 3173023545,
+      "osm_type": "node",
+      "role": "",
+      "score": 42.2,
+      "wikidata": "Q27616354",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1799058,
+      "lon": 4.4134531,
+      "xy": [
+        2256.359,
+        -1207.124
+      ],
+      "spawn_distance_m": 1966.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q27616354"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Zo kwam ze in mijn wereld, met \u00e9\u00e9n oogopslag",
+        "label_nl": "Zo kwam ze in mijn wereld, met \u00e9\u00e9n oogopslag",
+        "description_en": "",
+        "description_nl": "beeldhouwwerk van Hubert Minnebo"
+      }
+    },
+    {
+      "name": "MIKA",
+      "osm_id": 229149413,
+      "osm_type": "way",
+      "role": "",
+      "score": 41.7,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": "cafe",
+      "historic": null,
+      "lat": 51.18103142,
+      "lon": 4.41270264,
+      "xy": [
+        2204.001,
+        -1082.698
+      ],
+      "spawn_distance_m": 1844.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Jan Frans Van de Gaerstraat",
+      "osm_id": 24377210,
+      "osm_type": "way",
+      "role": "",
+      "score": 40.8,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.19021682,
+      "lon": 4.38514774,
+      "xy": [
+        281.567,
+        -67.344
+      ],
+      "spawn_distance_m": 542.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Valerius De Saedeleerstraat",
+      "osm_id": 30626585,
+      "osm_type": "way",
+      "role": "",
+      "score": 40.8,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.191565575,
+      "lon": 4.37611585,
+      "xy": [
+        -348.565,
+        81.747
+      ],
+      "spawn_distance_m": 1143.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Flat Field Works Variant 2 Two Sections",
+      "osm_id": 8236015970,
+      "osm_type": "node",
+      "role": "",
+      "score": 40.6,
+      "wikidata": "Q55397882",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.1818868,
+      "lon": 4.4171685,
+      "xy": [
+        2515.573,
+        -988.145
+      ],
+      "spawn_distance_m": 2040.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q55397882"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Flat Field Works Variant 2 Two Sections",
+        "label_nl": "Flat Field Works Variant 2 Two Sections",
+        "description_en": "",
+        "description_nl": "Constructie (kunstwerk) van Andrea Zittel"
+      }
+    },
+    {
+      "name": "osm-518203759",
+      "osm_id": 518203759,
+      "osm_type": "way",
+      "role": "",
+      "score": 40.5,
+      "wikidata": null,
+      "heritage": true,
+      "building": "industrial",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.19689485384616,
+      "lon": 4.353938330769231,
+      "xy": [
+        -1895.833,
+        670.846
+      ],
+      "spawn_distance_m": 2748.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Nachtegalenpark Den Brandt",
+      "osm_id": 141046221,
+      "osm_type": "way",
+      "role": "",
+      "score": 40.4,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.18100630833333,
+      "lon": 4.404323128333333,
+      "xy": [
+        1619.384,
+        -1085.474
+      ],
+      "spawn_distance_m": 1450.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    }
+  ]
+}

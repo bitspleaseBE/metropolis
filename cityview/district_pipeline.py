@@ -659,6 +659,44 @@ def district_build(
     return 0
 
 
+def district_republish_roads(district_id: str) -> Path:
+    """Rewrite viewer/districts/<id>/roads.json (walks + driveables) from cached OSM, no Blender.
+
+    Walks use ``VIEWER_WALK_RADIUS_M`` so border handoffs still have a sidewalk graph;
+    driveable roads stay spawn-clipped for traffic CPU. Skips City3D — only OSM roads
+    matter for the walk graph (same footprint source as shop republish).
+    """
+    from cityview.road_surface import surfaces_from_layout
+
+    paths = district_paths(district_id)
+    doc = load_district(district_id)
+    origin = tuple(doc["origin"])
+    osm = json.loads(paths.osm_cache.read_text())
+    layout = layout_from_osm(
+        osm,
+        origin,
+        style_policy=doc.get("style_policy") or "historic",
+        ring=doc.get("boundary"),
+    )
+    spawn_path = paths.viewer / "spawn.json"
+    spawn = json.loads(spawn_path.read_text()) if spawn_path.exists() else layout.get("spawn")
+    if spawn:
+        layout["spawn"] = spawn
+    roads = export_roads_near_spawn(layout, spawn)
+    dest = paths.viewer / "roads.json"
+    dest.write_text(json.dumps(roads) + "\n")
+    print(
+        f"Wrote {dest} ({len(roads.get('roads') or [])} roads, "
+        f"{len(roads.get('walks') or [])} walks, "
+        f"{len(roads.get('cycleways') or [])} cycleways)"
+    )
+    surfaces = surfaces_from_layout(layout)
+    surf_dest = paths.viewer / "road-surfaces.json"
+    surf_dest.write_text(json.dumps(surfaces) + "\n")
+    print(f"Wrote {surf_dest}")
+    return dest
+
+
 def district_republish_shops(district_id: str) -> Path:
     """Rewrite viewer/districts/<id>/shops.json from cached OSM + places + overrides (no Blender).
 

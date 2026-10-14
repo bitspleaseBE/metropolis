@@ -10,7 +10,10 @@ from cityview.railclear import CLEAR_TREE
 from cityview.roadclear import TRUNK_MARGIN
 from cityview.trees import (
     CLEAR_REAL_TRUNK,
+    MIN_CROWN_CLEARANCE,
+    MIN_TREE_HEIGHT,
     _point_in_ring,
+    is_tree_sized,
     plan_trees,
     poisson_fill,
     ring_area,
@@ -129,6 +132,45 @@ class RealTreeTests(unittest.TestCase):
     def test_small_surveyed_crown_caps_height(self):
         t = tree_traits({"species": "Tilia cordata", "girth_cm": 220.0, "crown": "2"}, 0, 0)
         self.assertLessEqual(t["height"], 2.4 + 3.4 * t["radius"] + 1e-6)
+        self.assertGreaterEqual(t["height"], MIN_TREE_HEIGHT)
+        self.assertGreaterEqual(t["clearance"], MIN_CROWN_CLEARANCE - 1e-6)
+
+    def test_trees_are_at_least_two_humans_tall(self):
+        plan = plan_trees(_layout(), _payload([(10.0, 10.0), (40.0, 40.0)]), ORIGIN)
+        self.assertTrue(plan["trees"])
+        for tree in plan["trees"]:
+            self.assertGreaterEqual(tree["height"], MIN_TREE_HEIGHT)
+            if tree.get("shape") == "conifer":
+                self.assertGreaterEqual(tree["clearance"], 1.5 - 1e-6)
+            else:
+                self.assertGreaterEqual(tree["clearance"], MIN_CROWN_CLEARANCE - 1e-6)
+
+    def test_undersized_specimens_become_bushes(self):
+        payload = {
+            "antwerp": [
+                {
+                    "id": 1,
+                    "lat": _ll(12.0, 12.0)[0],
+                    "lon": _ll(12.0, 12.0)[1],
+                    "species": "Amelanchier lamarckii",
+                    "genus": "Amelanchier",
+                    "girth_cm": 8.0,
+                    "height": "1.8",
+                }
+            ]
+        }
+        plan = plan_trees(_layout(), payload, ORIGIN)
+        self.assertEqual(plan["trees"], [])
+        self.assertEqual(plan["stats"]["demoted_bush"], 1)
+        self.assertEqual(len(plan["bushes"]), 1)
+        bush = plan["bushes"][0]
+        self.assertLess(bush["h"], MIN_TREE_HEIGHT)
+        self.assertGreaterEqual(bush["w"], 1.0)
+
+    def test_explicit_short_height_is_not_inflated_to_a_tree(self):
+        t = tree_traits({"species": "Buxus sempervirens", "height": "1.2"}, 0, 0)
+        self.assertFalse(is_tree_sized(t))
+        self.assertLess(t["height"], MIN_TREE_HEIGHT)
 
     def test_trees_off_carriageway(self):
         layout = _layout(roads=[{"id": 1, "kind": "residential", "width": 8.0, "points": [[-50.0, 0.0], [50.0, 0.0]]}])

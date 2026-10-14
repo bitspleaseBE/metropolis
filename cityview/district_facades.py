@@ -144,10 +144,19 @@ def _paint_elevation(
         _paint_modern(draw, w, h, storeys, style, pal, rng)
         return _finish(img, rng, fid, style, district_id)
 
+    shop_styles = {
+        "shopfront_meir",
+        "shopfront_newsstand",
+        "shopfront_kebab",
+        "shopfront_frituur",
+        "shopfront_pizza",
+    }
     if style == "warehouse_quay":
         wall = _rgb(rng.choice(pal["quay"]))
-    elif style in {"baroque_civic", "shopfront_meir"}:
-        wall = _rgb(rng.choice(pal["render"]))
+    elif style in {"baroque_civic", *shop_styles}:
+        wall = _rgb(rng.choice(pal["render"])) if style in {"baroque_civic", "shopfront_meir", "shopfront_pizza"} else _rgb(
+            rng.choice(pal.get("brick") or pal["render"])
+        )
     elif style in {"stepped_gable", "neck_gable", "neo_flemish"}:
         wall = _rgb(rng.choice(pal["brick"]))
     else:
@@ -159,14 +168,47 @@ def _paint_elevation(
 
     # Ground-floor shop / plinth
     plinth_h = int(h * 0.18)
-    if style == "shopfront_meir":
-        draw.rectangle([4, h - plinth_h, w - 5, h - 4], fill=(240, 235, 220))
+    if style in shop_styles:
+        # Fascia colours by archetype (METRO PRESS white/red, frituur yellow, kebab dark, pizza cream).
+        if style == "shopfront_newsstand":
+            fascia = (248, 246, 242)
+            frame = (210, 40, 40) if rng.random() < 0.55 else (30, 30, 32)
+            glass = (45, 48, 52)
+            plinth_h = int(h * 0.22)
+        elif style == "shopfront_frituur":
+            fascia = (250, 200, 30) if rng.random() < 0.6 else (210, 40, 35)
+            frame = (200, 30, 28) if fascia[0] > 200 else (250, 210, 40)
+            glass = (70, 68, 60)
+            plinth_h = int(h * 0.2)
+        elif style == "shopfront_kebab":
+            fascia = (22, 22, 26)
+            frame = (240, 180, 40) if rng.random() < 0.5 else (200, 50, 40)
+            glass = (80, 70, 50)
+            plinth_h = int(h * 0.17)
+        elif style == "shopfront_pizza":
+            fascia = (245, 240, 230) if rng.random() < 0.5 else (200, 40, 40)
+            frame = (180, 40, 40) if fascia[0] > 200 else (245, 240, 230)
+            glass = (55, 50, 42)
+            plinth_h = int(h * 0.19)
+        else:
+            fascia = (240, 235, 220)
+            frame = (60, 40, 30)
+        # Plinth + frame only — named lettering lives on the walker lightbox fascia
+        # (viewer/shops.js). A tall painted board here doubles up and reads as a folded plane.
+        draw.rectangle([4, h - plinth_h, w - 5, h - 4], fill=fascia)
+        board_h = int(plinth_h * 0.08)
+        draw.rectangle([6, h - plinth_h, w - 7, h - plinth_h + board_h], fill=frame)
         # Wide shop glazing
-        draw.rectangle([10, h - plinth_h + 8, w - 11, h - 14], fill=glass)
-        # Door
-        dw = int(w * 0.14)
-        dx = int(w * 0.1)
-        draw.rectangle([dx, h - plinth_h + 6, dx + dw, h - 6], fill=(60, 40, 30))
+        draw.rectangle([10, h - plinth_h + board_h + 4, w - 11, h - 14], fill=glass)
+        # Door (right on press shops, left otherwise — matches METRO PRESS reference).
+        dw = int(w * (0.16 if style == "shopfront_newsstand" else 0.14))
+        dx = int(w * 0.72) if style == "shopfront_newsstand" else int(w * 0.1)
+        draw.rectangle([dx, h - plinth_h + board_h + 2, dx + dw, h - 6], fill=(60, 40, 30))
+        if style == "shopfront_newsstand":
+            # Shelf bands behind the glass (magazines / drinks).
+            for k in range(3):
+                y = h - plinth_h + board_h + 10 + k * int((plinth_h - board_h - 24) / 3)
+                draw.rectangle([14, y, w - 15, y + 3], fill=(220, 220, 218))
     else:
         draw.rectangle([0, h - 10, w, h], fill=band)
         # Door
@@ -312,20 +354,42 @@ def generate_district_facades(
         if style in MODERN_STYLES:
             pass
         elif "supermarket" in tags or "restaurant" in tags:
-            style = "shopfront_meir"
+            shop_cycle = [
+                s
+                for s in (
+                    "shopfront_meir",
+                    "shopfront_newsstand",
+                    "shopfront_kebab",
+                    "shopfront_frituur",
+                    "shopfront_pizza",
+                )
+                if s in styles or s == "shopfront_meir"
+            ]
+            style = shop_cycle[(i - 1) % len(shop_cycle)] if shop_cycle else "shopfront_meir"
         elif i % 11 == 0 and "warehouse_quay" in styles:
             style = "warehouse_quay"
-        # Historic centre: weight the first half of the atlas toward horeca shopfronts.
+        # Historic centre / station belt: weight early atlas slots toward snack & press fronts.
         profile_shops = (doc.get("profile") or {}).get("shops") or []
+        shop_pool = [
+            s
+            for s in (
+                "shopfront_meir",
+                "shopfront_newsstand",
+                "shopfront_kebab",
+                "shopfront_frituur",
+                "shopfront_pizza",
+            )
+            if s in styles or s == "shopfront_meir"
+        ]
         if (
-            district_id.startswith("2000")
-            and i <= max(12, count // 2)
-            and "shopfront_meir" in styles
+            (district_id.startswith("2000") or district_id.startswith("2018"))
+            and i <= max(16, count // 2)
+            and shop_pool
             and (profile_shops or "restaurant" in tags or "shop" in tags)
             and style not in {"warehouse_quay", "baroque_civic", *MODERN_STYLES}
         ):
             if i % 2 == 1 or "restaurant" in tags:
-                style = "shopfront_meir"
+                style = shop_pool[(i - 1) % len(shop_pool)]
         img = _paint_elevation(fid, storeys, style, brief, district_id)
         img.save(dest, quality=88, optimize=True)
         written.append(str(dest))

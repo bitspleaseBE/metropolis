@@ -1,13 +1,49 @@
 # Agent review — Antwerpen · 2000
 
 - **District**: `2000-antwerpen`
-- **Run**: `20261012T162955Z`
-- **Spawn**: Groenplaats (51.21897, 4.40165)
+- **Run**: `20261014T193311Z`
+- **Spawn**: Grote Markt · Kathedraal (51.220482, 4.399963)
 - **Instructions**: see [docs/district-agent.md](../../../docs/district-agent.md)
 - **Dossier**: `districts/2000-antwerpen/special_buildings.json`
 - **Catalog**: `viewer/districts/2000-antwerpen/buildings/catalog.html`
 
 Mark a task done by changing `Status: [ ] todo` → `Status: [x] done` and attaching proof.
+
+---
+
+### `plaza-trees-bolivarplaats` — Match plaza trees to aerial — Bolivarplaats
+
+**Goal:** Tree layout on Bolivarplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `bolivarplaats` / `Bolivarplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Bolivarplaats",
+  "slug": "bolivarplaats",
+  "area_m2": 9802.2,
+  "osm_way_ids": [
+    87530458
+  ],
+  "inventory_inside": 134,
+  "canopy_blobs": 2,
+  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/bolivarplaats.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2000-antwerpen/cache/aerial/plazas/bolivarplaats.jpg`
+- `Edit districts/2000-antwerpen/vegetation_overrides.json`
+- `python -m cityview district build 2000-antwerpen`
+
+**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/bolivarplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/bolivarplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Bolivarplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/bolivarplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-bolivarplaats.jpg`
 
 ---
 
@@ -62,10 +98,9 @@ Proof: `review/proofs/plaza-trees-paul-smekensplein.jpg`
 {
   "name": "Sint-Andriesplaats",
   "slug": "sint-andriesplaats",
-  "area_m2": 10484.1,
+  "area_m2": 3024.0,
   "osm_way_ids": [
-    516607888,
-    729088942
+    37569835
   ],
   "inventory_inside": 51,
   "canopy_blobs": 1,
@@ -195,6 +230,42 @@ Proof: `review/proofs/plaza-trees-operaplein.jpg`
 
 Status: [ ] todo
 Proof: `review/proofs/plaza-trees-falconplein.jpg`
+
+---
+
+### `plaza-trees-square-488775410` — Match plaza trees to aerial — square-488775410
+
+**Goal:** Tree layout on square-488775410 must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `square-488775410` / `square-488775410` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "square-488775410",
+  "slug": "square-488775410",
+  "area_m2": 1191.6,
+  "osm_way_ids": [
+    488775410
+  ],
+  "inventory_inside": 38,
+  "canopy_blobs": 5,
+  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/square-488775410.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2000-antwerpen/cache/aerial/plazas/square-488775410.jpg`
+- `Edit districts/2000-antwerpen/vegetation_overrides.json`
+- `python -m cityview district build 2000-antwerpen`
+
+**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/square-488775410.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/square-488775410.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **square-488775410** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/square-488775410.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-square-488775410.jpg`
 
 ---
 
@@ -341,6 +412,42 @@ Proof: `review/proofs/plaza-trees-mechelseplein.jpg`
 
 Status: [ ] todo
 Proof: `review/proofs/plaza-trees-vrijdagmarkt.jpg`
+
+---
+
+### `plaza-trees-square-1052637192` — Match plaza trees to aerial — square-1052637192
+
+**Goal:** Tree layout on square-1052637192 must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `square-1052637192` / `square-1052637192` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "square-1052637192",
+  "slug": "square-1052637192",
+  "area_m2": 1928.8,
+  "osm_way_ids": [
+    1052637192
+  ],
+  "inventory_inside": 26,
+  "canopy_blobs": 2,
+  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/square-1052637192.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2000-antwerpen/cache/aerial/plazas/square-1052637192.jpg`
+- `Edit districts/2000-antwerpen/vegetation_overrides.json`
+- `python -m cityview district build 2000-antwerpen`
+
+**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/square-1052637192.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/square-1052637192.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **square-1052637192** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/square-1052637192.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-square-1052637192.jpg`
 
 ---
 
@@ -499,6 +606,114 @@ Proof: `review/proofs/plaza-trees-hessenplein.jpg`
 
 ---
 
+### `plaza-trees-panamarenkoplein` — Match plaza trees to aerial — Panamarenkoplein
+
+**Goal:** Tree layout on Panamarenkoplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `panamarenkoplein` / `Panamarenkoplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Panamarenkoplein",
+  "slug": "panamarenkoplein",
+  "area_m2": 1742.6,
+  "osm_way_ids": [
+    854116131
+  ],
+  "inventory_inside": 18,
+  "canopy_blobs": 1,
+  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/panamarenkoplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2000-antwerpen/cache/aerial/plazas/panamarenkoplein.jpg`
+- `Edit districts/2000-antwerpen/vegetation_overrides.json`
+- `python -m cityview district build 2000-antwerpen`
+
+**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/panamarenkoplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/panamarenkoplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Panamarenkoplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/panamarenkoplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-panamarenkoplein.jpg`
+
+---
+
+### `plaza-trees-limaplein` — Match plaza trees to aerial — Limaplein
+
+**Goal:** Tree layout on Limaplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `limaplein` / `Limaplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Limaplein",
+  "slug": "limaplein",
+  "area_m2": 3444.7,
+  "osm_way_ids": [
+    45558161
+  ],
+  "inventory_inside": 17,
+  "canopy_blobs": 0,
+  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/limaplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2000-antwerpen/cache/aerial/plazas/limaplein.jpg`
+- `Edit districts/2000-antwerpen/vegetation_overrides.json`
+- `python -m cityview district build 2000-antwerpen`
+
+**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/limaplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/limaplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Limaplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/limaplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-limaplein.jpg`
+
+---
+
+### `plaza-trees-troonplaats` — Match plaza trees to aerial — Troonplaats
+
+**Goal:** Tree layout on Troonplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `troonplaats` / `Troonplaats` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Troonplaats",
+  "slug": "troonplaats",
+  "area_m2": 5015.7,
+  "osm_way_ids": [
+    619101119
+  ],
+  "inventory_inside": 14,
+  "canopy_blobs": 0,
+  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/troonplaats.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2000-antwerpen/cache/aerial/plazas/troonplaats.jpg`
+- `Edit districts/2000-antwerpen/vegetation_overrides.json`
+- `python -m cityview district build 2000-antwerpen`
+
+**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/troonplaats.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/troonplaats.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Troonplaats** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/troonplaats.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-troonplaats.jpg`
+
+---
+
 ### `plaza-trees-sint-paulusplaats` — Match plaza trees to aerial — Sint-Paulusplaats
 
 **Goal:** Tree layout on Sint-Paulusplaats must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
@@ -568,6 +783,42 @@ Proof: `review/proofs/plaza-trees-sint-paulusplaats.jpg`
 
 Status: [ ] todo
 Proof: `review/proofs/plaza-trees-leopoldplaats.jpg`
+
+---
+
+### `plaza-trees-verdraagzaamheidsplein` — Match plaza trees to aerial — Verdraagzaamheidsplein
+
+**Goal:** Tree layout on Verdraagzaamheidsplein must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
+
+**Acceptance:** vegetation_overrides.json has a `verdraagzaamheidsplein` / `Verdraagzaamheidsplein` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
+
+**Geo / context:**
+```json
+{
+  "name": "Verdraagzaamheidsplein",
+  "slug": "verdraagzaamheidsplein",
+  "area_m2": 1596.1,
+  "osm_way_ids": [
+    1018438325
+  ],
+  "inventory_inside": 14,
+  "canopy_blobs": 0,
+  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/verdraagzaamheidsplein.jpg",
+  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
+}
+```
+
+**Commands:**
+- `Open districts/2000-antwerpen/cache/aerial/plazas/verdraagzaamheidsplein.jpg`
+- `Edit districts/2000-antwerpen/vegetation_overrides.json`
+- `python -m cityview district build 2000-antwerpen`
+
+**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/verdraagzaamheidsplein.jpg` (cyan = inventory trunks, yellow = aerial canopy)
+
+**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/verdraagzaamheidsplein.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Verdraagzaamheidsplein** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/verdraagzaamheidsplein.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
+
+Status: [ ] todo
+Proof: `review/proofs/plaza-trees-verdraagzaamheidsplein.jpg`
 
 ---
 
@@ -645,80 +896,6 @@ Proof: `review/proofs/plaza-trees-komedieplaats.jpg`
 
 ---
 
-### `plaza-trees-lijnwaadmarkt` — Match plaza trees to aerial — Lijnwaadmarkt
-
-**Goal:** Tree layout on Lijnwaadmarkt must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
-
-**Acceptance:** vegetation_overrides.json has a `lijnwaadmarkt` / `Lijnwaadmarkt` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
-
-**Geo / context:**
-```json
-{
-  "name": "Lijnwaadmarkt",
-  "slug": "lijnwaadmarkt",
-  "area_m2": 9222.4,
-  "osm_way_ids": [
-    19078056,
-    22976645,
-    1358635381
-  ],
-  "inventory_inside": 11,
-  "canopy_blobs": 0,
-  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/lijnwaadmarkt.jpg",
-  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
-}
-```
-
-**Commands:**
-- `Open districts/2000-antwerpen/cache/aerial/plazas/lijnwaadmarkt.jpg`
-- `Edit districts/2000-antwerpen/vegetation_overrides.json`
-- `python -m cityview district build 2000-antwerpen`
-
-**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/lijnwaadmarkt.jpg` (cyan = inventory trunks, yellow = aerial canopy)
-
-**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/lijnwaadmarkt.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Lijnwaadmarkt** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/lijnwaadmarkt.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
-
-Status: [ ] todo
-Proof: `review/proofs/plaza-trees-lijnwaadmarkt.jpg`
-
----
-
-### `plaza-trees-ossenmarkt` — Match plaza trees to aerial — Ossenmarkt
-
-**Goal:** Tree layout on Ossenmarkt must follow the orthophoto canopy, not a carpeted inventory or a one-size ring rule.
-
-**Acceptance:** vegetation_overrides.json has a `ossenmarkt` / `Ossenmarkt` plaza; rebuild includes override stats; walk proof shows aerial-matching trees.
-
-**Geo / context:**
-```json
-{
-  "name": "Ossenmarkt",
-  "slug": "ossenmarkt",
-  "area_m2": 2084.4,
-  "osm_way_ids": [
-    117526668
-  ],
-  "inventory_inside": 9,
-  "canopy_blobs": 0,
-  "aerial": "districts/2000-antwerpen/cache/aerial/plazas/ossenmarkt.jpg",
-  "notes": "cyan=inventory trunks, yellow=aerial canopy blobs"
-}
-```
-
-**Commands:**
-- `Open districts/2000-antwerpen/cache/aerial/plazas/ossenmarkt.jpg`
-- `Edit districts/2000-antwerpen/vegetation_overrides.json`
-- `python -m cityview district build 2000-antwerpen`
-
-**Aerial:** `districts/2000-antwerpen/cache/aerial/plazas/ossenmarkt.jpg` (cyan = inventory trunks, yellow = aerial canopy)
-
-**Agent prompt:** Open `districts/2000-antwerpen/cache/aerial/plazas/ossenmarkt.jpg` (Digitaal Vlaanderen winter orthophoto — leafless crowns still cast shadows / dark circles). Cyan rings = current inventory trunks (often a carpet). Yellow rings = auto green-canopy blobs (sparse in winter; trust the photo, not the yellow). Match trees on **Ossenmarkt** to what you see — each square differs (Grote Markt nearly bare; Steenplein its own rows; Groenplaats not a full forest). Do **not** invent a uniform ring rule. Write/merge a plaza entry into `districts/2000-antwerpen/vegetation_overrides.json` with mode `clear` or `replace_inside`, polygon from `districts/2000-antwerpen/cache/aerial/plazas/ossenmarkt.json` (`polygon` field), and `trees` as local XY matching visible crowns (or `[]` / mode `clear` when bare). Rebuild: `python -m cityview district build 2000-antwerpen` so the GLB applies the override.
-
-Status: [ ] todo
-Proof: `review/proofs/plaza-trees-ossenmarkt.jpg`
-
----
-
 ### `cathedral-gothic` — Rework OLV cathedral Gothic massing
 
 **Goal:** From Groenplaats the cathedral must read as Gothic (tower + nave), not a classical temple colonnade.
@@ -736,7 +913,7 @@ Proof: `review/proofs/plaza-trees-ossenmarkt.jpg`
 - **manifest_custom**: olv_cathedral
 - **expected_custom**: olv_cathedral
 - **mesh_status**: manifest_custom
-- **spawn_distance_m**: 156.2
+- **spawn_distance_m**: 97.8
 - **notes**: Gothic from Groenplaats — not a classical temple colonnade.
 - **ref:inventaris**: https://inventaris.onroerenderfgoed.be/erfgoedobjecten/4183
 - **ref:wikidata**: https://www.wikidata.org/wiki/Q5901
@@ -768,7 +945,7 @@ Proof: `review/proofs/cathedral-gothic.jpg`
 - **manifest_custom**: het_steen
 - **expected_custom**: het_steen
 - **mesh_status**: manifest_custom
-- **spawn_distance_m**: 509.8
+- **spawn_distance_m**: 305.5
 - **notes**: Medieval gatehouse on the Scheldt — silhouette from the quay.
 - **ref:wikidata**: https://www.wikidata.org/wiki/Q1014126
 - **wikidata_label**: Het Steen — fortress in Antwerp, Belgium
@@ -807,7 +984,7 @@ Proof: `review/proofs/het-steen-silhouette.jpg`
       -66.427,
       181.58
     ],
-    "spawn_distance_m": 304.7,
+    "spawn_distance_m": 100.9,
     "expected_custom": "stadhuis",
     "manifest_custom": "stadhuis",
     "mesh_status": "manifest_custom",
@@ -840,7 +1017,7 @@ Proof: `review/proofs/het-steen-silhouette.jpg`
       -36.954,
       161.388
     ],
-    "spawn_distance_m": 272.2,
+    "spawn_distance_m": 71.5,
     "expected_custom": "brabo_fountain",
     "manifest_custom": "brabo_fountain",
     "mesh_status": "manifest_custom",
@@ -857,7 +1034,7 @@ Proof: `review/proofs/het-steen-silhouette.jpg`
     }
   },
   "terrace": {
-    "name": "Huis Spaengien (Grote Markt guild terrace)",
+    "name": "Huis Spaengien (Grote Markt 7)",
     "osm_id": 496929324,
     "osm_type": "way",
     "role": "guild_terrace",
@@ -873,11 +1050,11 @@ Proof: `review/proofs/het-steen-silhouette.jpg`
       -26.504,
       227.889
     ],
-    "spawn_distance_m": 327.5,
-    "expected_custom": "grote_markt_terrace",
-    "manifest_custom": "grote_markt_terrace",
+    "spawn_distance_m": 136.1,
+    "expected_custom": "guild_house",
+    "manifest_custom": "guild_house",
     "mesh_status": "manifest_custom",
-    "notes": "Representative guild-house terrace facing Grote Markt.",
+    "notes": "Tallest guild house on the north row; every Grote Markt frontage has its own spec in grote_markt_houses.json.",
     "refs": {},
     "canonical": true
   }
@@ -886,7 +1063,8 @@ Proof: `review/proofs/het-steen-silhouette.jpg`
 
 **Commands:**
 - `Confirm districts/2000-antwerpen/landmarks/manifest.json nodes/by_id`
-- `Rebuild streamed landmark GLBs for 22966134, 900000001, 496929324`
+- `python -m cityview.landmark_grote_markt sync 2000-antwerpen`
+- `Rebuild streamed landmark GLBs for 22966134, 900000001 and every guild_house / hansahuis entry`
 
 Status: [x] done
 Proof: `review/proofs/grote-markt-setpiece.jpg`
@@ -895,7 +1073,7 @@ Proof: `review/proofs/grote-markt-setpiece.jpg`
 
 ### `centre-shopfront-facades` — Centre shopfront / horeca façade batch
 
-**Goal:** Replace procedural centre elevations with shopfront/horeca art (nearby names: Albert Heijn, bpost Quellin, Apotheek Roosevelt, Apotheek Krols, Shipping Dispensary, Carrefour Express, Carrefour Market, Lidl, Delhaize, Shamra, De Broers van Julienne, Vitrin).
+**Goal:** Replace procedural centre elevations with shopfront/horeca art (nearby names: Albert Heijn, Apotheek Roosevelt, Apotheek Krols, Shipping Dispensary, Carrefour Express, Carrefour Market, Delhaize, Shamra, De Broers van Julienne, Vitrin, Baron, Soho).
 
 **Acceptance:** At least 8 near-spawn shopfront elevations; atlas re-packed; assert_facades_unique passes; hashes differ from 2018.
 
@@ -914,17 +1092,17 @@ Proof: `review/proofs/grote-markt-setpiece.jpg`
   ],
   "shop_sample": [
     "Albert Heijn",
-    "bpost Quellin",
     "Apotheek Roosevelt",
     "Apotheek Krols",
     "Shipping Dispensary",
     "Carrefour Express",
     "Carrefour Market",
-    "Lidl",
     "Delhaize",
     "Shamra",
     "De Broers van Julienne",
-    "Vitrin"
+    "Vitrin",
+    "Baron",
+    "Soho"
   ]
 }
 ```
@@ -939,18 +1117,18 @@ Proof: `review/proofs/grote-markt-setpiece.jpg`
   - Prompt: Antwerp historic-centre street elevation facade_01, 4 storeys, style baroque_civic, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
 - `facade_02` (stepped_gable, 3 storeys) → `districts/2000-antwerpen/facades/elevations/facade_02.jpg`
   - Prompt: Antwerp historic-centre street elevation facade_02, 3 storeys, style stepped_gable, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
-- `facade_03` (shopfront_meir, 4 storeys) → `districts/2000-antwerpen/facades/elevations/facade_03.jpg`
-  - Prompt: Antwerp historic-centre street elevation facade_03, 4 storeys, style shopfront_meir, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
-- `facade_04` (brick_sandstone_band, 5 storeys) → `districts/2000-antwerpen/facades/elevations/facade_04.jpg`
-  - Prompt: Antwerp historic-centre street elevation facade_04, 5 storeys, style brick_sandstone_band, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
-- `facade_05` (shopfront_meir, 3 storeys) → `districts/2000-antwerpen/facades/elevations/facade_05.jpg`
-  - Prompt: Antwerp historic-centre street elevation facade_05, 3 storeys, style shopfront_meir, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
-- `facade_06` (neo_flemish, 4 storeys) → `districts/2000-antwerpen/facades/elevations/facade_06.jpg`
-  - Prompt: Antwerp historic-centre street elevation facade_06, 4 storeys, style neo_flemish, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
-- `facade_07` (shopfront_meir, 4 storeys) → `districts/2000-antwerpen/facades/elevations/facade_07.jpg`
-  - Prompt: Antwerp historic-centre street elevation facade_07, 4 storeys, style shopfront_meir, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
-- `facade_08` (art_deco, 3 storeys) → `districts/2000-antwerpen/facades/elevations/facade_08.jpg`
-  - Prompt: Antwerp historic-centre street elevation facade_08, 3 storeys, style art_deco, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
+- `facade_03` (shopfront_kebab, 4 storeys) → `districts/2000-antwerpen/facades/elevations/facade_03.jpg`
+  - Prompt: Antwerp historic-centre street elevation facade_03, 4 storeys, style shopfront_kebab, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
+- `facade_04` (postwar_block, 5 storeys) → `districts/2000-antwerpen/facades/elevations/facade_04.jpg`
+  - Prompt: Antwerp historic-centre street elevation facade_04, 5 storeys, style postwar_block, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
+- `facade_05` (shopfront_pizza, 3 storeys) → `districts/2000-antwerpen/facades/elevations/facade_05.jpg`
+  - Prompt: Antwerp historic-centre street elevation facade_05, 3 storeys, style shopfront_pizza, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
+- `facade_06` (shopfront_frituur, 4 storeys) → `districts/2000-antwerpen/facades/elevations/facade_06.jpg`
+  - Prompt: Antwerp historic-centre street elevation facade_06, 4 storeys, style shopfront_frituur, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
+- `facade_07` (shopfront_newsstand, 4 storeys) → `districts/2000-antwerpen/facades/elevations/facade_07.jpg`
+  - Prompt: Antwerp historic-centre street elevation facade_07, 4 storeys, style shopfront_newsstand, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
+- `facade_08` (warehouse_quay, 3 storeys) → `districts/2000-antwerpen/facades/elevations/facade_08.jpg`
+  - Prompt: Antwerp historic-centre street elevation facade_08, 3 storeys, style warehouse_quay, orthographic facade photo, ground-floor restaurant/cafe shopfront, Flemish brick or render, no sky, no people.
 
 Status: [x] done
 Proof: `review/proofs/centre-shopfront-facades.jpg`
@@ -964,8 +1142,8 @@ Proof: `review/proofs/centre-shopfront-facades.jpg`
 **Acceptance:** Files exist for cathedral-gothic, grote-markt-setpiece, het-steen-silhouette.
 
 **Geo / context:**
-- **lat**: 51.21897
-- **lon**: 4.40165
+- **lat**: 51.220482
+- **lon**: 4.399963
 
 **Commands:**
 - `Open http://127.0.0.1:8767/?district=2000-antwerpen`
@@ -1092,7 +1270,7 @@ Proof: `review/proofs/ref-onze-lieve-vrouwekathedraal.jpg`
 
 **Agent prompt:** Look at every photo for **Brabo fountain** first (they are Wikimedia Commons, authors in `districts/2000-antwerpen/references/index.json`). Note which side faces which street, tower / gable positions, storey count, window rhythm, roof shape and the dominant stone / brick colours. Then render the current model from the same viewpoint and fix the largest mismatch first.
 
-Status: [ ] todo
+Status: [x] done
 Proof: `review/proofs/ref-brabo-fountain.jpg`
 
 ---
@@ -1156,7 +1334,7 @@ Proof: `review/proofs/ref-sint-augustinuskerk.jpg`
 
 **Agent prompt:** Look at every photo for **Stadhuis Antwerpen** first (they are Wikimedia Commons, authors in `districts/2000-antwerpen/references/index.json`). Note which side faces which street, tower / gable positions, storey count, window rhythm, roof shape and the dominant stone / brick colours. Then render the current model from the same viewpoint and fix the largest mismatch first.
 
-Status: [ ] todo
+Status: [x] done
 Proof: `review/proofs/ref-stadhuis-antwerpen.jpg`
 
 ---
@@ -1915,7 +2093,7 @@ Proof: `review/proofs/ref-kattendijkdok.jpg`
 
 **Goal:** Every shop / bar / restaurant with a reference photo has a shop_overrides.json entry so its fascia colour, lettering, frame, awning and front type match the photo.
 
-**Acceptance:** 32 referenced places; each has an override (now 6 shops carry one) and a walk proof of the busiest street shows them.
+**Acceptance:** 32 referenced places; each has an override (now 7 shops carry one) and a walk proof of the busiest street shows them.
 
 **Geo / context:**
 ```json

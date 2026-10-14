@@ -37,7 +37,7 @@ from cityview.landmark_kit import (
 )
 
 TRI_BUDGET = {
-    "nationale_bank": 45000,
+    "nationale_bank": 60000,
     "olv_cathedral": 80000,
     "stadhuis": 50000,
     "het_steen": 35000,
@@ -617,34 +617,229 @@ def _notch_ring(ring: list[Vec2], f: Frame, a0: float, a1: float, dend: float, s
     return out, (min(span), max(span))
 
 
+def _bank_dome(m: Mesh, x: float, y: float, z0: float, r: float, wall: str = "stone_white") -> None:
+    """Bell-shaped slate dome + iron lantern (Nationale Bank corner turret)."""
+    # Stone drum with arched lights.
+    cylinder(m, x, y, z0, z0 + 2.4, r * 0.98, 16, wall, top=False)
+    for k in range(8):
+        t = math.tau * k / 8 + math.pi / 8
+        fe = Frame(x + math.cos(t) * r * 0.55, y + math.sin(t) * r * 0.55, -math.sin(t), math.cos(t), math.cos(t), math.sin(t))
+        hole = opening(0.0, z0 + 0.55, r * 0.42, z0 + 1.85, "round", 6)
+        pane(m, fe, hole, 0.02, "glass_dark")
+    # Corbelled cornice under the dome.
+    frustum(m, x, y, z0 + 2.2, z0 + 2.85, r * 0.98, r * 1.18, 16, "bluestone", top=False)
+    frustum(m, x, y, z0 + 2.85, z0 + 3.15, r * 1.18, r * 1.05, 16, wall, top=False)
+    # Bulbous slate dome (stacked frusta → bell silhouette).
+    zb = z0 + 3.15
+    stages = (
+        (0.00, 0.18, 1.05, 1.22),
+        (0.18, 0.42, 1.22, 1.08),
+        (0.42, 0.72, 1.08, 0.72),
+        (0.72, 0.95, 0.72, 0.32),
+        (0.95, 1.12, 0.32, 0.14),
+    )
+    dome_h = max(5.5, r * 1.55)
+    for t0, t1, k0, k1 in stages:
+        frustum(
+            m,
+            x,
+            y,
+            zb + dome_h * t0,
+            zb + dome_h * t1,
+            r * k0,
+            r * k1,
+            16,
+            "slate",
+            top=False,
+            bottom=False,
+        )
+    zt = zb + dome_h * 1.12
+    # Iron lantern + weather vane.
+    cylinder(m, x, y, zt, zt + 1.35, r * 0.16, 8, "iron", top=False)
+    for k in range(4):
+        t = math.tau * k / 4
+        wbox(m, x + math.cos(t) * r * 0.12, y + math.sin(t) * r * 0.12, zt + 0.15, 0.08, 0.35, 1.0, t, "iron")
+    frustum(m, x, y, zt + 1.25, zt + 2.55, r * 0.22, 0.0, 8, "iron")
+    frustum(m, x, y, zt + 2.4, zt + 3.15, 0.04, 0.0, 4, "iron")
+
+
+def _bank_gable(m: Mesh, f: Frame, ca: float, hw: float, z0: float, rise: float, wall: str) -> None:
+    """Ornate stone gable with arched light, side volutes and a finial."""
+    z_apex = z0 + rise
+    # Gable body.
+    inner = [(ca - hw, z0), (ca, z_apex), (ca + hw, z0)]
+    outer = [(ca - hw - 0.35, z0 + 0.25), (ca, z_apex + 0.55), (ca + hw + 0.35, z0 + 0.25)]
+    band(m, f, inner, outer, 0.0, 0.45, wall, (ca, z0))
+    profile_slab(m, f, inner, 0.05, 0.35, wall)
+    # Round-headed window in the gable.
+    hole = opening(ca, z0 + rise * 0.18, hw * 0.7, z0 + rise * 0.62, "round", 6)
+    cell(m, f, ca - hw * 0.55, ca + hw * 0.55, z0 + 0.2, z0 + rise * 0.78, hole, 0.05, -0.2, wall, wall)
+    pane(m, f, hole, -0.18, "glass_dark")
+    # Side scrolls / crockets along the rakes.
+    dm = 0.22
+    for s in (-1.0, 1.0):
+        _crockets(
+            m,
+            f.p(ca + s * (hw + 0.2), dm, z0 + 0.4),
+            f.p(ca, dm, z_apex + 0.4),
+            max(3, int(rise / 1.1)),
+            0.12,
+            wall,
+        )
+    x, y, _ = f.p(ca, dm, 0.0)
+    _fine_pinnacle(m, x, y, z_apex + 0.35, 0.22, max(1.6, rise * 0.35), wall, _yaw(f), crockets=False)
+
+
 def build_nationale_bank(ring: list[Vec2], holes: list[list[Vec2]], lm: dict) -> Mesh:
-    """Neoclassical National Bank block on Leopoldplaats — 2018 north gate."""
+    """Nationale Bank van België on Leopoldplaats — Neo-Renaissance LOD3.
+
+    Buff limestone mass with a rusticated plinth, pilastered bays, arched piano-nobile
+    windows, twin ornate gables, a steep slate roof with chimneys, and the signature
+    rounded corner turret under a bell-shaped slate dome and iron lantern. Seam
+    landmark between districts 2000 and 2018 (OSM relation 12470557).
+    """
     m = Mesh()
     f, outline, W, D, front = _span(ring, lm)
-    H = float(lm.get("height_m") or 18.0)
-    wall = "stone_white"
-    extrude_ring(m, outline, holes, 0.0, H, "stone_grey", "zinc", skip=_skip_facing(front.outward))
-    # Plinth
-    rbox(m, f, 0.0, W, -0.05, 0.22, 0.0, 4.0, "bluestone")
-    # Facade skin
-    rbox(m, f, 0.0, W, 0.0, 0.18, 4.0, H - 0.4, wall)
-    cols = max(5, int(W / 3.2))
-    for r in range(3):
-        for c in range(cols):
-            a0 = 0.7 + c * (W - 1.4) / cols
-            a1 = a0 + (W - 1.4) / cols * 0.55
-            z0 = 4.8 + r * 3.6
-            z1 = z0 + 2.4
-            if z1 < H - 1.5:
-                _win(m, f, a0, a1, z0, z1, wall)
-    # Cornice + pediment
-    rbox(m, f, -0.2, W + 0.2, -0.15, 0.35, H - 0.55, H, wall)
-    mid = W * 0.5
-    ped_w = min(12.0, W * 0.35)
-    rbox(m, f, mid - ped_w / 2, mid + ped_w / 2, -0.1, 0.4, H - 0.2, H + 2.6, wall)
-    # The block is skewed and courtyarded: a W×D gable would hang over the side streets.
-    # Slate only over the front range; the zinc cap follows the real plan behind it.
-    gable_roof(m, f, 0.0, W, -min(D, 10.0), 0.2, H, H + 1.4, "slate", ridge="a", gable_mat=wall)
+    # Surveyed eaves ~28.6 m (OSM height); roof mass adds the slate silhouette above.
+    H = float(lm.get("height_m") or 28.5)
+    rh = max(float(lm.get("roof_height_m") or 8.0), 6.5)
+    # Cream limestone front (photos); cooler courtyard mass behind.
+    wall, rust, trim = "render_cream", "stone_grey", "stone_white"
+    extrude_ring(m, outline, holes, 0.0, H, "stone_grey", None, skip=_skip_facing(front.outward))
+
+    # --- plinth (Belgian bluestone, rusticated) --------------------------------
+    plinth = min(4.2, max(3.2, H * 0.12))
+    rbox(m, f, -0.05, W + 0.05, -0.08, 0.42, 0.0, plinth, "bluestone")
+    for z in (plinth * 0.31, plinth * 0.60, plinth * 0.90):
+        rbox(m, f, -0.02, W + 0.02, 0.0, 0.48, z - 0.07, z + 0.07, rust)
+
+    # --- front skin -----------------------------------------------------------
+    rbox(m, f, 0.0, W, 0.0, 0.28, plinth, H, wall)
+    # Four public storeys under the crowning cornice (piano nobile reads tallest).
+    lv = (plinth, plinth + H * 0.18, plinth + H * 0.38, plinth + H * 0.58, H)
+    for z in lv[1:]:
+        rbox(m, f, -0.12, W + 0.12, 0.0, 0.55, z - 0.16, z + 0.16, trim)
+    # Heavy crowning cornice.
+    rbox(m, f, -0.25, W + 0.25, -0.1, 0.85, H - 0.55, H + 0.15, trim)
+    _balustrade(m, f, 0.2, W - 0.2, H + 0.15, 0.35, 0.7, trim, h=0.85, pitch=0.45)
+
+    # Corner turret claims the right end of the front (Leopoldplaats → Frankrijklei).
+    tower_r = max(4.2, min(7.0, W * 0.16))
+    facade_a1 = max(W * 0.55, W - tower_r * 1.85)
+    n_bay = max(5, int(facade_a1 / 3.15))
+    bw = facade_a1 / n_bay
+    door_i = n_bay // 2
+
+    for i in range(n_bay):
+        a0, a1 = i * bw, (i + 1) * bw
+        c = 0.5 * (a0 + a1)
+        # Pilasters between bays.
+        for edge_a in (a0, a1):
+            rbox(m, f, edge_a - 0.22, edge_a + 0.22, 0.0, 0.32, lv[0], lv[3], trim)
+        # Ground: rectangular lights or the main arched portal.
+        if i == door_i:
+            hole = opening(c, 0.15, bw * 0.62, lv[0] * 0.88, "round", 8)
+            cell(m, f, a0 + 0.15, a1 - 0.15, 0.0, lv[0], hole, 0.05, -0.85, "bluestone", "bluestone")
+            pane(m, f, hole, -0.82, "door")
+            archivolt(m, f, hole, 0.28, 0.05, 0.42, trim)
+            rbox(m, f, a0 + 0.2, a1 - 0.2, 0.0, 1.05, lv[0] - 0.12, lv[0] + 0.2, "bluestone")
+            _balustrade(m, f, a0 + 0.35, a1 - 0.35, lv[0] + 0.2, 0.55, 0.95, trim, h=0.8, pitch=0.32)
+        else:
+            hole = opening(c, 0.9, bw * 0.48, lv[0] - 0.85, "rect", 4)
+            cell(m, f, a0 + 0.2, a1 - 0.2, 0.55, lv[0] - 0.25, hole, 0.08, -0.28, rust, trim)
+            pane(m, f, hole, -0.25, "glass_dark")
+            rbox(m, f, c - bw * 0.28, c + bw * 0.28, 0.0, 0.22, 0.55, 0.85, "bluestone")
+        # Piano nobile + upper floors: arched then rectangular.
+        for storey, (z0, z1, kind) in enumerate(
+            ((lv[0], lv[1], "round"), (lv[1], lv[2], "round"), (lv[2], lv[3], "rect"))
+        ):
+            zt0, zt1 = z0 + 0.75, z1 - 0.55
+            hole = opening(c, zt0, bw * (0.46 if kind == "round" else 0.42), zt1, kind, 6 if kind == "round" else 4)
+            cell(m, f, a0 + 0.18, a1 - 0.18, z0, z1, hole, 0.05, -0.32, wall, trim)
+            pane(m, f, hole, -0.28, "glass")
+            # Cross mullion on the rect floor.
+            if kind == "rect":
+                rbox(m, f, c - 0.06, c + 0.06, -0.28, -0.14, zt0, zt1, trim)
+                zm = zt0 + (zt1 - zt0) * 0.55
+                rbox(m, f, c - bw * 0.2, c + bw * 0.2, -0.28, -0.14, zm - 0.06, zm + 0.06, trim)
+            # Sill + hood mould.
+            rbox(m, f, c - bw * 0.28, c + bw * 0.28, 0.0, 0.28, zt0 - 0.22, zt0, trim)
+            rbox(m, f, c - bw * 0.3, c + bw * 0.3, 0.0, 0.32, zt1, zt1 + 0.2, trim)
+            if storey == 0:
+                rbox(m, f, a0 + 0.3, a1 - 0.3, 0.0, 0.7, z0 - 0.08, z0 + 0.12, "bluestone")
+                _balustrade(m, f, a0 + 0.35, a1 - 0.35, z0 + 0.12, 0.25, 0.58, trim, h=0.75, pitch=0.3)
+
+    # Twin ornate gables over the left / centre mass (Bilmeyer & Van Riel silhouette).
+    gable_rise = max(4.8, rh * 0.72)
+    for ca, hw in (
+        (facade_a1 * 0.28, min(4.2, bw * 1.35)),
+        (facade_a1 * 0.62, min(4.8, bw * 1.5)),
+    ):
+        if ca + hw < facade_a1 - 0.5:
+            _bank_gable(m, f, ca, hw, H + 0.1, gable_rise, wall)
+
+    # --- corner turret + dome -------------------------------------------------
+    tx, ty, _ = f.p(W - tower_r * 0.05, -tower_r * 0.35, 0.0)
+    # Drum through the full front height, slightly proud of the wall.
+    cylinder(m, tx, ty, 0.0, plinth, tower_r * 1.02, 16, "bluestone", top=False)
+    for z in (plinth * 0.31, plinth * 0.60, plinth * 0.90):
+        frustum(m, tx, ty, z - 0.07, z + 0.07, tower_r * 1.02, tower_r * 1.08, 16, rust, top=False, bottom=False)
+    cylinder(m, tx, ty, plinth, H, tower_r, 16, wall, top=False)
+    for z in lv[1:4]:
+        frustum(m, tx, ty, z - 0.14, z + 0.14, tower_r, tower_r * 1.06, 16, trim, top=False, bottom=False)
+    # Arched lights around the drum.
+    for k in range(6):
+        t = math.tau * k / 6
+        fe = Frame(
+            tx + math.cos(t) * tower_r * 0.55,
+            ty + math.sin(t) * tower_r * 0.55,
+            -math.sin(t),
+            math.cos(t),
+            math.cos(t),
+            math.sin(t),
+        )
+        for z0, z1 in ((lv[0] + 0.6, lv[1] - 0.5), (lv[1] + 0.55, lv[2] - 0.45), (lv[2] + 0.5, lv[3] - 0.4)):
+            hole = opening(0.0, z0, tower_r * 0.55, z1, "round", 5)
+            pane(m, fe, hole, 0.02, "glass_dark")
+    # Engaged columns on the drum.
+    for k in range(6):
+        t = math.tau * k / 6 + math.pi / 6
+        cylinder(
+            m,
+            tx + math.cos(t) * (tower_r + 0.18),
+            ty + math.sin(t) * (tower_r + 0.18),
+            lv[0],
+            lv[3],
+            0.22,
+            6,
+            trim,
+            top=False,
+        )
+    _bank_dome(m, tx, ty, H, tower_r * 0.95, wall)
+
+    # Thin octagonal roof turret behind the main gables (secondary spire in the photos).
+    sx, sy, _ = f.p(facade_a1 * 0.45, -min(D, 14.0) * 0.45, 0.0)
+    cylinder(m, sx, sy, H + 1.0, H + rh * 0.85, 1.1, 8, wall, top=False)
+    frustum(m, sx, sy, H + rh * 0.85, H + rh * 0.85 + 3.2, 1.15, 0.0, 8, "slate")
+    frustum(m, sx, sy, H + rh * 0.85 + 3.0, H + rh * 0.85 + 4.0, 0.08, 0.0, 4, "iron")
+
+    # --- roofs ----------------------------------------------------------------
+    # Steep slate over the front range only (courtyard mass stays zinc/flat behind).
+    depth = min(D, 12.0)
+    gable_roof(m, f, 0.15, facade_a1 - 0.2, -depth, 0.35, H + 0.1, H + rh, "slate", ridge="a", gable_mat=wall, overhang=0.35)
+    # Chimneys along the ridge.
+    for t in (0.18, 0.42, 0.72):
+        x, y, _ = f.p(facade_a1 * t, -depth * 0.48, 0.0)
+        wbox(m, x, y, H + rh * 0.55, 1.15, 0.7, rh * 0.7, _yaw(f), wall)
+        wbox(m, x, y, H + rh * 1.2, 1.35, 0.9, 0.35, _yaw(f), wall)
+        frustum(m, x, y, H + rh * 1.5, H + rh * 1.5 + 0.9, 0.15, 0.0, 4, "iron")
+
+    # Side return of the turret: short slate cone stubs on the flank.
+    for s in (-1.0, 1.0):
+        px, py, _ = f.p(W - tower_r * 0.9, -tower_r * 0.35 + s * tower_r * 0.85, 0.0)
+        if point_in_ring(px, py, outline):
+            _fine_pinnacle(m, px, py, H + 0.4, 0.28, 2.4, wall, _yaw(f) + s * 0.4)
+
     return m
 
 

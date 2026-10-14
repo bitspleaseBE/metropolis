@@ -2,6 +2,7 @@ import math
 import unittest
 
 from cityview.streetscape import (
+    VIEWER_WALK_RADIUS_M,
     _WALK_INDOOR_MARGIN,
     _WALK_MIN_KEEP_M,
     _offset_polyline,
@@ -413,6 +414,41 @@ class WalkExportTests(unittest.TestCase):
                 self.assertTrue(all(y < -6.0 for y in ys), ys)
             if w.get("side") == "R" and "sw11" in w["id"]:
                 self.assertTrue(all(y > 6.0 for y in ys), ys)
+
+    def test_walk_export_covers_far_ring_not_only_spawn_core(self):
+        # Border handoff ~1 km from spawn must still get sidewalks when the budget is tight.
+        roads = [
+            {"id": 1, "kind": "residential", "width": 6.0, "points": [[0.0, 0.0], [40.0, 0.0]]},
+            {"id": 2, "kind": "residential", "width": 6.0, "points": [[900.0, 0.0], [940.0, 0.0]]},
+            {"id": 3, "kind": "footway", "width": 2.0, "points": [[910.0, 4.0], [930.0, 4.0]]},
+        ]
+        # Many near-spawn stubs would monopolise a pure nearest-N pick.
+        for i in range(40):
+            x0 = (i % 8) * 12.0
+            y0 = (i // 8) * 12.0
+            roads.append(
+                {
+                    "id": 100 + i,
+                    "kind": "footway",
+                    "width": 2.0,
+                    "points": [[x0, y0 + 8.0], [x0 + 10.0, y0 + 8.0]],
+                }
+            )
+        layout = {"roads": roads}
+        walks = export_walks_near_spawn(
+            layout, {"x": 20.0, "y": 0.0}, radius=VIEWER_WALK_RADIUS_M, max_walks=60
+        )
+        far = [
+            w
+            for w in walks
+            if any(p[0] > 850.0 for p in w["points"])
+        ]
+        self.assertTrue(far, "far ring walks must survive coverage sampling")
+        payload = export_roads_near_spawn(layout, {"x": 20.0, "y": 0.0}, radius=280.0)
+        self.assertTrue(
+            any(any(p[0] > 850.0 for p in w["points"]) for w in payload["walks"]),
+            "roads.json walks must not stay capped to the car-road spawn radius",
+        )
 
 
 def _ring_clearance(x: float, y: float, rings: list[list[list[float]]]) -> float:

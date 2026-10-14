@@ -164,10 +164,12 @@ class TestCivicBuilders(unittest.TestCase):
 
     def test_nationale_bank_mesh(self):
         ring = [(0.0, 0.0), (40.0, 0.0), (40.0, -25.0), (0.0, -25.0)]
-        lm = {"anchor_xy": (20.0, 0.0), "height_m": 18.0}
+        lm = {"anchor_xy": (20.0, 0.0), "height_m": 28.5, "roof_height_m": 8.0}
         mesh = build_nationale_bank(ring, [], lm)
-        self.assertGreater(mesh.tri_count(), 20)
+        self.assertGreater(mesh.tri_count(), 200)
         self.assertLessEqual(mesh.tri_count(), TRI_BUDGET["nationale_bank"])
+        self.assertIn("slate", mesh.mats)
+        self.assertTrue({"render_cream", "stone_white"} & set(mesh.mats))
 
 
 class TestDistrictChunks(unittest.TestCase):

@@ -2,7 +2,7 @@
 
 How to finish a district after `python -m cityview district build <id>` using the generated review pack.
 
-For the pipeline itself, walkability, road/park collision, and adding a custom building, see [city-pipeline.md](city-pipeline.md).
+For the pipeline itself, walkability, road/park collision, and adding a custom building, see [city-pipeline.md](city-pipeline.md). The per-district backlog of buildings that still need their own model (with Blender/kit agent instructions) is [todo.md](todo.md).
 
 ## Open the pack
 
@@ -109,7 +109,7 @@ python -m cityview district shops 2000-antwerpen
 ```
 
 Fronts: boutique, bar, cafe, restaurant, bakery, chocolatier, heritage, market, frituur,
-fastfood, bank, pharmacy, office, plain. `"awning": null` removes one.
+kebab, pizza, newsstand, fastfood, bank, pharmacy, office, plain. `"awning": null` removes one.
 
 ## 2000 notes
 

@@ -8,7 +8,10 @@
       "levels": 1,
       "height_m": 30.0,
       "roof_height_m": 12.0,
-      "anchor": [51.2204, 4.4003],
+      "anchor": [
+        51.2204,
+        4.4003
+      ],
       "stream": true,
       "attribution": "Mesh kit — Inventaris / Commons references",
       "source_url": "https://inventaris.onroerenderfgoed.be/erfgoedobjecten/4183"
@@ -21,7 +24,10 @@
       "levels": 4,
       "height_m": 22.0,
       "roof_height_m": 6.0,
-      "anchor": [51.2212, 4.3995],
+      "anchor": [
+        51.2212,
+        4.3995
+      ],
       "stream": true,
       "attribution": "Mesh kit — Renaissance city hall"
     },
@@ -33,22 +39,2143 @@
       "levels": 2,
       "height_m": 16.0,
       "roof_height_m": 4.0,
-      "anchor": [51.2227, 4.3973],
+      "anchor": [
+        51.2227,
+        4.3973
+      ],
       "stream": true,
       "attribution": "Mesh kit — medieval gatehouse"
     },
+    "12470557": {
+      "id": "12470557",
+      "name": "Nationale Bank van België",
+      "kind": "civic",
+      "custom": "nationale_bank",
+      "levels": 6,
+      "height_m": 28.5,
+      "roof_height_m": 8.0,
+      "anchor": [
+        51.21167,
+        4.40831
+      ],
+      "source_url": "https://www.openstreetmap.org/relation/12470557",
+      "attribution": "Nationale Bank / Leopoldplaats — Neo-Renaissance LOD3 mesh kit",
+      "stream": true
+    },
     "496929324": {
       "id": "496929324",
-      "name": "Huis Spaengien",
+      "name": "Huis Spaengien (Oude Voetboog)",
       "kind": "civic",
-      "custom": "grote_markt_terrace",
-      "levels": 4,
-      "height_m": 16.0,
-      "roof_height_m": 4.0,
-      "anchor": [51.22171, 4.39987],
+      "custom": "guild_house",
+      "levels": 6,
+      "height_m": 21.1,
       "stream": true,
-      "params": { "houses": 4 },
-      "attribution": "Guild-house terrace facing Grote Markt"
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.8,
+          3.6,
+          3.4,
+          3.2,
+          3.1,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.84,
+            2.8
+          ],
+          [
+            0.62,
+            2.5
+          ],
+          [
+            0.4,
+            2.1
+          ]
+        ],
+        "gable_top": "pediment",
+        "crown": "rider",
+        "ground": "arcade",
+        "bays": 6,
+        "windows": "cross",
+        "pilasters": true,
+        "crown_scale": 1.0,
+        "ground_bays": 4,
+        "door": 1,
+        "glaze": 0.86,
+        "front": [
+          -34.911,
+          216.249,
+          -26.377,
+          214.149,
+          -0.239,
+          -0.971
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 7 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929326": {
+      "id": "496929326",
+      "name": "Den Witten Engel",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 5,
+      "height_m": 17.8,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.6,
+          3.6,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.8,
+            3.0
+          ],
+          [
+            0.5,
+            2.6
+          ]
+        ],
+        "gable_top": "pediment",
+        "crown": "angel",
+        "ground": "shop",
+        "bays": 4,
+        "windows": "cross",
+        "pilasters": true,
+        "fascia": "cloth_red",
+        "glaze": 0.86,
+        "front": [
+          -47.335,
+          218.538,
+          -41.165,
+          217.554,
+          -0.157,
+          -0.988
+        ],
+        "sides": [
+          [
+            -44.177,
+            229.625,
+            -47.335,
+            218.538,
+            -0.962,
+            0.274
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 3 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929325": {
+      "id": "496929325",
+      "name": "De Mouwe",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 5,
+      "height_m": 17.4,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.72,
+            2.8
+          ],
+          [
+            0.45,
+            2.4
+          ]
+        ],
+        "gable_top": "segmental",
+        "crown": "figure",
+        "ground": "arcade",
+        "bays": 4,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.86,
+        "ground_bays": 3,
+        "door": 2,
+        "front": [
+          -41.165,
+          217.554,
+          -34.911,
+          216.249,
+          -0.204,
+          -0.979
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 5 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929323": {
+      "id": "496929323",
+      "name": "De Spieghel",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 5,
+      "height_m": 18.6,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "stone_grey",
+        "trim": "stone_grey",
+        "storeys": [
+          4.8,
+          3.6,
+          3.5,
+          3.4,
+          3.3
+        ],
+        "steps": 6,
+        "step_pinnacles": true,
+        "crown": "figure",
+        "ground": "gothic",
+        "ground_bays": 5,
+        "door": 4,
+        "bays": 5,
+        "windows": "gothic",
+        "glaze": 0.86,
+        "gable_windows": "gothic",
+        "front": [
+          -26.377,
+          214.149,
+          -18.079,
+          211.85,
+          -0.267,
+          -0.964
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 9 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929322": {
+      "id": "496929322",
+      "name": "Den Arend",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 16.1,
+      "stream": true,
+      "params": {
+        "gable": "gothic",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          5.0,
+          3.8,
+          3.7,
+          3.6
+        ],
+        "gable_h": 9.0,
+        "gable_rows": 2,
+        "crown": "eagle",
+        "crown_scale": 1.2,
+        "ground": "gothic",
+        "ground_bays": 3,
+        "door": 2,
+        "bays": 4,
+        "windows": "gothic",
+        "glaze": 0.86,
+        "front": [
+          -18.079,
+          211.85,
+          -10.208,
+          209.606,
+          -0.274,
+          -0.962
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 11 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929321": {
+      "id": "496929321",
+      "name": "De Pauw",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.7,
+            2.8
+          ]
+        ],
+        "gable_top": "segmental",
+        "crown": "peacock",
+        "ground": "shop",
+        "bays": 3,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.86,
+        "front": [
+          -10.208,
+          209.606,
+          -4.316,
+          206.544,
+          -0.461,
+          -0.887
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 13 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929320": {
+      "id": "496929320",
+      "name": "Den bonte Mantel",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 5,
+        "crown": "figure",
+        "ground": "shop",
+        "bays": 3,
+        "windows": "cross",
+        "coping": "stone_white",
+        "glaze": 0.86,
+        "front": [
+          -4.316,
+          206.544,
+          1.095,
+          203.681,
+          -0.468,
+          -0.884
+        ],
+        "sides": [
+          [
+            1.095,
+            203.681,
+            8.827,
+            217.664,
+            0.875,
+            -0.484
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 13 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929353": {
+      "id": "496929353",
+      "name": "Grote Markt 15",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.5,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.6,
+          3.5,
+          3.3,
+          3.1
+        ],
+        "tiers": [
+          [
+            0.8,
+            3.0
+          ],
+          [
+            0.5,
+            2.6
+          ]
+        ],
+        "gable_top": "segmental",
+        "crown": "figure",
+        "ground": "arcade",
+        "bays": 4,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.8,
+        "front": [
+          10.814,
+          200.652,
+          18.498,
+          197.856,
+          -0.342,
+          -0.94
+        ],
+        "sides": [
+          [
+            16.755,
+            211.209,
+            10.814,
+            200.652,
+            -0.871,
+            0.49
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 15 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929352": {
+      "id": "496929352",
+      "name": "Grote Markt 17",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 6,
+        "crown": "ball",
+        "ground": "shop",
+        "bays": 3,
+        "windows": "cross",
+        "front": [
+          18.498,
+          197.856,
+          24.912,
+          195.501,
+          -0.345,
+          -0.939
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 17 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929350": {
+      "id": "496929350",
+      "name": "Grote Markt 21",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick_dark",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 5,
+        "ground": "shop",
+        "bays": 3,
+        "windows": "cross",
+        "front": [
+          31.717,
+          192.55,
+          38.425,
+          189.72,
+          -0.389,
+          -0.921
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 21 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496946389": {
+      "id": "496946389",
+      "name": "Grote Markt 23",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 3,
+      "height_m": 10.2,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.0,
+          3.2,
+          3.0
+        ],
+        "bays": 3,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          38.425,
+          189.72,
+          44.491,
+          187.421,
+          -0.354,
+          -0.935
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 23 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929349": {
+      "id": "496929349",
+      "name": "Grote Markt 25",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 3,
+      "height_m": 10.1,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "brick_brown",
+        "trim": "stone_white",
+        "storeys": [
+          4.0,
+          3.1,
+          3.0
+        ],
+        "bays": 4,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          44.491,
+          187.421,
+          51.644,
+          184.348,
+          -0.395,
+          -0.919
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 25 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929348": {
+      "id": "496929348",
+      "name": "Grote Markt 27",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.7,
+            2.8
+          ]
+        ],
+        "gable_top": "pediment",
+        "crown": "figure",
+        "ground": "arcade",
+        "bays": 4,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.8,
+        "front": [
+          51.644,
+          184.348,
+          59.028,
+          180.445,
+          -0.467,
+          -0.884
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 27 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929347": {
+      "id": "496929347",
+      "name": "Grote Markt 29",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.1,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.1
+        ],
+        "steps": 6,
+        "crown": "ball",
+        "ground": "shop",
+        "bays": 4,
+        "windows": "cross",
+        "front": [
+          59.028,
+          180.445,
+          67.074,
+          176.267,
+          -0.461,
+          -0.887
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 29 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929346": {
+      "id": "496929346",
+      "name": "Grote Markt 31",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_cream",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 3,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          67.074,
+          176.267,
+          73.942,
+          172.973,
+          -0.432,
+          -0.902
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 31 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496929345": {
+      "id": "496929345",
+      "name": "Grote Markt 33",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.3,
+      "stream": true,
+      "params": {
+        "gable": "mansard",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.5,
+          3.3,
+          3.1
+        ],
+        "bays": 4,
+        "windows": "plain",
+        "balconies": [
+          1
+        ],
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          73.942,
+          172.973,
+          82.128,
+          170.055,
+          -0.336,
+          -0.942
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 33 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944409": {
+      "id": "496944409",
+      "name": "Grote Markt 24",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 5,
+        "windows": "plain",
+        "dormers": 3,
+        "ground": "shop",
+        "front": [
+          -2.385,
+          137.39,
+          -15.325,
+          135.809,
+          -0.121,
+          0.993
+        ],
+        "sides": [
+          [
+            -0.697,
+            128.945,
+            -2.385,
+            137.39,
+            0.981,
+            0.196
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 24 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944402": {
+      "id": "496944402",
+      "name": "Grote Markt 22",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 5,
+        "ground": "shop",
+        "bays": 2,
+        "windows": "cross",
+        "front": [
+          -16.092,
+          141.193,
+          -19.878,
+          140.839,
+          -0.093,
+          0.996
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 22 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944400": {
+      "id": "496944400",
+      "name": "Grote Markt 20",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.3,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.3,
+          3.2
+        ],
+        "bays": 2,
+        "windows": "plain",
+        "dormers": 1,
+        "ground": "shop",
+        "front": [
+          -19.878,
+          140.839,
+          -24.285,
+          140.386,
+          -0.102,
+          0.995
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 20 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944396": {
+      "id": "496944396",
+      "name": "Lacos",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 5,
+      "height_m": 17.3,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.3,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.78,
+            3.0
+          ],
+          [
+            0.5,
+            2.6
+          ]
+        ],
+        "gable_top": "segmental",
+        "crown": "figure",
+        "ground": "shop",
+        "bays": 2,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.8,
+        "front": [
+          -24.285,
+          140.386,
+          -29.054,
+          139.922,
+          -0.097,
+          0.995
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 18 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944394": {
+      "id": "496944394",
+      "name": "Compagnie Belge",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 6,
+        "crown": "ball",
+        "ground": "shop",
+        "bays": 2,
+        "windows": "cross",
+        "front": [
+          -28.433,
+          134.35,
+          -33.446,
+          133.842,
+          -0.101,
+          0.995
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 16 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944393": {
+      "id": "496944393",
+      "name": "Grote Markt 14",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 6,
+        "crown": "ball",
+        "ground": "arcade",
+        "bays": 2,
+        "windows": "cross",
+        "ground_bays": 2,
+        "door": -1,
+        "front": [
+          -34.137,
+          140.795,
+          -39.024,
+          140.308,
+          -0.099,
+          0.995
+        ],
+        "sides": [
+          [
+            -39.024,
+            140.308,
+            -37.972,
+            128.58,
+            -0.996,
+            -0.089
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 14 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944391": {
+      "id": "496944391",
+      "name": "Bella Patio",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.8,
+      "stream": true,
+      "params": {
+        "gable": "mansard",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.6,
+          3.6,
+          3.4,
+          3.2
+        ],
+        "bays": 3,
+        "windows": "cross",
+        "pilasters": true,
+        "caryatids": [
+          2
+        ],
+        "balconies": [
+          1
+        ],
+        "central_dormer": true,
+        "dormers": 2,
+        "ground": "veranda",
+        "veranda_depth": 3.2,
+        "glaze": 0.7,
+        "front": [
+          -41.576,
+          136.473,
+          -47.705,
+          135.312,
+          -0.186,
+          0.983
+        ],
+        "sides": [
+          [
+            -40.9,
+            133.068,
+            -41.576,
+            136.473,
+            0.981,
+            0.195
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 12 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944390": {
+      "id": "496944390",
+      "name": "Grote Markt 10",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 5,
+        "ground": "shop",
+        "bays": 2,
+        "windows": "cross",
+        "banded": true,
+        "front": [
+          -47.705,
+          135.312,
+          -51.923,
+          134.538,
+          -0.18,
+          0.984
+        ],
+        "sides": [
+          [
+            -51.923,
+            134.538,
+            -51.282,
+            130.957,
+            -0.984,
+            -0.176
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 10 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944388": {
+      "id": "496944388",
+      "name": "Grote Markt 8",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_cream",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 3,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          -52.349,
+          126.944,
+          -53.883,
+          134.472,
+          0.98,
+          0.2
+        ],
+        "sides": [
+          [
+            -53.883,
+            134.472,
+            -59.119,
+            133.168,
+            -0.242,
+            0.97
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 8 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944389": {
+      "id": "496944389",
+      "name": "Grote Markt 6",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 5,
+        "ground": "shop",
+        "bays": 2,
+        "windows": "cross",
+        "front": [
+          -60.994,
+          116.321,
+          -63.198,
+          120.909,
+          0.901,
+          0.433
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 6 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944386": {
+      "id": "496944386",
+      "name": "Grote Markt 4",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 5,
+        "windows": "plain",
+        "dormers": 3,
+        "ground": "shop",
+        "front": [
+          -62.208,
+          109.202,
+          -49.901,
+          114.873,
+          0.419,
+          -0.908
+        ],
+        "sides": [
+          [
+            -64.711,
+            114.332,
+            -62.208,
+            109.202,
+            -0.899,
+            -0.439
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 4 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944385": {
+      "id": "496944385",
+      "name": "Grote Markt 2",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.72,
+            2.8
+          ]
+        ],
+        "gable_top": "pediment",
+        "crown": "figure",
+        "ground": "shop",
+        "bays": 2,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.8,
+        "front": [
+          -55.423,
+          106.207,
+          -57.571,
+          111.347,
+          0.923,
+          0.386
+        ],
+        "sides": [
+          [
+            -60.388,
+            105.378,
+            -55.423,
+            106.207,
+            0.165,
+            -0.986
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 2 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944524": {
+      "id": "496944524",
+      "name": "Grote Markt 26",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 1,
+        "windows": "plain",
+        "dormers": 1,
+        "ground": "shop",
+        "front": [
+          3.333,
+          141.878,
+          3.912,
+          138.982,
+          -0.981,
+          -0.196
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 26 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944512": {
+      "id": "496944512",
+      "name": "Grote Markt 28",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 5,
+        "crown": "ball",
+        "ground": "shop",
+        "bays": 2,
+        "windows": "cross",
+        "front": [
+          2.468,
+          146.2,
+          3.333,
+          141.878,
+          -0.981,
+          -0.196
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 28 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944513": {
+      "id": "496944513",
+      "name": "Grote Markt 30",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.72,
+            2.8
+          ],
+          [
+            0.45,
+            2.4
+          ]
+        ],
+        "gable_top": "pediment",
+        "crown": "figure",
+        "ground": "arcade",
+        "bays": 3,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.8,
+        "front": [
+          1.618,
+          152.755,
+          2.468,
+          146.2,
+          -0.992,
+          -0.129
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 30 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944514": {
+      "id": "496944514",
+      "name": "Grote Markt 32-34",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.3,
+      "stream": true,
+      "params": {
+        "gable": "mansard",
+        "wall": "stone_grey",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.5,
+          3.3,
+          3.1
+        ],
+        "bays": 4,
+        "windows": "plain",
+        "balconies": [
+          1
+        ],
+        "dormers": 3,
+        "ground": "shop",
+        "front": [
+          -0.07,
+          162.35,
+          1.618,
+          152.755,
+          -0.985,
+          -0.173
+        ],
+        "sides": [
+          [
+            8.388,
+            163.953,
+            1.318,
+            164.041,
+            0.012,
+            1.0
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 32-34 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944515": {
+      "id": "496944515",
+      "name": "Grote Markt 36",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.1,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.1
+        ],
+        "steps": 6,
+        "crown": "ball",
+        "ground": "shop",
+        "bays": 4,
+        "windows": "cross",
+        "front": [
+          13.973,
+          163.986,
+          8.388,
+          163.953,
+          -0.006,
+          1.0
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 36 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944525": {
+      "id": "496944525",
+      "name": "Grote Markt 38",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_cream",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 3,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          22.047,
+          164.03,
+          13.973,
+          163.986,
+          -0.005,
+          1.0
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 38 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944526": {
+      "id": "496944526",
+      "name": "Grote Markt 40",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.78,
+            3.0
+          ],
+          [
+            0.5,
+            2.6
+          ]
+        ],
+        "gable_top": "pediment",
+        "crown": "figure",
+        "ground": "arcade",
+        "bays": 4,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.8,
+        "front": [
+          31.696,
+          164.296,
+          22.047,
+          164.03,
+          -0.028,
+          1.0
+        ],
+        "sides": [
+          [
+            28.301,
+            140.242,
+            28.44,
+            143.625,
+            0.999,
+            -0.041
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 40 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944516": {
+      "id": "496944516",
+      "name": "Grote Markt 42",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 6,
+        "crown": "ball",
+        "ground": "shop",
+        "bays": 3,
+        "windows": "cross",
+        "front": [
+          37.226,
+          163.71,
+          31.696,
+          164.296,
+          0.105,
+          0.994
+        ],
+        "sides": [
+          [
+            31.097,
+            143.702,
+            31.132,
+            140.353,
+            -1.0,
+            -0.01
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 42 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944517": {
+      "id": "496944517",
+      "name": "Grote Markt 44",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick_brown",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 5,
+        "ground": "shop",
+        "bays": 3,
+        "windows": "cross",
+        "front": [
+          42.469,
+          163.146,
+          37.226,
+          163.71,
+          0.107,
+          0.994
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 44 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944518": {
+      "id": "496944518",
+      "name": "Grote Markt 46",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 3,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          47.6,
+          162.14,
+          42.469,
+          163.146,
+          0.192,
+          0.981
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 46 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944527": {
+      "id": "496944527",
+      "name": "Grote Markt 48",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 6,
+        "crown": "ball",
+        "ground": "shop",
+        "bays": 3,
+        "windows": "cross",
+        "front": [
+          52.084,
+          160.957,
+          47.607,
+          161.996,
+          0.226,
+          0.974
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 48 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944519": {
+      "id": "496944519",
+      "name": "Grote Markt 50",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.72,
+            2.8
+          ]
+        ],
+        "gable_top": "pediment",
+        "crown": "figure",
+        "ground": "arcade",
+        "bays": 3,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.8,
+        "front": [
+          60.388,
+          159.907,
+          52.077,
+          161.101,
+          0.142,
+          0.99
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 50 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944528": {
+      "id": "496944528",
+      "name": "Grote Markt 52",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_cream",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 3,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          68.601,
+          158.47,
+          60.388,
+          159.907,
+          0.172,
+          0.985
+        ],
+        "sides": [
+          [
+            61.761,
+            138.319,
+            62.208,
+            141.768,
+            0.992,
+            -0.129
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 52 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944521": {
+      "id": "496944521",
+      "name": "Grote Markt 54",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "stepped",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "steps": 6,
+        "crown": "ball",
+        "ground": "shop",
+        "bays": 3,
+        "windows": "cross",
+        "front": [
+          74.911,
+          157.133,
+          68.601,
+          158.47,
+          0.207,
+          0.978
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 54 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944522": {
+      "id": "496944522",
+      "name": "Grote Markt 56",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 14.0,
+      "stream": true,
+      "params": {
+        "gable": "tiers",
+        "wall": "stone_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.4,
+          3.4,
+          3.2,
+          3.0
+        ],
+        "tiers": [
+          [
+            0.72,
+            2.8
+          ]
+        ],
+        "gable_top": "pediment",
+        "crown": "figure",
+        "ground": "arcade",
+        "bays": 3,
+        "windows": "cross",
+        "pilasters": true,
+        "glaze": 0.8,
+        "front": [
+          81.026,
+          155.707,
+          74.911,
+          157.133,
+          0.227,
+          0.974
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 56 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944523": {
+      "id": "496944523",
+      "name": "Grote Markt 58",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "brick",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 3,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          86.36,
+          155.342,
+          81.047,
+          155.872,
+          0.099,
+          0.995
+        ],
+        "sides": []
+      },
+      "attribution": "Grote Markt 58 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "496944529": {
+      "id": "496944529",
+      "name": "Grote Markt 60",
+      "kind": "civic",
+      "custom": "guild_house",
+      "levels": 4,
+      "height_m": 13.5,
+      "stream": true,
+      "params": {
+        "gable": "cornice",
+        "wall": "render_white",
+        "trim": "stone_white",
+        "storeys": [
+          4.2,
+          3.3,
+          3.1,
+          2.9
+        ],
+        "bays": 3,
+        "windows": "plain",
+        "dormers": 2,
+        "ground": "shop",
+        "front": [
+          91.373,
+          154.844,
+          86.36,
+          155.342,
+          0.099,
+          0.995
+        ],
+        "sides": [
+          [
+            90.711,
+            148.124,
+            91.373,
+            154.844,
+            0.995,
+            -0.098
+          ]
+        ]
+      },
+      "attribution": "Grote Markt 60 — User photos 01-04 (Grote Markt), Inventaris Onroerend Erfgoed"
+    },
+    "497130589": {
+      "id": "497130589",
+      "name": "Hansahuis (Suikerrui / Kaasstraat corner)",
+      "kind": "civic",
+      "custom": "hansahuis",
+      "levels": 5,
+      "height_m": 19.0,
+      "stream": true,
+      "params": {
+        "dome": "main",
+        "storeys": [
+          5.0,
+          3.8,
+          3.6,
+          3.4,
+          3.2
+        ],
+        "roof_h": 4.5,
+        "dormers": 3,
+        "front": [
+          -170.767,
+          169.336,
+          -166.166,
+          167.545,
+          -0.363,
+          -0.932
+        ],
+        "sides": [
+          [
+            -166.166,
+            167.545,
+            -162.958,
+            168.828,
+            0.371,
+            -0.928
+          ],
+          [
+            -162.958,
+            168.828,
+            -161.592,
+            171.89,
+            0.913,
+            -0.407
+          ],
+          [
+            -161.773,
+            172.199,
+            -156.593,
+            180.921,
+            0.86,
+            -0.511
+          ],
+          [
+            -165.294,
+            184.922,
+            -168.069,
+            178.003,
+            -0.928,
+            0.372
+          ]
+        ],
+        "dome_xy": [
+          -164.843,
+          167.03
+        ]
+      },
+      "attribution": "Suikerrui 11 — Photo 03 (Suikerrui, Cafe Mercator) + references/amadeus"
+    },
+    "497130590": {
+      "id": "497130590",
+      "name": "Hansahuis",
+      "kind": "civic",
+      "custom": "hansahuis",
+      "levels": 5,
+      "height_m": 19.0,
+      "stream": true,
+      "params": {
+        "storeys": [
+          5.0,
+          3.8,
+          3.6,
+          3.4,
+          3.2
+        ],
+        "roof_h": 4.5,
+        "dormers": 3,
+        "front": [
+          -180.459,
+          170.906,
+          -171.723,
+          167.192,
+          -0.391,
+          -0.92
+        ],
+        "sides": []
+      },
+      "attribution": "Suikerrui 9 — Photo 03 (Suikerrui, Cafe Mercator) + references/amadeus"
+    },
+    "497130592": {
+      "id": "497130592",
+      "name": "Hansahuis (quay corner)",
+      "kind": "civic",
+      "custom": "hansahuis",
+      "levels": 5,
+      "height_m": 19.0,
+      "stream": true,
+      "params": {
+        "dome": "small",
+        "storeys": [
+          5.0,
+          3.8,
+          3.6,
+          3.4,
+          3.2
+        ],
+        "roof_h": 4.5,
+        "dormers": 3,
+        "front": [
+          -192.131,
+          178.666,
+          -186.706,
+          176.477,
+          -0.374,
+          -0.927
+        ],
+        "sides": [
+          [
+            -199.466,
+            189.156,
+            -201.397,
+            184.801,
+            -0.914,
+            0.405
+          ],
+          [
+            -201.397,
+            184.801,
+            -200.079,
+            181.628,
+            -0.923,
+            -0.384
+          ],
+          [
+            -199.87,
+            179.053,
+            -193.184,
+            176.344,
+            -0.376,
+            -0.927
+          ]
+        ],
+        "dome_xy": [
+          -202.298,
+          182.768
+        ]
+      },
+      "attribution": "Suikerrui 1-3 — Photo 03 (Suikerrui, Cafe Mercator) + references/amadeus"
+    },
+    "497130595": {
+      "id": "497130595",
+      "name": "Hansahuis (quay front)",
+      "kind": "civic",
+      "custom": "hansahuis",
+      "levels": 5,
+      "height_m": 19.0,
+      "stream": true,
+      "params": {
+        "storeys": [
+          5.0,
+          3.8,
+          3.6,
+          3.4,
+          3.2
+        ],
+        "roof_h": 4.5,
+        "dormers": 3,
+        "front": [
+          -195.743,
+          198.121,
+          -199.466,
+          189.156,
+          -0.924,
+          0.384
+        ],
+        "sides": []
+      },
+      "attribution": "Ernest Van Dijckkaai 10 — Photo 03 (Suikerrui, Cafe Mercator) + references/amadeus"
+    },
+    "497130594": {
+      "id": "497130594",
+      "name": "Hansahuis (quay front)",
+      "kind": "civic",
+      "custom": "hansahuis",
+      "levels": 5,
+      "height_m": 19.0,
+      "stream": true,
+      "params": {
+        "storeys": [
+          5.0,
+          3.8,
+          3.6,
+          3.4,
+          3.2
+        ],
+        "roof_h": 4.5,
+        "dormers": 3,
+        "front": [
+          -189.781,
+          213.165,
+          -195.743,
+          198.121,
+          -0.93,
+          0.368
+        ],
+        "sides": [
+          [
+            -172.824,
+            191.146,
+            -168.669,
+            189.51,
+            -0.366,
+            -0.93
+          ]
+        ]
+      },
+      "attribution": "Ernest Van Dijckkaai 9 — Photo 03 (Suikerrui, Cafe Mercator) + references/amadeus"
+    },
+    "497130588": {
+      "id": "497130588",
+      "name": "Hansahuis (Kaasstraat front)",
+      "kind": "civic",
+      "custom": "hansahuis",
+      "levels": 5,
+      "height_m": 19.0,
+      "stream": true,
+      "params": {
+        "storeys": [
+          5.0,
+          3.8,
+          3.6,
+          3.4,
+          3.2
+        ],
+        "roof_h": 4.5,
+        "dormers": 3,
+        "front": [
+          -156.593,
+          180.921,
+          -149.146,
+          199.16,
+          0.926,
+          -0.378
+        ],
+        "sides": []
+      },
+      "attribution": "Kaasstraat 8 — Photo 03 (Suikerrui, Cafe Mercator) + references/amadeus"
     }
   },
   "by_name": {
@@ -88,7 +2215,7 @@
       "id": "496929324",
       "name": "Huis Spaengien",
       "kind": "civic",
-      "custom": "grote_markt_terrace",
+      "custom": "guild_house",
       "height_m": 16.0,
       "stream": true
     },
@@ -97,6 +2224,38 @@
       "name": "Brabo fountain",
       "kind": "memorial",
       "custom": "brabo_fountain",
+      "stream": true
+    },
+    "nationale bank van belgie": {
+      "id": "12470557",
+      "name": "Nationale Bank van België",
+      "kind": "civic",
+      "custom": "nationale_bank",
+      "levels": 6,
+      "height_m": 28.5,
+      "roof_height_m": 8.0,
+      "anchor": [
+        51.21167,
+        4.40831
+      ],
+      "source_url": "https://www.openstreetmap.org/relation/12470557",
+      "attribution": "Nationale Bank / Leopoldplaats — Neo-Renaissance LOD3 mesh kit",
+      "stream": true
+    },
+    "nationale bank": {
+      "id": "12470557",
+      "name": "Nationale Bank van België",
+      "kind": "civic",
+      "custom": "nationale_bank",
+      "levels": 6,
+      "height_m": 28.5,
+      "roof_height_m": 8.0,
+      "anchor": [
+        51.21167,
+        4.40831
+      ],
+      "source_url": "https://www.openstreetmap.org/relation/12470557",
+      "attribution": "Nationale Bank / Leopoldplaats — Neo-Renaissance LOD3 mesh kit",
       "stream": true
     }
   },
@@ -108,7 +2267,10 @@
       "custom": "brabo_fountain",
       "lat": 51.22111,
       "lon": 4.39972,
-      "facing": [51.2212, 4.3995],
+      "facing": [
+        51.2212,
+        4.3995
+      ],
       "stream": true,
       "source_url": "https://www.wikidata.org/wiki/Q896265",
       "attribution": "Brabo fountain — Grote Markt (synthetic node; not in OSM memorial extract)"

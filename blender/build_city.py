@@ -81,7 +81,15 @@ PHOTO_MAT_SLOT = 7  # material slot of the atlas on façade meshes
 DOORSTEP_MAT = None  # shared granite doorstep material, set in build()
 DOORSTEP_MAT_SLOT = 8  # right after the atlas slot
 ROOFTOP_STATS = {"chimneys": 0, "plant": 0}
-STATS = {"photo_quads": 0, "photo_edges": 0, "door_steps": 0, "awnings": 0, "reveals": 0, "downpipes": 0}
+STATS = {
+    "photo_quads": 0,
+    "photo_edges": 0,
+    "door_steps": 0,
+    "awnings": 0,
+    "reveals": 0,
+    "downpipes": 0,
+    "dentils": 0,
+}
 
 
 # Century-old Harmonie palette: stylish but lived-in, not showroom clean.
@@ -1239,20 +1247,57 @@ def _append_window_reveal(bm, ox, oy, ux, uy, nx, ny, a, w, z0, z1, off, variant
     """
     yaw = math.atan2(uy, ux)
     cx, cy = ox + ux * a, oy + uy * a
-    sw = w + 0.16
-    # Sill: slab proud of the wall with a thinner drip lip underneath.
-    _append_box(bm, cx + nx * (off + 0.07), cy + ny * (off + 0.07), z0 - 0.025, sw, 0.14, 0.05, yaw, DOORSTEP_MAT_SLOT)
-    _append_box(bm, cx + nx * (off + 0.04), cy + ny * (off + 0.04), z0 - 0.07, sw * 0.92, 0.08, 0.04, yaw, DOORSTEP_MAT_SLOT)
-    # Head: lintel hood (variant 1 adds a thin cornice course on top).
-    _append_box(bm, cx + nx * (off + 0.05), cy + ny * (off + 0.05), z1 + 0.04, w + 0.12, 0.10, 0.08, yaw, DOORSTEP_MAT_SLOT)
+    sw = w + 0.2
+    # Sill: thicker slab + drip lip so upper floors read as carved stone, not paint.
+    _append_box(bm, cx + nx * (off + 0.09), cy + ny * (off + 0.09), z0 - 0.03, sw, 0.18, 0.07, yaw, DOORSTEP_MAT_SLOT)
+    _append_box(bm, cx + nx * (off + 0.05), cy + ny * (off + 0.05), z0 - 0.08, sw * 0.9, 0.1, 0.05, yaw, DOORSTEP_MAT_SLOT)
+    # Head: lintel hood (variant 1 adds a cornice course + keystone block).
+    _append_box(bm, cx + nx * (off + 0.07), cy + ny * (off + 0.07), z1 + 0.05, w + 0.16, 0.14, 0.1, yaw, DOORSTEP_MAT_SLOT)
     if variant == 1:
-        _append_box(bm, cx + nx * (off + 0.07), cy + ny * (off + 0.07), z1 + 0.10, w + 0.22, 0.14, 0.04, yaw, DOORSTEP_MAT_SLOT)
-    # Jamb fins: slim reveals either side of the glass.
+        _append_box(bm, cx + nx * (off + 0.09), cy + ny * (off + 0.09), z1 + 0.12, w + 0.26, 0.18, 0.05, yaw, DOORSTEP_MAT_SLOT)
+        _append_box(bm, cx + nx * (off + 0.1), cy + ny * (off + 0.1), z1 + 0.02, 0.12, 0.12, 0.14, yaw, DOORSTEP_MAT_SLOT)
+    # Jamb fins: deeper reveals so glass sits in a real shadow box.
     for sgn in (-1, 1):
-        jx = cx + ux * sgn * (w * 0.5 + 0.02)
-        jy = cy + uy * sgn * (w * 0.5 + 0.02)
-        _append_box(bm, jx + nx * (off + 0.025), jy + ny * (off + 0.025), (z0 + z1) * 0.5, 0.045, 0.05, z1 - z0, yaw, DOORSTEP_MAT_SLOT)
+        jx = cx + ux * sgn * (w * 0.5 + 0.03)
+        jy = cy + uy * sgn * (w * 0.5 + 0.03)
+        _append_box(
+            bm,
+            jx + nx * (off + 0.04),
+            jy + ny * (off + 0.04),
+            (z0 + z1) * 0.5,
+            0.06,
+            0.08,
+            max(0.4, z1 - z0),
+            yaw,
+            DOORSTEP_MAT_SLOT,
+        )
     return 1
+
+
+def _append_eaves_dentils(bm, ox, oy, nx, ny, length: float, eaves_z: float, yaw: float) -> int:
+    """Tooth blocks under the cornice — spawn-local LOD3 signature on ordinary houses."""
+    if length < 2.5:
+        return 0
+    n = max(3, int(length / 0.75))
+    count = 0
+    half = length * 0.5
+    for i in range(n):
+        t = -half + length * (i + 0.5) / n
+        cx = ox + math.cos(yaw) * t
+        cy = oy + math.sin(yaw) * t
+        _append_box(
+            bm,
+            cx + nx * 0.1,
+            cy + ny * 0.1,
+            eaves_z - 0.08,
+            0.1,
+            0.16,
+            0.18,
+            yaw,
+            2,
+        )
+        count += 1
+    return count
 
 
 def add_photo_facade(
@@ -1311,6 +1356,11 @@ def add_photo_facade(
     _append_box(bm, ox + nx * 0.06, oy + ny * 0.06, 0.09, length * 0.985, 0.16, 0.18, yaw, 1)
     _append_box(bm, ox + nx * 0.12, oy + ny * 0.12, eaves_z + 0.1, length * 1.02, 0.34, 0.38, yaw, 2)
     _append_box(bm, ox + nx * 0.18, oy + ny * 0.18, eaves_z + 0.28, length * 1.0, 0.2, 0.12, yaw, 2)
+    # Spawn-local dentils under the cornice so rijhuizen share the landmark silhouette language.
+    if detail == "full":
+        STATS["dentils"] += _append_eaves_dentils(
+            bm, ox + nx * 0.14, oy + ny * 0.14, nx, ny, length * 0.96, eaves_z, yaw
+        )
     bm.normal_update()
     apply_planar_uvs([f for f in bm.faces if f.material_index == 0], uv_layer, tile_m)
 
@@ -1495,6 +1545,10 @@ def add_street_facade(
     # Cornice: deep main ledge + thinner crown for century silhouette.
     _append_box(bm, ox + nx * 0.12, oy + ny * 0.12, eaves_z + 0.1, length * 1.02, 0.34, 0.38, yaw, 2)
     _append_box(bm, ox + nx * 0.18, oy + ny * 0.18, eaves_z + 0.28, length * 1.0, 0.2, 0.12, yaw, 2)
+    if detail == "full":
+        STATS["dentils"] += _append_eaves_dentils(
+            bm, ox + nx * 0.14, oy + ny * 0.14, nx, ny, length * 0.96, eaves_z, yaw
+        )
     # Vertical soot / rain-stain streaks — century façades aren't pristine.
     if detail == "full" and length > 5.0:
         for si in range(1 + int(length // 7.0)):

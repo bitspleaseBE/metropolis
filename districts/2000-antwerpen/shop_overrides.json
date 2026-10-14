@@ -1,6 +1,57 @@
 {
-  "_doc": "Per-place shopfront looks authored from districts/2000-antwerpen/references/. Keys: node/<id> or way/<id> (by_osm) or lowercase name (by_name). Fields: name, fascia, accent, glass, frame ([r,g,b] 0..1), front (boutique|bar|cafe|restaurant|bakery|chocolatier|heritage|market|frituur|fastfood|bank|pharmacy|office|plain), awning ({colour, stripe} or false), terrace, mood. ref/note are documentation.",
+  "_doc": "Per-place shopfront looks authored from districts/2000-antwerpen/references/. Keys: node/<id> or way/<id> (by_osm) or lowercase name (by_name). Fields: name, fascia, accent, glass, frame ([r,g,b] 0..1), front (boutique|bar|cafe|restaurant|bakery|chocolatier|heritage|market|frituur|kebab|pizza|newsstand|fastfood|bank|pharmacy|office|plain), awning ({colour, stripe} or false), terrace, mood. ref/note are documentation.",
   "by_osm": {
+    "node/2455395972": {
+      "name": "Frituur n°1",
+      "fascia": [0.96, 0.78, 0.08],
+      "accent": [0.78, 0.08, 0.06],
+      "frame": [0.12, 0.12, 0.12],
+      "glass": [0.78, 0.76, 0.68],
+      "front": "frituur",
+      "awning": {"colour": [0.96, 0.78, 0.08], "stripe": null},
+      "note": "Grote Markt fritkot: classic yellow board, red lettering, single deep window."
+    },
+    "node/7368670097": {
+      "name": "M-Press",
+      "fascia": [0.96, 0.96, 0.94],
+      "accent": [0.82, 0.08, 0.10],
+      "frame": [0.92, 0.92, 0.90],
+      "glass": [0.52, 0.54, 0.56],
+      "front": "newsstand",
+      "awning": false,
+      "note": "Astridplein press kiosk — white fascia, red METRO-PRESS style lettering, dense window stock."
+    },
+    "node/7018065124": {
+      "name": "Mixor kebab",
+      "fascia": [0.08, 0.08, 0.10],
+      "accent": [0.98, 0.72, 0.12],
+      "frame": [0.12, 0.12, 0.14],
+      "glass": [0.70, 0.60, 0.46],
+      "front": "kebab",
+      "awning": {"colour": [0.08, 0.08, 0.10], "stripe": null},
+      "note": "Centraal / Astridplein kebab — dark lit fascia, open glass snack front."
+    },
+    "node/1641068323": {
+      "name": "Mezopotania",
+      "fascia": [0.12, 0.10, 0.08],
+      "accent": [0.92, 0.18, 0.12],
+      "frame": [0.10, 0.10, 0.12],
+      "glass": [0.68, 0.58, 0.44],
+      "front": "kebab",
+      "awning": false,
+      "note": "Keyserlei kebab / pita — warm glass, red accent."
+    },
+    "node/1261779700": {
+      "name": "Isola Sarda",
+      "fascia": [0.96, 0.94, 0.90],
+      "accent": [0.78, 0.12, 0.12],
+      "frame": [0.14, 0.14, 0.14],
+      "glass": [0.56, 0.48, 0.38],
+      "front": "pizza",
+      "awning": {"colour": [0.78, 0.12, 0.12], "stripe": null},
+      "terrace": true,
+      "note": "Keyserlei pizzeria — cream board, red awning."
+    },
     "node/2405486929": {
       "name": "Den Engel",
       "fascia": [0.72, 0.08, 0.08],

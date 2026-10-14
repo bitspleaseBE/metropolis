@@ -114,7 +114,20 @@ BRAND_FASCIA.update(
         "spar": _b("SPAR", (0.0, 0.48, 0.25), (0.92, 0.12, 0.14)),
         "albert_heijn": _b("Albert Heijn", (0.0, 0.62, 0.88), (1.0, 1.0, 1.0)),
         "proxy": _b("Proxy Delhaize", (0.80, 0.08, 0.14), (1.0, 1.0, 1.0)),
-        "night_shop": _b("Night Shop", (0.10, 0.10, 0.14), (0.98, 0.84, 0.18)),
+        "night_shop": _b("Night Shop", (0.10, 0.10, 0.14), (0.98, 0.84, 0.18), front="market"),
+        # Press / lotto kiosks (METRO PRESS family around Centraal / Keyserlei).
+        "metro_press": _b(
+            "METRO PRESS", (0.96, 0.96, 0.94), (0.82, 0.08, 0.10), front="newsstand",
+            glass=(0.52, 0.54, 0.56),
+        ),
+        "m_press": _b(
+            "M-PRESS", (0.96, 0.96, 0.94), (0.82, 0.08, 0.10), front="newsstand",
+            glass=(0.52, 0.54, 0.56),
+        ),
+        "press_shop": _b(
+            "Press Shop", (0.96, 0.96, 0.94), (0.10, 0.10, 0.12), front="newsstand",
+            glass=(0.52, 0.54, 0.56),
+        ),
         "kruidvat": _b("Kruidvat", (0.86, 0.06, 0.20), (1.0, 1.0, 1.0)),
         "hema": _b("HEMA", (0.86, 0.08, 0.14), (1.0, 1.0, 1.0)),
         "action": _b("Action", (0.0, 0.32, 0.64), (1.0, 1.0, 1.0)),
@@ -154,8 +167,8 @@ BRAND_FASCIA.update(
         "quick": _b("QUICK", (0.85, 0.08, 0.10), (1.0, 1.0, 1.0), front="fastfood"),
         "kfc": _b("KFC", (0.70, 0.04, 0.10), (1.0, 1.0, 1.0), front="fastfood"),
         "subway": _b("SUBWAY", (0.0, 0.50, 0.25), (1.0, 0.80, 0.0), front="fastfood"),
-        "dominos": _b("Domino's", (0.0, 0.40, 0.65), (0.90, 0.12, 0.20), front="fastfood"),
-        "pizza_hut": _b("Pizza Hut", (0.78, 0.06, 0.12), (1.0, 1.0, 1.0), front="restaurant"),
+        "dominos": _b("Domino's", (0.0, 0.40, 0.65), (0.90, 0.12, 0.20), front="pizza"),
+        "pizza_hut": _b("Pizza Hut", (0.78, 0.06, 0.12), (1.0, 1.0, 1.0), front="pizza"),
         "panos": _b("PANOS", (0.70, 0.10, 0.12), (1.0, 0.92, 0.70), front="bakery"),
         "exki": _b("EXKi", (0.30, 0.42, 0.18), (1.0, 1.0, 1.0), mood="cafe", front="cafe"),
         "le_pain_quotidien": _b("LE PAIN QUOTIDIEN", (0.90, 0.86, 0.78), (0.30, 0.24, 0.18), mood="cafe", front="cafe"),
@@ -246,6 +259,12 @@ _BRAND_ALIASES: list[tuple[str, str]] = [
     ("ah to go", "albert_heijn"),
     ("night shop", "night_shop"),
     ("nightshop", "night_shop"),
+    ("nachtwinkel", "night_shop"),
+    ("metro press", "metro_press"),
+    ("m-press", "m_press"),
+    ("m press", "m_press"),
+    ("press shop", "press_shop"),
+    ("dagbladhandel", "press_shop"),
     ("kruidvat", "kruidvat"),
     ("hema", "hema"),
     ("action", "action"),
@@ -413,24 +432,42 @@ HERITAGE_KINDS = frozenset(
 )
 BAKERY_KINDS = frozenset({"bakery", "pastry", "confectionery", "ice_cream"})
 MARKET_KINDS = frozenset({"supermarket", "convenience", "greengrocer", "butcher", "seafood", "kiosk", "chemist", "variety_store"})
+NEWSSTAND_KINDS = frozenset({"newsagent", "lottery"})
+_KEBAB_CUISINE = re.compile(r"kebab|doner|d[oö]ner|shawarma|pita|dürüm|durum|middle_eastern")
+_PIZZA_CUISINE = re.compile(r"pizza|italian_pizza")
+_FRITUUR_CUISINE = re.compile(r"friture|frituur|friet")
+_NEWS_NAME = re.compile(r"press\s*shop|metro\s*press|\bm-?press\b|dagblad|kranten|lotto|newsagent")
+_KEBAB_NAME = re.compile(r"kebab|kebap|pita|doner|döner|shawarma|dürüm|durum")
+_PIZZA_NAME = re.compile(r"pizza|pizzeria|pizzaria")
+_FRITUUR_NAME = re.compile(r"fri(t|e)|frituur|frietkot|frieterij|patat")
 
 
 def front_for(tags: dict[str, str], kind: str, category: str) -> str:
     """Shopfront archetype for a kind: drives frame, glazing, door and awning in the viewer."""
     name = (tags.get("name") or "").lower()
+    cuisine = (tags.get("cuisine") or "").lower()
     if kind == "bank":
         return "bank"
     if category == "pharmacy":
         return "pharmacy"
+    if kind in NEWSSTAND_KINDS or _NEWS_NAME.search(name):
+        return "newsstand"
+    if kind == "kiosk" and (_NEWS_NAME.search(name) or "lotto" in name):
+        return "newsstand"
     if kind in {"bar", "pub", "biergarten", "nightclub"}:
         return "bar"
     if kind == "cafe":
         return "cafe"
-    if kind == "restaurant":
-        return "restaurant"
-    if kind == "fast_food":
-        if re.search(r"fri(t|e)", name) or (tags.get("cuisine") or "").find("friture") >= 0:
+    if kind in {"fast_food", "restaurant"}:
+        # Flemish frituur before pizza/kebab so "Frituur … Pizza" still reads as chips.
+        if _FRITUUR_NAME.search(name) or _FRITUUR_CUISINE.search(cuisine):
             return "frituur"
+        if _KEBAB_CUISINE.search(cuisine) or _KEBAB_NAME.search(name):
+            return "kebab"
+        if _PIZZA_CUISINE.search(cuisine) or _PIZZA_NAME.search(name):
+            return "pizza"
+        if kind == "restaurant":
+            return "restaurant"
         return "fastfood"
     if kind == "chocolate":
         return "chocolatier"
@@ -463,8 +500,31 @@ FRONT_PALETTES: dict[str, list[tuple[tuple[float, float, float], ...]]] = {
         ((0.84, 0.80, 0.72), (0.18, 0.14, 0.12), (0.52, 0.46, 0.38)),
     ],
     "frituur": [
-        ((0.96, 0.78, 0.08), (0.78, 0.08, 0.06), (0.80, 0.78, 0.70)),
-        ((0.82, 0.10, 0.08), (1.0, 0.86, 0.20), (0.80, 0.78, 0.70)),
+        ((0.96, 0.78, 0.08), (0.78, 0.08, 0.06), (0.80, 0.78, 0.70)),  # classic yellow / red
+        ((0.82, 0.10, 0.08), (1.0, 0.86, 0.20), (0.80, 0.78, 0.70)),  # red board, yellow letters
+        ((0.12, 0.42, 0.22), (0.96, 0.82, 0.10), (0.78, 0.76, 0.68)),  # green kot
+        ((0.96, 0.94, 0.90), (0.82, 0.10, 0.08), (0.78, 0.76, 0.70)),  # white with red trim
+    ],
+    "kebab": [
+        # Astridplein / Keyserlei snack bars: dark frame, lit fascia, warm glass.
+        ((0.08, 0.08, 0.10), (0.98, 0.72, 0.12), (0.72, 0.62, 0.48)),
+        ((0.12, 0.10, 0.08), (0.92, 0.18, 0.12), (0.70, 0.60, 0.46)),
+        ((0.06, 0.18, 0.14), (0.98, 0.86, 0.40), (0.68, 0.62, 0.50)),
+        ((0.78, 0.10, 0.10), (1.0, 1.0, 1.0), (0.70, 0.64, 0.52)),
+    ],
+    "pizza": [
+        ((0.78, 0.10, 0.12), (1.0, 0.96, 0.90), (0.58, 0.48, 0.36)),  # red trattoria
+        ((0.10, 0.28, 0.18), (0.96, 0.90, 0.78), (0.56, 0.48, 0.38)),  # green Italian
+        ((0.96, 0.94, 0.90), (0.78, 0.12, 0.12), (0.58, 0.50, 0.40)),  # cream board
+        ((0.12, 0.12, 0.14), (0.96, 0.78, 0.28), (0.55, 0.48, 0.38)),  # charcoal + gold
+        ((0.86, 0.78, 0.58), (0.18, 0.14, 0.12), (0.56, 0.48, 0.38)),  # oak fascia
+    ],
+    "newsstand": [
+        # METRO PRESS: white fascia, red lettering, dense window stock.
+        ((0.96, 0.96, 0.94), (0.82, 0.08, 0.10), (0.55, 0.56, 0.58)),
+        ((0.96, 0.96, 0.94), (0.10, 0.10, 0.12), (0.55, 0.56, 0.58)),
+        ((0.12, 0.18, 0.42), (0.98, 0.84, 0.20), (0.58, 0.60, 0.62)),  # lotto blue / yellow
+        ((0.86, 0.08, 0.12), (1.0, 1.0, 1.0), (0.55, 0.56, 0.58)),  # red board
     ],
     "fastfood": [
         ((0.80, 0.10, 0.10), (1.0, 1.0, 1.0), (0.78, 0.76, 0.70)),
@@ -504,7 +564,9 @@ FRONT_PALETTES: dict[str, list[tuple[tuple[float, float, float], ...]]] = {
 }
 
 # front → awning (None = flush fascia only)
-AWNING_FRONTS = frozenset({"restaurant", "cafe", "bakery", "market", "frituur", "chocolatier"})
+AWNING_FRONTS = frozenset({
+    "restaurant", "cafe", "bakery", "market", "frituur", "chocolatier", "pizza", "kebab",
+})
 STRIPED_KINDS = frozenset({"greengrocer", "butcher", "ice_cream", "seafood", "fishmonger"})
 
 

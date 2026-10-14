@@ -1,0 +1,1650 @@
+{
+  "id": "2020-kiel",
+  "title": "'t Kiel \u00b7 2020",
+  "menu_name": "'t Kiel",
+  "postcode": "2020",
+  "description": "Kielpark, post-war social blocks and 19th-century terraces",
+  "bbox": [
+    51.1754763,
+    4.339449,
+    51.2061758,
+    4.4227749
+  ],
+  "boundary": [
+    [
+      4.3483678,
+      51.1954728
+    ],
+    [
+      4.3465465,
+      51.1947327
+    ],
+    [
+      4.3431648,
+      51.1938183
+    ],
+    [
+      4.3417658,
+      51.1947596
+    ],
+    [
+      4.339449,
+      51.1961739
+    ],
+    [
+      4.3441697,
+      51.1985748
+    ],
+    [
+      4.3569155,
+      51.2019092
+    ],
+    [
+      4.3605876,
+      51.2029322
+    ],
+    [
+      4.3714201,
+      51.2061758
+    ],
+    [
+      4.3745055,
+      51.2031704
+    ],
+    [
+      4.3748527,
+      51.2024103
+    ],
+    [
+      4.3768407,
+      51.2006767
+    ],
+    [
+      4.3780906,
+      51.1998985
+    ],
+    [
+      4.3797855,
+      51.1991405
+    ],
+    [
+      4.3815955,
+      51.1986125
+    ],
+    [
+      4.3843173,
+      51.1980521
+    ],
+    [
+      4.3862718,
+      51.1976995
+    ],
+    [
+      4.3889472,
+      51.1970727
+    ],
+    [
+      4.3913979,
+      51.196302
+    ],
+    [
+      4.396399,
+      51.1943811
+    ],
+    [
+      4.3971168,
+      51.194125
+    ],
+    [
+      4.4009396,
+      51.1927611
+    ],
+    [
+      4.404035,
+      51.1918348
+    ],
+    [
+      4.4060013,
+      51.1913677
+    ],
+    [
+      4.4062426,
+      51.1913104
+    ],
+    [
+      4.4084647,
+      51.1909072
+    ],
+    [
+      4.4102253,
+      51.1907031
+    ],
+    [
+      4.4112243,
+      51.1905873
+    ],
+    [
+      4.4130463,
+      51.1904733
+    ],
+    [
+      4.4144212,
+      51.1904488
+    ],
+    [
+      4.4149563,
+      51.1900105
+    ],
+    [
+      4.4163321,
+      51.188545
+    ],
+    [
+      4.4164272,
+      51.1884436
+    ],
+    [
+      4.4164406,
+      51.1884026
+    ],
+    [
+      4.4164605,
+      51.1883609
+    ],
+    [
+      4.4167845,
+      51.1879979
+    ],
+    [
+      4.4168795,
+      51.1879037
+    ],
+    [
+      4.4171854,
+      51.1877024
+    ],
+    [
+      4.4175916,
+      51.1875074
+    ],
+    [
+      4.4178593,
+      51.1873866
+    ],
+    [
+      4.418219,
+      51.1871914
+    ],
+    [
+      4.4186518,
+      51.1868447
+    ],
+    [
+      4.4191894,
+      51.186425
+    ],
+    [
+      4.419727,
+      51.1860054
+    ],
+    [
+      4.4198165,
+      51.1859398
+    ],
+    [
+      4.4198732,
+      51.1858956
+    ],
+    [
+      4.419913,
+      51.185868
+    ],
+    [
+      4.4199961,
+      51.1858096
+    ],
+    [
+      4.4203451,
+      51.1854759
+    ],
+    [
+      4.420936,
+      51.1849111
+    ],
+    [
+      4.4210352,
+      51.1848163
+    ],
+    [
+      4.4219424,
+      51.1842594
+    ],
+    [
+      4.4224787,
+      51.1839266
+    ],
+    [
+      4.4227075,
+      51.1836564
+    ],
+    [
+      4.4227749,
+      51.1833867
+    ],
+    [
+      4.4226113,
+      51.1832395
+    ],
+    [
+      4.422492,
+      51.1823012
+    ],
+    [
+      4.4223417,
+      51.1818567
+    ],
+    [
+      4.422368,
+      51.1810154
+    ],
+    [
+      4.4224061,
+      51.1807281
+    ],
+    [
+      4.4223848,
+      51.1806004
+    ],
+    [
+      4.4224417,
+      51.1803521
+    ],
+    [
+      4.4222149,
+      51.1800865
+    ],
+    [
+      4.42194,
+      51.1797644
+    ],
+    [
+      4.4219027,
+      51.1797216
+    ],
+    [
+      4.4218254,
+      51.1796292
+    ],
+    [
+      4.4214229,
+      51.1796909
+    ],
+    [
+      4.4209649,
+      51.1793611
+    ],
+    [
+      4.4207338,
+      51.1790749
+    ],
+    [
+      4.42068,
+      51.1789538
+    ],
+    [
+      4.420664,
+      51.1787681
+    ],
+    [
+      4.420078,
+      51.1785484
+    ],
+    [
+      4.4193734,
+      51.1782842
+    ],
+    [
+      4.4198378,
+      51.177788
+    ],
+    [
+      4.4195925,
+      51.1774127
+    ],
+    [
+      4.4196307,
+      51.1771171
+    ],
+    [
+      4.4192706,
+      51.1770927
+    ],
+    [
+      4.419286,
+      51.1769666
+    ],
+    [
+      4.4190835,
+      51.176875
+    ],
+    [
+      4.4191459,
+      51.1762465
+    ],
+    [
+      4.4186215,
+      51.1760905
+    ],
+    [
+      4.4186282,
+      51.1758054
+    ],
+    [
+      4.4185136,
+      51.1757998
+    ],
+    [
+      4.4185026,
+      51.1754784
+    ],
+    [
+      4.4184546,
+      51.1754777
+    ],
+    [
+      4.4184023,
+      51.1754763
+    ],
+    [
+      4.4175901,
+      51.1755149
+    ],
+    [
+      4.4175307,
+      51.1755177
+    ],
+    [
+      4.4174473,
+      51.1755229
+    ],
+    [
+      4.4173856,
+      51.1755265
+    ],
+    [
+      4.4164447,
+      51.175573
+    ],
+    [
+      4.4159231,
+      51.1756057
+    ],
+    [
+      4.4157753,
+      51.175615
+    ],
+    [
+      4.4155706,
+      51.1756265
+    ],
+    [
+      4.4153659,
+      51.175638
+    ],
+    [
+      4.4152816,
+      51.1756376
+    ],
+    [
+      4.4150875,
+      51.1756356
+    ],
+    [
+      4.4148038,
+      51.1756332
+    ],
+    [
+      4.4138206,
+      51.1756295
+    ],
+    [
+      4.4136246,
+      51.1756276
+    ],
+    [
+      4.4128392,
+      51.1757377
+    ],
+    [
+      4.4126675,
+      51.1757618
+    ],
+    [
+      4.4126018,
+      51.1757781
+    ],
+    [
+      4.4123882,
+      51.1758464
+    ],
+    [
+      4.4121886,
+      51.1759239
+    ],
+    [
+      4.4117993,
+      51.1761683
+    ],
+    [
+      4.411177,
+      51.1759716
+    ],
+    [
+      4.4110121,
+      51.1761793
+    ],
+    [
+      4.4109504,
+      51.1761616
+    ],
+    [
+      4.41077,
+      51.1763722
+    ],
+    [
+      4.4101672,
+      51.1761767
+    ],
+    [
+      4.4100022,
+      51.1763903
+    ],
+    [
+      4.4094631,
+      51.1762347
+    ],
+    [
+      4.408979,
+      51.1768737
+    ],
+    [
+      4.4092619,
+      51.1773807
+    ],
+    [
+      4.4091614,
+      51.1775018
+    ],
+    [
+      4.4081032,
+      51.1771974
+    ],
+    [
+      4.4079545,
+      51.1774154
+    ],
+    [
+      4.4071993,
+      51.1774122
+    ],
+    [
+      4.4072342,
+      51.1767459
+    ],
+    [
+      4.4068895,
+      51.1767371
+    ],
+    [
+      4.4063511,
+      51.1770839
+    ],
+    [
+      4.4059923,
+      51.1768796
+    ],
+    [
+      4.4055605,
+      51.1767165
+    ],
+    [
+      4.4050912,
+      51.1766009
+    ],
+    [
+      4.4049154,
+      51.176735
+    ],
+    [
+      4.4047076,
+      51.1768544
+    ],
+    [
+      4.4044893,
+      51.176972
+    ],
+    [
+      4.4041376,
+      51.1771369
+    ],
+    [
+      4.4037618,
+      51.1772979
+    ],
+    [
+      4.4033613,
+      51.1774444
+    ],
+    [
+      4.403034,
+      51.1775474
+    ],
+    [
+      4.4026168,
+      51.1776649
+    ],
+    [
+      4.4023284,
+      51.1777212
+    ],
+    [
+      4.4021139,
+      51.1777439
+    ],
+    [
+      4.4018577,
+      51.1777599
+    ],
+    [
+      4.401619,
+      51.1777868
+    ],
+    [
+      4.4013722,
+      51.1778284
+    ],
+    [
+      4.4010302,
+      51.1779125
+    ],
+    [
+      4.4008252,
+      51.1779835
+    ],
+    [
+      4.400589,
+      51.1780785
+    ],
+    [
+      4.4003679,
+      51.1781804
+    ],
+    [
+      4.3998662,
+      51.1784333
+    ],
+    [
+      4.3996705,
+      51.1785603
+    ],
+    [
+      4.3994023,
+      51.1787233
+    ],
+    [
+      4.3989796,
+      51.1790452
+    ],
+    [
+      4.398623,
+      51.179369
+    ],
+    [
+      4.3984447,
+      51.1795682
+    ],
+    [
+      4.3977103,
+      51.1805204
+    ],
+    [
+      4.3979578,
+      51.1806999
+    ],
+    [
+      4.397308,
+      51.1815452
+    ],
+    [
+      4.3971149,
+      51.1816898
+    ],
+    [
+      4.3968661,
+      51.1820113
+    ],
+    [
+      4.3969935,
+      51.1820483
+    ],
+    [
+      4.3967468,
+      51.1823913
+    ],
+    [
+      4.3967307,
+      51.1826082
+    ],
+    [
+      4.3964275,
+      51.1829722
+    ],
+    [
+      4.3965489,
+      51.1830174
+    ],
+    [
+      4.3962519,
+      51.1833236
+    ],
+    [
+      4.3963619,
+      51.1833673
+    ],
+    [
+      4.3961942,
+      51.1835436
+    ],
+    [
+      4.3962599,
+      51.183753
+    ],
+    [
+      4.3948851,
+      51.183934
+    ],
+    [
+      4.3948185,
+      51.1839362
+    ],
+    [
+      4.3947552,
+      51.183927
+    ],
+    [
+      4.3946994,
+      51.1839053
+    ],
+    [
+      4.3946569,
+      51.1838741
+    ],
+    [
+      4.3943247,
+      51.1835733
+    ],
+    [
+      4.3940021,
+      51.1832998
+    ],
+    [
+      4.3938716,
+      51.1831987
+    ],
+    [
+      4.3938234,
+      51.1831567
+    ],
+    [
+      4.3937858,
+      51.1831239
+    ],
+    [
+      4.3937171,
+      51.1830563
+    ],
+    [
+      4.3936717,
+      51.1830117
+    ],
+    [
+      4.3921309,
+      51.1816567
+    ],
+    [
+      4.3920268,
+      51.1815734
+    ],
+    [
+      4.3918477,
+      51.1814158
+    ],
+    [
+      4.3917504,
+      51.1813318
+    ],
+    [
+      4.3906644,
+      51.1818194
+    ],
+    [
+      4.3899438,
+      51.181917
+    ],
+    [
+      4.38923,
+      51.1818674
+    ],
+    [
+      4.3889232,
+      51.1813665
+    ],
+    [
+      4.38877,
+      51.1812475
+    ],
+    [
+      4.3887441,
+      51.1812291
+    ],
+    [
+      4.3874638,
+      51.1803162
+    ],
+    [
+      4.386714,
+      51.179819
+    ],
+    [
+      4.3863513,
+      51.1794888
+    ],
+    [
+      4.3851435,
+      51.1802033
+    ],
+    [
+      4.3853941,
+      51.1804396
+    ],
+    [
+      4.3848073,
+      51.1804366
+    ],
+    [
+      4.3849835,
+      51.1807054
+    ],
+    [
+      4.3842446,
+      51.1811671
+    ],
+    [
+      4.3845873,
+      51.18139
+    ],
+    [
+      4.3844225,
+      51.1814855
+    ],
+    [
+      4.3836579,
+      51.1810484
+    ],
+    [
+      4.3832367,
+      51.1812986
+    ],
+    [
+      4.3830588,
+      51.1814017
+    ],
+    [
+      4.3829995,
+      51.1814372
+    ],
+    [
+      4.3829215,
+      51.1814665
+    ],
+    [
+      4.382836,
+      51.1815198
+    ],
+    [
+      4.3819036,
+      51.1821013
+    ],
+    [
+      4.3811604,
+      51.182577
+    ],
+    [
+      4.3808027,
+      51.1828018
+    ],
+    [
+      4.3806595,
+      51.1828987
+    ],
+    [
+      4.3806189,
+      51.1829226
+    ],
+    [
+      4.3805458,
+      51.1829709
+    ],
+    [
+      4.3803665,
+      51.1830939
+    ],
+    [
+      4.3803016,
+      51.1831329
+    ],
+    [
+      4.3782883,
+      51.1844226
+    ],
+    [
+      4.3774669,
+      51.1849642
+    ],
+    [
+      4.3766123,
+      51.1855261
+    ],
+    [
+      4.3753295,
+      51.1863763
+    ],
+    [
+      4.3752654,
+      51.1864188
+    ],
+    [
+      4.3752149,
+      51.186474
+    ],
+    [
+      4.3751963,
+      51.1864913
+    ],
+    [
+      4.3751777,
+      51.1865086
+    ],
+    [
+      4.3751363,
+      51.1865491
+    ],
+    [
+      4.3750533,
+      51.1866035
+    ],
+    [
+      4.3743378,
+      51.1870732
+    ],
+    [
+      4.373507,
+      51.187605
+    ],
+    [
+      4.3734218,
+      51.1876596
+    ],
+    [
+      4.3733319,
+      51.1877081
+    ],
+    [
+      4.3732165,
+      51.187759
+    ],
+    [
+      4.373154,
+      51.1877825
+    ],
+    [
+      4.37309,
+      51.1878066
+    ],
+    [
+      4.3728863,
+      51.1879512
+    ],
+    [
+      4.372649,
+      51.1881657
+    ],
+    [
+      4.3726261,
+      51.1881817
+    ],
+    [
+      4.3720448,
+      51.1885886
+    ],
+    [
+      4.3719348,
+      51.1886656
+    ],
+    [
+      4.3709719,
+      51.1893094
+    ],
+    [
+      4.3707007,
+      51.1895056
+    ],
+    [
+      4.3706557,
+      51.1895381
+    ],
+    [
+      4.3704569,
+      51.1896834
+    ],
+    [
+      4.3701791,
+      51.1898447
+    ],
+    [
+      4.369624,
+      51.1899953
+    ],
+    [
+      4.3695928,
+      51.1900224
+    ],
+    [
+      4.3695295,
+      51.1900428
+    ],
+    [
+      4.3693888,
+      51.1904745
+    ],
+    [
+      4.3692815,
+      51.1907546
+    ],
+    [
+      4.3692957,
+      51.190803
+    ],
+    [
+      4.3693117,
+      51.190847
+    ],
+    [
+      4.3693841,
+      51.1911943
+    ],
+    [
+      4.3694475,
+      51.1914914
+    ],
+    [
+      4.3694934,
+      51.1915804
+    ],
+    [
+      4.3696328,
+      51.1917208
+    ],
+    [
+      4.3698043,
+      51.1921117
+    ],
+    [
+      4.3668469,
+      51.1910713
+    ],
+    [
+      4.3656024,
+      51.1906141
+    ],
+    [
+      4.3646342,
+      51.1901842
+    ],
+    [
+      4.3638105,
+      51.1898491
+    ],
+    [
+      4.3629843,
+      51.189498
+    ],
+    [
+      4.362601,
+      51.1895983
+    ],
+    [
+      4.3622821,
+      51.1897414
+    ],
+    [
+      4.3613814,
+      51.1901495
+    ],
+    [
+      4.3607495,
+      51.1904867
+    ],
+    [
+      4.3603218,
+      51.1903303
+    ],
+    [
+      4.3573869,
+      51.1891384
+    ],
+    [
+      4.3542112,
+      51.1918011
+    ],
+    [
+      4.3539108,
+      51.1940603
+    ],
+    [
+      4.3536104,
+      51.1949478
+    ],
+    [
+      4.352383,
+      51.1959805
+    ],
+    [
+      4.351353,
+      51.1957008
+    ],
+    [
+      4.3501514,
+      51.1950285
+    ],
+    [
+      4.3490614,
+      51.1957546
+    ],
+    [
+      4.3483678,
+      51.1954728
+    ]
+  ],
+  "origin": [
+    51.19082605,
+    4.38111195
+  ],
+  "style_policy": "default",
+  "spawn": {
+    "label": "Kielpark",
+    "lat": 51.1918,
+    "lon": 4.3925,
+    "eye_height": 1.7
+  },
+  "access": "border",
+  "standalone": false,
+  "viewer_glb": "city.glb",
+  "profile": {
+    "summary": "Scheldt quays, trams, trains, port industry",
+    "modes": {
+      "tram": true,
+      "premetro": false,
+      "bus": true,
+      "velo": true,
+      "train": true,
+      "water": true,
+      "port": true
+    },
+    "velo_stations_hint": 15,
+    "building_eras": {
+      "brick_townhouse": 5461,
+      "other": 232,
+      "art_deco": 4,
+      "art_nouveau": 1
+    },
+    "materials": {},
+    "roof_mix": {},
+    "shops": [
+      "Toots",
+      "Carrefour Express",
+      "Hafsena",
+      "Tanger Markt Kiel",
+      "Bakker Bart",
+      "Kiel Outlet",
+      "Frituur",
+      "Atlas Bakkerij",
+      "Komida",
+      "Leonidas",
+      "Missy-Mode",
+      "Noureen Modest Fashion",
+      "Panos",
+      "C&A",
+      "Damart",
+      "Eye For Trend",
+      "Rayan",
+      "Amira Fashion",
+      "Belbo",
+      "Classy Mode",
+      "Uranus",
+      "Urba Hijab",
+      "M&A Mode",
+      "Wibra",
+      "CM Classy Mode",
+      "Maissa Mode",
+      "Royaume de la Femme",
+      "Gala",
+      "Coton",
+      "Al Majd",
+      "Iqra",
+      "Selek",
+      "Dennis",
+      "Istambul 34",
+      "Stacy",
+      "Huis Verlinde",
+      "Gold 50",
+      "Jolie",
+      "Royal Mod",
+      "Bazille"
+    ],
+    "landmarks": [
+      {
+        "osm_id": 311605502,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouwekapel",
+        "score": 188.8,
+        "heritage": true,
+        "wikidata": null,
+        "building": "chapel",
+        "amenity": "place_of_worship",
+        "historic": "wayside_chapel"
+      },
+      {
+        "osm_id": 205538785,
+        "osm_type": "way",
+        "name": "Christus Koningkerk",
+        "score": 123.3,
+        "heritage": true,
+        "wikidata": "Q4421168",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 23217550,
+        "osm_type": "way",
+        "name": "Sint-Bernardsesteenweg",
+        "score": 108.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 24377204,
+        "osm_type": "way",
+        "name": "Boomsesteenweg",
+        "score": 105.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 10661811,
+        "osm_type": "way",
+        "name": "Nachtegalenpark",
+        "score": 101.0,
+        "heritage": true,
+        "wikidata": "Q1892753",
+        "building": null,
+        "amenity": null,
+        "historic": "yes"
+      },
+      {
+        "osm_id": 208485300,
+        "osm_type": "way",
+        "name": "Sint-Catharinakerk",
+        "score": 82.6,
+        "heritage": false,
+        "wikidata": "Q107348116",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 10660986,
+        "osm_type": "way",
+        "name": "Middelheimpark",
+        "score": 75.6,
+        "heritage": false,
+        "wikidata": "Q2098074",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 231139349,
+        "osm_type": "way",
+        "name": "Braempaviljoen",
+        "score": 70.7,
+        "heritage": true,
+        "wikidata": "Q27681118",
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 449740906,
+        "osm_type": "way",
+        "name": "Maison Guiette",
+        "score": 70.6,
+        "heritage": true,
+        "wikidata": "Q23707656",
+        "building": "house",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 205847345,
+        "osm_type": "way",
+        "name": "B.P.-building",
+        "score": 70.6,
+        "heritage": true,
+        "wikidata": "Q56558294",
+        "building": "office",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 219268446,
+        "osm_type": "way",
+        "name": "Den Brandt",
+        "score": 69.1,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": "castle"
+      },
+      {
+        "osm_id": 886239482,
+        "osm_type": "way",
+        "name": "Coin Punitif (Childhood Memory)",
+        "score": 67.4,
+        "heritage": false,
+        "wikidata": "Q27616520",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 2376124863,
+        "osm_type": "node",
+        "name": "osm-2376124863",
+        "score": 65.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 4337941,
+        "osm_type": "way",
+        "name": "Lode Craeybeckxtunnel",
+        "score": 63.4,
+        "heritage": false,
+        "wikidata": "Q201337",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 19190643,
+        "osm_type": "way",
+        "name": "Park aan de Stroom",
+        "score": 62.2,
+        "heritage": false,
+        "wikidata": "Q135406900",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4310637,
+        "osm_type": "way",
+        "name": "Bevrijdingstunnel",
+        "score": 61.8,
+        "heritage": false,
+        "wikidata": "Q2332904",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4412343,
+        "osm_type": "way",
+        "name": "Jan De Vostunnel",
+        "score": 61.4,
+        "heritage": false,
+        "wikidata": "Q2169362",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 30169973,
+        "osm_type": "way",
+        "name": "Kielpark",
+        "score": 58.2,
+        "heritage": false,
+        "wikidata": "Q62065600",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 517879529,
+        "osm_type": "way",
+        "name": "Heilige Damiaankerk",
+        "score": 57.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": "chapel",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 205847955,
+        "osm_type": "way",
+        "name": "Appartementsgebouw met atelierwoning Panzer",
+        "score": 57.2,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 5118534123,
+        "osm_type": "node",
+        "name": "Cromwell-Tank",
+        "score": 55.2,
+        "heritage": false,
+        "wikidata": "Q304303",
+        "building": null,
+        "amenity": null,
+        "historic": "memorial"
+      },
+      {
+        "osm_id": 4382283,
+        "osm_type": "way",
+        "name": "ZAS Middelheim",
+        "score": 55.0,
+        "heritage": false,
+        "wikidata": "Q30281288",
+        "building": null,
+        "amenity": "hospital",
+        "historic": null
+      },
+      {
+        "osm_id": 4382349,
+        "osm_type": "way",
+        "name": "Campus Groenenborger Universiteit Antwerpen",
+        "score": 53.7,
+        "heritage": false,
+        "wikidata": "Q1940352",
+        "building": null,
+        "amenity": "university",
+        "historic": null
+      },
+      {
+        "osm_id": 141046220,
+        "osm_type": "way",
+        "name": "Melkerij Nachtegalenpark",
+        "score": 49.7,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": "restaurant",
+        "historic": "yes"
+      },
+      {
+        "osm_id": 190358189,
+        "osm_type": "way",
+        "name": "Villa La Chapelle (RUCA)",
+        "score": 49.7,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4342051,
+        "osm_type": "way",
+        "name": "Campus Middelheim Universiteit Antwerpen",
+        "score": 49.6,
+        "heritage": false,
+        "wikidata": "Q2426496",
+        "building": null,
+        "amenity": "university",
+        "historic": null
+      },
+      {
+        "osm_id": 219268649,
+        "osm_type": "way",
+        "name": "Baak Hospitality",
+        "score": 46.5,
+        "heritage": true,
+        "wikidata": null,
+        "building": "commercial",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4357801068,
+        "osm_type": "node",
+        "name": "IJzer & goud in de lucht, stuifmeel & rook op de grond",
+        "score": 45.0,
+        "heritage": false,
+        "wikidata": "Q27616439",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 3151450197,
+        "osm_type": "node",
+        "name": "Les murs ont des oreilles que la raison ne connait pas",
+        "score": 45.0,
+        "heritage": false,
+        "wikidata": "Q27616001",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 188956208,
+        "osm_type": "way",
+        "name": "Acaciahof",
+        "score": 43.7,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": "yes"
+      },
+      {
+        "osm_id": 311605500,
+        "osm_type": "way",
+        "name": "Het Huis",
+        "score": 43.3,
+        "heritage": false,
+        "wikidata": "Q27681013",
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 5716404893,
+        "osm_type": "node",
+        "name": "WINGTIPsection STANDS by Draake Manufactures",
+        "score": 42.6,
+        "heritage": false,
+        "wikidata": "Q55190008",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 3173024672,
+        "osm_type": "node",
+        "name": "Het Zwarte Schaap - Hommage aan James Ensor",
+        "score": 42.2,
+        "heritage": false,
+        "wikidata": "Q27616518",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 3173023545,
+        "osm_type": "node",
+        "name": "Zo kwam ze in mijn wereld met een oogopslag",
+        "score": 42.2,
+        "heritage": false,
+        "wikidata": "Q27616354",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 229149413,
+        "osm_type": "way",
+        "name": "MIKA",
+        "score": 41.7,
+        "heritage": true,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": "cafe",
+        "historic": null
+      },
+      {
+        "osm_id": 24377210,
+        "osm_type": "way",
+        "name": "Jan Frans Van de Gaerstraat",
+        "score": 40.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 30626585,
+        "osm_type": "way",
+        "name": "Valerius De Saedeleerstraat",
+        "score": 40.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 8236015970,
+        "osm_type": "node",
+        "name": "Flat Field Works Variant 2 Two Sections",
+        "score": 40.6,
+        "heritage": false,
+        "wikidata": "Q55397882",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 518203759,
+        "osm_type": "way",
+        "name": "osm-518203759",
+        "score": 40.5,
+        "heritage": true,
+        "wikidata": null,
+        "building": "industrial",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 141046221,
+        "osm_type": "way",
+        "name": "Nachtegalenpark Den Brandt",
+        "score": 40.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      }
+    ],
+    "facade_brief": {
+      "styles": [
+        "brick_sandstone_band",
+        "narrow_plot",
+        "neo_flemish",
+        "art_nouveau",
+        "art_deco",
+        "warehouse_quay"
+      ],
+      "eras": [
+        "brick_townhouse",
+        "other",
+        "art_deco",
+        "art_nouveau"
+      ],
+      "materials": [],
+      "notes": "District-local elevations only. Do not reuse another district's facade files. Variety from frontage width, gable type, storey bands, shop inserts, roof tint."
+    },
+    "stages": {
+      "osm": true,
+      "gtfs_delijn": true,
+      "gtfs_nmbs": true,
+      "velo": true,
+      "trees": true,
+      "benches": true,
+      "aerial": true,
+      "facades": true,
+      "monuments": true,
+      "port_props": true,
+      "train_meshes": true
+    },
+    "building_count": 5698,
+    "highway_count": 2944
+  },
+  "stages": {
+    "osm": true,
+    "gtfs_delijn": true,
+    "gtfs_nmbs": true,
+    "velo": true,
+    "trees": true,
+    "benches": true,
+    "aerial": true,
+    "facades": true,
+    "monuments": true,
+    "port_props": true,
+    "train_meshes": true
+  },
+  "seam": {
+    "nationale_bank": {
+      "lat": 51.21285,
+      "lon": 4.40655
+    }
+  }
+}

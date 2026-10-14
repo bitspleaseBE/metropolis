@@ -1,0 +1,355 @@
+{
+  "district_id": "2018-harmonie",
+  "elevations": {
+    "facade_01": {
+      "file": "facade_01.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_meir",
+      "sha256": "e54b02faa150dcf378c398569060d62171c9605948e7b42077f55f0447859e30"
+    },
+    "facade_02": {
+      "file": "facade_02.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "art_nouveau",
+      "sha256": "2bb9d7958a1f0a8ed32c6cddb9afcb420bb64f3e4ad32725304656d8a4f36476"
+    },
+    "facade_03": {
+      "file": "facade_03.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_kebab",
+      "sha256": "59f1575b637ed1a83086e094d562f14992e32a916f38d08c458b6fcc278bc753"
+    },
+    "facade_04": {
+      "file": "facade_04.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "postwar_block",
+      "sha256": "8a2b22d6ea47a433fbd31b4b7f7ba3fc737e4f6ca6f5a1e7a99195b7ee4ef40a"
+    },
+    "facade_05": {
+      "file": "facade_05.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_pizza",
+      "sha256": "de6be8e751c8ef9983a8f115dd504cef52306bf8913aa82916df697896c8dce9"
+    },
+    "facade_06": {
+      "file": "facade_06.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_kebab",
+      "sha256": "315554341c261e56e67f134f3868760de3f59d6d0581b1fa76b4e5a19108ba6b"
+    },
+    "facade_07": {
+      "file": "facade_07.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_newsstand",
+      "sha256": "8c389cd94f193ee766415f32745328682980464d3b0da220e5202ca0d69629a3"
+    },
+    "facade_08": {
+      "file": "facade_08.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_pizza",
+      "sha256": "a2ced8f12dd2a06d839f144cea690ac2bfbdc2da7a956edc634a39da9c66eed6"
+    },
+    "facade_09": {
+      "file": "facade_09.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "glass_tower",
+      "sha256": "13f66e540caaae90788d1c6f3ec18955517d78c0dbecd6d87d0b43fac5c1496c"
+    },
+    "facade_10": {
+      "file": "facade_10.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "art_deco",
+      "sha256": "32ed0c9fcbe8c64759c9ee599cc4cc87c06bf754c4f6674a55008d07367a09b5"
+    },
+    "facade_11": {
+      "file": "facade_11.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "warehouse_quay",
+      "sha256": "edcdb81bb4f2c1c2ac4173f7aba108268ac5c2e3192adde9f4020caa28365684"
+    },
+    "facade_12": {
+      "file": "facade_12.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "stepped_gable",
+      "sha256": "e550c2e2e6f166fab2e60a2b6f366a2b28662a7ccf1f500b8940b3de51414683"
+    },
+    "facade_13": {
+      "file": "facade_13.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_kebab",
+      "sha256": "1612bb1b565103f2aa56bbc1d69a4d9998b2ab6090b7e5584539039c9a36ef8d"
+    },
+    "facade_14": {
+      "file": "facade_14.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "baroque_civic",
+      "sha256": "5339979ebc2f4400bf1a24ac342f42dbcaf85e039030b22ddcfa88cbd8a26269"
+    },
+    "facade_15": {
+      "file": "facade_15.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "postwar_block",
+      "sha256": "4a3d5120b8db4c45222c70a46821032ce83bd945b45124551e8fa68854d189f8"
+    },
+    "facade_16": {
+      "file": "facade_16.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "art_nouveau",
+      "sha256": "e18f50a5a36d7b73fb087d6c209c2c7f2e16ea5bb5139a171d19bfe5031564d6"
+    },
+    "facade_17": {
+      "file": "facade_17.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_newsstand",
+      "sha256": "3969f7ccef418081b48ea8ac595ad79e43a4fc5abf9b1db5a509516de392a937"
+    },
+    "facade_18": {
+      "file": "facade_18.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_meir",
+      "sha256": "f1bf436685d832de9937c4780b68417f477703b178db4c622c137052cb5a6f05"
+    },
+    "facade_19": {
+      "file": "facade_19.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_frituur",
+      "sha256": "e36bc8f5fa586cbfdf75bb4c41cd0257cd7142b8f077249a1827af422aaeb028"
+    },
+    "facade_20": {
+      "file": "facade_20.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_kebab",
+      "sha256": "425b1482f72563c6d2f5028bd39e540d58fbf79fbf6a7d60eb9d8dd51c107ba8"
+    },
+    "facade_21": {
+      "file": "facade_21.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "glass_tower",
+      "sha256": "4007337c7ef45b90855337f6f244e6f24d81040c7d059d990a2392fc02fcd659"
+    },
+    "facade_22": {
+      "file": "facade_22.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "64097c60be4683c3af1e80bb030e8dbb9a525b06d03c20665a910866b3c11f78"
+    },
+    "facade_23": {
+      "file": "facade_23.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_kebab",
+      "sha256": "810ca2434622eca98bd8373330ec16ea2f844c9071bd710847ac0f447567bd5f"
+    },
+    "facade_24": {
+      "file": "facade_24.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "art_deco",
+      "sha256": "70bebd71e2eeea1b825f4fd1fc152c7be5435be61fea6adb7387fb029e580265"
+    },
+    "facade_25": {
+      "file": "facade_25.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "warehouse_quay",
+      "sha256": "c9dde934e54988ff288de33c39e438d86af1fcaba3c723d4e7b6178f3c70fbf4"
+    },
+    "facade_26": {
+      "file": "facade_26.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "stepped_gable",
+      "sha256": "ffbdb2cd6de7ae5681f575a36ebf1062575fcb7916864faa27db21e786d2faf4"
+    },
+    "facade_27": {
+      "file": "facade_27.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "postwar_block",
+      "sha256": "151cd6691f52f708bace210a9b336acbb92a63000c028935b6081edb29772727"
+    },
+    "facade_28": {
+      "file": "facade_28.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "baroque_civic",
+      "sha256": "b28eaf83e57217bfd4f633cabfb42e7ab5f0db7fb555e646d6399a7c6a7b6831"
+    },
+    "facade_29": {
+      "file": "facade_29.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "neo_flemish",
+      "sha256": "5bff72ed9e91ec7f20836fa111a41ed0a3518aceb31f55428f2ed95d1d780291"
+    },
+    "facade_30": {
+      "file": "facade_30.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "art_nouveau",
+      "sha256": "aa3884d2ef9c9955268fdc9cad05cd9f808f4db9eb50c6780693684f5901adf2"
+    },
+    "facade_31": {
+      "file": "facade_31.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_meir",
+      "sha256": "f0f1200e129040fddecafb64db25306498b24479b07f3ecc8fa1cd09b904ddbb"
+    },
+    "facade_32": {
+      "file": "facade_32.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_meir",
+      "sha256": "02c0e60c46ec04b988993927d4f6a51c11c06f0a1cc055d99eaf22c8de2377a2"
+    },
+    "facade_33": {
+      "file": "facade_33.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "warehouse_quay",
+      "sha256": "758e544fc428923d03446462f52bddf0d9e1df5bb38d3925577b15d64c313105"
+    },
+    "facade_34": {
+      "file": "facade_34.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "glass_tower",
+      "sha256": "681d1ae010cbfcf0b460053775c932e8456c144c57657b84a6cfe557cfbdb707"
+    },
+    "facade_35": {
+      "file": "facade_35.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_frituur",
+      "sha256": "c623c00f3a1a54acbc706340ca7828c7ba5c44514793369a32367415477070c1"
+    },
+    "facade_36": {
+      "file": "facade_36.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_pizza",
+      "sha256": "e08411e0cf9aafc471962777b2e38253d24ee15d5f2b8dd683c89fae60bedbd7"
+    },
+    "facade_37": {
+      "file": "facade_37.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "narrow_plot",
+      "sha256": "5b0a511deae90a3361c220d0268847b657199d85d28e513b8325bc51769fc7a2"
+    },
+    "facade_38": {
+      "file": "facade_38.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "art_deco",
+      "sha256": "c40653afa02d2774f607a285f855137d7723d26027c3ec97c690dcf5f29f6ded"
+    },
+    "facade_39": {
+      "file": "facade_39.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "postwar_block",
+      "sha256": "163d5d99d5ff721185af549aa7f3e136e33fe2c7eca8637a03a590f9ec40d4b0"
+    },
+    "facade_40": {
+      "file": "facade_40.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "stepped_gable",
+      "sha256": "4ae159660318f500fc9af0bf0149ca753b9ae266a54366cce7f34cce7c9b3b85"
+    },
+    "facade_41": {
+      "file": "facade_41.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "neck_gable",
+      "sha256": "c6143d8f02a7c2641a40f3e720b5f5eda01f7ca34bb7e841cff74c1e8c91c199"
+    },
+    "facade_42": {
+      "file": "facade_42.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "baroque_civic",
+      "sha256": "9b4db63936c65a6b212d48fe049c7530c54bf03c080b31aa1d906f06fb7d693c"
+    },
+    "facade_43": {
+      "file": "facade_43.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_kebab",
+      "sha256": "66801a0dc6194c9f59c6cf986f0a206577d348364c93e65037d849db971041c6"
+    },
+    "facade_44": {
+      "file": "facade_44.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "glass_tower",
+      "sha256": "85346cc2e21a51cd42f9a3c598997b6249843643309424579440391de55be633"
+    },
+    "facade_45": {
+      "file": "facade_45.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "brick_sandstone_band",
+      "sha256": "d54218f9b81f7556fc297c74b3fc1307134ce75bed1585dfe833a5261579135a"
+    },
+    "facade_46": {
+      "file": "facade_46.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_meir",
+      "sha256": "ff58748a608c3cb8d7dd89ab442dff3f94f06be126c6cb35ac1d03a137612a69"
+    },
+    "facade_47": {
+      "file": "facade_47.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_newsstand",
+      "sha256": "d679f9a510826b8f2f35069f5b6e06a10fc47df3f11950780928f23c070274c4"
+    },
+    "facade_48": {
+      "file": "facade_48.jpg",
+      "storeys": 4,
+      "aspect": "tall",
+      "style": "shopfront_kebab",
+      "sha256": "508487ae75d89252c5be8d3be992cfb41cc16e46c9d6d03adcba5b2446fcc764"
+    },
+    "facade_49": {
+      "file": "facade_49.jpg",
+      "storeys": 5,
+      "aspect": "tall",
+      "style": "postwar_block",
+      "sha256": "2007f4a7a59906001ce98e73386ca3621f67f228a91a78f67ca44b2973f8e0e6"
+    },
+    "facade_50": {
+      "file": "facade_50.jpg",
+      "storeys": 3,
+      "aspect": "wide",
+      "style": "shopfront_pizza",
+      "sha256": "02468715bb574b2204a52bcabbfd94bf1e110284d76b97200aed72f344b98ead"
+    }
+  }
+}

@@ -1,0 +1,1886 @@
+{
+  "id": "2140-borgerhout",
+  "title": "Borgerhout \u00b7 2140",
+  "menu_name": "Borgerhout",
+  "postcode": "2140",
+  "description": "Turnhoutsebaan, dense brick terraces and shopfronts",
+  "bbox": [
+    51.1941662,
+    4.4265916,
+    51.2263877,
+    4.4589588
+  ],
+  "boundary": [
+    [
+      4.4530696,
+      51.2066588
+    ],
+    [
+      4.4529595,
+      51.2074434
+    ],
+    [
+      4.4527793,
+      51.208032
+    ],
+    [
+      4.4529873,
+      51.2083686
+    ],
+    [
+      4.4533028,
+      51.209172
+    ],
+    [
+      4.4535174,
+      51.2098387
+    ],
+    [
+      4.453732,
+      51.2102097
+    ],
+    [
+      4.4527621,
+      51.21057
+    ],
+    [
+      4.4526565,
+      51.2107134
+    ],
+    [
+      4.4527968,
+      51.2108973
+    ],
+    [
+      4.4531785,
+      51.2110106
+    ],
+    [
+      4.4533033,
+      51.2110482
+    ],
+    [
+      4.4541347,
+      51.211289
+    ],
+    [
+      4.4552566,
+      51.2116217
+    ],
+    [
+      4.4553559,
+      51.2116582
+    ],
+    [
+      4.4554617,
+      51.2117047
+    ],
+    [
+      4.455533,
+      51.2117429
+    ],
+    [
+      4.4556151,
+      51.2117917
+    ],
+    [
+      4.4556973,
+      51.2118502
+    ],
+    [
+      4.4557749,
+      51.2119159
+    ],
+    [
+      4.4558603,
+      51.212011
+    ],
+    [
+      4.4558961,
+      51.2120532
+    ],
+    [
+      4.4559425,
+      51.2121078
+    ],
+    [
+      4.4563059,
+      51.2125322
+    ],
+    [
+      4.4564192,
+      51.2126645
+    ],
+    [
+      4.4569162,
+      51.2132288
+    ],
+    [
+      4.4569642,
+      51.2132803
+    ],
+    [
+      4.458457,
+      51.2138575
+    ],
+    [
+      4.4587432,
+      51.2141062
+    ],
+    [
+      4.4589588,
+      51.2142935
+    ],
+    [
+      4.45883,
+      51.2145247
+    ],
+    [
+      4.4584352,
+      51.214729
+    ],
+    [
+      4.4581606,
+      51.2148366
+    ],
+    [
+      4.4581026,
+      51.2148183
+    ],
+    [
+      4.4580562,
+      51.2146297
+    ],
+    [
+      4.4580125,
+      51.2145617
+    ],
+    [
+      4.4579589,
+      51.2145295
+    ],
+    [
+      4.4578814,
+      51.2145017
+    ],
+    [
+      4.4577459,
+      51.2144795
+    ],
+    [
+      4.4575868,
+      51.2144878
+    ],
+    [
+      4.4575068,
+      51.2145061
+    ],
+    [
+      4.4574504,
+      51.214535
+    ],
+    [
+      4.4574281,
+      51.2145992
+    ],
+    [
+      4.4574465,
+      51.2146655
+    ],
+    [
+      4.4574871,
+      51.2147207
+    ],
+    [
+      4.4578859,
+      51.2150552
+    ],
+    [
+      4.4582086,
+      51.215815
+    ],
+    [
+      4.4582508,
+      51.216718
+    ],
+    [
+      4.4584169,
+      51.2168228
+    ],
+    [
+      4.45845,
+      51.2169523
+    ],
+    [
+      4.4583808,
+      51.2171026
+    ],
+    [
+      4.4579435,
+      51.2172989
+    ],
+    [
+      4.4575466,
+      51.2171239
+    ],
+    [
+      4.457085,
+      51.2168134
+    ],
+    [
+      4.4569588,
+      51.2168617
+    ],
+    [
+      4.4568831,
+      51.2169068
+    ],
+    [
+      4.4568269,
+      51.2170258
+    ],
+    [
+      4.4568746,
+      51.2172538
+    ],
+    [
+      4.4570265,
+      51.2176561
+    ],
+    [
+      4.4569897,
+      51.2177299
+    ],
+    [
+      4.456903,
+      51.2177898
+    ],
+    [
+      4.456492,
+      51.2179651
+    ],
+    [
+      4.4555956,
+      51.2183982
+    ],
+    [
+      4.4555457,
+      51.2184279
+    ],
+    [
+      4.4546078,
+      51.2188849
+    ],
+    [
+      4.4543105,
+      51.2191508
+    ],
+    [
+      4.4541371,
+      51.2193955
+    ],
+    [
+      4.4541116,
+      51.2194605
+    ],
+    [
+      4.4540309,
+      51.219593
+    ],
+    [
+      4.4539981,
+      51.2196772
+    ],
+    [
+      4.4539566,
+      51.2197691
+    ],
+    [
+      4.4538295,
+      51.2200577
+    ],
+    [
+      4.4536544,
+      51.2203085
+    ],
+    [
+      4.4535375,
+      51.2204449
+    ],
+    [
+      4.4533026,
+      51.2206687
+    ],
+    [
+      4.4530901,
+      51.2208524
+    ],
+    [
+      4.452909,
+      51.2209911
+    ],
+    [
+      4.4528214,
+      51.2210698
+    ],
+    [
+      4.4527692,
+      51.2211297
+    ],
+    [
+      4.4527166,
+      51.2212058
+    ],
+    [
+      4.4526737,
+      51.2212816
+    ],
+    [
+      4.4525345,
+      51.2215991
+    ],
+    [
+      4.4523834,
+      51.2218989
+    ],
+    [
+      4.4523554,
+      51.2219944
+    ],
+    [
+      4.452339,
+      51.2220664
+    ],
+    [
+      4.4522378,
+      51.222281
+    ],
+    [
+      4.4520318,
+      51.2224315
+    ],
+    [
+      4.4517743,
+      51.222496
+    ],
+    [
+      4.4514739,
+      51.2224906
+    ],
+    [
+      4.4503495,
+      51.2222219
+    ],
+    [
+      4.4460751,
+      51.2260384
+    ],
+    [
+      4.4451568,
+      51.2257804
+    ],
+    [
+      4.4435689,
+      51.2263877
+    ],
+    [
+      4.4436805,
+      51.225431
+    ],
+    [
+      4.4416054,
+      51.224045
+    ],
+    [
+      4.441203,
+      51.223874
+    ],
+    [
+      4.4409123,
+      51.2237203
+    ],
+    [
+      4.440855,
+      51.2235925
+    ],
+    [
+      4.4406176,
+      51.2235041
+    ],
+    [
+      4.4404574,
+      51.223137
+    ],
+    [
+      4.4401613,
+      51.2230637
+    ],
+    [
+      4.4400771,
+      51.2228024
+    ],
+    [
+      4.4399746,
+      51.2228162
+    ],
+    [
+      4.4399742,
+      51.2228038
+    ],
+    [
+      4.4398472,
+      51.2228336
+    ],
+    [
+      4.4397801,
+      51.2226154
+    ],
+    [
+      4.4399414,
+      51.2226018
+    ],
+    [
+      4.4398955,
+      51.2223397
+    ],
+    [
+      4.4394629,
+      51.2222639
+    ],
+    [
+      4.4394308,
+      51.22203
+    ],
+    [
+      4.4390146,
+      51.2218383
+    ],
+    [
+      4.4395594,
+      51.2214237
+    ],
+    [
+      4.4380873,
+      51.2205575
+    ],
+    [
+      4.4379081,
+      51.220233
+    ],
+    [
+      4.4379059,
+      51.2200368
+    ],
+    [
+      4.4378742,
+      51.2199344
+    ],
+    [
+      4.4378815,
+      51.2198859
+    ],
+    [
+      4.4379133,
+      51.219844
+    ],
+    [
+      4.4381216,
+      51.2197353
+    ],
+    [
+      4.4377375,
+      51.21964
+    ],
+    [
+      4.4359412,
+      51.2192333
+    ],
+    [
+      4.4354898,
+      51.2191347
+    ],
+    [
+      4.4354222,
+      51.2191194
+    ],
+    [
+      4.4353961,
+      51.2191674
+    ],
+    [
+      4.4353147,
+      51.2193159
+    ],
+    [
+      4.435036,
+      51.2192646
+    ],
+    [
+      4.4349298,
+      51.219245
+    ],
+    [
+      4.434909,
+      51.2192844
+    ],
+    [
+      4.4348059,
+      51.2192632
+    ],
+    [
+      4.4347691,
+      51.2192556
+    ],
+    [
+      4.4349174,
+      51.2190021
+    ],
+    [
+      4.4348592,
+      51.2189895
+    ],
+    [
+      4.4346402,
+      51.2189399
+    ],
+    [
+      4.4344641,
+      51.2188981
+    ],
+    [
+      4.4342011,
+      51.2188403
+    ],
+    [
+      4.4341663,
+      51.2189003
+    ],
+    [
+      4.4341028,
+      51.2188838
+    ],
+    [
+      4.4338111,
+      51.2188083
+    ],
+    [
+      4.4336918,
+      51.2187774
+    ],
+    [
+      4.4336583,
+      51.2187687
+    ],
+    [
+      4.4336335,
+      51.2188112
+    ],
+    [
+      4.4332054,
+      51.2187029
+    ],
+    [
+      4.4331762,
+      51.2185066
+    ],
+    [
+      4.4326186,
+      51.2183623
+    ],
+    [
+      4.4325972,
+      51.2183984
+    ],
+    [
+      4.4325775,
+      51.2183939
+    ],
+    [
+      4.4323061,
+      51.218332
+    ],
+    [
+      4.4321939,
+      51.2183148
+    ],
+    [
+      4.4319222,
+      51.2182733
+    ],
+    [
+      4.4317798,
+      51.2183278
+    ],
+    [
+      4.4314995,
+      51.218261
+    ],
+    [
+      4.4315162,
+      51.2182236
+    ],
+    [
+      4.4313768,
+      51.2181913
+    ],
+    [
+      4.4314057,
+      51.2181385
+    ],
+    [
+      4.4312839,
+      51.218109
+    ],
+    [
+      4.4312155,
+      51.2180945
+    ],
+    [
+      4.4311799,
+      51.2180773
+    ],
+    [
+      4.4311382,
+      51.2180523
+    ],
+    [
+      4.4311444,
+      51.2180424
+    ],
+    [
+      4.4310556,
+      51.2180174
+    ],
+    [
+      4.4311293,
+      51.2179265
+    ],
+    [
+      4.4308702,
+      51.2178446
+    ],
+    [
+      4.4307173,
+      51.2178349
+    ],
+    [
+      4.4304413,
+      51.2177423
+    ],
+    [
+      4.4304219,
+      51.2177637
+    ],
+    [
+      4.4299471,
+      51.2175983
+    ],
+    [
+      4.4298682,
+      51.2176854
+    ],
+    [
+      4.4297882,
+      51.2177776
+    ],
+    [
+      4.4297718,
+      51.2177703
+    ],
+    [
+      4.4296645,
+      51.2176468
+    ],
+    [
+      4.4296127,
+      51.217622
+    ],
+    [
+      4.4295401,
+      51.2175348
+    ],
+    [
+      4.4294154,
+      51.217471
+    ],
+    [
+      4.4294323,
+      51.217455
+    ],
+    [
+      4.4293638,
+      51.2174126
+    ],
+    [
+      4.4293919,
+      51.2173874
+    ],
+    [
+      4.4292377,
+      51.2172774
+    ],
+    [
+      4.4288801,
+      51.2169921
+    ],
+    [
+      4.4287288,
+      51.2169051
+    ],
+    [
+      4.4280546,
+      51.2165641
+    ],
+    [
+      4.4266259,
+      51.2155933
+    ],
+    [
+      4.4265916,
+      51.2153567
+    ],
+    [
+      4.4268289,
+      51.2150639
+    ],
+    [
+      4.4277417,
+      51.2139373
+    ],
+    [
+      4.4280249,
+      51.2136416
+    ],
+    [
+      4.42757,
+      51.2128674
+    ],
+    [
+      4.427673,
+      51.211663
+    ],
+    [
+      4.4276473,
+      51.2112974
+    ],
+    [
+      4.4275529,
+      51.2108081
+    ],
+    [
+      4.4273309,
+      51.2103884
+    ],
+    [
+      4.4272136,
+      51.2101465
+    ],
+    [
+      4.428392,
+      51.2098699
+    ],
+    [
+      4.4293806,
+      51.2096705
+    ],
+    [
+      4.4312338,
+      51.2093412
+    ],
+    [
+      4.4321547,
+      51.2091885
+    ],
+    [
+      4.4327992,
+      51.2091104
+    ],
+    [
+      4.4338533,
+      51.2089916
+    ],
+    [
+      4.4344632,
+      51.2089235
+    ],
+    [
+      4.4359297,
+      51.2087739
+    ],
+    [
+      4.4365804,
+      51.2087278
+    ],
+    [
+      4.4367176,
+      51.2087178
+    ],
+    [
+      4.4375011,
+      51.2086396
+    ],
+    [
+      4.4376583,
+      51.2086197
+    ],
+    [
+      4.4377319,
+      51.2086072
+    ],
+    [
+      4.4382095,
+      51.2085499
+    ],
+    [
+      4.438844,
+      51.2084574
+    ],
+    [
+      4.4390263,
+      51.2084389
+    ],
+    [
+      4.4391735,
+      51.2084239
+    ],
+    [
+      4.4393735,
+      51.2084036
+    ],
+    [
+      4.4401688,
+      51.2083228
+    ],
+    [
+      4.4402653,
+      51.2083131
+    ],
+    [
+      4.4407199,
+      51.2080433
+    ],
+    [
+      4.4420685,
+      51.2078011
+    ],
+    [
+      4.4424804,
+      51.2060696
+    ],
+    [
+      4.4429611,
+      51.2059244
+    ],
+    [
+      4.4435586,
+      51.2058209
+    ],
+    [
+      4.444102,
+      51.2054522
+    ],
+    [
+      4.4443102,
+      51.2051918
+    ],
+    [
+      4.4444561,
+      51.2048584
+    ],
+    [
+      4.4445591,
+      51.2045196
+    ],
+    [
+      4.4446482,
+      51.2039453
+    ],
+    [
+      4.4446509,
+      51.2036272
+    ],
+    [
+      4.4445478,
+      51.2030383
+    ],
+    [
+      4.4445243,
+      51.2029494
+    ],
+    [
+      4.444515,
+      51.2029179
+    ],
+    [
+      4.4442878,
+      51.2020378
+    ],
+    [
+      4.4442695,
+      51.2019643
+    ],
+    [
+      4.4442543,
+      51.2019048
+    ],
+    [
+      4.4439813,
+      51.2007832
+    ],
+    [
+      4.4439647,
+      51.200751
+    ],
+    [
+      4.4438595,
+      51.200482
+    ],
+    [
+      4.4440835,
+      51.2004895
+    ],
+    [
+      4.4451253,
+      51.2005326
+    ],
+    [
+      4.4459984,
+      51.2005625
+    ],
+    [
+      4.446003,
+      51.2005149
+    ],
+    [
+      4.4460159,
+      51.2004776
+    ],
+    [
+      4.4460659,
+      51.1998223
+    ],
+    [
+      4.4461171,
+      51.1989752
+    ],
+    [
+      4.4458752,
+      51.1988377
+    ],
+    [
+      4.4459125,
+      51.1984325
+    ],
+    [
+      4.4459219,
+      51.1983298
+    ],
+    [
+      4.4461804,
+      51.1982195
+    ],
+    [
+      4.4462773,
+      51.1981781
+    ],
+    [
+      4.4467562,
+      51.1981991
+    ],
+    [
+      4.4467562,
+      51.1981449
+    ],
+    [
+      4.4471885,
+      51.1981511
+    ],
+    [
+      4.4472038,
+      51.1976175
+    ],
+    [
+      4.4472028,
+      51.1975301
+    ],
+    [
+      4.446893,
+      51.1975276
+    ],
+    [
+      4.4468978,
+      51.1974572
+    ],
+    [
+      4.4469048,
+      51.1971267
+    ],
+    [
+      4.4469142,
+      51.1971265
+    ],
+    [
+      4.4469306,
+      51.1968137
+    ],
+    [
+      4.4470135,
+      51.1967557
+    ],
+    [
+      4.4470939,
+      51.1967009
+    ],
+    [
+      4.4470788,
+      51.1965288
+    ],
+    [
+      4.4470385,
+      51.1965288
+    ],
+    [
+      4.447045,
+      51.1963919
+    ],
+    [
+      4.4471527,
+      51.1963939
+    ],
+    [
+      4.4472699,
+      51.1961454
+    ],
+    [
+      4.4472464,
+      51.1961414
+    ],
+    [
+      4.44728,
+      51.1957668
+    ],
+    [
+      4.447595,
+      51.195741
+    ],
+    [
+      4.4475287,
+      51.1953284
+    ],
+    [
+      4.447606,
+      51.1953199
+    ],
+    [
+      4.447685,
+      51.195307
+    ],
+    [
+      4.4482711,
+      51.1951642
+    ],
+    [
+      4.4483486,
+      51.195146
+    ],
+    [
+      4.4484147,
+      51.1951296
+    ],
+    [
+      4.4482761,
+      51.1949236
+    ],
+    [
+      4.4488474,
+      51.1947778
+    ],
+    [
+      4.4495203,
+      51.1948438
+    ],
+    [
+      4.4505623,
+      51.1949459
+    ],
+    [
+      4.4505858,
+      51.1950113
+    ],
+    [
+      4.451139,
+      51.1949274
+    ],
+    [
+      4.4515174,
+      51.1948721
+    ],
+    [
+      4.4516244,
+      51.1948566
+    ],
+    [
+      4.4540506,
+      51.1941662
+    ],
+    [
+      4.4550452,
+      51.1952479
+    ],
+    [
+      4.4566043,
+      51.1971567
+    ],
+    [
+      4.4567812,
+      51.1973708
+    ],
+    [
+      4.4568584,
+      51.197468
+    ],
+    [
+      4.4571164,
+      51.1973812
+    ],
+    [
+      4.457206,
+      51.1974959
+    ],
+    [
+      4.4573111,
+      51.197636
+    ],
+    [
+      4.457148,
+      51.1980179
+    ],
+    [
+      4.457088,
+      51.1991366
+    ],
+    [
+      4.457088,
+      51.1995184
+    ],
+    [
+      4.4573523,
+      51.1999425
+    ],
+    [
+      4.4574297,
+      51.19992
+    ],
+    [
+      4.4575145,
+      51.1999016
+    ],
+    [
+      4.4575908,
+      51.1998897
+    ],
+    [
+      4.4576652,
+      51.1998862
+    ],
+    [
+      4.4577436,
+      51.1998891
+    ],
+    [
+      4.4578137,
+      51.1998938
+    ],
+    [
+      4.4578994,
+      51.1998995
+    ],
+    [
+      4.4578948,
+      51.1999844
+    ],
+    [
+      4.45789,
+      51.2000612
+    ],
+    [
+      4.4578175,
+      51.2005833
+    ],
+    [
+      4.4577832,
+      51.2008952
+    ],
+    [
+      4.4576897,
+      51.2009216
+    ],
+    [
+      4.4570688,
+      51.2010966
+    ],
+    [
+      4.4570842,
+      51.2012252
+    ],
+    [
+      4.4570945,
+      51.2013117
+    ],
+    [
+      4.456212,
+      51.2014788
+    ],
+    [
+      4.4555324,
+      51.2016075
+    ],
+    [
+      4.4551345,
+      51.20146
+    ],
+    [
+      4.454793,
+      51.2015893
+    ],
+    [
+      4.4545852,
+      51.2016679
+    ],
+    [
+      4.4544379,
+      51.2017237
+    ],
+    [
+      4.4542835,
+      51.2017785
+    ],
+    [
+      4.4542502,
+      51.2017904
+    ],
+    [
+      4.4536879,
+      51.2019866
+    ],
+    [
+      4.4531508,
+      51.2021809
+    ],
+    [
+      4.453124,
+      51.2021907
+    ],
+    [
+      4.4530803,
+      51.2022069
+    ],
+    [
+      4.4533216,
+      51.2027353
+    ],
+    [
+      4.4534088,
+      51.2029621
+    ],
+    [
+      4.4539732,
+      51.2032846
+    ],
+    [
+      4.4526313,
+      51.2046137
+    ],
+    [
+      4.4530776,
+      51.205915
+    ],
+    [
+      4.4531034,
+      51.2063184
+    ],
+    [
+      4.4530696,
+      51.2066588
+    ]
+  ],
+  "origin": [
+    51.210276949999994,
+    4.4427752
+  ],
+  "style_policy": "historic",
+  "spawn": {
+    "label": "Moorkensplein",
+    "lat": 51.2152,
+    "lon": 4.4378,
+    "eye_height": 1.7
+  },
+  "access": "border",
+  "standalone": false,
+  "viewer_glb": "city.glb",
+  "profile": {
+    "summary": "Scheldt quays, trams, trains, port industry",
+    "modes": {
+      "tram": true,
+      "premetro": false,
+      "bus": true,
+      "velo": true,
+      "train": true,
+      "water": true,
+      "port": true
+    },
+    "velo_stations_hint": 20,
+    "building_eras": {
+      "brick_townhouse": 10588,
+      "other": 167,
+      "neoclassical": 2,
+      "art_deco": 1,
+      "art_nouveau": 1
+    },
+    "materials": {
+      "brick": 1,
+      "concrete": 1
+    },
+    "roof_mix": {},
+    "shops": [
+      "Bar Leon",
+      "AD Delhaize",
+      "De Kox",
+      "Caf\u00e9 Mombasa",
+      "ALDI",
+      "Bowie",
+      "Bar Brul",
+      "Delhi Masala",
+      "Smulpaap",
+      "Bar Luca",
+      "Plaza Real",
+      "Sol y Mar",
+      "Van Bogaert",
+      "Bakkerij Roma",
+      "Smos Al Khair",
+      "Alofs",
+      "Slagerij Jean-Pierre",
+      "Bar bob",
+      "Eco-caf\u00e9",
+      "tomi sushi",
+      "My Snack",
+      "Perry fruit",
+      "Albasha Mortsel 2",
+      "Yamal Alsham",
+      "Reuzenhof",
+      "Bakkerij Xavier",
+      "Falafel King",
+      "Le-Sud",
+      "Carrefour Market",
+      "Alaturka eethuis",
+      "Cafe El Karam",
+      "Patisserie Oriental",
+      "Kaftan Rif",
+      "Moda Bella",
+      "Anima Mode",
+      "Asalam",
+      "Best Buy food",
+      "Zeeman",
+      "Falinghal",
+      "Saison"
+    ],
+    "landmarks": [
+      {
+        "osm_id": 232885950,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouw-ter-Sneeuwkerk",
+        "score": 217.9,
+        "heritage": true,
+        "wikidata": "Q78598936",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 45195770,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouw van het Heilig Hartkerk",
+        "score": 181.3,
+        "heritage": false,
+        "wikidata": "Q28527914",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 231253621,
+        "osm_type": "way",
+        "name": "Heilige Familie en Sint-Corneliuskerk",
+        "score": 130.3,
+        "heritage": true,
+        "wikidata": "Q14630906",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 507931085,
+        "osm_type": "way",
+        "name": "Sint-Annakerk",
+        "score": 120.3,
+        "heritage": true,
+        "wikidata": "Q107316409",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 44682733,
+        "osm_type": "way",
+        "name": "Xaveriuskerk",
+        "score": 120.0,
+        "heritage": true,
+        "wikidata": "Q28526200",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": "yes"
+      },
+      {
+        "osm_id": 4429952,
+        "osm_type": "way",
+        "name": "Van Steenlandstraat",
+        "score": 107.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4548700,
+        "osm_type": "way",
+        "name": "Van Hersteenstraat",
+        "score": 107.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 231253620,
+        "osm_type": "way",
+        "name": "Districtshuis Borgerhout",
+        "score": 104.8,
+        "heritage": true,
+        "wikidata": "Q19974050",
+        "building": "yes",
+        "amenity": "townhall",
+        "historic": "townhall"
+      },
+      {
+        "osm_id": 4402917,
+        "osm_type": "way",
+        "name": "Rivierenhof",
+        "score": 99.4,
+        "heritage": true,
+        "wikidata": "Q2160843",
+        "building": null,
+        "amenity": null,
+        "historic": "park"
+      },
+      {
+        "osm_id": 109754256,
+        "osm_type": "way",
+        "name": "Sint-Janskerk",
+        "score": 90.8,
+        "heritage": true,
+        "wikidata": "Q78598959",
+        "building": "church",
+        "amenity": null,
+        "historic": "church"
+      },
+      {
+        "osm_id": 509033414,
+        "osm_type": "way",
+        "name": "Baksteen aan de ring",
+        "score": 78.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 453587861,
+        "osm_type": "way",
+        "name": "De Roma",
+        "score": 68.4,
+        "heritage": true,
+        "wikidata": "Q2592022",
+        "building": "yes",
+        "amenity": "arts_centre",
+        "historic": "building"
+      },
+      {
+        "osm_id": 508368867,
+        "osm_type": "way",
+        "name": "osm-508368867",
+        "score": 65.0,
+        "heritage": true,
+        "wikidata": "Q19973829",
+        "building": "yes",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4312513,
+        "osm_type": "way",
+        "name": "Koning Boudewijnsnelweg",
+        "score": 64.2,
+        "heritage": false,
+        "wikidata": "Q2605361",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 5195941594,
+        "osm_type": "node",
+        "name": "De-Koepel moskee",
+        "score": 61.4,
+        "heritage": false,
+        "wikidata": "Q18039995",
+        "building": "mosque",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
+        "osm_id": 4429953,
+        "osm_type": "way",
+        "name": "Monseigneur Van Goethemplein",
+        "score": 41.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 9663093,
+        "osm_type": "way",
+        "name": "Gillis Van Biervlietstraat",
+        "score": 40.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4548702,
+        "osm_type": "way",
+        "name": "Herman Van den Reeckstraat",
+        "score": 40.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 5665196,
+        "osm_type": "way",
+        "name": "Maarschalk Montgomeryplein",
+        "score": 40.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 11212,
+        "osm_type": "relation",
+        "name": "Tram 12: Centraal Station \u2192 Vis\u00e9straat",
+        "score": 40.2,
+        "heritage": false,
+        "wikidata": "Q2200976",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 385132080,
+        "osm_type": "way",
+        "name": "osm-385132080",
+        "score": 40.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": "house",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 385132093,
+        "osm_type": "way",
+        "name": "osm-385132093",
+        "score": 40.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": "house",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 385132123,
+        "osm_type": "way",
+        "name": "osm-385132123",
+        "score": 40.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": "house",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 385132102,
+        "osm_type": "way",
+        "name": "osm-385132102",
+        "score": 40.0,
+        "heritage": true,
+        "wikidata": null,
+        "building": "house",
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4429956,
+        "osm_type": "way",
+        "name": "Karel Van de Woestijnelei",
+        "score": 40.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 762281144,
+        "osm_type": "way",
+        "name": "Karel Van den Oeverstraat",
+        "score": 40.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4316677,
+        "osm_type": "way",
+        "name": "Lodewijk Van Berckenlaan",
+        "score": 39.6,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 11194,
+        "osm_type": "relation",
+        "name": "Tram 10: P+R Schoonselhof \u2192 Wijnegem",
+        "score": 39.4,
+        "heritage": false,
+        "wikidata": "Q2318513",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 3420540,
+        "osm_type": "relation",
+        "name": "Tram 10: Wijnegem \u2192 P+R Schoonselhof",
+        "score": 39.4,
+        "heritage": false,
+        "wikidata": "Q2318513",
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4337499,
+        "osm_type": "way",
+        "name": "Gebroeders Blommestraat",
+        "score": 39.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 5122324,
+        "osm_type": "way",
+        "name": "Luitenant Naeyaertplein",
+        "score": 39.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4435628,
+        "osm_type": "way",
+        "name": "Dokter Van de Perrelei",
+        "score": 38.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 9723753,
+        "osm_type": "way",
+        "name": "Frans De Vriendtstraat",
+        "score": 38.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 6075204,
+        "osm_type": "way",
+        "name": "Generaal Eisenhowerlei",
+        "score": 38.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4419822,
+        "osm_type": "way",
+        "name": "Griffier Schobbenslaan",
+        "score": 38.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4352339,
+        "osm_type": "way",
+        "name": "Joris Helleputtestraat",
+        "score": 38.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 5116629,
+        "osm_type": "way",
+        "name": "Jules Van Beylenstraat",
+        "score": 38.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4352252,
+        "osm_type": "way",
+        "name": "Kardinaal Cardijnplein",
+        "score": 38.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 399038948,
+        "osm_type": "way",
+        "name": "Generaal De Wetstraat",
+        "score": 38.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 4395075,
+        "osm_type": "way",
+        "name": "Luitenant Lippenslaan",
+        "score": 38.4,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      }
+    ],
+    "facade_brief": {
+      "styles": [
+        "brick_sandstone_band",
+        "narrow_plot",
+        "neo_flemish",
+        "art_nouveau",
+        "art_deco",
+        "warehouse_quay"
+      ],
+      "eras": [
+        "brick_townhouse",
+        "other",
+        "neoclassical",
+        "art_deco",
+        "art_nouveau"
+      ],
+      "materials": [
+        "brick",
+        "concrete"
+      ],
+      "notes": "District-local elevations only. Do not reuse another district's facade files. Variety from frontage width, gable type, storey bands, shop inserts, roof tint."
+    },
+    "stages": {
+      "osm": true,
+      "gtfs_delijn": true,
+      "gtfs_nmbs": true,
+      "velo": true,
+      "trees": true,
+      "benches": true,
+      "aerial": true,
+      "facades": true,
+      "monuments": true,
+      "port_props": true,
+      "train_meshes": true
+    },
+    "building_count": 10759,
+    "highway_count": 2495
+  },
+  "stages": {
+    "osm": true,
+    "gtfs_delijn": true,
+    "gtfs_nmbs": true,
+    "velo": true,
+    "trees": true,
+    "benches": true,
+    "aerial": true,
+    "facades": true,
+    "monuments": true,
+    "port_props": true,
+    "train_meshes": true
+  },
+  "seam": {
+    "nationale_bank": {
+      "lat": 51.21285,
+      "lon": 4.40655
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "_doc": "Station-belt shopfronts (Astridplein / Keyserlei). Fronts include kebab, pizza, newsstand, frituur.",
+  "by_osm": {
+    "node/7368670097": {
+      "name": "M-Press",
+      "fascia": [0.96, 0.96, 0.94],
+      "accent": [0.82, 0.08, 0.10],
+      "frame": [0.92, 0.92, 0.90],
+      "glass": [0.52, 0.54, 0.56],
+      "front": "newsstand",
+      "awning": false,
+      "note": "Astridplein press — METRO PRESS white/red fascia."
+    },
+    "node/7018065124": {
+      "name": "Mixor kebab",
+      "fascia": [0.08, 0.08, 0.10],
+      "accent": [0.98, 0.72, 0.12],
+      "frame": [0.12, 0.12, 0.14],
+      "glass": [0.70, 0.60, 0.46],
+      "front": "kebab",
+      "awning": {"colour": [0.08, 0.08, 0.10], "stripe": null}
+    },
+    "node/1641068323": {
+      "name": "Mezopotania",
+      "fascia": [0.12, 0.10, 0.08],
+      "accent": [0.92, 0.18, 0.12],
+      "front": "kebab",
+      "awning": false
+    },
+    "node/1641068362": {
+      "name": "Pinos",
+      "fascia": [0.06, 0.18, 0.14],
+      "accent": [0.98, 0.86, 0.40],
+      "front": "kebab",
+      "awning": false
+    },
+    "node/1261779700": {
+      "name": "Isola Sarda",
+      "fascia": [0.96, 0.94, 0.90],
+      "accent": [0.78, 0.12, 0.12],
+      "front": "pizza",
+      "awning": {"colour": [0.78, 0.12, 0.12], "stripe": null},
+      "terrace": true
+    },
+    "node/13897203042": {
+      "name": "La Patate",
+      "fascia": [0.96, 0.78, 0.08],
+      "accent": [0.78, 0.08, 0.06],
+      "front": "frituur",
+      "awning": {"colour": [0.96, 0.78, 0.08], "stripe": null},
+      "note": "Centraal frituur near Astridplein."
+    }
+  },
+  "by_name": {}
+}

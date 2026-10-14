@@ -279,5 +279,46 @@ class Lod2OnRoadTests(unittest.TestCase):
         self.assertEqual(len(grazed), 1)
 
 
+class InjectCustomLandmarkTests(unittest.TestCase):
+    def test_injects_manifest_custom_from_relation(self):
+        from cityview.osm import _index, inject_missing_custom_landmarks
+
+        outer = [(0, 0), (40, 0), (40, 30), (0, 30)]
+        els = _grid_nodes(outer, 5000)
+        els += [
+            {"type": "way", "id": 50, "nodes": [5000, 5001, 5002, 5003, 5000], "tags": {}},
+            {
+                "type": "relation",
+                "id": 12470557,
+                "tags": {"type": "multipolygon", "building": "yes", "name": "Nationale Bank"},
+                "members": [{"type": "way", "ref": 50, "role": "outer"}],
+            },
+        ]
+        nodes, ways, rels = _index(els)
+        buildings: list = []
+        manifest = {
+            "by_id": {
+                "12470557": {
+                    "id": "12470557",
+                    "custom": "nationale_bank",
+                    "name": "Nationale Bank van België",
+                }
+            }
+        }
+        n = inject_missing_custom_landmarks(
+            buildings, rels, ways, nodes, (51.2, 4.4), "historic", manifest
+        )
+        self.assertEqual(n, 1)
+        self.assertEqual(buildings[0]["id"], 12470557)
+        self.assertEqual(buildings[0]["osm_type"], "relation")
+        # Second call is a no-op.
+        self.assertEqual(
+            inject_missing_custom_landmarks(
+                buildings, rels, ways, nodes, (51.2, 4.4), "historic", manifest
+            ),
+            0,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

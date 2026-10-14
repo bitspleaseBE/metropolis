@@ -4,75 +4,499 @@
   "postcode": "2000",
   "description": "Historisch centrum, Meir, Grote Markt, Scheldekaaien.",
   "bbox": [
-    51.2068,
-    4.3825,
-    51.2325,
-    4.418
+    51.1970727,
+    4.3714201,
+    51.2393457,
+    4.4174486
   ],
   "boundary": [
     [
-      4.3855,
-      51.2085
+      4.3714201,
+      51.2061758
     ],
     [
-      4.392,
-      51.2068
+      4.3785959,
+      51.2090945
     ],
     [
-      4.3985,
-      51.2072
+      4.3857012,
+      51.2133818
     ],
     [
-      4.4055,
-      51.2095
+      4.3907873,
+      51.218437
     ],
     [
-      4.412,
-      51.212
+      4.3955136,
+      51.2264451
     ],
     [
-      4.4165,
-      51.2165
+      4.3980208,
+      51.2327147
     ],
     [
-      4.418,
-      51.2215
+      4.3979735,
+      51.2344372
     ],
     [
-      4.416,
-      51.2265
+      4.3969621,
+      51.2360728
     ],
     [
-      4.412,
-      51.2305
+      4.3941892,
+      51.2369988
     ],
     [
-      4.405,
-      51.2325
+      4.3909936,
+      51.2375279
     ],
     [
-      4.397,
-      51.231
+      4.3865135,
+      51.2377365
     ],
     [
-      4.39,
-      51.228
+      4.3866139,
+      51.2387531
     ],
     [
-      4.385,
-      51.2235
+      4.3866623,
+      51.2393457
     ],
     [
-      4.3825,
-      51.218
+      4.3934779,
+      51.2389405
     ],
     [
-      4.3835,
-      51.213
+      4.3984609,
+      51.2375032
     ],
     [
-      4.3855,
-      51.2085
+      4.3996897,
+      51.2366215
+    ],
+    [
+      4.4005919,
+      51.2352817
+    ],
+    [
+      4.4032548,
+      51.2352893
+    ],
+    [
+      4.4140143,
+      51.2353202
+    ],
+    [
+      4.4143797,
+      51.2353212
+    ],
+    [
+      4.4144529,
+      51.232196
+    ],
+    [
+      4.4139516,
+      51.2319574
+    ],
+    [
+      4.4138908,
+      51.2315652
+    ],
+    [
+      4.413655,
+      51.2313279
+    ],
+    [
+      4.4136037,
+      51.2307588
+    ],
+    [
+      4.4139476,
+      51.2300073
+    ],
+    [
+      4.413719,
+      51.2297281
+    ],
+    [
+      4.4143976,
+      51.2294266
+    ],
+    [
+      4.4145618,
+      51.2289801
+    ],
+    [
+      4.4141563,
+      51.2286839
+    ],
+    [
+      4.4146857,
+      51.2283842
+    ],
+    [
+      4.4143703,
+      51.228102
+    ],
+    [
+      4.4144841,
+      51.2278176
+    ],
+    [
+      4.4146247,
+      51.2275167
+    ],
+    [
+      4.4146894,
+      51.2272813
+    ],
+    [
+      4.4147769,
+      51.2269725
+    ],
+    [
+      4.4151317,
+      51.226902
+    ],
+    [
+      4.4152409,
+      51.2265495
+    ],
+    [
+      4.4150376,
+      51.2262415
+    ],
+    [
+      4.4154789,
+      51.2261176
+    ],
+    [
+      4.4156049,
+      51.2256853
+    ],
+    [
+      4.4154466,
+      51.2253165
+    ],
+    [
+      4.4157283,
+      51.2251392
+    ],
+    [
+      4.415834,
+      51.2248287
+    ],
+    [
+      4.4156259,
+      51.2245642
+    ],
+    [
+      4.4160835,
+      51.2243225
+    ],
+    [
+      4.4162042,
+      51.2238588
+    ],
+    [
+      4.4160052,
+      51.2236677
+    ],
+    [
+      4.4164111,
+      51.2234951
+    ],
+    [
+      4.4165715,
+      51.22304
+    ],
+    [
+      4.4162989,
+      51.2227587
+    ],
+    [
+      4.4166349,
+      51.22268
+    ],
+    [
+      4.4170393,
+      51.2220222
+    ],
+    [
+      4.4168006,
+      51.2218932
+    ],
+    [
+      4.4172304,
+      51.2217429
+    ],
+    [
+      4.4174486,
+      51.2211545
+    ],
+    [
+      4.4171872,
+      51.2204304
+    ],
+    [
+      4.4167426,
+      51.2202683
+    ],
+    [
+      4.4163124,
+      51.2189611
+    ],
+    [
+      4.4164451,
+      51.2187906
+    ],
+    [
+      4.4162312,
+      51.2182088
+    ],
+    [
+      4.4158781,
+      51.2181033
+    ],
+    [
+      4.415672,
+      51.2177751
+    ],
+    [
+      4.4159372,
+      51.2173861
+    ],
+    [
+      4.4156435,
+      51.2167256
+    ],
+    [
+      4.4150912,
+      51.2158592
+    ],
+    [
+      4.4144158,
+      51.2158136
+    ],
+    [
+      4.4141825,
+      51.2154641
+    ],
+    [
+      4.4145173,
+      51.2150128
+    ],
+    [
+      4.4128348,
+      51.2137718
+    ],
+    [
+      4.4117754,
+      51.2137354
+    ],
+    [
+      4.4115116,
+      51.213541
+    ],
+    [
+      4.4115832,
+      51.2129935
+    ],
+    [
+      4.4101064,
+      51.2118462
+    ],
+    [
+      4.4093181,
+      51.2118898
+    ],
+    [
+      4.4090676,
+      51.2117024
+    ],
+    [
+      4.4092311,
+      51.211247
+    ],
+    [
+      4.4088699,
+      51.2110287
+    ],
+    [
+      4.4082208,
+      51.2110495
+    ],
+    [
+      4.4082304,
+      51.2108431
+    ],
+    [
+      4.4078505,
+      51.2108507
+    ],
+    [
+      4.4074911,
+      51.2101297
+    ],
+    [
+      4.4068146,
+      51.2099848
+    ],
+    [
+      4.4063031,
+      51.2094473
+    ],
+    [
+      4.4055154,
+      51.2095969
+    ],
+    [
+      4.4053317,
+      51.2092489
+    ],
+    [
+      4.4046788,
+      51.2092479
+    ],
+    [
+      4.4039233,
+      51.2087051
+    ],
+    [
+      4.4028374,
+      51.2086564
+    ],
+    [
+      4.4024075,
+      51.2082473
+    ],
+    [
+      4.4000176,
+      51.2075012
+    ],
+    [
+      4.3990491,
+      51.2074416
+    ],
+    [
+      4.3988063,
+      51.2069634
+    ],
+    [
+      4.3979426,
+      51.2071233
+    ],
+    [
+      4.3975342,
+      51.2066855
+    ],
+    [
+      4.3973071,
+      51.2069022
+    ],
+    [
+      4.395485,
+      51.2060743
+    ],
+    [
+      4.3948907,
+      51.2060593
+    ],
+    [
+      4.3946464,
+      51.2057403
+    ],
+    [
+      4.3942329,
+      51.2057347
+    ],
+    [
+      4.3935289,
+      51.2058418
+    ],
+    [
+      4.3938803,
+      51.2051817
+    ],
+    [
+      4.3929645,
+      51.2050169
+    ],
+    [
+      4.3922719,
+      51.2053843
+    ],
+    [
+      4.3916483,
+      51.2047485
+    ],
+    [
+      4.3890613,
+      51.2041133
+    ],
+    [
+      4.388216,
+      51.203844
+    ],
+    [
+      4.3895586,
+      51.2023811
+    ],
+    [
+      4.3898774,
+      51.2016896
+    ],
+    [
+      4.3898774,
+      51.2005605
+    ],
+    [
+      4.3893611,
+      51.1990944
+    ],
+    [
+      4.3893187,
+      51.197673
+    ],
+    [
+      4.3889472,
+      51.1970727
+    ],
+    [
+      4.3862718,
+      51.1976995
+    ],
+    [
+      4.3843173,
+      51.1980521
+    ],
+    [
+      4.3815955,
+      51.1986125
+    ],
+    [
+      4.3797855,
+      51.1991405
+    ],
+    [
+      4.3780906,
+      51.1998985
+    ],
+    [
+      4.3768407,
+      51.2006767
+    ],
+    [
+      4.3748527,
+      51.2024103
+    ],
+    [
+      4.3745055,
+      51.2031704
+    ],
+    [
+      4.3714201,
+      51.2061758
     ]
   ],
   "origin": [
@@ -81,11 +505,11 @@
   ],
   "style_policy": "historic",
   "spawn": {
-    "label": "Groenplaats",
-    "lat": 51.21897,
-    "lon": 4.40165,
+    "label": "Grote Markt \u00b7 Kathedraal",
+    "lat": 51.220482,
+    "lon": 4.399963,
     "eye_height": 1.7,
-    "yaw": 2.0624094604789436,
+    "yaw": -1.7467,
     "snap_road": false
   },
   "seam": {
@@ -97,7 +521,7 @@
     "owned_by": "2018-harmonie"
   },
   "profile": {
-    "summary": "Scheldt quays, historic core, trams, trains",
+    "summary": "Scheldt quays, historic core, trams, trains, port industry",
     "modes": {
       "tram": true,
       "premetro": true,
@@ -105,13 +529,13 @@
       "velo": true,
       "train": true,
       "water": true,
-      "port": false
+      "port": true
     },
-    "velo_stations_hint": 69,
+    "velo_stations_hint": 61,
     "building_eras": {
-      "brick_townhouse": 9774,
-      "other": 378,
-      "neoclassical": 66,
+      "brick_townhouse": 9985,
+      "other": 345,
+      "neoclassical": 67,
       "baroque_civic": 28,
       "art_nouveau": 20,
       "art_deco": 7
@@ -124,46 +548,46 @@
     },
     "roof_mix": {},
     "shops": [
-      "Albert Heijn",
-      "Carrefour Express",
-      "Carrefour Market",
-      "Delhaize",
-      "Shamra",
-      "De Broers van Julienne",
-      "Vitrin",
-      "Baron",
-      "Soho",
-      "Fiskebar",
-      "Elisa Pralines",
-      "Pelgrimhuis launge",
-      "Lombardia",
-      "Kassa 4",
-      "Barracuda",
-      "Spoor 8",
-      "De Prof",
-      "Caf\u00e9 Cousteau",
-      "Zaowang",
-      "St. Simonne",
-      "Juttu",
-      "De Slegte",
-      "C&A",
-      "H&M",
-      "McDonald's",
-      "De Smulpaep",
-      "Klimax",
-      "Antwerp Kebab",
-      "'t Stadsbroodje",
-      "De Barbier",
-      "Caf\u00e9 Keulen",
-      "Papa Jos",
-      "Universitas",
-      "Echo",
-      "Dolce Vita",
-      "Sp\u00e4ti",
-      "Elfde Gebod",
-      "Novo S.L.B.",
-      "Berlin",
-      "Oud Arsenaal"
+      "Bike Republic",
+      "De Nieuwe Linde",
+      "Cappuccino du sud",
+      "Galerie Zuid",
+      "Bocca d'Oro",
+      "A La Marine",
+      "Cocktailbar Sips",
+      "LEGA",
+      "Minato",
+      "Muradim",
+      "Pita Durum",
+      "Pita Pizza Waterpoort",
+      "Pizzaria",
+      "Kapsalon t zuid",
+      "\u2019t Pakhuis",
+      "Ninja",
+      "L\u2019Amiti\u00e9",
+      "L\u2019Entrep\u00f4t du Congo",
+      "sculpture koiffure",
+      "Bizie Lizie",
+      "Caf\u00e9 Zurich",
+      "Thuus",
+      "Wijnhuis",
+      "'T soet brood",
+      "Bar Tabac",
+      "Pixel",
+      "El Puerto",
+      "Fuji-San",
+      "Fidele",
+      "Little Buddha",
+      "Nick's Cafe",
+      "Papyrus",
+      "The Heming Way",
+      "Hopper",
+      "Wijnbistro Patine",
+      "De keuken van Corneel",
+      "De Blauwe Hond",
+      "Chatleroi",
+      "Las Margaritas",
+      "Finjan"
     ],
     "landmarks": [
       {
@@ -321,6 +745,17 @@
         "historic": "church"
       },
       {
+        "osm_id": 230507296,
+        "osm_type": "way",
+        "name": "Sint-Michielskerk",
+        "score": 122.3,
+        "heritage": true,
+        "wikidata": "Q2228093",
+        "building": "church",
+        "amenity": "place_of_worship",
+        "historic": null
+      },
+      {
         "osm_id": 40092556,
         "osm_type": "way",
         "name": "Sint-Jacobskerk",
@@ -453,6 +888,17 @@
         "historic": null
       },
       {
+        "osm_id": 12304014502,
+        "osm_type": "node",
+        "name": "Kathedraallogies Drie Koningen",
+        "score": 102.0,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
         "osm_id": 147447606,
         "osm_type": "way",
         "name": "Sint-Annatunnel",
@@ -464,17 +910,6 @@
         "historic": null
       },
       {
-        "osm_id": 232921430,
-        "osm_type": "way",
-        "name": "Onze-Lieve-Vrouwencollege",
-        "score": 100.6,
-        "heritage": false,
-        "wikidata": null,
-        "building": "yes",
-        "amenity": null,
-        "historic": null
-      },
-      {
         "osm_id": 319261272,
         "osm_type": "way",
         "name": "Kattendijkdok",
@@ -482,6 +917,17 @@
         "heritage": true,
         "wikidata": "Q1809382",
         "building": null,
+        "amenity": null,
+        "historic": null
+      },
+      {
+        "osm_id": 232921430,
+        "osm_type": "way",
+        "name": "Onze-Lieve-Vrouwencollege",
+        "score": 100.2,
+        "heritage": false,
+        "wikidata": null,
+        "building": "yes",
         "amenity": null,
         "historic": null
       },
@@ -530,6 +976,17 @@
         "historic": "castle"
       },
       {
+        "osm_id": 1504407611,
+        "osm_type": "node",
+        "name": "Antwerp Cathedral",
+        "score": 96.8,
+        "heritage": false,
+        "wikidata": null,
+        "building": null,
+        "amenity": "drinking_water",
+        "historic": null
+      },
+      {
         "osm_id": 902468,
         "osm_type": "relation",
         "name": "Paleis op de Meir",
@@ -572,39 +1029,6 @@
         "building": "yes",
         "amenity": null,
         "historic": "castle"
-      },
-      {
-        "osm_id": 232768394,
-        "osm_type": "way",
-        "name": "Sint-Augustinuskerk",
-        "score": 92.9,
-        "heritage": true,
-        "wikidata": "Q23580548",
-        "building": "church",
-        "amenity": null,
-        "historic": "church"
-      },
-      {
-        "osm_id": 3428464,
-        "osm_type": "relation",
-        "name": "Plantin-Moretusmuseum",
-        "score": 88.4,
-        "heritage": true,
-        "wikidata": "Q595802",
-        "building": "yes",
-        "amenity": null,
-        "historic": "building"
-      },
-      {
-        "osm_id": 60582816,
-        "osm_type": "way",
-        "name": "Toegangsgebouw Sint-Annatunnel",
-        "score": 87.1,
-        "heritage": true,
-        "wikidata": null,
-        "building": "public",
-        "amenity": null,
-        "historic": null
       }
     ],
     "facade_brief": {
@@ -644,11 +1068,11 @@
       "aerial": true,
       "facades": true,
       "monuments": true,
-      "port_props": false,
+      "port_props": true,
       "train_meshes": true
     },
-    "building_count": 10273,
-    "highway_count": 3657
+    "building_count": 10452,
+    "highway_count": 3946
   },
   "stages": {
     "osm": true,
@@ -660,8 +1084,50 @@
     "aerial": true,
     "facades": true,
     "monuments": true,
-    "port_props": false,
+    "port_props": true,
     "train_meshes": true
   },
-  "viewer_glb": "city.glb"
+  "viewer_glb": "city.glb",
+  "population": {
+    "looks": {
+      "european": 0.55,
+      "slavic": 0.08,
+      "mediterranean": 0.05,
+      "african": 0.08,
+      "african_street": 0.04,
+      "asian": 0.07,
+      "muslim": 0.06,
+      "arab": 0.03,
+      "arab_young": 0.03,
+      "hasidic": 0.01
+    },
+    "hotspots": [
+      {
+        "label": "groenplaats",
+        "lat": 51.2188,
+        "lon": 4.4019,
+        "radiusM": 180,
+        "looks": {
+          "hasidic": 0.05,
+          "european": 1.3,
+          "asian": 1.4,
+          "slavic": 1.3
+        }
+      },
+      {
+        "label": "meir-east",
+        "lat": 51.2185,
+        "lon": 4.415,
+        "radiusM": 200,
+        "looks": {
+          "arab": 1.5,
+          "african": 1.4,
+          "hasidic": 1.2
+        }
+      }
+    ]
+  },
+  "menu_name": "Antwerpen City",
+  "access": "border",
+  "standalone": false
 }

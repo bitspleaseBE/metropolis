@@ -1221,6 +1221,119 @@ class _RingGrid:
         return [i for i in cand if _point_in_ring(x, y, self.rings[i])]
 
 
+def _osm_element_maps(osm: dict[str, Any]) -> tuple[dict[int, dict], dict[int, dict], dict[int, dict]]:
+    return _index(osm.get("elements") or [])
+
+
+def _sibling_osm_caches() -> list[Path]:
+    """``districts/*/cache/osm.json`` — seam landmarks may live in a neighbour extract."""
+    from cityview.districts import DISTRICTS_ROOT
+
+    if not DISTRICTS_ROOT.is_dir():
+        return []
+    return sorted(DISTRICTS_ROOT.glob("*/cache/osm.json"))
+
+
+def _custom_building_from_osm(
+    osm_id: int,
+    *,
+    rels: dict[int, dict],
+    ways: dict[int, dict],
+    nodes: dict[int, dict],
+    origin: tuple[float, float],
+    style_policy: str,
+    entry: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Footprint for a manifest custom: multipolygon relation, else closed building way."""
+    rel = rels.get(osm_id)
+    if rel is not None:
+        tags = dict(rel.get("tags") or {})
+        if "building" not in tags:
+            tags["building"] = "yes"
+        if entry.get("name") and not tags.get("name"):
+            tags["name"] = str(entry["name"])
+        polys = relation_building_polygons(rel, ways, nodes, origin)
+        if polys:
+            ring, holes, _ = polys[0]
+            if len(ring) >= 3 and _area(ring) >= 20.0:
+                bldg = _make_building(osm_id, ring, tags, style_policy)
+                bldg["osm_type"] = "relation"
+                if holes:
+                    bldg["holes"] = holes
+                return bldg
+    way = ways.get(osm_id)
+    if way is not None:
+        tags = dict(way.get("tags") or {})
+        if "building" not in tags:
+            tags["building"] = "yes"
+        if entry.get("name") and not tags.get("name"):
+            tags["name"] = str(entry["name"])
+        pts = _way_xy(way, nodes, origin)
+        ring = _closed(pts)
+        if len(ring) >= 3 and _area(ring) >= 20.0:
+            bldg = _make_building(osm_id, ring, tags, style_policy)
+            bldg["osm_type"] = "way"
+            return bldg
+    return None
+
+
+def inject_missing_custom_landmarks(
+    buildings: list[dict[str, Any]],
+    rels: dict[int, dict],
+    ways: dict[int, dict],
+    nodes: dict[int, dict],
+    origin: tuple[float, float],
+    style_policy: str,
+    manifest: dict[str, Any] | None = None,
+) -> int:
+    """Append manifest ``custom`` footprints missing from the local OSM extract.
+
+    Seam monuments (Nationale Bank on 2000/2018) are often registered on one district
+    while the multipolygon only appears in a neighbour's Overpass cache. Without this
+    inject, ``merge_city3d_buildings`` never keeps the landmark and no GLB is exported.
+    """
+    from cityview.landmarks import custom_landmark_entry
+
+    doc = manifest or load_manifest()
+    have = {int(b.get("id") or 0) for b in buildings}
+    added = 0
+    sibling_maps: list[tuple[dict[int, dict], dict[int, dict], dict[int, dict]]] | None = None
+    for key, entry in sorted((doc.get("by_id") or {}).items()):
+        if not isinstance(entry, dict) or not entry.get("custom"):
+            continue
+        try:
+            osm_id = int(entry.get("id") or key)
+        except (TypeError, ValueError):
+            continue
+        if osm_id in have or not custom_landmark_entry(osm_id, doc):
+            continue
+        bldg = _custom_building_from_osm(
+            osm_id, rels=rels, ways=ways, nodes=nodes, origin=origin,
+            style_policy=style_policy, entry=entry,
+        )
+        if bldg is None:
+            if sibling_maps is None:
+                sibling_maps = []
+                for path in _sibling_osm_caches():
+                    try:
+                        sibling_maps.append(_osm_element_maps(json.loads(path.read_text())))
+                    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                        continue
+            for snodes, sways, srels in sibling_maps:
+                bldg = _custom_building_from_osm(
+                    osm_id, rels=srels, ways=sways, nodes=snodes, origin=origin,
+                    style_policy=style_policy, entry=entry,
+                )
+                if bldg is not None:
+                    break
+        if bldg is None:
+            continue
+        buildings.append(bldg)
+        have.add(osm_id)
+        added += 1
+    return added
+
+
 def merge_city3d_buildings(
     osm_buildings: list[dict[str, Any]],
     city3d: dict[str, Any],
@@ -1492,6 +1605,9 @@ def layout_from_osm(
                 # cobble | asphalt — stone streets stay stone, the rest is asphalt.
                 "surface": carriageway_material(tags),
             }
+            # Sub-surface ways stay out of the radar / ground-level street captions.
+            if _is_underground(tags):
+                road["tunnel"] = True
             limit = parse_maxspeed_kmh(tags)
             if limit is not None:
                 road["maxspeed_kmh"] = limit
@@ -1588,6 +1704,9 @@ def layout_from_osm(
             )
 
     manifest = load_manifest()
+    multipolygon_stats["customs_injected"] = inject_missing_custom_landmarks(
+        buildings, rels, ways, nodes, origin, style_policy, manifest
+    )
     city3d_stats: dict[str, int] | None = None
     if city3d and city3d.get("buildings"):
         buildings, city3d_stats = merge_city3d_buildings(

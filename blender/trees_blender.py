@@ -177,43 +177,63 @@ class _Painter:
         return mesh
 
 
+def _crown_clearance(h: float, kind: str) -> float:
+    """Foliage bottom height at reference size — keep a walker under the canopy."""
+    if kind == "conifer":
+        return max(1.5, 0.22 * h)
+    # Street / park broadleaves: at least ~2 m, or ~38 % of height on tall trees.
+    return max(2.0, 0.38 * h)
+
+
 def _archetype_mesh(kind: str, leaf, mat):
-    """Model one crown archetype at its reference size (trunk base at the origin)."""
+    """Model one crown archetype at its reference size (trunk base at the origin).
+
+    Crowns sit *above* ``_crown_clearance`` so a scaled instance never drops foliage
+    onto the pavement (the old broad/round formula put the bottom at ~0.12×height).
+    """
     h, r = ARCHETYPE_REF[kind]
     p = _Painter()
     bark = TRUNK_RGB
+    clear = _crown_clearance(h, kind)
     if kind == "conifer":
         p.cone(bark, (0, 0, 0), 0.22, 0.15, h * 0.25, 6)
-        p.cone(leaf, (0, 0, h * 0.16), r, r * 0.35, h * 0.5, 8, shade=True)
-        p.cone(leaf, (0, 0, h * 0.5), r * 0.72, 0.05, h * 0.5, 8, shade=True)
+        p.cone(leaf, (0, 0, clear), r, r * 0.35, h * 0.45, 8, shade=True)
+        p.cone(leaf, (0, 0, clear + h * 0.32), r * 0.72, 0.05, h * 0.48, 8, shade=True)
     elif kind == "columnar":
-        p.cone(bark, (0, 0, 0), 0.2, 0.12, h * 0.4, 6)
-        p.blob(leaf, (0, 0, h * 0.62), (r, r, h * 0.38))
+        crown_h = h - clear
+        p.cone(bark, (0, 0, 0), 0.2, 0.12, clear + crown_h * 0.15, 6)
+        p.blob(leaf, (0, 0, clear + crown_h * 0.48), (r, r, crown_h * 0.52))
     elif kind == "ornamental":
-        p.cone(bark, (0, 0, 0), 0.14, 0.1, h * 0.5, 6)
-        p.blob(leaf, (0, 0, h * 0.66), (r, r, h * 0.3))
-        p.blob(leaf, (r * 0.45, 0, h * 0.58), (r * 0.6, r * 0.6, h * 0.22), 1)
-        p.blob(leaf, (-r * 0.45, 0, h * 0.6), (r * 0.6, r * 0.6, h * 0.22), 1)
+        crown_h = h - clear
+        p.cone(bark, (0, 0, 0), 0.14, 0.1, clear + 0.15, 6)
+        p.blob(leaf, (0, 0, clear + crown_h * 0.45), (r, r, crown_h * 0.42))
+        p.blob(leaf, (r * 0.45, 0, clear + crown_h * 0.32), (r * 0.55, r * 0.55, crown_h * 0.28), 1)
+        p.blob(leaf, (-r * 0.45, 0, clear + crown_h * 0.36), (r * 0.55, r * 0.55, crown_h * 0.28), 1)
     elif kind == "open":
-        p.cone(bark, (0, 0, 0), 0.18, 0.08, h * 0.8, 6)
+        p.cone(bark, (0, 0, 0), 0.18, 0.08, clear + (h - clear) * 0.55, 6)
         # Sparse, airy crown: three separated clumps around a slender leader.
-        for k, (ang, zf, rf) in enumerate(((0.3, 0.55, 0.55), (2.4, 0.68, 0.5), (4.4, 0.82, 0.45))):
+        for k, (ang, zf, rf) in enumerate(((0.3, 0.22, 0.55), (2.4, 0.48, 0.5), (4.4, 0.72, 0.45))):
             ox, oy = math.cos(ang) * r * 0.45, math.sin(ang) * r * 0.45
-            p.blob(leaf, (ox, oy, h * zf), (r * rf, r * rf, h * 0.16), 1 + (k == 0))
+            z = clear + (h - clear) * zf
+            p.blob(leaf, (ox, oy, z), (r * rf, r * rf, (h - clear) * 0.22), 1 + (k == 0))
     elif kind == "irregular":
-        p.cone(bark, (0, 0, 0), 0.32, 0.18, h * 0.5, 6)
-        for ang, zf, rf in ((0.0, 0.62, 0.62), (1.7, 0.72, 0.55), (3.3, 0.58, 0.58), (4.9, 0.8, 0.45)):
+        crown_h = h - clear
+        p.cone(bark, (0, 0, 0), 0.32, 0.18, clear + crown_h * 0.2, 6)
+        for ang, zf, rf in ((0.0, 0.35, 0.62), (1.7, 0.55, 0.55), (3.3, 0.28, 0.58), (4.9, 0.7, 0.45)):
             ox, oy = math.cos(ang) * r * 0.42, math.sin(ang) * r * 0.42
-            p.blob(leaf, (ox, oy, h * zf), (r * rf, r * rf, h * 0.2))
-    else:  # broad / round
-        vert = max(1.1, min(r * 1.45, h * 0.44))
-        cz = h - vert
-        p.cone(bark, (0, 0, 0), 0.3 if kind == "broad" else 0.22, 0.16, max(1.6, cz * 0.95), 6)
+            p.blob(leaf, (ox, oy, clear + crown_h * zf), (r * rf, r * rf, crown_h * 0.28))
+    else:  # broad / round — trunk up to clearance, crown stacked above it
+        crown_h = h - clear
+        vert = max(1.0, min(r * 1.1, crown_h * 0.55))
+        cz = clear + vert * 0.85
+        p.cone(bark, (0, 0, 0), 0.3 if kind == "broad" else 0.22, 0.16, max(clear * 0.95, 1.8), 6)
         p.blob(leaf, (0, 0, cz), (r, r, vert))
         lobes = ((1.0, 0.0), (-1.0, 2.4)) if kind == "broad" else ((1.0, 0.8),)
         for k, (sign, ang) in enumerate(lobes):
             ox, oy = math.cos(ang) * r * 0.55 * sign, math.sin(ang) * r * 0.55 * sign
-            p.blob(leaf, (ox, oy, cz - vert * (0.25 + 0.2 * k)), (r * 0.68, r * 0.68, vert * 0.7), 1)
+            # Side lobes stay above clearance (never drag onto the ground).
+            lz = max(clear + vert * 0.35, cz - vert * (0.15 + 0.12 * k))
+            p.blob(leaf, (ox, oy, lz), (r * 0.68, r * 0.68, vert * 0.65), 1)
     return p.to_mesh(f"tree_{kind}", mat)
 
 
@@ -343,20 +363,21 @@ def add_vegetation(
             )
         else:
             leaf = _canopy_mat(tree, canopy_mats)
-            # Round-ish crown: height follows the radius, trunk runs up into it.
-            vert = max(1.1, min(r * 1.45, h * 0.44))
-            cz = h - vert
-            wood.cone(trunk_mat, (x, y, 0.0), trunk_r, trunk_r * 0.6, max(1.6, cz * 0.95), 6)
+            clear = max(2.0, 0.38 * h)
+            crown_h = max(1.2, h - clear)
+            vert = max(1.0, min(r * 1.1, crown_h * 0.55))
+            cz = clear + vert * 0.85
+            wood.cone(trunk_mat, (x, y, 0.0), trunk_r, trunk_r * 0.6, max(clear * 0.95, 1.8), 6)
             leaves.blob(leaf, (x, y, cz), (r, r, vert), yaw, subdiv=2)
-            # Two smaller lobes break the silhouette so no two crowns match.
             for k, sign in enumerate((1.0, -1.0)):
                 ang = yaw + k * 2.4
                 ox = math.cos(ang) * r * 0.55 * sign
                 oy = math.sin(ang) * r * 0.55 * sign
+                lz = max(clear + vert * 0.35, cz - vert * (0.15 + 0.12 * k))
                 leaves.blob(
                     leaf,
-                    (x + ox, y + oy, cz - vert * (0.25 + 0.2 * k)),
-                    (r * 0.68, r * 0.68, vert * 0.7),
+                    (x + ox, y + oy, lz),
+                    (r * 0.68, r * 0.68, vert * 0.65),
                     ang,
                     subdiv=1,
                 )
@@ -371,7 +392,23 @@ def add_vegetation(
         hh = float(bush.get("h") or 1.0)
         tone = float(bush.get("tone") or 0.0)
         mat = bush_mats[int(tone * len(bush_mats)) % len(bush_mats)]
-        shrubs.blob(mat, (x, y, hh * 0.4), (w * 0.6, w * 0.6, hh * 0.55), tone * math.tau)
+        yaw = tone * math.tau
+        # Multi-lobe mound on the ground — no trunk (distinct from even the smallest tree).
+        shrubs.blob(mat, (x, y, hh * 0.42), (w * 0.55, w * 0.5, hh * 0.5), yaw)
+        shrubs.blob(
+            mat,
+            (x + math.cos(yaw) * w * 0.28, y + math.sin(yaw) * w * 0.28, hh * 0.32),
+            (w * 0.4, w * 0.38, hh * 0.4),
+            yaw + 1.1,
+            subdiv=1,
+        )
+        shrubs.blob(
+            mat,
+            (x - math.cos(yaw) * w * 0.22, y - math.sin(yaw) * w * 0.22, hh * 0.28),
+            (w * 0.36, w * 0.34, hh * 0.35),
+            yaw - 0.8,
+            subdiv=1,
+        )
         counts["bushes"] += 1
 
     counts["objects"] = wood.flush("tree_trunks") + leaves.flush("tree_crowns") + shrubs.flush("shrubs")

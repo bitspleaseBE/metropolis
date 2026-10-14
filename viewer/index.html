@@ -617,6 +617,23 @@
         width: min(980px, 94vw);
         animation: cm-fly .32s cubic-bezier(.16, 1, .3, 1) both;
       }
+      #city-menu .cm-maps-bar {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin: 0 0 14px;
+      }
+      #city-menu .cm-maps-bar .cm-back {
+        margin: 2px 0 0;
+        flex: 0 0 auto;
+      }
+      #city-menu .cm-maps-heading {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+      #city-menu .cm-maps-heading h2 {
+        margin: 0;
+      }
       #city-menu .cm-panel h2 {
         margin: 0 0 18px;
         font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
@@ -837,13 +854,90 @@
         opacity: 0.8;
       }
       @media (max-width: 720px) {
+        /* Full-bleed map; district confirm is a bottom sheet over it. */
+        #city-menu .cm-panel.cm-maps-panel {
+          position: absolute;
+          inset: 0;
+          z-index: 3;
+          width: 100%;
+          max-width: none;
+          margin: 0;
+          padding: 12px 12px 72px;
+          border: 0;
+          border-top: 0;
+          border-radius: 0;
+          box-shadow: none;
+          background: #0a1018f8;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          animation: none;
+        }
+        #city-menu .cm-maps-bar {
+          margin: 0 0 8px;
+          position: relative;
+          z-index: 2;
+        }
+        #city-menu .cm-maps-heading .cm-eyebrow {
+          margin-bottom: 2px;
+        }
+        #city-menu .cm-maps-heading h2 {
+          font-size: clamp(22px, 7vw, 32px);
+        }
         #city-menu .cm-maps-layout {
           grid-template-columns: 1fr;
+          flex: 1 1 auto;
+          min-height: 0;
+          gap: 0;
+          position: relative;
+        }
+        #city-menu .cm-atlas {
+          min-height: 0;
+          height: 100%;
+        }
+        #city-menu .cm-atlas-tilt {
+          aspect-ratio: auto;
+          height: 100%;
+          max-height: none;
+          transform: rotateX(16deg) rotateZ(-4deg);
+          transform-origin: 50% 55%;
         }
         #city-menu .cm-map-preview {
-          order: -1;
-          max-width: 320px;
-          margin: 0 auto 8px;
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 4;
+          max-width: none;
+          margin: 0;
+          padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+          background: linear-gradient(180deg, #162b3af8, #090e16fc);
+          border: 2px solid #080a0d;
+          border-bottom: 0;
+          border-radius: 16px 16px 0 0;
+          box-shadow: 0 -16px 40px #000a;
+          transform: translateY(110%);
+          transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+          pointer-events: none;
+        }
+        #city-menu .cm-maps-panel.detail-open .cm-map-preview {
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+        #city-menu .cm-map-frame {
+          max-width: 280px;
+          margin: 0 auto;
+          aspect-ratio: 1.15;
+        }
+        #city-menu .cm-map-actions {
+          justify-content: stretch;
+          gap: 10px;
+        }
+        #city-menu .cm-map-actions .cm-confirm,
+        #city-menu .cm-map-actions .cm-back {
+          flex: 1 1 0;
+          margin-right: 0;
+          text-align: center;
         }
       }
       #city-menu .cm-back,

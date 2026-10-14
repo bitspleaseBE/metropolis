@@ -522,7 +522,8 @@ def district_shop_inputs(paths) -> dict[str, Any]:
 
 # How far from spawn shops stay in the walker package. Beyond this the historic
 # centre has thousands of POIs that crush GPU time for little gameplay value.
-VIEWER_SHOP_RADIUS_M = 450.0
+# Cover the historic core + Centraal / Keyserlei snack belt from Groenplaats or Stadspark.
+VIEWER_SHOP_RADIUS_M = 2000.0
 
 
 def export_shops_for_viewer(

@@ -1224,14 +1224,89 @@ def _crossing_walks(
     return out
 
 
+# Walk graph for the crowd must cover border handoffs, not only the district
+# spawn plaza. Driveable car roads stay spawn-clipped; pedestrians need sidewalks
+# wherever the walker can arrive via ``enterDistrict(?at=…)``.
+VIEWER_WALK_RADIUS_M = 2000.0
+VIEWER_WALK_MAX = 900
+VIEWER_WALK_CORE_M = 280.0
+VIEWER_WALK_GRID_M = 160.0
+VIEWER_WALK_PER_CELL = 3
+
+
+def _walk_midpoint(points: list[list[float]]) -> tuple[float, float]:
+    n = max(1, len(points))
+    return (sum(p[0] for p in points) / n, sum(p[1] for p in points) / n)
+
+
+def _select_walks_with_coverage(
+    scored: list[tuple[float, dict[str, Any]]],
+    *,
+    max_walks: int,
+    core_m: float = VIEWER_WALK_CORE_M,
+    grid_m: float = VIEWER_WALK_GRID_M,
+    per_cell: int = VIEWER_WALK_PER_CELL,
+) -> list[dict[str, Any]]:
+    """Dense sidewalks near spawn, plus a grid sample so border arrivals still have routes."""
+    if max_walks <= 0 or not scored:
+        return []
+    scored = sorted(scored, key=lambda item: item[0])
+    chosen: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def take(walk: dict[str, Any]) -> bool:
+        wid = str(walk.get("id") or "")
+        if wid in seen:
+            return False
+        seen.add(wid)
+        chosen.append(walk)
+        return True
+
+    for _d, walk in scored:
+        if _d > core_m or len(chosen) >= max_walks:
+            break
+        take(walk)
+
+    cells: dict[tuple[int, int], list[tuple[float, dict[str, Any]]]] = {}
+    for dmin, walk in scored:
+        if dmin <= core_m:
+            continue
+        mx, my = _walk_midpoint(walk.get("points") or [[0.0, 0.0]])
+        key = (int(math.floor(mx / grid_m)), int(math.floor(my / grid_m)))
+        cells.setdefault(key, []).append((dmin, walk))
+
+    # Round-robin across cells so distant seams are not starved by nearer rings.
+    cell_lists = [sorted(items, key=lambda item: item[0]) for items in cells.values()]
+    cell_lists.sort(key=lambda items: items[0][0] if items else 0.0)
+    for _ in range(per_cell):
+        progress = False
+        for items in cell_lists:
+            if len(chosen) >= max_walks:
+                break
+            while items:
+                _d, walk = items.pop(0)
+                if take(walk):
+                    progress = True
+                    break
+        if not progress or len(chosen) >= max_walks:
+            break
+
+    if len(chosen) < max_walks:
+        for _d, walk in scored:
+            if len(chosen) >= max_walks:
+                break
+            take(walk)
+    return chosen
+
+
 def export_walks_near_spawn(
     layout: dict[str, Any],
     spawn: dict[str, Any] | None,
     *,
-    radius: float = 220.0,
-    max_walks: int = 140,
+    radius: float = VIEWER_WALK_RADIUS_M,
+    max_walks: int = VIEWER_WALK_MAX,
 ) -> list[dict[str, Any]]:
-    """Pedestrian-safe polylines near spawn for the walker crowd.
+    """Pedestrian-safe polylines for the walker crowd.
 
     Uses street-adjacent OSM footways / paths / plazas, plus kerb-side sidewalk
     ribbons along ordinary streets (same offset as the Blender pavement).
@@ -1239,6 +1314,10 @@ def export_walks_near_spawn(
     paths through courtyards are dropped. Carriageway centrelines are never
     walked; short ``crossing`` links at OSM zebra / signal nodes are the only
     intentional road crossings.
+
+    Default radius covers a full district (border handoffs included). A dense
+    core near spawn is kept, then remaining slots are grid-sampled so arrivals
+    far from the plaza still have a sidewalk network.
     """
     sx = float(spawn["x"]) if spawn else 0.0
     sy = float(spawn["y"]) if spawn else 0.0
@@ -1336,8 +1415,7 @@ def export_walks_near_spawn(
         if _walk_has_indoor_sample(cross["points"], index):
             continue
         scored.append((_dist(sx, sy, cross["points"][0][0], cross["points"][0][1]), cross))
-    scored.sort(key=lambda item: item[0])
-    return [item[1] for item in scored[:max_walks]]
+    return _select_walks_with_coverage(scored, max_walks=max_walks)
 
 
 def export_cycleways_near_spawn(
@@ -1501,7 +1579,8 @@ def export_roads_near_spawn(
     chosen_roads = [item[1] for item in scored[:max_roads]]
     mark_dual_carriageways(chosen_roads)
 
-    walks = export_walks_near_spawn(layout, spawn, radius=min(radius, 220.0))
+    # Ped walks use their own district-wide radius — car roads stay spawn-clipped.
+    walks = export_walks_near_spawn(layout, spawn)
     cycleways = export_cycleways_near_spawn(layout, spawn, radius=radius)
     return {
         "spawn": {"x": sx, "y": sy},

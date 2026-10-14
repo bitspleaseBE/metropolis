@@ -1,9 +1,12 @@
 /**
  * Shopfronts from OpenStreetMap (shops.json, written by cityview.shops): a named fascia
- * board over the ground floor, a ground-floor front in the place's archetype (boutique
+ * lightbox over the ground floor, a ground-floor front in the place's archetype (boutique
  * glazing, varnished bar front, bakery with a canvas awning, …), a hanging blade sign with
  * the category icon, and a warm light pool on the pavement. Signs and shop windows light
  * up while the place is open (opening_hours, or a typical schedule for the category).
+ *
+ * Fascias and blades are extruded boxes (front lettering + coloured sides/top/back) so they
+ * read from the pavement and along the street — not paper-thin double-sided quads.
  *
  * Positions are Blender XY on the façade line → Three XZ with z = −y. Everything is baked
  * into four meshes; fascia names live in one canvas atlas whose slots follow the player
@@ -27,13 +30,17 @@ const ICON_Y = ATLAS_H - ICON;
 const SLOTS = COLS * Math.floor(ICON_Y / SLOT_H); // slot 0 is the blank board
 const REASSIGN_M = 35; // re-letter boards after the camera moved this far
 const FASCIA_Y = 3.22; // centre height above the pavement (between shop window and 1st floor)
-const FASCIA_H = 0.5;
+const FASCIA_H = 0.52;
 // Photo elevations sit 0.26 m proud of the footprint line (blender add_photo_facade).
-const FASCIA_OUT = 0.42; // board in front of the photo façade
-const FRONT_OUT = 0.34; // ground-floor shopfront frame, just proud of the photo façade
-const GLASS_OUT = 0.3; // glazing sits behind the frame, still in front of the photo
+const FASCIA_OUT = 0.42; // front face of the lightbox, clear of the photo façade
+const FASCIA_DEPTH = 0.2; // solid board thickness — readable from the side like a real sign
+const FASCIA_EDGE = 0.035; // brass / accent rim proud of the lettered face
+const FRONT_OUT = 0.38; // ground-floor shopfront frame depth off the photo
+const FRONT_DEPTH = 0.1; // pilaster / head returns (side faces)
+const GLASS_OUT = 0.28; // glazing set back inside the frame
 const FRONT_H = 2.85; // kerb to fascia underside
 const BLADE = 0.62;
+const BLADE_THICK = 0.08; // hanging blade thickness along the street axis
 const POOL_DEPTH = 3.2;
 const REACH = 7; // m: "what's this shop" prompt range
 // Full glass / awning / light-pool detail only near spawn (or opts.near). Farther
@@ -50,7 +57,7 @@ const STYLE = {
   pharmacy: { bg: ["#f6f7f5"], fg: "#0c8a3e", serif: false },
   care: { bg: ["#f4f6f9"], fg: "#1d5fae", serif: false },
 };
-const SERIF_FRONTS = new Set(["bar", "cafe", "restaurant", "bakery", "chocolatier", "heritage"]);
+const SERIF_FRONTS = new Set(["bar", "cafe", "restaurant", "bakery", "chocolatier", "heritage", "pizza"]);
 
 /**
  * Ground-floor archetypes (cityview.shop_brands.front_for). Metres: plinth under the
@@ -66,7 +73,14 @@ const FRONTS = {
   chocolatier: { plinth: 0.55, pil: 0.2, head: 0.22, panes: 2, transom: true, door: "glass" },
   heritage: { plinth: 0.55, pil: 0.22, head: 0.22, panes: 3, transom: true, door: "wood" },
   market: { plinth: 0.22, pil: 0.12, head: 0.16, panes: 1, transom: false, door: "glass" },
-  frituur: { plinth: 0.4, pil: 0.14, head: 0.16, panes: 1, transom: false, door: "glass" },
+  // Flemish fritkot: chunky yellow/red board over a single deep window.
+  frituur: { plinth: 0.38, pil: 0.14, head: 0.22, panes: 1, transom: false, door: "glass" },
+  // Astridplein kebab / pita: lit box fascia, low plinth, open glass front.
+  kebab: { plinth: 0.2, pil: 0.12, head: 0.24, panes: 1, transom: false, door: "glass" },
+  // Pizzeria: warmer sit-down proportions (two lights + transom on many Keyserlei fronts).
+  pizza: { plinth: 0.42, pil: 0.16, head: 0.2, panes: 2, transom: true, door: "glass" },
+  // METRO PRESS / dagbladhandel: tall white fascia, dense display window, side door.
+  newsstand: { plinth: 0.26, pil: 0.1, head: 0.28, panes: 1, transom: false, door: "glass" },
   fastfood: { plinth: 0.18, pil: 0.12, head: 0.16, panes: 1, transom: false, door: "glass" },
   bank: { plinth: 0.35, pil: 0.22, head: 0.18, panes: 2, transom: false, door: "glass" },
   pharmacy: { plinth: 0.3, pil: 0.14, head: 0.16, panes: 1, transom: false, door: "glass" },
@@ -104,6 +118,7 @@ function prettyKind(kind) {
     copyshop: "Copy shop", optician: "Optician", laundry: "Laundry", books: "Books",
     chocolate: "Chocolatier", jewelry: "Jeweller", shoes: "Shoes", nightclub: "Club",
     ice_cream: "Ice cream", deli: "Deli", wine: "Wine shop", gift: "Gifts", art: "Gallery",
+    newsagent: "Newsagent", lottery: "Lottery", kiosk: "Kiosk",
   };
   return EN[kind] || kind.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
@@ -194,6 +209,11 @@ function drawFascia(ctx, shop, sx, sy, aspect) {
   ctx.lineWidth = 2;
   if (shop.front !== "boutique") ctx.strokeRect(sx + 3, sy + 3, SLOT_W - 6, SLOT_H - 6);
   ctx.globalAlpha = 1;
+  // Metal edge strip along the top of the board (matches the 3D accent rim).
+  ctx.fillStyle = fg;
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(sx, sy, SLOT_W, 5);
+  ctx.globalAlpha = 1;
   // The slot is stretched to the board's real aspect; pre-squash so letters stay upright.
   const squash = (SLOT_W / SLOT_H) / aspect;
   const label = (shop.name || prettyKind(shop.kind)).toUpperCase();
@@ -201,7 +221,7 @@ function drawFascia(ctx, shop, sx, sy, aspect) {
   const font = serif ? "Georgia, 'Times New Roman', serif" : "'Avenir Next', 'Helvetica Neue', Arial, sans-serif";
   const weight = shop.front === "boutique" ? 500 : 700;
   ctx.save();
-  ctx.translate(sx + SLOT_W / 2, sy + SLOT_H / 2 + 1);
+  ctx.translate(sx + SLOT_W / 2, sy + SLOT_H / 2 + 2);
   ctx.scale(squash, 1);
   let size = shop.mood === "bank" || shop.front === "boutique" ? 34 : 38;
   ctx.font = `${weight} ${size}px ${font}`;
@@ -214,6 +234,10 @@ function drawFascia(ctx, shop, sx, sy, aspect) {
   ctx.fillStyle = fg;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  // Soft drop so letters sit on the lightbox, not float as flat paint.
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = 2;
+  ctx.shadowOffsetY = 1;
   ctx.fillText(label, 0, 0, maxW);
   ctx.restore();
 }
@@ -345,6 +369,53 @@ export async function createShops(scene, THREE, opts = {}) {
     frontIdx.push(base, base + 1, base + 2, base, base + 2, base + 3);
   };
 
+  /**
+   * Extruded frame member: front face at depth `dOut`, back at `dIn`, with side returns.
+   * Keeps shopfronts from reading as cardboard cutouts on the photo elevation.
+   */
+  const addFrontBox = (a0, a1, y0, y1, dIn, dOut, srgb, glass = 0) => {
+    const P = addFrontBox._P;
+    addFront([P(a0, y0, dOut), P(a1, y0, dOut), P(a1, y1, dOut), P(a0, y1, dOut)], srgb, glass);
+    addFront([P(a1, y0, dIn), P(a0, y0, dIn), P(a0, y1, dIn), P(a1, y1, dIn)], mul(srgb, 0.55), glass);
+    addFront([P(a0, y0, dIn), P(a0, y0, dOut), P(a0, y1, dOut), P(a0, y1, dIn)], mul(srgb, 0.7), glass);
+    addFront([P(a1, y0, dOut), P(a1, y0, dIn), P(a1, y1, dIn), P(a1, y1, dOut)], mul(srgb, 0.7), glass);
+    addFront([P(a0, y1, dOut), P(a1, y1, dOut), P(a1, y1, dIn), P(a0, y1, dIn)], mul(srgb, 0.85), glass);
+    addFront([P(a0, y0, dIn), P(a1, y0, dIn), P(a1, y0, dOut), P(a0, y0, dOut)], mul(srgb, 0.5), glass);
+  };
+
+  /**
+   * Fascia / blade box into the atlas mesh. First four verts are the lettered (or icon)
+   * face so setBoard can re-UV them without touching the coloured hull.
+   */
+  const addSignBox = (faceCorners, depthDir, depth, faceUv, faceRgb, hullRgb) => {
+    const [c0, c1, c2, c3] = faceCorners;
+    const d = depthDir.clone().multiplyScalar(depth);
+    const back = [c0.clone().sub(d), c1.clone().sub(d), c2.clone().sub(d), c3.clone().sub(d)];
+    const face = linRgb(faceRgb);
+    const backRgb = linRgb(mul(hullRgb, 0.45));
+    const sideRgb = linRgb(mul(hullRgb, 0.68));
+    const topRgb = linRgb(mul(hullRgb, 0.88));
+    const botRgb = linRgb(mul(hullRgb, 0.4));
+    const pushFace = (corners, uvRect, rgb) => {
+      const base = fasciaPos.length / 3;
+      for (const p of corners) fasciaPos.push(p.x, p.y, p.z);
+      const [u0, v0, u1, v1] = uvRect;
+      fasciaUv.push(u0, v0, u1, v0, u1, v1, u0, v1);
+      for (let k = 0; k < 4; k++) {
+        fasciaCol.push(rgb[0], rgb[1], rgb[2]);
+        fasciaLit.push(0);
+      }
+      fasciaIdx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    };
+    pushFace([c0, c1, c2, c3], faceUv, face);
+    pushFace([back[1], back[0], back[3], back[2]], BLANK_UV, backRgb);
+    pushFace([c0, back[0], back[3], c3], BLANK_UV, sideRgb);
+    pushFace([back[1], c1, c2, back[2]], BLANK_UV, sideRgb);
+    pushFace([c3, back[3], back[2], c2], BLANK_UV, topRgb);
+    pushFace([back[0], c0, c1, back[1]], BLANK_UV, botRgb);
+    return 24;
+  };
+
   /** Ground-floor front + awning for one shop; returns [firstVertex, vertexCount]. */
   function buildFront(shop, fx, fz, nx, nz, tx, tz, gy, boardW) {
     const start = frontPos.length / 3;
@@ -358,16 +429,18 @@ export async function createShops(scene, THREE, opts = {}) {
     const glass = [0.07 + tint[0] * 0.22, 0.09 + tint[1] * 0.22, 0.12 + tint[2] * 0.22];
     // Point at offset a (along the façade, −h..h), height y, depth d off the wall.
     const P = (a, y, d) => V(fx + tx * a + nx * d, y, fz + tz * a + nz * d);
+    addFrontBox._P = P;
+    const dIn = FRONT_OUT - FRONT_DEPTH;
     const rect = (a0, a1, y0, y1, d, rgb, g = 0) => addFront([P(a0, y0, d), P(a1, y0, d), P(a1, y1, d), P(a0, y1, d)], rgb, g);
     const head = gy + FRONT_H;
     const glassTop = head - spec.head;
     const sill = gy + spec.plinth;
-    const pil = spec.pil;
+    const pil = Math.max(0.1, spec.pil);
 
-    // Head band and pilasters frame the opening.
-    rect(-h, h, glassTop, head, FRONT_OUT, frame);
-    rect(-h, -h + pil, gy, glassTop, FRONT_OUT, dark);
-    rect(h - pil, h, gy, glassTop, FRONT_OUT, dark);
+    // Thick head band + pilasters with side returns — the game's shopfront signature.
+    addFrontBox(-h, h, glassTop, head, dIn, FRONT_OUT, frame);
+    addFrontBox(-h, -h + pil, gy, glassTop, dIn, FRONT_OUT, dark);
+    addFrontBox(h - pil, h, gy, glassTop, dIn, FRONT_OUT, dark);
 
     // Door on one side (stable per shop) when the bay is wide enough for a window too.
     const doorW = fw >= 2.6 ? 1.0 : 0;
@@ -378,26 +451,46 @@ export async function createShops(scene, THREE, opts = {}) {
       const d0 = doorLeft ? -h + pil : h - pil - doorW;
       const d1 = d0 + doorW;
       const mull = 0.07;
-      rect(doorLeft ? d1 - mull : d0, doorLeft ? d1 : d0 + mull, gy, glassTop, FRONT_OUT, dark);
+      addFrontBox(
+        doorLeft ? d1 - mull : d0,
+        doorLeft ? d1 : d0 + mull,
+        gy,
+        glassTop,
+        dIn,
+        FRONT_OUT,
+        dark,
+      );
       const dIn0 = doorLeft ? d0 + 0.05 : d0 + mull + 0.05;
       const dIn1 = doorLeft ? d1 - mull - 0.05 : d1 - 0.05;
       const doorTop = glassTop - (spec.transom ? 0.42 : 0.05);
       if (spec.door === "wood") {
-        rect(dIn0, dIn1, gy + 0.02, gy + 1.0, FRONT_OUT - 0.02, mul(frame, 0.55));
+        addFrontBox(dIn0, dIn1, gy + 0.02, gy + 1.0, dIn + 0.02, FRONT_OUT - 0.02, mul(frame, 0.55));
         rect(dIn0 + 0.1, dIn1 - 0.1, gy + 1.0, doorTop - 0.08, GLASS_OUT, mul(glass, 0.8), 1);
-        rect(dIn0, dIn1, doorTop - 0.08, doorTop, FRONT_OUT - 0.02, mul(frame, 0.55));
+        addFrontBox(dIn0, dIn1, doorTop - 0.08, doorTop, dIn + 0.02, FRONT_OUT - 0.02, mul(frame, 0.55));
       } else {
         rect(dIn0, dIn1, gy + 0.02, doorTop, GLASS_OUT, mul(glass, 0.85), 1);
       }
       if (spec.transom) {
-        rect(dIn0, dIn1, doorTop, doorTop + 0.06, FRONT_OUT, dark);
+        addFrontBox(dIn0, dIn1, doorTop, doorTop + 0.06, dIn, FRONT_OUT, dark);
         rect(dIn0, dIn1, doorTop + 0.06, glassTop, GLASS_OUT, glass, 1);
       }
     }
 
-    // Plinth under the window, with a little sill ledge on top.
-    rect(w0, w1, gy, sill, FRONT_OUT, mul(frame, 0.62));
-    addFront([P(w0, sill, GLASS_OUT), P(w1, sill, GLASS_OUT), P(w1, sill, FRONT_OUT + 0.05), P(w0, sill, FRONT_OUT + 0.05)], mul(frame, 0.8));
+    // Plinth under the window, with a projecting sill ledge.
+    addFrontBox(w0, w1, gy, sill, dIn, FRONT_OUT, mul(frame, 0.62));
+    addFront(
+      [P(w0, sill, GLASS_OUT), P(w1, sill, GLASS_OUT), P(w1, sill, FRONT_OUT + 0.06), P(w0, sill, FRONT_OUT + 0.06)],
+      mul(frame, 0.8),
+    );
+    // Sill returns.
+    addFront(
+      [P(w0, sill - 0.02, FRONT_OUT), P(w0, sill - 0.02, FRONT_OUT + 0.06), P(w0, sill, FRONT_OUT + 0.06), P(w0, sill, FRONT_OUT)],
+      mul(frame, 0.65),
+    );
+    addFront(
+      [P(w1, sill - 0.02, FRONT_OUT + 0.06), P(w1, sill - 0.02, FRONT_OUT), P(w1, sill, FRONT_OUT), P(w1, sill, FRONT_OUT + 0.06)],
+      mul(frame, 0.65),
+    );
 
     // Window: transom lights over the main panes, mullions between panes.
     const transomY = spec.transom ? glassTop - 0.42 : glassTop;
@@ -407,10 +500,10 @@ export async function createShops(scene, THREE, opts = {}) {
       const a0 = w0 + k * step + (k ? 0.035 : 0);
       const a1 = w0 + (k + 1) * step - (k < panes - 1 ? 0.035 : 0);
       rect(a0, a1, sill, transomY, GLASS_OUT, glass, 1);
-      if (k < panes - 1) rect(a1, a1 + 0.07, sill, glassTop, FRONT_OUT, dark);
+      if (k < panes - 1) addFrontBox(a1, a1 + 0.07, sill, glassTop, dIn, FRONT_OUT, dark);
     }
     if (spec.transom) {
-      rect(w0, w1, transomY, transomY + 0.06, FRONT_OUT, dark);
+      addFrontBox(w0, w1, transomY, transomY + 0.06, dIn, FRONT_OUT, dark);
       const lights = Math.max(2, Math.round((w1 - w0) / 0.45));
       const ls = (w1 - w0) / lights;
       for (let k = 0; k < lights; k++) {
@@ -418,7 +511,7 @@ export async function createShops(scene, THREE, opts = {}) {
       }
     }
 
-    // Canvas awning: sloped blind + valance, striped for greengrocers / butchers / ice cream.
+    // Canvas awning: sloped blind + valance + real side panels.
     if (shop.awning) {
       const col = shop.awning.colour || shop.fascia || frame;
       const stripe = shop.awning.stripe;
@@ -435,9 +528,15 @@ export async function createShops(scene, THREE, opts = {}) {
         addFront([P(a0, yTop, d0), P(a1, yTop, d0), P(a1, yLow, d1), P(a0, yLow, d1)], c);
         addFront([P(a0, yLow, d1), P(a1, yLow, d1), P(a1, yLow - VALANCE, d1), P(a0, yLow - VALANCE, d1)], mul(c, 0.9));
       }
+      // Side cheeks: full triangle from wall mount down to the valance tip.
       for (const side of [-h, h]) {
-        addFront([P(side, yTop, d0), P(side, yTop, d0), P(side, yLow, d1), P(side, yLow - VALANCE, d1)], mul(col, 0.8));
+        addFront(
+          [P(side, yTop, d0), P(side, yLow, d1), P(side, yLow - VALANCE, d1), P(side, yTop - 0.04, d0)],
+          mul(col, 0.75),
+        );
       }
+      // Slim rail against the wall so the canopy isn't floating cardboard.
+      addFrontBox(-h, h, yTop - 0.04, yTop + 0.06, dIn, d0 + 0.04, mul(col, 0.55));
     }
     return [start, frontPos.length / 3 - start];
   }
@@ -465,37 +564,53 @@ export async function createShops(scene, THREE, opts = {}) {
     // One house bay wide — never spill onto the neighbour's elevation.
     const boardW = shop.houseW ? Math.min(shop.w, shop.houseW * 0.9) : shop.w;
     const half = boardW / 2;
-    const cx = fx + nx * FASCIA_OUT;
-    const cz = fz + nz * FASCIA_OUT;
     const y0 = gy + FASCIA_Y - FASCIA_H / 2;
     const y1 = gy + FASCIA_Y + FASCIA_H / 2;
-    const board = linRgb(boardRgb(shop));
+    const boardSrgb = boardRgb(shop);
+    const board = linRgb(boardSrgb);
+    const accentSrgb = shop.accent && shop.accent.length >= 3 ? shop.accent : mul(boardSrgb, 1.15);
     const vBase = fasciaPos.length / 3;
-    quad(
-      fasciaPos, fasciaUv, fasciaIdx, fasciaLit,
-      [V(cx - tx * half, y0, cz - tz * half), V(cx + tx * half, y0, cz + tz * half), V(cx + tx * half, y1, cz + tz * half), V(cx - tx * half, y1, cz - tz * half)],
-      BLANK_UV, 0,
+    // Lightbox fascia: lettered front, coloured hull, slim accent rim on top.
+    const frontFace = [
+      V(fx + nx * FASCIA_OUT - tx * half, y0, fz + nz * FASCIA_OUT - tz * half),
+      V(fx + nx * FASCIA_OUT + tx * half, y0, fz + nz * FASCIA_OUT + tz * half),
+      V(fx + nx * FASCIA_OUT + tx * half, y1, fz + nz * FASCIA_OUT + tz * half),
+      V(fx + nx * FASCIA_OUT - tx * half, y1, fz + nz * FASCIA_OUT - tz * half),
+    ];
+    let vCount = addSignBox(frontFace, V(nx, 0, nz), FASCIA_DEPTH, BLANK_UV, boardSrgb, boardSrgb);
+    // Accent rim: thin metal strip proud of the lettered face (game signature).
+    const rimY0 = y1 - 0.04;
+    const rimY1 = y1 + 0.02;
+    const rimOut = FASCIA_OUT + FASCIA_EDGE;
+    addSignBox(
+      [
+        V(fx + nx * rimOut - tx * (half + 0.02), rimY0, fz + nz * rimOut - tz * (half + 0.02)),
+        V(fx + nx * rimOut + tx * (half + 0.02), rimY0, fz + nz * rimOut + tz * (half + 0.02)),
+        V(fx + nx * rimOut + tx * (half + 0.02), rimY1, fz + nz * rimOut + tz * (half + 0.02)),
+        V(fx + nx * rimOut - tx * (half + 0.02), rimY1, fz + nz * rimOut - tz * (half + 0.02)),
+      ],
+      V(nx, 0, nz),
+      FASCIA_EDGE + 0.02,
+      BLANK_UV,
+      accentSrgb,
+      accentSrgb,
     );
-    for (let k = 0; k < 4; k++) fasciaCol.push(board[0], board[1], board[2]);
+    vCount += 24;
     const front = wantDetail ? buildFront(shop, fx, fz, nx, nz, tx, tz, gy, boardW) : [0, 0];
     if (wantDetail) detailed += 1;
-    // Blade sign at the right end of the fascia, sticking out over the pavement (both faces).
-    const bx = fx + tx * (half - 0.15) + nx * (0.3 + BLADE / 2);
-    const bz = fz + tz * (half - 0.15) + nz * (0.3 + BLADE / 2);
+    // Blade: thick hanging box with the category icon on the street-facing faces.
+    const bx = fx + tx * (half - 0.15) + nx * (0.28 + BLADE / 2);
+    const bz = fz + tz * (half - 0.15) + nz * (0.28 + BLADE / 2);
     const by = gy + FASCIA_Y + 0.55;
-    const iu = uvOf(ICONS.indexOf(shop.cat) * ICON, ICON_Y, ICON, ICON);
+    const iu = uvOf(Math.max(0, ICONS.indexOf(shop.cat)) * ICON, ICON_Y, ICON, ICON);
     const b = BLADE / 2;
-    quad(
-      fasciaPos, fasciaUv, fasciaIdx, fasciaLit,
-      [
-        V(bx - nx * b, by - b, bz - nz * b),
-        V(bx + nx * b, by - b, bz + nz * b),
-        V(bx + nx * b, by + b, bz + nz * b),
-        V(bx - nx * b, by + b, bz + nz * b),
-      ],
-      iu, 0,
-    );
-    for (let k = 0; k < 4; k++) fasciaCol.push(1, 1, 1);
+    const bladeFace = [
+      V(bx - nx * b, by - b, bz - nz * b),
+      V(bx + nx * b, by - b, bz + nz * b),
+      V(bx + nx * b, by + b, bz + nz * b),
+      V(bx - nx * b, by + b, bz + nz * b),
+    ];
+    vCount += addSignBox(bladeFace, V(tx, 0, tz), BLADE_THICK, iu, [1, 1, 1], boardSrgb);
     let pBase = -1;
     if (wantDetail) {
       // Light pool on the pavement in front of the shop window.
@@ -523,7 +638,7 @@ export async function createShops(scene, THREE, opts = {}) {
       for (let k = 0; k < 4; k++) poolCol.push(0, 0, 0);
     }
     records.push({
-      ...shop, fx, fz, nx, nz, gy, vBase, vCount: 8, pBase, open: null,
+      ...shop, fx, fz, nx, nz, gy, vBase, vCount, pBase, open: null,
       board, aspect: boardW / FASCIA_H, slot: 0, frontStart: front[0], frontCount: front[1],
     });
     if (opts.yieldEvery && (i + 1) % (opts.yieldEvery * 4) === 0) {
@@ -559,9 +674,9 @@ export async function createShops(scene, THREE, opts = {}) {
     emissive: 0xffffff,
     emissiveIntensity: 0,
     vertexColors: true,
-    roughness: 0.55,
-    metalness: 0.05,
-    side: THREE.DoubleSide,
+    roughness: 0.48,
+    metalness: 0.12,
+    side: THREE.FrontSide,
     polygonOffset: true,
     polygonOffsetFactor: -2,
   });
@@ -591,11 +706,11 @@ export async function createShops(scene, THREE, opts = {}) {
     frGeo.computeVertexNormals();
     frMat = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.5,
-      metalness: 0.08,
+      roughness: 0.48,
+      metalness: 0.1,
       emissive: 0xffc890,
       emissiveIntensity: 0,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       polygonOffset: true,
       polygonOffsetFactor: -2,
     });
@@ -643,6 +758,7 @@ export async function createShops(scene, THREE, opts = {}) {
   let lastAssign = null;
 
   function setBoard(r, uvRect, rgb) {
+    // Only the fascia lightbox front face (first 4 verts) carries lettering.
     const [u0, v0, u1, v1] = uvRect;
     const o = r.vBase * 2;
     uvAttr.array.set([u0, v0, u1, v0, u1, v1, u0, v1], o);

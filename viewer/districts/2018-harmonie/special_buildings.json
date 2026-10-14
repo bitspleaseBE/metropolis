@@ -1,106 +1,43 @@
 {
   "district_id": "2018-harmonie",
   "spawn": {
-    "label": "Harmoniepark",
-    "lat": 51.20170236549149,
-    "lon": 4.411358124617046
+    "label": "Stadspark",
+    "lat": 51.211471,
+    "lon": 4.412035
   },
-  "count": 50,
+  "count": 54,
   "buildings": [
     {
-      "name": "Onze-Lieve-Vrouw van Gratiekerk",
-      "osm_id": 232921429,
+      "name": "Sint-Michielskerk",
+      "osm_id": 230507296,
       "osm_type": "way",
       "role": "",
-      "score": 217.8,
-      "wikidata": "Q28530528",
+      "score": 151.8,
+      "wikidata": "Q2228093",
       "heritage": true,
       "building": "church",
       "amenity": "place_of_worship",
-      "historic": "church",
-      "lat": 51.21409413181818,
-      "lon": 4.412666731818182,
+      "historic": null,
+      "lat": 51.20512980714286,
+      "lon": 4.393446951190477,
       "xy": [
-        88.356,
-        1370.047
+        -1252.242,
+        379.131
       ],
-      "spawn_distance_m": 1372.8,
+      "spawn_distance_m": 1473.9,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
       "notes": "",
       "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q28530528"
+        "wikidata": "https://www.wikidata.org/wiki/Q2228093"
       },
       "canonical": false,
       "wikidata_label": {
-        "label_en": "Kerk Onze-Lieve-Vrouw van Gratie",
-        "label_nl": "Kerk Onze-Lieve-Vrouw van Gratie",
+        "label_en": "Sint-Michiel-en-Sint-Petruskerk",
+        "label_nl": "Sint-Michiel-en-Sint-Petruskerk",
         "description_en": "church in Antwerp, Belgium",
         "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
-      }
-    },
-    {
-      "name": "Basiliek van het Heilig Hart",
-      "osm_id": 353285592,
-      "osm_type": "way",
-      "role": "",
-      "score": 156.4,
-      "wikidata": "Q2750109",
-      "heritage": true,
-      "building": "basilica",
-      "amenity": "place_of_worship",
-      "historic": null,
-      "lat": 51.197142927777776,
-      "lon": 4.41158275,
-      "xy": [
-        12.747,
-        -503.739
-      ],
-      "spawn_distance_m": 504.2,
-      "expected_custom": null,
-      "manifest_custom": "heilig_hart",
-      "mesh_status": "manifest_custom",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2750109"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "Basiliek van het Heilig Hart",
-        "label_nl": "Basiliek van het Heilig Hart",
-        "description_en": "church in Berchem, Belgium",
-        "description_nl": "kerkgebouw in Berchem, Belgi\u00eb"
-      }
-    },
-    {
-      "name": "Nationale Bank",
-      "osm_id": 12470557,
-      "osm_type": "relation",
-      "role": "",
-      "score": 150.6,
-      "wikidata": "Q88535463",
-      "heritage": true,
-      "building": "yes",
-      "amenity": null,
-      "historic": "building",
-      "lat": null,
-      "lon": null,
-      "xy": null,
-      "spawn_distance_m": null,
-      "expected_custom": null,
-      "manifest_custom": "nationale_bank",
-      "mesh_status": "manifest_custom",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q88535463"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "National Bank of Belgium",
-        "label_nl": "Nationale Bank van Belgi\u00eb",
-        "description_en": "former bank building in Antwerp, Belgium",
-        "description_nl": "voormalig bankgebouw in Antwerpen"
       }
     },
     {
@@ -120,7 +57,7 @@
         102.369,
         4.97
       ],
-      "spawn_distance_m": 105.4,
+      "spawn_distance_m": 1076.7,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -153,7 +90,7 @@
         -122.569,
         837.341
       ],
-      "spawn_distance_m": 845.6,
+      "spawn_distance_m": 294.6,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -168,6 +105,31 @@
         "description_en": "church in Antwerp, Belgium",
         "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
       }
+    },
+    {
+      "name": "Onze-Lieve-Vrouwencollege",
+      "osm_id": 232921430,
+      "osm_type": "way",
+      "role": "",
+      "score": 130.0,
+      "wikidata": null,
+      "heritage": false,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.213790063157894,
+      "lon": 4.412588910526316,
+      "xy": [
+        82.928,
+        1336.436
+      ],
+      "spawn_distance_m": 259.2,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
     },
     {
       "name": "Vlaamse Evangelische kerk",
@@ -186,7 +148,7 @@
         112.551,
         861.728
       ],
-      "spawn_distance_m": 869.2,
+      "spawn_distance_m": 228.8,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -219,7 +181,7 @@
         523.303,
         873.597
       ],
-      "spawn_distance_m": 1019.6,
+      "spawn_distance_m": 521.6,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -231,6 +193,39 @@
       "wikidata_label": {
         "label_en": "Sint-Jozefkerk",
         "label_nl": "Sint-Jozefkerk",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Sint-Laurentiuskerk",
+      "osm_id": 118248178,
+      "osm_type": "way",
+      "role": "",
+      "score": 123.2,
+      "wikidata": "Q28499944",
+      "heritage": true,
+      "building": "church",
+      "amenity": "place_of_worship",
+      "historic": "church",
+      "lat": 51.19866428490566,
+      "lon": 4.40318637735849,
+      "xy": [
+        -572.908,
+        -335.568
+      ],
+      "spawn_distance_m": 1544.3,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q28499944"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Laurentiuskerk",
+        "label_nl": "Sint-Laurentiuskerk",
         "description_en": "church in Antwerp, Belgium",
         "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
       }
@@ -252,7 +247,7 @@
         399.51,
         97.639
       ],
-      "spawn_distance_m": 414.0,
+      "spawn_distance_m": 1044.7,
       "expected_custom": null,
       "manifest_custom": "bonifacius",
       "mesh_status": "manifest_custom",
@@ -269,81 +264,89 @@
       }
     },
     {
-      "name": "Sint-Joriskerk",
-      "osm_id": 232926614,
+      "name": "Sint-Norbertuskerk",
+      "osm_id": 60781377,
       "osm_type": "way",
       "role": "",
-      "score": 120.9,
-      "wikidata": "Q2278872",
+      "score": 122.6,
+      "wikidata": "Q2006109",
       "heritage": true,
       "building": "church",
       "amenity": "place_of_worship",
       "historic": null,
-      "lat": 51.21264227592592,
-      "lon": 4.404873442592593,
+      "lat": 51.20695532325581,
+      "lon": 4.431003922093023,
       "xy": [
-        -455.234,
-        1209.559
+        1367.392,
+        580.923
       ],
-      "spawn_distance_m": 1291.1,
+      "spawn_distance_m": 1414.1,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
       "notes": "",
       "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2278872"
+        "wikidata": "https://www.wikidata.org/wiki/Q2006109"
       },
       "canonical": false,
       "wikidata_label": {
-        "label_en": "Sint-Joriskerk",
-        "label_nl": "Sint-Joriskerk",
-        "description_en": "church in Antwerp, Belgium",
+        "label_en": "Sint-Norbertuskerk",
+        "label_nl": "Sint-Norbertuskerk",
+        "description_en": "church in Antwerpen, Belgium",
         "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
       }
     },
     {
-      "name": "Grotesteenweg",
-      "osm_id": 95797211,
+      "name": "Hoofdsynagoge van de Israelisch Orthodoxe Gemeente Machsik\u00e9 Hadass",
+      "osm_id": 500730746,
       "osm_type": "way",
       "role": "",
-      "score": 105.2,
+      "score": 115.3,
+      "wikidata": "Q2049516",
+      "heritage": true,
+      "building": "synagogue",
+      "amenity": "place_of_worship",
+      "historic": null,
+      "lat": 51.20732327307692,
+      "lon": 4.425908176923077,
+      "xy": [
+        1011.959,
+        621.597
+      ],
+      "spawn_distance_m": 1070.8,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2049516"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Machsike Hadass Synagogue",
+        "label_nl": "Machsike Hadass",
+        "description_en": "",
+        "description_nl": "bouwwerk in Antwerpen (stad), Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Steenbokstraat",
+      "osm_id": 780973740,
+      "osm_type": "way",
+      "role": "",
+      "score": 105.6,
       "wikidata": null,
       "heritage": false,
       "building": null,
       "amenity": null,
       "historic": null,
-      "lat": 51.19727116666667,
-      "lon": 4.417206387499999,
+      "lat": 51.207287783333335,
+      "lon": 4.4268536916666665,
       "xy": [
-        405.001,
-        -489.563
+        1077.91,
+        617.674
       ],
-      "spawn_distance_m": 637.4,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {},
-      "canonical": false
-    },
-    {
-      "name": "Onze-Lieve-Vrouwencollege",
-      "osm_id": 232921430,
-      "osm_type": "way",
-      "role": "",
-      "score": 100.6,
-      "wikidata": null,
-      "heritage": false,
-      "building": "yes",
-      "amenity": null,
-      "historic": null,
-      "lat": 51.213790063157894,
-      "lon": 4.412588910526316,
-      "xy": [
-        82.928,
-        1336.436
-      ],
-      "spawn_distance_m": 1338.9,
+      "spawn_distance_m": 1132.3,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -368,7 +371,7 @@
         117.677,
         1235.097
       ],
-      "spawn_distance_m": 1240.7,
+      "spawn_distance_m": 171.5,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -401,7 +404,7 @@
         279.918,
         1225.668
       ],
-      "spawn_distance_m": 1257.6,
+      "spawn_distance_m": 277.0,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -434,7 +437,7 @@
         231.574,
         1141.321
       ],
-      "spawn_distance_m": 1164.9,
+      "spawn_distance_m": 197.0,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -451,37 +454,128 @@
       }
     },
     {
-      "name": "Kasteel de Bergeyck",
-      "osm_id": 231689700,
+      "name": "Zoo Antwerpen",
+      "osm_id": 5088713,
       "osm_type": "way",
       "role": "",
-      "score": 97.8,
-      "wikidata": "Q99584299",
+      "score": 94.6,
+      "wikidata": "Q220003",
       "heritage": true,
-      "building": "house",
+      "building": null,
       "amenity": null,
-      "historic": "castle",
-      "lat": 51.19704426976744,
-      "lon": 4.415041518604651,
+      "historic": null,
+      "lat": 51.216818958888894,
+      "lon": 4.422934191111111,
       "xy": [
-        253.999,
-        -514.644
+        804.521,
+        1671.25
       ],
-      "spawn_distance_m": 575.4,
+      "spawn_distance_m": 963.0,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
       "notes": "",
       "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q99584299"
+        "wikidata": "https://www.wikidata.org/wiki/Q220003"
       },
       "canonical": false,
       "wikidata_label": {
-        "label_en": "Kasteel de Bergeyck",
-        "label_nl": "",
-        "description_en": "",
-        "description_nl": "kasteel in Berchem, Belgi\u00eb"
+        "label_en": "Antwerp Zoo",
+        "label_nl": "ZOO Antwerpen",
+        "description_en": "zoo in Antwerp, Belgium",
+        "description_nl": "dierentuin in Antwerpen (stad)"
       }
+    },
+    {
+      "name": "Sint-Dominicuskerk",
+      "osm_id": 500458171,
+      "osm_type": "way",
+      "role": "",
+      "score": 92.5,
+      "wikidata": "Q107316398",
+      "heritage": true,
+      "building": "church",
+      "amenity": "events_venue",
+      "historic": "church",
+      "lat": 51.214219955882356,
+      "lon": 4.425534823529412,
+      "xy": [
+        985.918,
+        1383.956
+      ],
+      "spawn_distance_m": 989.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q107316398"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Sint-Dominicuskerk",
+        "label_nl": "Sint-Dominicuskerk",
+        "description_en": "church in Antwerp, Belgium",
+        "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "'t Groen Kwartier",
+      "osm_id": 1320687369,
+      "osm_type": "way",
+      "role": "",
+      "score": 91.7,
+      "wikidata": "Q21980969",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": 51.20242181791045,
+      "lon": 4.424006238059701,
+      "xy": [
+        879.297,
+        79.79
+      ],
+      "spawn_distance_m": 1303.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q21980969"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "'t Groen Kwartier",
+        "label_nl": "'t Groen Kwartier",
+        "description_en": "neighborhood in Antwerp",
+        "description_nl": "wijk in de Antwerpse gemeente Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "Nationale Bank",
+      "osm_id": 7312250777,
+      "osm_type": "node",
+      "role": "",
+      "score": 85.6,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": "parking_entrance",
+      "historic": null,
+      "lat": 51.2117195,
+      "lon": 4.4092393,
+      "xy": [
+        -150.711,
+        1107.556
+      ],
+      "spawn_distance_m": 196.9,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
     },
     {
       "name": "Koning Albertpark",
@@ -500,7 +594,7 @@
         91.012,
         -221.647
       ],
-      "spawn_distance_m": 241.0,
+      "spawn_distance_m": 1302.6,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -515,6 +609,31 @@
         "description_en": "park in Antwerp, Belgium",
         "description_nl": "park in Antwerpen, Belgi\u00eb"
       }
+    },
+    {
+      "name": "Oorlogsmonument Antwerpen 1914-'18 & 1940-'45",
+      "osm_id": 905438164,
+      "osm_type": "way",
+      "role": "",
+      "score": 83.0,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "memorial",
+      "lat": 51.211306224999994,
+      "lon": 4.411389708333333,
+      "xy": [
+        -0.718,
+        1061.872
+      ],
+      "spawn_distance_m": 48.6,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
     },
     {
       "name": "Heilige Geestkerk",
@@ -533,7 +652,7 @@
         -46.715,
         451.129
       ],
-      "spawn_distance_m": 453.0,
+      "spawn_distance_m": 635.5,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -548,6 +667,31 @@
         "description_en": "church in Antwerp, Belgium",
         "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
       }
+    },
+    {
+      "name": "Monument Gedeporteerde Joodse Bevolking",
+      "osm_id": 4806591923,
+      "osm_type": "node",
+      "role": "",
+      "score": 80.6,
+      "wikidata": null,
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "monument",
+      "lat": 51.2090329,
+      "lon": 4.4226742,
+      "xy": [
+        786.386,
+        810.579
+      ],
+      "spawn_distance_m": 789.5,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {},
+      "canonical": false
     },
     {
       "name": "Herdenkingsmonument Koningin Astrid",
@@ -566,7 +710,7 @@
         102.806,
         1177.03
       ],
-      "spawn_distance_m": 1181.5,
+      "spawn_distance_m": 113.2,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -575,36 +719,36 @@
       "canonical": false
     },
     {
-      "name": "ZNA Sint-Elisabeth",
-      "osm_id": 783100218,
+      "name": "Centraal Station",
+      "osm_id": 24029676,
       "osm_type": "way",
       "role": "",
-      "score": 75.9,
-      "wikidata": "Q2667287",
+      "score": 76.0,
+      "wikidata": "Q800398",
       "heritage": true,
-      "building": null,
-      "amenity": "hospital",
-      "historic": null,
-      "lat": 51.21329959186046,
-      "lon": 4.405882780232559,
+      "building": "train_station",
+      "amenity": null,
+      "historic": "railway_station",
+      "lat": 51.21710382389381,
+      "lon": 4.421051609734513,
       "xy": [
-        -384.831,
-        1282.219
+        673.209,
+        1702.739
       ],
-      "spawn_distance_m": 1337.6,
+      "spawn_distance_m": 885.0,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
       "notes": "",
       "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2667287"
+        "wikidata": "https://www.wikidata.org/wiki/Q800398"
       },
       "canonical": false,
       "wikidata_label": {
-        "label_en": "Elisabeth Gasthuis",
-        "label_nl": "Sint-Elisabethgasthuis",
-        "description_en": "hospital",
-        "description_nl": "ziekenhuis in Antwerpen"
+        "label_en": "Antwerp-Central railway station",
+        "label_nl": "station Antwerpen-Centraal",
+        "description_en": "railway station in Belgium",
+        "description_nl": "spoorwegstation in Belgi\u00eb"
       }
     },
     {
@@ -624,7 +768,7 @@
         144.608,
         -201.161
       ],
-      "spawn_distance_m": 249.7,
+      "spawn_distance_m": 1285.2,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -649,7 +793,7 @@
         -474.314,
         569.314
       ],
-      "spawn_distance_m": 738.9,
+      "spawn_distance_m": 727.9,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -682,7 +826,7 @@
         -5.348,
         67.793
       ],
-      "spawn_distance_m": 67.6,
+      "spawn_distance_m": 1013.5,
       "expected_custom": null,
       "manifest_custom": "feestzaal_harmonie",
       "mesh_status": "manifest_custom",
@@ -715,7 +859,7 @@
         146.903,
         1140.187
       ],
-      "spawn_distance_m": 1149.7,
+      "spawn_distance_m": 118.9,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -740,7 +884,7 @@
         71.083,
         1048.881
       ],
-      "spawn_distance_m": 1051.2,
+      "spawn_distance_m": 41.1,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -749,44 +893,11 @@
       "canonical": false
     },
     {
-      "name": "Plantentuin",
-      "osm_id": 22956428,
-      "osm_type": "way",
-      "role": "",
-      "score": 71.5,
-      "wikidata": "Q3232192",
-      "heritage": true,
-      "building": null,
-      "amenity": null,
-      "historic": "garden",
-      "lat": 51.21440617941177,
-      "lon": 4.406330473529412,
-      "xy": [
-        -353.604,
-        1404.541
-      ],
-      "spawn_distance_m": 1447.4,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q3232192"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "Plantentuin",
-        "label_nl": "Plantentuin",
-        "description_en": "botanic Garden of Antwerp, created 1825",
-        "description_nl": "park in Antwerpen"
-      }
-    },
-    {
       "name": "Gerechtshof",
       "osm_id": 192642420,
       "osm_type": "way",
       "role": "",
-      "score": 71.1,
+      "score": 70.8,
       "wikidata": "Q33100193",
       "heritage": true,
       "building": "yes",
@@ -798,7 +909,7 @@
         -524.339,
         771.756
       ],
-      "spawn_distance_m": 931.2,
+      "spawn_distance_m": 646.8,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -815,29 +926,37 @@
       }
     },
     {
-      "name": "osm-432190363",
-      "osm_id": 432190363,
+      "name": "De Beukelaer",
+      "osm_id": 502411431,
       "osm_type": "way",
       "role": "",
-      "score": 70.2,
-      "wikidata": null,
+      "score": 70.3,
+      "wikidata": "Q58864594",
       "heritage": true,
-      "building": "monastery",
-      "amenity": "place_of_worship",
+      "building": "industrial",
+      "amenity": null,
       "historic": null,
-      "lat": 51.19720251,
-      "lon": 4.4119393350000005,
+      "lat": 51.20083413809524,
+      "lon": 4.402190847619048,
       "xy": [
-        37.619,
-        -497.153
+        -642.347,
+        -95.712
       ],
-      "spawn_distance_m": 499.1,
+      "spawn_distance_m": 1361.6,
       "expected_custom": null,
-      "manifest_custom": "heilig_hart_klooster",
-      "mesh_status": "manifest_custom",
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
       "notes": "",
-      "refs": {},
-      "canonical": false
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q58864594"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Distillery De Beukelaer",
+        "label_nl": "Stokerij De Beukelaer",
+        "description_en": "gin distillery in Belgium",
+        "description_nl": "jeneverstokerij in Belgi\u00eb"
+      }
     },
     {
       "name": "Louis Major",
@@ -856,7 +975,7 @@
         410.91,
         969.171
       ],
-      "spawn_distance_m": 1053.6,
+      "spawn_distance_m": 383.0,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -881,7 +1000,7 @@
         16.14,
         -316.133
       ],
-      "spawn_distance_m": 317.0,
+      "spawn_distance_m": 1396.5,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -895,6 +1014,138 @@
         "label_nl": "Ballerina",
         "description_en": "sculpture in Antwerp, Belgium",
         "description_nl": "sculptuur in Antwerpen"
+      }
+    },
+    {
+      "name": "Amerika",
+      "osm_id": 9226833078,
+      "osm_type": "node",
+      "role": "",
+      "score": 67.8,
+      "wikidata": "Q56070898",
+      "heritage": true,
+      "building": null,
+      "amenity": null,
+      "historic": "yes",
+      "lat": 51.2118563,
+      "lon": 4.4121949,
+      "xy": [
+        55.445,
+        1122.677
+      ],
+      "spawn_distance_m": 44.0,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q56070898"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Amerika",
+        "label_nl": "Amerika",
+        "description_en": "statue at Rubenslei in Antwerp, Belgium",
+        "description_nl": "sculptuur in Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "D\u00f4me",
+      "osm_id": 1931417601,
+      "osm_type": "node",
+      "role": "",
+      "score": 66.6,
+      "wikidata": "Q2337930",
+      "heritage": true,
+      "building": null,
+      "amenity": "restaurant",
+      "historic": null,
+      "lat": 51.2060003,
+      "lon": 4.426973,
+      "xy": [
+        1086.232,
+        475.355
+      ],
+      "spawn_distance_m": 1204.7,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q2337930"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "D\u00f4me",
+        "label_nl": "D\u00f4me",
+        "description_en": "restaurant in Belgium",
+        "description_nl": "restaurant in Provincie Antwerpen, Belgi\u00eb"
+      }
+    },
+    {
+      "name": "osm-778492735",
+      "osm_id": 778492735,
+      "osm_type": "way",
+      "role": "",
+      "score": 65.0,
+      "wikidata": "Q14856936",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.20670279545455,
+      "lon": 4.434104104545455,
+      "xy": [
+        1583.633,
+        553.009
+      ],
+      "spawn_distance_m": 1627.1,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q14856936"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Watertorens station Antwerpen-Oost",
+        "label_nl": "Watertoren in Antwerpen, Draakplaats",
+        "description_en": "",
+        "description_nl": "Antwerpen Draakplaats"
+      }
+    },
+    {
+      "name": "osm-778492734",
+      "osm_id": 778492734,
+      "osm_type": "way",
+      "role": "",
+      "score": 65.0,
+      "wikidata": "Q14856936",
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.206775663636364,
+      "lon": 4.4341941,
+      "xy": [
+        1589.91,
+        561.064
+      ],
+      "spawn_distance_m": 1630.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q14856936"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Watertorens station Antwerpen-Oost",
+        "label_nl": "Watertoren in Antwerpen, Draakplaats",
+        "description_en": "",
+        "description_nl": "Antwerpen Draakplaats"
       }
     },
     {
@@ -914,7 +1165,7 @@
         132.053,
         1180.777
       ],
-      "spawn_distance_m": 1188.2,
+      "spawn_distance_m": 133.6,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -923,222 +1174,15 @@
       "canonical": false
     },
     {
-      "name": "Blauwtorentunnel",
-      "osm_id": 21047453,
-      "osm_type": "way",
-      "role": "",
-      "score": 61.4,
-      "wikidata": "Q2303862",
-      "heritage": false,
-      "building": null,
-      "amenity": null,
-      "historic": null,
-      "lat": 51.21181055625,
-      "lon": 4.40941834375,
-      "xy": [
-        -138.222,
-        1117.621
-      ],
-      "spawn_distance_m": 1125.5,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2303862"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "",
-        "label_nl": "Blauwtorentunnel",
-        "description_en": "",
-        "description_nl": "tunnel in Antwerpen (stad)"
-      }
-    },
-    {
-      "name": "Gasthuistunnel",
-      "osm_id": 21078127,
-      "osm_type": "way",
-      "role": "",
-      "score": 60.6,
-      "wikidata": "Q2570505",
-      "heritage": false,
-      "building": null,
-      "amenity": null,
-      "historic": null,
-      "lat": 51.21248547368421,
-      "lon": 4.407101184210526,
-      "xy": [
-        -299.847,
-        1192.226
-      ],
-      "spawn_distance_m": 1228.4,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2570505"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "",
-        "label_nl": "Gasthuistunnel",
-        "description_en": "",
-        "description_nl": "tunnel in Antwerpen (stad)"
-      }
-    },
-    {
-      "name": "Van Eycktunnel",
-      "osm_id": 23862688,
-      "osm_type": "way",
-      "role": "",
-      "score": 60.6,
-      "wikidata": "Q2245294",
-      "heritage": false,
-      "building": null,
-      "amenity": null,
-      "historic": null,
-      "lat": 51.211687135714286,
-      "lon": 4.408498364285714,
-      "xy": [
-        -202.392,
-        1103.978
-      ],
-      "spawn_distance_m": 1121.6,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2245294"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "",
-        "label_nl": "Van Eycktunnel",
-        "description_en": "",
-        "description_nl": "tunnel in Antwerpen (stad)"
-      }
-    },
-    {
-      "name": "Militaire centrale Antwerpen. Provincie- en Plaatscommando Antwerpen",
-      "osm_id": 502132536,
-      "osm_type": "way",
-      "role": "",
-      "score": 60.1,
-      "wikidata": null,
-      "heritage": true,
-      "building": "yes",
-      "amenity": null,
-      "historic": null,
-      "lat": 51.20507350588235,
-      "lon": 4.417663682352941,
-      "xy": [
-        436.898,
-        372.907
-      ],
-      "spawn_distance_m": 576.5,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {},
-      "canonical": false
-    },
-    {
-      "name": "Royal Hamilton Light Infantry (Canada) Liberation of Antwerp Plaque",
-      "osm_id": 7271693776,
-      "osm_type": "node",
-      "role": "",
-      "score": 60.0,
-      "wikidata": null,
-      "heritage": false,
-      "building": null,
-      "amenity": null,
-      "historic": "memorial",
-      "lat": 51.2113545,
-      "lon": 4.4109973,
-      "xy": [
-        -28.089,
-        1067.208
-      ],
-      "spawn_distance_m": 1067.2,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {},
-      "canonical": false
-    },
-    {
-      "name": "Belgi\u00eblei",
-      "osm_id": 22807735,
-      "osm_type": "way",
-      "role": "",
-      "score": 58.6,
-      "wikidata": "Q2157292",
-      "heritage": false,
-      "building": null,
-      "amenity": null,
-      "historic": null,
-      "lat": 51.2069281625,
-      "lon": 4.4191348375,
-      "xy": [
-        539.512,
-        577.921
-      ],
-      "spawn_distance_m": 792.4,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q2157292"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "Belgi\u00eblei",
-        "label_nl": "Belgi\u00eblei",
-        "description_en": "avenue in Antwerp, Belgium",
-        "description_nl": "straat in Antwerpen (stad), Belgi\u00eb"
-      }
-    },
-    {
-      "name": "osm-408533653",
-      "osm_id": 408533653,
-      "osm_type": "way",
-      "role": "",
-      "score": 55.0,
-      "wikidata": null,
-      "heritage": false,
-      "building": null,
-      "amenity": "bench",
-      "historic": "memorial",
-      "lat": 51.201732566666664,
-      "lon": 4.411060233333333,
-      "xy": [
-        -23.699,
-        3.6
-      ],
-      "spawn_distance_m": 21.0,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
-      "notes": "",
-      "refs": {},
-      "canonical": false
-    },
-    {
-      "name": "Klooster van de Soeurs de l'Esp\u00e9rance",
-      "osm_id": 7347476,
+      "name": "deSingel",
+      "osm_id": 5991613,
       "osm_type": "relation",
       "role": "",
-      "score": 54.8,
-      "wikidata": null,
-      "heritage": true,
-      "building": "yes",
-      "amenity": null,
+      "score": 63.2,
+      "wikidata": "Q775025",
+      "heritage": false,
+      "building": "civic",
+      "amenity": "arts_centre",
       "historic": null,
       "lat": null,
       "lon": null,
@@ -1148,63 +1192,60 @@
       "manifest_custom": null,
       "mesh_status": "not_applicable",
       "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q775025"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "deSingel",
+        "label_nl": "deSingel",
+        "description_en": "arts center in Antwerp",
+        "description_nl": "kunstencentrum in Antwerpen"
+      }
+    },
+    {
+      "name": "Egyptische Tempel",
+      "osm_id": 25045181,
+      "osm_type": "way",
+      "role": "",
+      "score": 62.0,
+      "wikidata": null,
+      "heritage": true,
+      "building": "yes",
+      "amenity": null,
+      "historic": null,
+      "lat": 51.215636861538464,
+      "lon": 4.424751669230769,
+      "xy": [
+        931.292,
+        1540.581
+      ],
+      "spawn_distance_m": 999.4,
+      "expected_custom": null,
+      "manifest_custom": null,
+      "mesh_status": "not_applicable",
+      "notes": "",
       "refs": {},
       "canonical": false
     },
     {
-      "name": "Peter Benoit",
-      "osm_id": 2396262252,
-      "osm_type": "node",
+      "name": "Basiliek van het Heilig Hart",
+      "osm_id": 353285592,
+      "osm_type": "way",
       "role": "",
-      "score": 54.8,
-      "wikidata": "Q116036362",
+      "score": null,
+      "wikidata": null,
       "heritage": false,
       "building": null,
       "amenity": null,
-      "historic": "memorial",
-      "lat": 51.2011604,
-      "lon": 4.4117296,
-      "xy": [
-        22.99,
-        -59.647
-      ],
-      "spawn_distance_m": 65.3,
-      "expected_custom": null,
-      "manifest_custom": "benoit_monument",
-      "mesh_status": "manifest_custom",
-      "notes": "",
-      "refs": {
-        "wikidata": "https://www.wikidata.org/wiki/Q116036362"
-      },
-      "canonical": false,
-      "wikidata_label": {
-        "label_en": "Peter Benoit memorial",
-        "label_nl": "Monument voor Peter Benoit",
-        "description_en": "memorial at Mechelsesteenweg, Antwerp, Belgium",
-        "description_nl": "monument in Antwerpen (Mechelsesteenweg)"
-      }
-    },
-    {
-      "name": "ZAS Vincentius",
-      "osm_id": 9715814,
-      "osm_type": "way",
-      "role": "",
-      "score": 53.2,
-      "wikidata": null,
-      "heritage": true,
-      "building": null,
-      "amenity": "hospital",
       "historic": null,
-      "lat": 51.2056652559322,
-      "lon": 4.412324533898306,
-      "xy": [
-        64.487,
-        438.319
-      ],
-      "spawn_distance_m": 443.2,
-      "expected_custom": null,
-      "manifest_custom": null,
-      "mesh_status": "not_applicable",
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": "heilig_hart",
+      "manifest_custom": "heilig_hart",
+      "mesh_status": "manifest_custom",
       "notes": "",
       "refs": {},
       "canonical": false
@@ -1226,7 +1267,7 @@
         -120.191,
         24.045
       ],
-      "spawn_distance_m": 119.7,
+      "spawn_distance_m": 1068.8,
       "expected_custom": null,
       "manifest_custom": null,
       "mesh_status": "not_applicable",
@@ -1273,7 +1314,7 @@
         -74.612,
         503.913
       ],
-      "spawn_distance_m": 508.7,
+      "spawn_distance_m": 588.3,
       "expected_custom": "art_deco_ms123",
       "manifest_custom": "art_deco_ms123",
       "mesh_status": "manifest_custom",
@@ -1298,7 +1339,7 @@
         135.549,
         536.128
       ],
-      "spawn_distance_m": 553.5,
+      "spawn_distance_m": 551.6,
       "expected_custom": "gulden_spoor",
       "manifest_custom": "gulden_spoor",
       "mesh_status": "manifest_custom",
@@ -1323,7 +1364,7 @@
         105.775,
         -235.316
       ],
-      "spawn_distance_m": 259.4,
+      "spawn_distance_m": 1316.8,
       "expected_custom": "albertpark_kiosk",
       "manifest_custom": "albertpark_kiosk",
       "mesh_status": "manifest_custom",
@@ -1348,7 +1389,7 @@
         170.137,
         533.467
       ],
-      "spawn_distance_m": 560.6,
+      "spawn_distance_m": 560.9,
       "expected_custom": "gulden_spoor_gate",
       "manifest_custom": "gulden_spoor_gate",
       "mesh_status": "manifest_custom",
@@ -1373,7 +1414,7 @@
         -134.468,
         166.582
       ],
-      "spawn_distance_m": 212.1,
+      "spawn_distance_m": 930.8,
       "expected_custom": "harmonie_koetshuis",
       "manifest_custom": "harmonie_koetshuis",
       "mesh_status": "manifest_custom",
@@ -1398,7 +1439,7 @@
         -201.048,
         316.391
       ],
-      "spawn_distance_m": 373.1,
+      "spawn_distance_m": 802.1,
       "expected_custom": "benoit_34",
       "manifest_custom": "benoit_34",
       "mesh_status": "manifest_custom",
@@ -1423,7 +1464,7 @@
         -202.217,
         299.868
       ],
-      "spawn_distance_m": 359.8,
+      "spawn_distance_m": 818.2,
       "expected_custom": "benoit_38",
       "manifest_custom": "benoit_38",
       "mesh_status": "manifest_custom",
@@ -1448,13 +1489,90 @@
         -191.327,
         297.112
       ],
-      "spawn_distance_m": 351.6,
+      "spawn_distance_m": 817.7,
       "expected_custom": "benoit_40",
       "manifest_custom": "benoit_40",
       "mesh_status": "manifest_custom",
       "notes": "",
       "refs": {},
       "canonical": false
+    },
+    {
+      "name": "Klooster van het Heilig Hart",
+      "osm_id": 432190363,
+      "osm_type": "way",
+      "role": "",
+      "score": null,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": "heilig_hart_klooster",
+      "manifest_custom": "heilig_hart_klooster",
+      "mesh_status": "manifest_custom",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Nationale Bank van Belgi\u00eb",
+      "osm_id": 12470557,
+      "osm_type": "way",
+      "role": "",
+      "score": null,
+      "wikidata": null,
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": null,
+      "lat": null,
+      "lon": null,
+      "xy": null,
+      "spawn_distance_m": null,
+      "expected_custom": "nationale_bank",
+      "manifest_custom": "nationale_bank",
+      "mesh_status": "manifest_custom",
+      "notes": "",
+      "refs": {},
+      "canonical": false
+    },
+    {
+      "name": "Monument Peter Benoit",
+      "osm_id": 2396262252,
+      "osm_type": "node",
+      "role": "",
+      "score": null,
+      "wikidata": "Q116036362",
+      "heritage": false,
+      "building": null,
+      "amenity": null,
+      "historic": "memorial",
+      "lat": 51.2011604,
+      "lon": 4.4117296,
+      "xy": [
+        22.99,
+        -59.647
+      ],
+      "spawn_distance_m": 1139.9,
+      "expected_custom": "benoit_monument",
+      "manifest_custom": "benoit_monument",
+      "mesh_status": "manifest_custom",
+      "notes": "",
+      "refs": {
+        "wikidata": "https://www.wikidata.org/wiki/Q116036362"
+      },
+      "canonical": false,
+      "wikidata_label": {
+        "label_en": "Peter Benoit memorial",
+        "label_nl": "Monument voor Peter Benoit",
+        "description_en": "memorial at Mechelsesteenweg, Antwerp, Belgium",
+        "description_nl": "monument in Antwerpen (Mechelsesteenweg)"
+      }
     }
   ]
 }

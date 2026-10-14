@@ -13,6 +13,14 @@
       "file": "landmarks/117235287.glb"
     },
     {
+      "id": "12470557",
+      "name": "Nationale Bank van Belgi\u00eb",
+      "kind": "civic",
+      "x": -239.52,
+      "y": 1136.91,
+      "file": "landmarks/12470557.glb"
+    },
+    {
       "id": "231220414",
       "name": "Feestzaal Harmonie",
       "kind": "hall",
@@ -29,21 +37,14 @@
       "file": "landmarks/232921425.glb"
     },
     {
-      "id": "353285592",
-      "name": "Basiliek van het Heilig Hart",
-      "kind": "church",
-      "x": 12.6,
-      "y": -503.64,
-      "file": "landmarks/353285592.glb",
-      "reach": 60
-    },
-    {
-      "id": "432190363",
-      "name": "Klooster van het Heilig Hart",
-      "kind": "school",
-      "x": 38.38,
-      "y": -497.33,
-      "file": "landmarks/432190363.glb"
+      "id": "2396262252",
+      "name": "Monument Peter Benoit",
+      "kind": "memorial",
+      "x": 22.99,
+      "y": -59.65,
+      "file": "landmarks/2396262252.glb",
+      "stream": true,
+      "custom": "benoit_monument"
     },
     {
       "id": "453577567",
@@ -52,15 +53,6 @@
       "x": 399.62,
       "y": 97.56,
       "file": "landmarks/453577567.glb",
-      "reach": 60
-    },
-    {
-      "id": "501410385",
-      "name": "Heilige Geestkerk",
-      "kind": "church",
-      "x": -45.45,
-      "y": 450.89,
-      "file": "landmarks/501410385.glb",
       "reach": 60
     },
     {
@@ -118,24 +110,6 @@
       "x": 86.28,
       "y": 455.61,
       "file": "landmarks/7345816.glb"
-    },
-    {
-      "id": "12470557",
-      "name": "Nationale Bank van Belgi\u00eb",
-      "kind": "civic",
-      "x": -239.52,
-      "y": 1136.91,
-      "file": "landmarks/12470557.glb"
-    },
-    {
-      "id": "2396262252",
-      "name": "Monument Peter Benoit",
-      "kind": "memorial",
-      "x": 22.99,
-      "y": -59.65,
-      "file": "landmarks/2396262252.glb",
-      "stream": true,
-      "custom": "benoit_monument"
     }
   ]
 }

@@ -46,8 +46,13 @@ export function createMenu(hooks) {
       <img class="cm-portrait" id="cm-portrait" src="" alt="" />
     </div>
     <div class="cm-panel cm-maps-panel" id="cm-maps" hidden>
-      <p class="cm-eyebrow">Districts</p>
-      <h2>Antwerp</h2>
+      <header class="cm-maps-bar">
+        <button type="button" class="cm-back" id="cm-maps-back" aria-label="Back to menu">Back</button>
+        <div class="cm-maps-heading">
+          <p class="cm-eyebrow">Districts</p>
+          <h2>Antwerp</h2>
+        </div>
+      </header>
       <div class="cm-maps-layout">
         <div class="cm-atlas" role="listbox" aria-label="Antwerp postcodes">
           <div class="cm-atlas-tilt" id="cm-atlas-tilt">
@@ -55,7 +60,7 @@ export function createMenu(hooks) {
           </div>
           <div class="cm-atlas-labels" id="cm-atlas-labels"></div>
         </div>
-        <aside class="cm-map-preview" aria-live="polite">
+        <aside class="cm-map-preview" id="cm-map-preview" aria-live="polite">
           <div class="cm-map-frame">
             <canvas class="cm-map-roads" id="cm-map-roads" width="640" height="640" aria-hidden="true"></canvas>
             <div class="cm-map-placeholder" id="cm-map-placeholder" hidden>
@@ -69,7 +74,7 @@ export function createMenu(hooks) {
           </div>
           <div class="cm-map-actions">
             <button type="button" class="cm-confirm" id="cm-map-play" disabled>Play</button>
-            <button type="button" class="cm-back" data-back>Back</button>
+            <button type="button" class="cm-back" id="cm-map-detail-back">Back</button>
           </div>
         </aside>
       </div>
@@ -123,11 +128,16 @@ export function createMenu(hooks) {
   const atlasSvg = root.querySelector("#cm-atlas-svg");
   const atlasLabels = root.querySelector("#cm-atlas-labels");
   const atlasRoot = root.querySelector(".cm-atlas");
+  const mapsPanel = root.querySelector("#cm-maps");
+  const mapsBack = root.querySelector("#cm-maps-back");
+  const mapPreview = root.querySelector("#cm-map-preview");
   const mapRoads = root.querySelector("#cm-map-roads");
   const mapPlaceholder = root.querySelector("#cm-map-placeholder");
   const mapTitle = root.querySelector("#cm-map-title");
   const mapBlurb = root.querySelector("#cm-map-blurb");
   const mapPlay = root.querySelector("#cm-map-play");
+  const mapDetailBack = root.querySelector("#cm-map-detail-back");
+  const mapsNarrow = window.matchMedia("(max-width: 720px)");
 
   const currentDistrict =
     (typeof window !== "undefined" && window.__DISTRICT && window.__DISTRICT.id) || "2018-harmonie";
@@ -136,7 +146,25 @@ export function createMenu(hooks) {
   let mapIndex = -1;
   let atlasLoad = null;
   let waterEl = null;
+  /** Mobile only: district confirm sheet open over the full-bleed map. */
+  let mapDetailOpen = false;
   const minimaps = new Map();
+
+  function isNarrowMaps() {
+    return mapsNarrow.matches;
+  }
+
+  function setMapDetailOpen(open) {
+    mapDetailOpen = !!open;
+    mapsPanel.classList.toggle("detail-open", mapDetailOpen);
+    if (mapPreview) {
+      mapPreview.setAttribute("aria-hidden", !isNarrowMaps() || mapDetailOpen ? "false" : "true");
+    }
+    if (mapsBack) {
+      // On narrow screens the header Back is for map → menu; hide it under the sheet.
+      mapsBack.hidden = isNarrowMaps() && mapDetailOpen;
+    }
+  }
 
   /** Tilted SVG of every postcode; only the registry districts take input. */
   function loadAtlas() {
@@ -193,7 +221,7 @@ export function createMenu(hooks) {
       }
       areas = (doc.order || []).map((pc) => byPc.get(pc)).filter(Boolean);
       const here = areas.findIndex((a) => a.district === currentDistrict);
-      setMapSelected(here >= 0 ? here : 0);
+      setMapSelected(here >= 0 ? here : 0, { openDetail: false });
       requestAnimationFrame(placeLabels);
     })().catch((err) => {
       atlasLoad = null;
@@ -272,7 +300,7 @@ export function createMenu(hooks) {
     ctx.restore();
   }
 
-  function setMapSelected(i) {
+  function setMapSelected(i, { openDetail = false } = {}) {
     if (!areas.length) return;
     mapIndex = (i + areas.length) % areas.length;
     const a = areas[mapIndex];
@@ -283,13 +311,14 @@ export function createMenu(hooks) {
     }
     // Draw the selection last so its outline sits above the neighbours' strokes.
     a.el.parentNode.append(a.el);
-        if (waterEl) waterEl.parentNode.append(waterEl);
+    if (waterEl) waterEl.parentNode.append(waterEl);
     mapTitle.textContent = `${a.name} · ${a.postcode}`;
     mapBlurb.textContent = a.unlocked ? a.summary : a.summary || "Not reachable yet";
     mapPlaceholder.hidden = a.unlocked;
     mapPlay.disabled = !a.unlocked;
     mapPlay.textContent = a.district === currentDistrict && hooks.hasStarted() ? "Resume" : "Play";
     void paintMinimap(a);
+    if (openDetail && isNarrowMaps()) setMapDetailOpen(true);
   }
 
   function activateMap() {
@@ -549,8 +578,11 @@ export function createMenu(hooks) {
     if (plate) plate.hidden = next !== "home";
     if (next === "cast") setCastView();
     if (next === "maps") {
+      setMapDetailOpen(false);
       if (areas.length) {
-        setMapSelected(Math.max(0, areas.findIndex((a) => a.district === currentDistrict)));
+        setMapSelected(Math.max(0, areas.findIndex((a) => a.district === currentDistrict)), {
+          openDetail: false,
+        });
         requestAnimationFrame(placeLabels);
       } else void loadAtlas();
     }
@@ -623,6 +655,25 @@ export function createMenu(hooks) {
     b.addEventListener("click", () => showView("home")),
   );
 
+  mapsBack?.addEventListener("click", () => {
+    // Map view → main menu (never skips past a closed sheet).
+    setMapDetailOpen(false);
+    showView("home");
+  });
+  mapDetailBack?.addEventListener("click", () => {
+    if (isNarrowMaps()) {
+      setMapDetailOpen(false);
+      requestAnimationFrame(placeLabels);
+      return;
+    }
+    showView("home");
+  });
+  mapsNarrow.addEventListener("change", () => {
+    if (!isNarrowMaps()) setMapDetailOpen(false);
+    else if (view === "maps") setMapDetailOpen(false);
+    requestAnimationFrame(placeLabels);
+  });
+
   root.querySelector("[data-confirm]")?.addEventListener("click", () => {
     chooseCharacter(PLAYERS[castIndex].id);
   });
@@ -635,11 +686,11 @@ export function createMenu(hooks) {
     }),
   );
 
-  // Click picks an area (preview + Play target); the choice sticks until Play or Back.
+  // Click picks an area; on narrow screens that opens the play confirm sheet.
   atlasSvg.addEventListener("click", (e) => {
     const pc = e.target.closest?.("[data-pc]")?.dataset.pc;
     const i = areas.findIndex((a) => a.postcode === pc);
-    if (i >= 0) setMapSelected(i);
+    if (i >= 0) setMapSelected(i, { openDetail: true });
   });
   atlasSvg.addEventListener("pointerover", (e) => {
     const pc = e.target.closest?.("[data-pc]")?.dataset.pc;
@@ -662,7 +713,10 @@ export function createMenu(hooks) {
   function command(code) {
     if (!open || !code) return;
     if (code === "Escape") {
-      if (view !== "home") showView("home");
+      if (view === "maps" && isNarrowMaps() && mapDetailOpen) {
+        setMapDetailOpen(false);
+        requestAnimationFrame(placeLabels);
+      } else if (view !== "home") showView("home");
       else if (hooks.hasStarted()) {
         hide();
         hooks.onPlay();
@@ -680,9 +734,14 @@ export function createMenu(hooks) {
         activateNav();
       }
     } else if (view === "maps") {
-      if (code === "ArrowDown" || code === "ArrowRight") setMapSelected(mapIndex + 1);
-      else if (code === "ArrowUp" || code === "ArrowLeft") setMapSelected(mapIndex - 1);
-      else if (code === "Enter") activateMap();
+      if (code === "ArrowDown" || code === "ArrowRight") {
+        setMapSelected(mapIndex + 1, { openDetail: isNarrowMaps() && mapDetailOpen });
+      } else if (code === "ArrowUp" || code === "ArrowLeft") {
+        setMapSelected(mapIndex - 1, { openDetail: isNarrowMaps() && mapDetailOpen });
+      } else if (code === "Enter") {
+        if (isNarrowMaps() && !mapDetailOpen) setMapDetailOpen(true);
+        else activateMap();
+      }
     } else if (view === "cast") {
       if (code === "ArrowLeft") {
         castIndex = (castIndex - 1 + PLAYERS.length) % PLAYERS.length;

@@ -3,16 +3,42 @@
 ``roads.json`` is deliberately spawn-limited (runtime traffic); the minimap needs every
 street, path, water body and park of the postcode, so it reads ``map.json`` instead.
 Coordinates are Blender XY metres in the district's local frame.
+
+Underground tunnels (Waaslandtunnel, Sint-Annatunnel, …) are out of project scope: they
+are never drawn on the radar and never used for ground-level street captions. Surface
+streets above them keep their own names (Frankrijklei, Tunnelplaats, …).
 """
 
 from __future__ import annotations
 
 import math
+import re
 from typing import Any
 
 MAP_SIMPLIFY_M = 0.6
 AREA_SIMPLIFY_M = 1.5
 MIN_AREA_M2 = 40.0
+
+# Facility names for tunnels / underpasses. ``Tunnelplaats`` stays (surface square).
+_TUNNEL_FACILITY_NAME = re.compile(
+    r"(?:^tunnel\s)|(?:fietstunnel|spoortunnel|premetro)|tunnel$",
+    re.IGNORECASE,
+)
+
+
+def is_underground_road_name(name: str) -> bool:
+    """True when the OSM name is a tunnel / underpass, not a surface street."""
+    text = (name or "").strip()
+    return bool(text) and bool(_TUNNEL_FACILITY_NAME.search(text))
+
+
+def is_surface_map_road(road: dict[str, Any]) -> bool:
+    """Roads that belong on the radar and in ground-level street captions."""
+    if road.get("tunnel"):
+        return False
+    if is_underground_road_name(str(road.get("name") or "")):
+        return False
+    return True
 
 # Draw order / weight on the radar; anything else is skipped.
 MAP_ROAD_KINDS = {
@@ -80,7 +106,7 @@ def export_viewer_map(layout: dict[str, Any]) -> dict[str, Any]:
     roads = []
     for road in layout.get("roads") or []:
         kind = str(road.get("kind") or "residential").lower()
-        if kind not in MAP_ROAD_KINDS or road.get("tunnel"):
+        if kind not in MAP_ROAD_KINDS or not is_surface_map_road(road):
             continue
         pts = [[float(p[0]), float(p[1])] for p in road.get("points") or []]
         if len(pts) < 2:

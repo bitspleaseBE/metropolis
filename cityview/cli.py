@@ -510,6 +510,11 @@ def district_command(args: argparse.Namespace) -> int:
 
         district_republish_shops(args.id)
         return 0
+    if action == "roads":
+        from cityview.district_pipeline import district_republish_roads
+
+        district_republish_roads(args.id)
+        return 0
     if action == "map":
         from cityview.district_pipeline import district_republish_map
 
@@ -635,6 +640,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     d_shops.add_argument("id", help="District id")
     d_shops.set_defaults(func=district_command)
+
+    d_roads = dsub.add_parser(
+        "roads",
+        help="Rewrite roads.json walks + driveables from cached OSM (district-wide ped walks), no Blender",
+    )
+    d_roads.add_argument("id", help="District id")
+    d_roads.set_defaults(func=district_command)
 
     d_map = dsub.add_parser(
         "map",

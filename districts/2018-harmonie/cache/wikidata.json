@@ -148,5 +148,107 @@
     "label_nl": "Ballerina",
     "description_en": "sculpture in Antwerp, Belgium",
     "description_nl": "sculptuur in Antwerpen"
+  },
+  "Q2684279": {
+    "label_en": "De Koninck Brewery",
+    "label_nl": "Brouwerij De Koninck",
+    "description_en": "Belgian brewery",
+    "description_nl": "brouwerij in Belgi\u00eb"
+  },
+  "Q959739": {
+    "label_en": "Antwerp tram line 15",
+    "label_nl": "tramlijn 15",
+    "description_en": "tram line",
+    "description_nl": "Antwerpen"
+  },
+  "Q2228093": {
+    "label_en": "Sint-Michiel-en-Sint-Petruskerk",
+    "label_nl": "Sint-Michiel-en-Sint-Petruskerk",
+    "description_en": "church in Antwerp, Belgium",
+    "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+  },
+  "Q28499944": {
+    "label_en": "Sint-Laurentiuskerk",
+    "label_nl": "Sint-Laurentiuskerk",
+    "description_en": "church in Antwerp, Belgium",
+    "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+  },
+  "Q2006109": {
+    "label_en": "Sint-Norbertuskerk",
+    "label_nl": "Sint-Norbertuskerk",
+    "description_en": "church in Antwerpen, Belgium",
+    "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+  },
+  "Q2049516": {
+    "label_en": "Machsike Hadass Synagogue",
+    "label_nl": "Machsike Hadass",
+    "description_en": "",
+    "description_nl": "bouwwerk in Antwerpen (stad), Belgi\u00eb"
+  },
+  "Q107316398": {
+    "label_en": "Sint-Dominicuskerk",
+    "label_nl": "Sint-Dominicuskerk",
+    "description_en": "church in Antwerp, Belgium",
+    "description_nl": "kerkgebouw in Antwerpen, Belgi\u00eb"
+  },
+  "Q800398": {
+    "label_en": "Antwerp-Central railway station",
+    "label_nl": "station Antwerpen-Centraal",
+    "description_en": "railway station in Belgium",
+    "description_nl": "spoorwegstation in Belgi\u00eb"
+  },
+  "Q58864594": {
+    "label_en": "Distillery De Beukelaer",
+    "label_nl": "Stokerij De Beukelaer",
+    "description_en": "gin distillery in Belgium",
+    "description_nl": "jeneverstokerij in Belgi\u00eb"
+  },
+  "Q56070898": {
+    "label_en": "Amerika",
+    "label_nl": "Amerika",
+    "description_en": "statue at Rubenslei in Antwerp, Belgium",
+    "description_nl": "sculptuur in Antwerpen, Belgi\u00eb"
+  },
+  "Q2337930": {
+    "label_en": "D\u00f4me",
+    "label_nl": "D\u00f4me",
+    "description_en": "restaurant in Belgium",
+    "description_nl": "restaurant in Provincie Antwerpen, Belgi\u00eb"
+  },
+  "Q14856936": {
+    "label_en": "Watertorens station Antwerpen-Oost",
+    "label_nl": "Watertoren in Antwerpen, Draakplaats",
+    "description_en": "",
+    "description_nl": "Antwerpen Draakplaats"
+  },
+  "Q775025": {
+    "label_en": "deSingel",
+    "label_nl": "deSingel",
+    "description_en": "arts center in Antwerp",
+    "description_nl": "kunstencentrum in Antwerpen"
+  },
+  "Q2151338": {
+    "label_en": "Bolivarplaats",
+    "label_nl": "Bolivarplaats",
+    "description_en": "square in Antwerp, Belgium",
+    "description_nl": "plein in Antwerpen (stad), Belgi\u00eb"
+  },
+  "Q3282616": {
+    "label_en": "Royal Flemish Opera",
+    "label_nl": "Koninklijke Vlaamse Opera",
+    "description_en": "Antwerp",
+    "description_nl": "operagebouw in Antwerpen"
+  },
+  "Q220003": {
+    "label_en": "Antwerp Zoo",
+    "label_nl": "ZOO Antwerpen",
+    "description_en": "zoo in Antwerp, Belgium",
+    "description_nl": "dierentuin in Antwerpen (stad)"
+  },
+  "Q21980969": {
+    "label_en": "'t Groen Kwartier",
+    "label_nl": "'t Groen Kwartier",
+    "description_en": "neighborhood in Antwerp",
+    "description_nl": "wijk in de Antwerpse gemeente Antwerpen, Belgi\u00eb"
   }
 }
