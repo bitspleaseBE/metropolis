@@ -1,12 +1,18 @@
 """Classify OSM water bodies and export them for the walk viewer.
 
-Shallow ponds / park basins are wadeable (walk, slowed). Rivers, docks and the
-Scheldt are deep: opaque fill, no swimming yet — the walker is pushed out.
+Shallow ponds / park basins are wadeable: feet stand on the silt bed
+(``bed_y``). Rivers, docks and the Scheldt are deep — opaque fill, walker
+pushed out. ``bank`` is ``natural`` (soft organic edge) or ``built``
+(straight kerbed rim).
 """
 
 from __future__ import annotations
 
 from typing import Any
+
+# Keep in sync with blender/build_city.py Z_WATER_BED / Z_WATER.
+BED_Y = -0.28
+SURFACE_Y = 0.02
 
 # OSM `water=*` / waterway values treated as deep (no wade).
 DEEP_KINDS = frozenset(
@@ -41,17 +47,35 @@ SHALLOW_KINDS = frozenset(
     }
 )
 
-# Default wade depth (metres) by kind — feet sink this far; gait slows.
+# Hard-edged / man-made rims (stone kerb in Blender).
+BUILT_KINDS = frozenset(
+    {
+        "basin",
+        "fountain",
+        "swimming_pool",
+        "reflecting_pond",
+        "reservoir",
+        "moat",  # castle / park moats are lined
+        "dock",
+        "harbour",
+        "harbor",
+        "canal",
+        "lock",
+        "wastewater",
+    }
+)
+
+# Default water column depth (surface − bed); feet use bed_y, not this sink.
 _DEPTH_M = {
-    "pond": 0.32,
+    "pond": 0.30,
     "reflecting_pond": 0.18,
-    "moat": 0.38,
-    "fountain": 0.12,
-    "lake": 0.36,
-    "reservoir": 0.36,
+    "moat": 0.30,
+    "fountain": 0.14,
+    "lake": 0.30,
+    "reservoir": 0.30,
     "oxbow": 0.30,
-    "lagoon": 0.34,
-    "stream": 0.20,
+    "lagoon": 0.30,
+    "stream": 0.22,
     "ditch": 0.22,
     "drain": 0.18,
     "swimming_pool": 0.40,
@@ -75,8 +99,37 @@ def _area_m2(ring: list[list[float]]) -> float:
     return abs(a) * 0.5
 
 
+def bank_for(kind: str, *, deep: bool = False) -> str:
+    """``built`` = straight kerbed rim; ``natural`` = soft / organic edge."""
+    if deep and kind in {"dock", "harbour", "harbor", "canal", "lock", "wastewater"}:
+        return "built"
+    if kind in BUILT_KINDS:
+        return "built"
+    return "natural"
+
+
+def _entry(
+    *,
+    kind: str,
+    depth: str,
+    wade: bool,
+    depth_m: float,
+    name: str,
+) -> dict[str, Any]:
+    deep = depth == "deep"
+    return {
+        "kind": kind,
+        "depth": depth,
+        "wade": wade,
+        "depth_m": 0.0 if deep else depth_m,
+        "bed_y": 0.0 if deep else BED_Y,
+        "bank": bank_for(kind, deep=deep),
+        "name": name,
+    }
+
+
 def classify_water(tags: dict[str, Any] | None, area_m2: float = 0.0) -> dict[str, Any]:
-    """Return kind / depth / wade / depth_m for an OSM water polygon."""
+    """Return kind / depth / wade / bed_y / bank for an OSM water polygon."""
     tags = tags or {}
     water = str(tags.get("water") or "").lower()
     waterway = str(tags.get("waterway") or "").lower()
@@ -88,74 +141,60 @@ def classify_water(tags: dict[str, Any] | None, area_m2: float = 0.0) -> dict[st
 
     # Scheldt / Escaut — always deep, never wade.
     if "schelde" in name_l or "escaut" in name_l:
-        return {
-            "kind": "river",
-            "depth": "deep",
-            "wade": False,
-            "depth_m": 0.0,
-            "name": name,
-        }
+        return _entry(kind="river", depth="deep", wade=False, depth_m=0.0, name=name)
 
     if waterway in DEEP_WATERWAYS or water in DEEP_KINDS:
-        return {
-            "kind": kind if kind in DEEP_KINDS else (waterway or water or "river"),
-            "depth": "deep",
-            "wade": False,
-            "depth_m": 0.0,
-            "name": name,
-        }
+        k = kind if kind in DEEP_KINDS else (waterway or water or "river")
+        return _entry(kind=k, depth="deep", wade=False, depth_m=0.0, name=name)
 
     if landuse == "basin":
-        if "fountain" in name_l or "fontein" in name_l or "vijver" in name_l:
-            return {
-                "kind": "pond",
-                "depth": "shallow",
-                "wade": True,
-                "depth_m": _DEPTH_M["fountain"],
-                "name": name,
-            }
+        if "fountain" in name_l or "fontein" in name_l:
+            return _entry(
+                kind="fountain",
+                depth="shallow",
+                wade=True,
+                depth_m=_DEPTH_M["fountain"],
+                name=name,
+            )
+        if "vijver" in name_l:
+            # Named vijver basins in parks are natural ponds with a lined rim rare.
+            return _entry(
+                kind="pond",
+                depth="shallow",
+                wade=True,
+                depth_m=_DEPTH_M["pond"],
+                name=name,
+            )
         if area_m2 >= _BASIN_DEEP_M2:
-            return {
-                "kind": "basin",
-                "depth": "deep",
-                "wade": False,
-                "depth_m": 0.0,
-                "name": name,
-            }
-        return {
-            "kind": "basin",
-            "depth": "shallow",
-            "wade": True,
-            "depth_m": _DEPTH_M["basin"],
-            "name": name,
-        }
+            return _entry(kind="basin", depth="deep", wade=False, depth_m=0.0, name=name)
+        return _entry(
+            kind="basin",
+            depth="shallow",
+            wade=True,
+            depth_m=_DEPTH_M["basin"],
+            name=name,
+        )
 
     if water in SHALLOW_KINDS:
-        return {
-            "kind": water,
-            "depth": "shallow",
-            "wade": True,
-            "depth_m": _DEPTH_M.get(water, _DEPTH_M["water"]),
-            "name": name,
-        }
+        return _entry(
+            kind=water,
+            depth="shallow",
+            wade=True,
+            depth_m=_DEPTH_M.get(water, _DEPTH_M["water"]),
+            name=name,
+        )
 
     # Bare natural=water / water=* catch-all: large open water → deep.
     if area_m2 >= _LARGE_OPEN_M2:
-        return {
-            "kind": kind or "water",
-            "depth": "deep",
-            "wade": False,
-            "depth_m": 0.0,
-            "name": name,
-        }
+        return _entry(kind=kind or "water", depth="deep", wade=False, depth_m=0.0, name=name)
 
-    return {
-        "kind": kind or "pond",
-        "depth": "shallow",
-        "wade": True,
-        "depth_m": _DEPTH_M.get(kind, _DEPTH_M["water"]),
-        "name": name,
-    }
+    return _entry(
+        kind=kind or "pond",
+        depth="shallow",
+        wade=True,
+        depth_m=_DEPTH_M.get(kind, _DEPTH_M["water"]),
+        name=name,
+    )
 
 
 def annotate_water_entry(
@@ -169,6 +208,8 @@ def annotate_water_entry(
     entry["depth"] = info["depth"]
     entry["wade"] = info["wade"]
     entry["depth_m"] = info["depth_m"]
+    entry["bed_y"] = info["bed_y"]
+    entry["bank"] = info["bank"]
     if info.get("name"):
         entry["name"] = info["name"]
     elif "name" not in entry:
@@ -228,15 +269,18 @@ def export_water_for_viewer(layout: dict[str, Any]) -> dict[str, Any]:
         if len(ring) < 3:
             continue
         # Already classified at layout time; re-classify if a cache is stale.
-        if "depth" not in w:
+        if "depth" not in w or "bank" not in w or "bed_y" not in w:
             annotate_water_entry(w, {"water": w.get("kind"), "name": w.get("name")})
+        deep = str(w.get("depth") or "shallow") == "deep"
         bodies.append(
             {
                 "id": int(w.get("id") or 0),
                 "kind": str(w.get("kind") or "pond"),
                 "depth": str(w.get("depth") or "shallow"),
-                "wade": bool(w.get("wade", w.get("depth") != "deep")),
+                "wade": bool(w.get("wade", not deep)),
                 "depth_m": round(float(w.get("depth_m") or 0.0), 3),
+                "bed_y": round(float(w.get("bed_y") if w.get("bed_y") is not None else (0.0 if deep else BED_Y)), 3),
+                "bank": str(w.get("bank") or bank_for(str(w.get("kind") or "pond"), deep=deep)),
                 "name": str(w.get("name") or ""),
                 "ring": [[round(float(p[0]), 2), round(float(p[1]), 2)] for p in ring],
             }

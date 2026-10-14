@@ -2,7 +2,7 @@
 
 This is the maintainer note for the generated Antwerp tiles. Read it when you need to fix a street you cannot walk, add a landmark, or understand what a district rebuild will overwrite.
 
-The walk viewer is free in the horizontal plane. Nothing paints a navmesh. After each step the player is pushed out of **building rings**, **props** (fences, hedges, trunks, benches), **Velo rails**, **café tables**, **vehicles**, and **deep water** (Scheldt, docks). Shallow ponds are not solids: you wade through them (slower gait, feet sink). Streets, parks and squares stay walkable only if those solids leave a gap. That contract lives in code (`cityview/walkability.py`) and is checked at the end of every district build.
+The walk viewer is free in the horizontal plane. Nothing paints a navmesh. After each step the player is pushed out of **building rings**, **props** (fences, hedges, trunks, benches), **Velo rails**, **café tables**, **vehicles**, and **deep water** (Scheldt, docks). Shallow ponds are not solids: you wade through them (slower gait, feet on the silt `bed_y`). Streets, parks and squares stay walkable only if those solids leave a gap. That contract lives in code (`cityview/walkability.py`) and is checked at the end of every district build.
 
 ## What you edit vs what a rebuild overwrites
 
@@ -51,11 +51,11 @@ Agent finishing work after a build is in [district-agent.md](district-agent.md):
 
 ### Stages, in order
 
-1. **OSM → layout** (`cityview/osm.py`). Buildings, roads, parks, water, transit tracks. Water rings are classified in `cityview/water.py` (shallow pond vs deep river/dock; Scheldt by name). Multipolygon courtyards become `holes` on the footprint. Tags that are not a wall (`building=roof`, `location=underground`, bandstands) are marked `walker_solid: false`.
+1. **OSM → layout** (`cityview/osm.py`). Buildings, roads, parks, water, transit tracks. Water rings are classified in `cityview/water.py` (shallow pond vs deep river/dock; Scheldt by name; `bank` natural vs built). Multipolygon courtyards become `holes` on the footprint. Tags that are not a wall (`building=roof`, `location=underground`, bandstands) are marked `walker_solid: false`.
 2. **Street furniture.** Trees and benches from the city survey + OSM. Clutter (bollards, bins, racks) and barriers (walls, hedges, fences) from OSM ways. Barriers are sampled every 0.8 m; stretches inside a house, on a carriageway, on a tram bed, across a public gate, or across a footway / square are cut out so the collider matches the opening you can see.
 3. **Spawn.** `district.json` `spawn` projected to local metres. Everything the walker collides with is culled to a radius around that point (buildings 280 m, props 450 m).
 4. **Blender.** Extrudes footprints (holes become courtyards in the mesh), maps façades, draws kerbs, parks, rails, merged prop meshes. Park grass subtracts overlapping water rings (basin cutout via `water_holes_for_ring`). Shallow water is a silt bed (`Z_WATER_BED` −0.28 m) plus a surface disc (`Z_WATER` +0.02 m) in that hole; deep water is a single opaque disc.
-5. **Publish.** `export_buildings_near_spawn` writes rings + holes, skipping non-solids. `export_props_for_viewer` writes trunks, boxes, barrier segments. Roads become `roads.json` (`roads`, `walks`, `cycleways`, `signals`). `export_water_for_viewer` writes `water.json` (wade / deep rings).
+5. **Publish.** `export_buildings_near_spawn` writes rings + holes, skipping non-solids. `export_props_for_viewer` writes trunks, boxes, barrier segments. Roads become `roads.json` (`roads`, `walks`, `cycleways`, `signals`). `export_water_for_viewer` writes `water.json` (wade / deep rings, `bed_y`, `bank`).
 6. **Check.** Missing package files, spawn inside a ring, streamed landmark GLBs, unique façade hashes, then **walkability**: no 3 m stretch of street sealed across its width, no public gate or path/fence crossing still sitting on a collider.
 
 ## How walking actually works
@@ -64,7 +64,7 @@ There is no walkable mask. `viewer/player-motion.js` integrates WASD. Each frame
 
 1. A downward ray against meshes named `sidewalk`, `road_`, `park_`, `curb`, `ground`, `tram_`, `courtyard_`, `rail_` sets foot height. It never blocks XZ. Water meshes are not in that set.
 2. `viewer/outdoors.js` rejects a step that lands inside a `buildings.json` ring, unless that point is in a courtyard `holes` polygon. Slide along the façade, or snap back.
-3. `viewer/water.js` samples `water.json`: shallow rings slow the gait and lower the eye (wade / creep); deep rings (Scheldt, docks) push you back like a soft wall. The viewer also upgrades `water*` materials to a transparent liquid with light ripples.
+3. `viewer/water.js` samples `water.json`: shallow rings slow the gait and put the feet on `bed_y` (soil under the surface — not `Math.max(0, groundAt)`); deep rings (Scheldt, docks) push you back like a soft wall. Blender draws a silt bed plus either an inset natural shoreline or a straight built kerb. The viewer also upgrades `water*` materials to a transparent liquid with light ripples.
 4. `viewer/props-collide.js` pushes the 0.34 m body out of circles, boxes and thick segments from `props.json`.
 5. Live solids: Velo rails (`hw` 0.45 m), open café tables (radius 0.48 m), cars / trams / buses.
 6. A soft clamp keeps you inside the district box.

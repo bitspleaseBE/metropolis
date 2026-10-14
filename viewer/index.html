@@ -3878,9 +3878,15 @@ let knifeLunge = null;
             const walker = walkControls.getObject();
             const baseEye = playerMotion.eye(onScooter ? "scooter" : ridingVelo ? "velo" : "walk");
             const onFoot = !riding && !ridingVelo && !onScooter;
-            const surface = onFoot ? Math.max(0, groundAt(walker.position.x, walker.position.z)) : 0;
-            const sink = onFoot ? (water?.at?.(walker.position.x, walker.position.z)?.sink_m || 0) : 0;
-            walker.position.y = baseEye + surface + JUMP.y - sink;
+            // Shallow water: stand on silt bed_y. Elsewhere: groundAt (never below 0).
+            let surface = 0;
+            if (onFoot) {
+              const hit = water?.at?.(walker.position.x, walker.position.z);
+              surface = hit?.wade
+                ? (Number.isFinite(hit.bed_y) ? hit.bed_y : -0.28)
+                : Math.max(0, groundAt(walker.position.x, walker.position.z));
+            }
+            walker.position.y = baseEye + surface + JUMP.y;
           }
 
           if (!riding && mode === "walk" && walkEngaged()) {
@@ -3900,9 +3906,14 @@ let knifeLunge = null;
               }
               if ((knifeLunge.t -= dt) <= 0) knifeLunge = null;
             }
-            const surface = kind === "walk" ? Math.max(0, groundAt(w.position.x, w.position.z)) : 0;
-            const sink = kind === "walk" ? (water?.at?.(w.position.x, w.position.z)?.sink_m || 0) : 0;
-            w.position.y = playerMotion.eye(kind) + surface + JUMP.y - sink;
+            let surface = 0;
+            if (kind === "walk") {
+              const hit = water?.at?.(w.position.x, w.position.z);
+              surface = hit?.wade
+                ? (Number.isFinite(hit.bed_y) ? hit.bed_y : -0.28)
+                : Math.max(0, groundAt(w.position.x, w.position.z));
+            }
+            w.position.y = playerMotion.eye(kind) + surface + JUMP.y;
             const overlapSpeed = fastestOverlap(w.position, onScooter || ridingVelo ? 0.55 : 0.36);
             const wallHit = !!(outdoors && outdoors.rejectIfIndoors(w.position, _beforeStep));
             if (kind === "walk" && water) water.rejectIfDeep(w.position, _beforeStep);

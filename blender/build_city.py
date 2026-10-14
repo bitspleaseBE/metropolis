@@ -4348,15 +4348,52 @@ def build(layout: dict, types_doc: dict | None = None) -> None:
     spawn_xy = (float(spawn["x"]), float(spawn["y"])) if spawn.get("x") is not None else None
 
     water_list = layout.get("water") or []
+
+    def _add_built_water_kerb(wid, ring: list[list[float]]) -> None:
+        """Straight stone rim for built basins / fountains (natural ponds skip this)."""
+        n = len(ring)
+        if n < 3:
+            return
+        for ei in range(n):
+            a, b = ring[ei], ring[(ei + 1) % n]
+            dx, dy = b[0] - a[0], b[1] - a[1]
+            length = math.hypot(dx, dy)
+            if length < 0.25:
+                continue
+            mx, my = (a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5
+            yaw = math.atan2(dy, dx)
+            # Thin upright kerb along the edge — reads as a hard man-made rim.
+            kerb_h = 0.14
+            obj = add_box(
+                f"water_kerb_{wid}_{ei}",
+                (length, 0.22, kerb_h),
+                (mx, my, Z_PARK + kerb_h * 0.5),
+                yaw,
+            )
+            assign(obj, curb_mat)
+
     for i, pond in enumerate(water_list):
         wid = pond.get("id", i)
         ring = pond["ring"]
         deep = str(pond.get("depth") or "shallow") == "deep"
+        bank = str(pond.get("bank") or "natural")
         if deep:
             add_ring(f"water_{wid}", ring, 0.0, Z_WATER, water_deep_mat)
-        else:
-            add_ring(f"water_bed_{wid}", ring, 0.0, Z_WATER_BED, water_bed_mat)
+            continue
+        # Full bed = soil you stand on; natural surface is inset so a soft bank of silt shows.
+        add_ring(f"water_bed_{wid}", ring, 0.0, Z_WATER_BED, water_bed_mat)
+        if bank == "built":
             add_ring(f"water_{wid}", ring, 0.0, Z_WATER, water_shallow_mat)
+            _add_built_water_kerb(wid, ring)
+        else:
+            soft = inset_ring(ring, 0.55)
+            add_ring(
+                f"water_{wid}",
+                soft if len(soft) >= 3 else ring,
+                0.0,
+                Z_WATER,
+                water_shallow_mat,
+            )
 
     for i, park in enumerate(layout.get("parks") or []):
         # Subtract ponds from park grass (Stadspark covers Stadsparkvijver otherwise).

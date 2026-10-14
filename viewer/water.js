@@ -1,14 +1,16 @@
 /**
- * Shallow park water: liquid look + wade (slow creep, feet sink).
+ * Shallow park water: liquid look + wade (slow creep on the silt bed).
  * Deep water (Scheldt, docks): push the walker out — no swimming yet.
  *
  * Rings come from water.json (Blender XY → Three z = −y), same as outdoors.js.
+ * Feet sit at ``bed_y`` (soil), not at groundAt−sink (which clamps to ≥0).
  */
 
 import { fetchJsonCached } from "./json-cache.js";
 
 const WADE_FOOT = 0.48; // share of walk speed while in shallow water
 const RIPPLE_SPEED = 1.35;
+const DEFAULT_BED_Y = -0.28; // keep in sync with cityview.water.BED_Y / Blender Z_WATER_BED
 
 function pointInRing(x, z, ring) {
   let inside = false;
@@ -193,12 +195,16 @@ export async function createWater(opts = {}) {
         const pts = b.ring || [];
         if (pts.length < 3) continue;
         const geom = ringFromPts(pts);
+        const deep = b.depth === "deep" || b.wade === false;
+        const bedY = Number(b.bed_y);
         bodies.push({
           ...geom,
-          wade: b.wade !== false && b.depth !== "deep",
-          depth_m: Number(b.depth_m) || (b.depth === "deep" ? 0 : 0.3),
+          wade: b.wade !== false && !deep,
+          depth_m: Number(b.depth_m) || (deep ? 0 : 0.3),
+          bed_y: Number.isFinite(bedY) ? bedY : deep ? 0 : DEFAULT_BED_Y,
+          bank: String(b.bank || "natural"),
           kind: String(b.kind || "pond"),
-          deep: b.depth === "deep" || b.wade === false,
+          deep,
         });
       }
     }
@@ -211,13 +217,25 @@ export async function createWater(opts = {}) {
       if (x < b.minX || x > b.maxX || z < b.minZ || z > b.maxZ) continue;
       if (!pointInRing(x, z, b.ring)) continue;
       if (b.deep || !b.wade) {
-        return { kind: b.kind, deep: true, wade: false, sink_m: 0, footScale: 1 };
+        return {
+          kind: b.kind,
+          deep: true,
+          wade: false,
+          bed_y: 0,
+          bank: b.bank,
+          sink_m: 0,
+          footScale: 1,
+        };
       }
+      // Stand on the silt bed — do not derive Y from groundAt (clamped ≥ 0).
+      const bed = Number.isFinite(b.bed_y) ? b.bed_y : DEFAULT_BED_Y;
       return {
         kind: b.kind,
         deep: false,
         wade: true,
-        sink_m: Math.min(0.45, Math.max(0.08, b.depth_m)),
+        bed_y: bed,
+        bank: b.bank,
+        sink_m: Math.min(0.45, Math.max(0.08, -bed)),
         footScale: WADE_FOOT,
       };
     }

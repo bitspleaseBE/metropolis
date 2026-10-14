@@ -17,6 +17,19 @@ class ClassifyWaterTests(unittest.TestCase):
         self.assertEqual(info["depth"], "shallow")
         self.assertTrue(info["wade"])
         self.assertGreater(info["depth_m"], 0.1)
+        self.assertLess(info["bed_y"], 0.0)
+        self.assertEqual(info["bank"], "natural")
+
+    def test_fountain_basin_is_built_bank(self):
+        info = classify_water({"landuse": "basin", "name": "Deep Fountain"}, 400)
+        self.assertEqual(info["bank"], "built")
+        self.assertTrue(info["wade"])
+        self.assertLess(info["bed_y"], 0.0)
+
+    def test_named_vijver_basin_stays_natural(self):
+        info = classify_water({"landuse": "basin", "name": "Stadsparkvijver"}, 8_000)
+        self.assertEqual(info["kind"], "pond")
+        self.assertEqual(info["bank"], "natural")
 
     def test_schelde_by_name_is_deep(self):
         info = classify_water({"natural": "water", "water": "river", "name": "Schelde"}, 2e6)
@@ -97,8 +110,11 @@ class ExportWaterTests(unittest.TestCase):
         by_id = {b["id"]: b for b in doc["bodies"]}
         self.assertTrue(by_id[145169574]["wade"])
         self.assertEqual(by_id[145169574]["depth"], "shallow")
+        self.assertEqual(by_id[145169574]["bank"], "natural")
+        self.assertLess(by_id[145169574]["bed_y"], 0.0)
         self.assertFalse(by_id[1]["wade"])
         self.assertEqual(by_id[1]["depth"], "deep")
+        self.assertEqual(by_id[1]["bed_y"], 0.0)
 
 
 if __name__ == "__main__":
