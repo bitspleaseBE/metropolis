@@ -103,7 +103,7 @@
       };
       const CAST_CLIPS = Object.keys(DRIVE);
       const CAST_YAW = Math.PI; // the avatar faces −Z at yaw 0; turn it toward the camera
-      const RIDERS = ["Amy", "Remy", "James", "Michelle", "Aj"];
+      const RIDERS = ["Remy", "James"];
       const BONE = {
         pelvis: ["bip01pelvis", "hips"],
         head: ["bip01head", "head"],
@@ -280,7 +280,8 @@
         if (avatar.weapon !== weapon) avatar.setWeapon(weapon);
         if (spec.act && (drive.rest -= dt) <= 0) {
           if (spec.act === "reload") avatar.reload(2);
-          else avatar.stab();
+          // Like the game, the knife alternates a swing and a thrust.
+          else avatar.stab((drive.knife = drive.knife === "slash" ? "stab" : "slash"));
           drive.rest = spec.act === "reload" ? 2.6 : 1.1;
         }
         castFight.aim = spec.aim ?? 0;
@@ -307,7 +308,7 @@
       }
 
       function normBone(name) {
-        return name.toLowerCase().replace(/^mixamorig[:_]?/, "").replace(/[\s_]/g, "");
+        return name.toLowerCase().replace(/^mixamorig\d*[:_]?/, "").replace(/[\s_]/g, "");
       }
 
       function findBone(root, key) {
@@ -353,11 +354,16 @@
         root.userData.groundY = root.position.y;
         root.updateMatrixWorld(true);
         const bindFeet = {};
+        let ankle = Infinity;
         for (const key of ["lFoot", "rFoot"]) {
           const b = findBone(root, key);
-          if (b) bindFeet[key] = b.getWorldQuaternion(new THREE.Quaternion());
+          if (!b) continue;
+          bindFeet[key] = b.getWorldQuaternion(new THREE.Quaternion());
+          ankle = Math.min(ankle, b.getWorldPosition(new THREE.Vector3()).y);
         }
         root.userData.bindFeet = bindFeet;
+        // The ankle bone over the sole: where the leg IK aims to stand a foot on a deck.
+        root.userData.ankle = Number.isFinite(ankle) ? ankle : 0.04;
       }
 
       function rel(bone, pelvis) {
@@ -594,20 +600,8 @@
           at.x += side * frame.left * seat.grip;
           return vehiclePoint(mesh, at);
         };
-        if (seat.kind === "step") {
-          const shoulder = findBone(root, "lArm");
-          let lean = 0;
-          for (let i = 0; i < 5 && shoulder; i++) {
-            root.rotation.x = lean;
-            pinPelvis(root, mesh);
-            const grip = vehiclePoint(mesh, seat.bar);
-            shoulder.updateWorldMatrix(true, false);
-            const dist = new THREE.Vector3().setFromMatrixPosition(shoulder.matrixWorld).distanceTo(grip);
-            const short = dist - 0.42;
-            if (short <= 0.02) break;
-            lean = Math.min(0.55, lean + short * 1.2);
-          }
-        } else {
+        // A step rider stands upright on the deck, as in the game; the arms reach the bar.
+        if (seat.kind !== "step") {
           // Same spine lean as the game (viewer/players.js). Riders face +Z, so up × forward is +X.
           leanToBars(
             THREE,
@@ -634,7 +628,7 @@
             const at = seat.deck.clone();
             at.x += x * frame.left;
             at.z += z;
-            at.y += 0.04;
+            at.y += root.userData.ankle ?? 0.04;
             const pole = vehiclePoint(mesh, at.clone().add(new THREE.Vector3(0, 0.2, 0.3)));
             solveLeg(findBone(root, thigh), findBone(root, calf), findBone(root, foot), vehiclePoint(mesh, at), pole, flat[foot]);
           }

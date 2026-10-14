@@ -10,7 +10,7 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { VELO_FWD, VELO_RIDE } from "./velo.js";
 import { leanToBars } from "./ride-lean.js";
 import { createArmedRig } from "./player-armed.js";
-import { captureSoles, createFootPlant } from "./foot-plant.js";
+import { captureSoles, createFootPlant, soleLevelers } from "./foot-plant.js";
 
 export const PLAYERS = [
   {
@@ -93,6 +93,7 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   let current = null;
   let mocap = false;
   let speeds = { ...CLIP_SPEED };
+  const footPhase = {};
   let melee = null;
   let meleeQueue = null;
   let jumpLatch = false;
@@ -133,6 +134,8 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   let headTrack = null;
   /** Finger rotations from the baked Punch fist, for wrapping the bars. */
   let gripPose = [];
+  /** Knuckle frames for wrapping the step's bar ends; null when the rig has no fingers. */
+  let barHands = null;
   const GRIP_CURL = 0.8;
 
   // Scooter grips match viewer/scooters.js. Velo points come from velo.glb (VELO_RIDE).
@@ -146,10 +149,13 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   const _seatCfg = { fwd: VELO_FWD, y: 0, z: 0, x: 0 };
   const _seatW = new THREE.Vector3();
   let visualBaseY = 0;
-  /** Sole contact on foot; null until the rig is built. `lift` raises the ankle-grounded body onto its soles. */
+  /** Sole contact on foot; null until the rig is built. `lift` raises the ankle-grounded body onto its soles; `liftPeak` holds it through a stride. */
   let plantFeet = null;
+  /** Per foot: the local turn that levels a toe-down bind, and the last value written. */
+  let footLevel = [];
   let soleDrop = 0;
   let lift = 0;
+  let liftPeak = 0;
   const _gripL = new THREE.Vector3();
   const _gripR = new THREE.Vector3();
   const _ikA = new THREE.Vector3();
@@ -182,12 +188,13 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   /**
    * Ground speed of an in-place gait clip on the loaded rig: how fast the planted
    * (lower) foot travels under the body along the gait's axis (sideways for strafes;
-   * the ankle rolls across that axis), in metres per second of clip time.
+   * the ankle rolls across that axis), in metres per second of clip time, and the
+   * loop fraction `leftDown` where the left foot carries the body.
    */
-  function strideSpeed(clip, lateral = false) {
+  function strideOf(clip, lateral = false) {
     const lf = bodyBones?.lFoot;
     const rf = bodyBones?.rFoot;
-    if (!clip || !lf || !rf || !(clip.duration > 0.1)) return 0;
+    if (!clip || !lf || !rf || !(clip.duration > 0.1)) return null;
     const saved = [];
     visual.traverse((o) => saved.push([o, o.position.clone(), o.quaternion.clone(), o.scale.clone()]));
     const probe = new THREE.AnimationMixer(visual);
@@ -209,6 +216,16 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       o.scale.copy(s);
     }
     visual.updateMatrixWorld(true);
+    // Where in the clip the left foot is most below the right, as a fraction of the
+    // loop: the fundamental of their height difference.
+    let cs = 0;
+    let sn = 0;
+    for (let i = 0; i < N; i++) {
+      const d = pts[i][0].y - pts[i][1].y;
+      cs += d * Math.cos((2 * Math.PI * i) / N);
+      sn += d * Math.sin((2 * Math.PI * i) / N);
+    }
+    const leftDown = (Math.atan2(sn, cs) / (2 * Math.PI) + 1.5) % 1;
     // A planted foot is near its lowest and the slower of the two; strafes shuffle the
     // swing foot low too, and runs have flight frames where neither is down.
     const dt = clip.duration / N;
@@ -219,9 +236,9 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       const k = sp[0] < sp[1] ? 0 : 1;
       if (pts[i][k].y < floor[k] && pts[i + 1][k].y < floor[k]) v.push(sp[k]);
     }
-    if (v.length < 4) return 0;
+    if (v.length < 4) return { speed: 0, leftDown };
     v.sort((x, y) => x - y);
-    return v[Math.floor(v.length / 2)];
+    return { speed: v[Math.floor(v.length / 2)], leftDown };
   }
 
   /** Drop scale tracks — FBX keys identity scale and fights normalizeImportScale. */
@@ -254,6 +271,9 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     const n = (name || "")
       .replace(/^mixamorig\d*:?/i, "")
       .replace(/^bip01[_\s]?/i, "");
+    // Biped thighs hang off the first spine bone, so it must come from the same clip
+    // as the legs or an overlay's twist swings the stride and the feet cross.
+    if (isFirstSpine(n)) return true;
     return (
       /^(pelvis|hips|l thigh|r thigh|l calf|r calf|l foot|r foot|l toe|r toe|leftupleg|rightupleg|leftleg|rightleg|leftfoot|rightfoot|lefttoe|righttoe)/i.test(
         n,
@@ -261,13 +281,45 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     );
   }
 
+  function isFirstSpine(name) {
+    return /^spine$/i.test((name || "").replace(/^mixamorig\d*:?/i, "").replace(/^bip01[_\s]?/i, ""));
+  }
+
+  /**
+   * An overlay loses its first-spine track to the gait. Fold that rotation into the
+   * next spine bone, against the bind, so the chest still turns as the clip meant.
+   */
+  function foldFirstSpine(clip, tracks) {
+    const spine = clip.tracks.find((t) => /\.quaternion$/.test(t.name) && isFirstSpine(trackBone(t.name)));
+    const bone = spine && visual?.getObjectByName(trackBone(spine.name));
+    const nextName = bone?.children.find((c) => c.isBone)?.name;
+    const i = nextName ? tracks.findIndex((t) => t.name === `${nextName}.quaternion`) : -1;
+    if (i < 0) return tracks;
+    const next = tracks[i];
+    const sample = spine.createInterpolant();
+    const bindInv = bone.quaternion.clone().invert();
+    const s = new THREE.Quaternion();
+    const q = new THREE.Quaternion();
+    const values = new Float32Array(next.values.length);
+    for (let k = 0; k < next.times.length; k++) {
+      s.fromArray(sample.evaluate(next.times[k]));
+      q.fromArray(next.values, k * 4);
+      q.premultiply(s).premultiply(bindInv);
+      q.toArray(values, k * 4);
+    }
+    const out = tracks.slice();
+    out[i] = new THREE.QuaternionKeyframeTrack(next.name, Array.from(next.times), Array.from(values));
+    return out;
+  }
+
   function filterClipBones(clip, keepLower) {
     if (!clip?.tracks?.length) return clip;
-    const tracks = clip.tracks.filter((t) => {
+    let tracks = clip.tracks.filter((t) => {
       const lower = isLowerBodyBone(trackBone(t.name));
       return keepLower ? lower : !lower;
     });
     if (!tracks.length || tracks.length === clip.tracks.length) return clip;
+    if (!keepLower) tracks = foldFirstSpine(clip, tracks);
     const tag = keepLower ? "Legs" : "Upper";
     return new THREE.AnimationClip(`${clip.name}${tag}`, clip.duration, tracks);
   }
@@ -341,13 +393,15 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       _qClip.fromArray(headTrack.values, 0);
       headOffBind = Math.abs(_qClip.dot(_headBind)) < 0.5;
     }
-    // Flat soles in the bind, body yaw still 0. Scooter IK keeps this orientation.
+    // Flat soles in the bind. Kept relative to the root: the rig can be built (or the
+    // player switched) while the body faces any way, and the pedal IK turns it by yaw.
     root.updateMatrixWorld(true);
+    root.getWorldQuaternion(_ikParentQ).invert();
     for (const key of ["lFoot", "rFoot"]) {
       const bone = bodyBones[key];
       if (!bone) continue;
-      bone.userData.bindWorldQ = new THREE.Quaternion();
-      bone.getWorldQuaternion(bone.userData.bindWorldQ);
+      bone.userData.bindRootQ = new THREE.Quaternion();
+      bone.getWorldQuaternion(bone.userData.bindRootQ).premultiply(_ikParentQ);
     }
   }
 
@@ -516,8 +570,79 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     }
     gripTarget(_gripL, yaw, -1, cfg);
     gripTarget(_gripR, yaw, 1, cfg);
+    if (kind === "scooter" && barHands) {
+      barGrip(barHands.L, armBones.lUpper, armBones.lFore, _gripL, yaw, -1);
+      barGrip(barHands.R, armBones.rUpper, armBones.rFore, _gripR, yaw, 1);
+      return;
+    }
     ccdArmIK(armBones.lUpper, armBones.lFore, armBones.lHand, _gripL);
     ccdArmIK(armBones.rUpper, armBones.rFore, armBones.rHand, _gripR);
+  }
+
+  /**
+   * Each hand's knuckle frame in hand-local space: fingers toward the middle knuckle,
+   * `across` toward the thumb side, `palm` halfway out to the knuckles.
+   */
+  function cacheBarHands(rig) {
+    const knuckle = (side, n) => rig.getObjectByName(`Bip01_${side}_${n}`) || rig.getObjectByName(`Bip01 ${side} ${n}`);
+    const frame = (side) => {
+      const hand = side === "L" ? armBones.lHand : armBones.rHand;
+      const idx = knuckle(side, "Finger1");
+      const mid = knuckle(side, "Finger2");
+      const pinky = knuckle(side, "Finger4") || knuckle(side, "Finger3");
+      if (!hand || !idx || !mid || !pinky) return null;
+      const local = (b) => hand.worldToLocal(b.getWorldPosition(new THREE.Vector3()));
+      const m = local(mid);
+      const finger = m.clone().normalize();
+      const across = local(idx).sub(local(pinky));
+      across.addScaledVector(finger, -across.dot(finger)).normalize();
+      const basis = new THREE.Matrix4().makeBasis(finger, across, new THREE.Vector3().crossVectors(finger, across));
+      return { hand, palm: m.multiplyScalar(0.5), inv: new THREE.Quaternion().setFromRotationMatrix(basis).invert() };
+    };
+    rig.updateMatrixWorld(true);
+    const L = frame("L");
+    const R = frame("R");
+    barHands = L && R ? { L, R } : null;
+  }
+
+  const _barF = new THREE.Vector3();
+  const _barA = new THREE.Vector3();
+  const _barN = new THREE.Vector3();
+  const _barM = new THREE.Matrix4();
+  const _barQ = new THREE.Quaternion();
+  const _barP = new THREE.Vector3();
+  const _barS = new THREE.Vector3();
+
+  /**
+   * Hand over a horizontal bar end: palm on top of the grip, fingers pointing forward
+   * and down so the closed fist wraps the front of it, thumb toward the stem.
+   */
+  function barGrip(frame, upper, fore, grip, yaw, side) {
+    const fx = -Math.sin(yaw);
+    const fz = -Math.cos(yaw);
+    const rx = Math.cos(yaw);
+    const rz = -Math.sin(yaw);
+    _barF.set(fx * 0.72 + rx * side * 0.2, -0.66, fz * 0.72 + rz * side * 0.2).normalize();
+    _barA.set(-rx * side, 0, -rz * side);
+    _barA.addScaledVector(_barF, -_barA.dot(_barF)).normalize();
+    _barN.crossVectors(_barF, _barA);
+    _barM.makeBasis(_barF, _barA, _barN);
+    _barQ.setFromRotationMatrix(_barM).multiply(frame.inv);
+    // Palm a bar's radius above, just behind and a little inboard of the grip centre,
+    // so the knuckles stay on the rubber; the wrist trails it.
+    _barP.set(grip.x - fx * 0.015 - rx * side * 0.015, grip.y + 0.03, grip.z - fz * 0.015 - rz * side * 0.015);
+    frame.hand.getWorldScale(_barS);
+    _barP.sub(_ikA.copy(frame.palm).multiplyScalar(_barS.x).applyQuaternion(_barQ));
+    // Elbows back, out and a little down. CCD has no elbow side, and near full reach
+    // it would fold one arm backwards.
+    upper.getWorldPosition(_barS);
+    _barS.x += -fx * 0.35 + rx * side * 0.3;
+    _barS.y -= 0.25;
+    _barS.z += -fz * 0.35 + rz * side * 0.3;
+    solveLeg(upper, fore, frame.hand, _barP, _barS);
+    frame.hand.parent.getWorldQuaternion(_ikParentQ);
+    frame.hand.quaternion.copy(_ikParentQ.invert().multiply(_barQ));
+    frame.hand.updateMatrixWorld(true);
   }
 
   /** The ride clips leave the fingers straight. Close them most of the way to the punch fist. */
@@ -585,7 +710,6 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   const _legAnkle = new THREE.Vector3();
   const _legPole = new THREE.Vector3();
   const _legDir = new THREE.Vector3();
-  const _yawQ = new THREE.Quaternion();
   const _worldUp = new THREE.Vector3(0, 1, 0);
 
   /**
@@ -638,13 +762,149 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     thigh.updateMatrixWorld(true);
     aimBone(calf, foot, target);
     calf.updateMatrixWorld(true);
-    const bind = foot.userData.bindWorldQ;
+    const bind = foot.userData.bindRootQ;
     if (bind) {
-      _yawQ.setFromAxisAngle(_worldUp, root.rotation.y);
-      _ikWorldQ.copy(_yawQ).multiply(bind);
+      root.getWorldQuaternion(_ikWorldQ).multiply(bind);
       foot.parent.getWorldQuaternion(_ikParentQ);
       foot.quaternion.copy(_ikParentQ.invert()).multiply(_ikWorldQ);
     }
+  }
+
+  /**
+   * Mocap swing feet often brush past or cross the stance foot (runs, strafes, blends).
+   * Keep the swing foot at least FOOT_GAP to its own side, solved through the leg so the
+   * knee follows; the clip's foot rotation is kept.
+   */
+  const FOOT_GAP = 0.08;
+  const _spreadR = new THREE.Vector3();
+  const _spreadL = new THREE.Vector3();
+  const _spreadA = new THREE.Vector3();
+  const _spreadT = new THREE.Vector3();
+  const _spreadP = new THREE.Vector3();
+  const _spreadQ = new THREE.Quaternion();
+  function spreadFeet() {
+    const b = bodyBones;
+    if (!b?.lThigh || !b.rThigh || !b.lCalf || !b.rCalf || !b.lFoot || !b.rFoot) return;
+    root.getWorldQuaternion(_spreadQ);
+    _spreadR.set(1, 0, 0).applyQuaternion(_spreadQ);
+    _spreadR.y = 0;
+    _spreadR.normalize();
+    b.lFoot.getWorldPosition(_spreadL);
+    b.rFoot.getWorldPosition(_spreadA);
+    const gap = _spreadT.subVectors(_spreadA, _spreadL).dot(_spreadR);
+    if (gap >= FOOT_GAP) return;
+    const dy = _spreadA.y - _spreadL.y;
+    const w = Math.min(1, Math.max(0, (Math.abs(dy) - 0.003) / 0.017));
+    if (w <= 0) return;
+    const left = dy < 0;
+    const side = left ? -1 : 1;
+    const thigh = left ? b.lThigh : b.rThigh;
+    const calf = left ? b.lCalf : b.rCalf;
+    const foot = left ? b.lFoot : b.rFoot;
+    _spreadT.copy(left ? _spreadL : _spreadA).addScaledVector(_spreadR, side * (FOOT_GAP - gap) * w);
+    // Pole a little ahead of the current knee keeps the leg's bend plane.
+    calf.getWorldPosition(_spreadP).addScaledVector(_spreadL.crossVectors(_worldUp, _spreadR), 0.15);
+    foot.getWorldQuaternion(_spreadQ);
+    solveLeg(thigh, calf, foot, _spreadT, _spreadP);
+    foot.parent.getWorldQuaternion(_ikParentQ);
+    foot.quaternion.copy(_ikParentQ.invert()).multiply(_spreadQ);
+    foot.updateMatrixWorld(true);
+  }
+
+  /**
+   * The boxing clips throw from a bladed stance the gait doesn't have, so over a run
+   * the fists land wide and at belly height. While a fist is going out, turn the
+   * shoulders into it and steer it to full reach on the chin line ahead.
+   */
+  const STRIKE_TURN = 0.45;
+  const smooth = (a, b, x) => {
+    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+  const _stkQ = new THREE.Quaternion();
+  const _stkF = new THREE.Vector3();
+  const _stkR = new THREE.Vector3();
+  const _stkS = new THREE.Vector3();
+  const _stkO = new THREE.Vector3();
+  const _stkH = new THREE.Vector3();
+  const _stkD = new THREE.Vector3();
+  const _stkT = new THREE.Vector3();
+  const _stkP = new THREE.Vector3();
+  const strikeSaved = [];
+  function restoreStrike() {
+    for (const [bone, q] of strikeSaved) bone.quaternion.copy(q);
+    strikeSaved.length = 0;
+  }
+  /** Off hand back to the chin, elbow tucked, when the clip swings it wide. */
+  function guardHand([side, upper, fore, hand], g) {
+    upper.getWorldPosition(_stkS);
+    hand.getWorldPosition(_stkH);
+    _stkT.copy(_stkS).addScaledVector(_stkF, 0.24).addScaledVector(_stkR, -side * 0.1).addScaledVector(_worldUp, 0.02);
+    _stkT.lerp(_stkH, 1 - g);
+    _stkP.copy(_stkS).addScaledVector(_stkR, side * 0.15).addScaledVector(_worldUp, -0.4);
+    solveLeg(upper, fore, hand, _stkT, _stkP);
+  }
+
+  function polishStrike() {
+    if (!melee || !UPPER_STRIKE.has(melee) || !armBones || !bodyBones?.spine1) return;
+    const act = actions[melee];
+    if (!act?.isRunning()) return;
+    const k = act.getEffectiveWeight();
+    if (k < 0.05) return;
+    root.updateMatrixWorld(true);
+    root.getWorldQuaternion(_stkQ);
+    _stkF.set(0, 0, -1).applyQuaternion(_stkQ).setY(0).normalize();
+    _stkR.crossVectors(_stkF, _worldUp);
+    const sides = [
+      [-1, armBones.lUpper, armBones.lFore, armBones.lHand],
+      [1, armBones.rUpper, armBones.rFore, armBones.rHand],
+    ];
+    let lead = null;
+    let best = -Infinity;
+    for (const s of sides) {
+      s[1].getWorldPosition(_stkS);
+      const reach = s[3].getWorldPosition(_stkH).sub(_stkS).dot(_stkF);
+      if (reach > best) {
+        best = reach;
+        lead = s;
+      }
+    }
+    const w = k * smooth(0.12, 0.42, best);
+    const rear = lead === sides[0] ? sides[1] : sides[0];
+    rear[1].getWorldPosition(_stkS);
+    const flare = rear[3].getWorldPosition(_stkH).sub(_stkS).dot(_stkR) * rear[0];
+    const g = k * smooth(0.08, 0.25, flare);
+    if (w < 0.01 && g < 0.01) return;
+    for (const b of [bodyBones.spine1, bodyBones.spine2, ...sides.flatMap((s) => [s[1], s[2]])]) {
+      if (b) strikeSaved.push([b, b.quaternion.clone()]);
+    }
+    if (g >= 0.01) guardHand(rear, g);
+    if (w < 0.01) return;
+    const [side, upper, fore, hand] = lead;
+    // Shoulders into the punch: the punching side comes forward.
+    _stkQ.setFromAxisAngle(_worldUp, (side * STRIKE_TURN * w) / 2);
+    for (const b of [bodyBones.spine1, bodyBones.spine2]) {
+      if (!b) continue;
+      b.getWorldQuaternion(_ikWorldQ).premultiply(_stkQ);
+      b.parent.getWorldQuaternion(_ikParentQ);
+      b.quaternion.copy(_ikParentQ.invert().multiply(_ikWorldQ));
+      b.updateMatrixWorld(true);
+    }
+    upper.getWorldPosition(_stkS);
+    sides[0][1].getWorldPosition(_stkO).add(sides[1][1].getWorldPosition(_stkT)).multiplyScalar(0.5);
+    const arm = _stkS.distanceTo(fore.getWorldPosition(_stkT)) + _stkT.distanceTo(hand.getWorldPosition(_stkH));
+    _stkD.subVectors(_stkH, _stkS);
+    const len = _stkD.length();
+    if (len < 1e-4) return;
+    _stkD.multiplyScalar(1 / len);
+    // The chin line: straight out from between the shoulders, just above their height.
+    const half = _stkO.distanceTo(_stkS);
+    const ahead = Math.sqrt(Math.max(0, (arm * 0.97) ** 2 - half * half));
+    _stkT.copy(_stkO).addScaledVector(_stkF, ahead).addScaledVector(_worldUp, 0.03).sub(_stkS).normalize();
+    _stkD.lerp(_stkT, w).normalize();
+    _stkT.copy(_stkS).addScaledVector(_stkD, len + (arm * 0.97 - len) * w);
+    _stkP.copy(_stkS).addScaledVector(_stkR, side * 0.3).addScaledVector(_worldUp, -0.35);
+    solveLeg(upper, fore, hand, _stkT, _stkP);
   }
 
   /**
@@ -954,11 +1214,14 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     }
     root.add(visual);
     cacheArmBones(visual);
+    cacheBarHands(visual);
     // Still in the bind pose: soles flat, ankle on the floor.
     const soles = captureSoles(THREE, visual, [bodyBones?.lFoot, bodyBones?.rFoot]);
     plantFeet = soles ? createFootPlant(THREE, soles) : null;
+    footLevel = soles ? soleLevelers(THREE, soles).map((f) => ({ ...f, last: new THREE.Quaternion(), set: false })) : [];
     soleDrop = soles ? Math.max(...soles.map((s) => s.drop)) : 0;
     lift = soleDrop;
+    liftPeak = soleDrop;
     if (combatClips?.animations?.length && armBones) {
       armed = createArmedRig(THREE, {
         root,
@@ -968,8 +1231,10 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         arms: armBones,
         body: bodyBones,
         ik: ccdArmIK,
+        limb: solveLeg,
         clips: new Map(combatClips.animations.map((c) => [c.name, sanitizeClip(c)])),
         speeds,
+        footPhase,
         upper: upperBodyClip,
         legs: legsOnlyClip,
         loop: loopClip,
@@ -980,8 +1245,10 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     // The baked speeds are the Mixamo source's hips path (sway included, source leg
     // length); playback rate must follow this rig's own stride or the feet skate.
     for (const key of STRIDE_KEYS) {
-      const v = actions[key] && strideSpeed(actions[key].getClip(), /Strafe/.test(key));
-      if (v > 0.2) speeds[key] = v;
+      const s = actions[key] && strideOf(actions[key].getClip(), /Strafe/.test(key));
+      if (!s) continue;
+      if (s.speed > 0.2) speeds[key] = s.speed;
+      footPhase[key] = s.leftDown;
     }
 
     const start = actions.idle || actions.walk;
@@ -1018,6 +1285,11 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     // multiplies that weight, so a parked clip fades from 0 to 0 and the body
     // snaps back to the bind pose (arms out, legs straight) once idle fades out.
     next.reset();
+    // Gait to gait, pick up on the same foot so the crossfade doesn't scissor.
+    if (prev && !once && footPhase[name] != null && footPhase[current] != null) {
+      const p = prev.time / prev.getClip().duration - footPhase[current];
+      next.time = ((((p + footPhase[name]) % 1) + 1) % 1) * next.getClip().duration;
+    }
     next.setEffectiveWeight(1);
     next.fadeIn(fade).play();
     if (prev && prev !== next) prev.fadeOut(fade);
@@ -1217,7 +1489,13 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
         onFoot,
         dead,
       });
+      restoreStrike();
       if (mixer) mixer.update(dt);
+      // A bone the mixer left alone still holds last frame's levelled value.
+      for (const f of footLevel) {
+        if (f.set && f.bone.quaternion.equals(f.last)) continue;
+        f.bone.quaternion.multiply(f.q);
+      }
       // Walk clips re-assert the tiny FBX armature scale after mixer.update.
       normalizeImportScale(visual);
       visual.position.y = visualBaseY;
@@ -1261,19 +1539,38 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       }
       if (onFoot && plantFeet) {
         // In the air the lift holds, so a jump doesn't drop the hips.
-        if (!airborne && !dead) {
+        const grounded = !airborne && !dead;
+        if (grounded) {
           root.updateMatrixWorld(true);
           // The sole's rim reaches a little below the heel, ball and toe points.
-          const want = plantFeet(root, { still: Math.abs(moveSpeed) < 0.15 && !melee }) + 0.02;
-          lift += (Math.min(soleDrop + 0.12, Math.max(0, want)) - lift) * (1 - Math.exp(-60 * dt));
+          const still = Math.abs(moveSpeed) < 0.15 && !melee;
+          if (!still) {
+            armed?.squareHips();
+            spreadFeet();
+          }
+          const want = plantFeet(root, { still }) + 0.02;
+          // The clip carries the hip bob. Hold the deepest stance of the last stride so
+          // the body keeps one height through the cycle instead of hopping each step.
+          const decay = still ? 0.2 : 0.025;
+          liftPeak = Math.max(Math.min(soleDrop + 0.12, Math.max(0, want)), liftPeak - decay * dt);
+          lift += (liftPeak - lift) * (1 - Math.exp(-8 * dt));
         } else if (dead) {
           lift += (soleDrop - lift) * (1 - Math.exp(-6 * dt));
         }
         visual.position.y = visualBaseY + lift;
+        if (grounded) {
+          root.updateMatrixWorld(true);
+          plantFeet.clamp(root, 0.02);
+        }
       }
+      if (onFoot && !dead) polishStrike();
       if (armed && onFoot && !dead) {
         root.updateMatrixWorld(true);
         armed.post(dt, fight?.aimPoint || null);
+      }
+      for (const f of footLevel) {
+        f.last.copy(f.bone.quaternion);
+        f.set = true;
       }
       root.visible = true;
     },
