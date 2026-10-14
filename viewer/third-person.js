@@ -25,12 +25,49 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
   const LOOK_X = 0.0025;
   const LOOK_Y = 0.002;
 
+  // GTA V on foot with a gun: closer, further right; aiming: tight over the right shoulder.
+  const ARMED = { dist: 3.5, side: 0.42, y: 1.6, fov: 55 };
+  const AIM = { dist: 1.9, side: 0.47, y: 1.62, fov: 42 };
+  const AIM_LOOK = 0.62;
+
   let fov = FOV_WALK;
   let snapped = false;
+  let armedK = 0;
+  let aimK = 0;
+  let trauma = 0;
+  let shakeT = 0;
+  let kickPitch = 0;
+  let kickYaw = 0;
+  /** Recoil climb not yet recovered. Sustained fire caps it; letting go settles most of it. */
+  let climb = 0;
+  let sinceKick = 9;
+  const CLIMB_MAX = 0.09;
 
   function applyLook(dx, dy) {
-    lookYaw.value -= dx * LOOK_X;
-    lookPitch.value = Math.max(PITCH_MIN, Math.min(PITCH_MAX, lookPitch.value + dy * LOOK_Y));
+    const s = 1 - (1 - AIM_LOOK) * aimK;
+    lookYaw.value -= dx * LOOK_X * s;
+    lookPitch.value = Math.max(PITCH_MIN, Math.min(PITCH_MAX, lookPitch.value + dy * LOOK_Y * s));
+  }
+
+  /**
+   * Recoil in degrees. Most of it climbs the aim (you pull it back down), the rest
+   * is a quick visual kick that springs back.
+   */
+  function recoil(pitchDeg, yawDeg = 0, shake = 0) {
+    const p = (pitchDeg * Math.PI) / 180;
+    const y = (yawDeg * Math.PI) / 180;
+    const before = lookPitch.value;
+    lookPitch.value = Math.max(PITCH_MIN, lookPitch.value - p * 0.55);
+    climb += before - lookPitch.value;
+    sinceKick = 0;
+    lookYaw.value += y * 0.55;
+    kickPitch += p * 0.45;
+    kickYaw += y * 0.45;
+    trauma = Math.min(1, trauma + shake);
+  }
+
+  function shake(amount) {
+    trauma = Math.min(1, trauma + amount);
   }
 
   function setYaw(y) {
@@ -45,12 +82,17 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
     return lookPitch.value;
   }
 
+  function mix3(free, armed, aim) {
+    const hip = free + (armed - free) * armedK;
+    return hip + (aim - hip) * aimK;
+  }
+
   /** Desired boom position behind the player (world). */
   function desiredPosition(playerPos, boomY = BOOM_Y) {
     const yaw = lookYaw.value;
     const pitch = lookPitch.value;
-    const o = DIST;
-    const a = SIDE;
+    const o = mix3(DIST, ARMED.dist, AIM.dist);
+    const a = mix3(SIDE, ARMED.side, AIM.side);
     desired.set(
       playerPos.x + Math.sin(yaw) * o + Math.cos(yaw) * a,
       Math.max(0.45, boomY + Math.sin(pitch) * o),
@@ -90,24 +132,28 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
   /**
    * @param {number} dt
    * @param {{ x: number, y?: number, z: number }} playerPos
-   * @param {{ tight?: boolean }} [opts]
+   * @param {{ tight?: boolean, armed?: boolean, aim?: number }} [opts]
+   *   armed: holding a gun (hip framing); aim: 0..1 raise toward the shoulder view.
    */
   function update(dt, playerPos, opts = {}) {
     const tight = !!opts.tight;
+    armedK += ((opts.armed ? 1 : 0) - armedK) * (1 - Math.exp(-6 * dt));
+    aimK += (Math.max(0, Math.min(1, opts.aim ?? 0)) - aimK) * (1 - Math.exp(-14 * dt));
     // Player root stores eye height (~1.7 on ground). Lift the boom with jumps.
     const eye = 1.7;
     const lift = Number.isFinite(playerPos.y) ? Math.max(0, playerPos.y - eye) : 0;
     chest.set(playerPos.x, CHEST_Y + lift, playerPos.z);
     // Boom height is Züri's 1.65 m, not the 1.45 m chest probe — using chest for both
     // put the body too high relative to the center crosshair.
-    desiredPosition(playerPos, BOOM_Y + lift);
+    desiredPosition(playerPos, mix3(BOOM_Y, ARMED.y, AIM.y) + lift);
     clearBoom(chest, desired);
 
     if (!snapped) {
       camPos.copy(desired);
       snapped = true;
     } else {
-      const k = 1 - Math.exp(-12 * dt);
+      // Aiming stiffens the boom so the reticle doesn't swim.
+      const k = 1 - Math.exp(-(12 + 18 * aimK) * dt);
       camPos.lerp(desired, k);
     }
 
@@ -117,11 +163,34 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
       -Math.cos(lookYaw.value) * Math.cos(lookPitch.value),
     );
 
+    sinceKick += dt;
+    if (climb > CLIMB_MAX) {
+      // Past the cap the muzzle stops rising and just shakes around the line.
+      lookPitch.value += climb - CLIMB_MAX;
+      climb = CLIMB_MAX;
+    }
+    if (sinceKick > 0.12 && climb > 1e-5) {
+      const back = climb * (1 - Math.exp(-7 * dt));
+      lookPitch.value = Math.min(PITCH_MAX, lookPitch.value + back * 0.8);
+      climb -= back;
+    }
+    kickPitch *= Math.exp(-14 * dt);
+    kickYaw *= Math.exp(-14 * dt);
+    trauma = Math.max(0, trauma - 2.2 * dt);
+    shakeT += dt;
+    const sh = trauma * trauma * 0.012;
+    const ky = lookYaw.value + kickYaw + sh * Math.sin(shakeT * 61);
+    const kp = lookPitch.value - kickPitch + sh * Math.sin(shakeT * 47 + 1.3);
+    const vx = -Math.sin(ky) * Math.cos(kp);
+    const vy = -Math.sin(kp);
+    const vz = -Math.cos(ky) * Math.cos(kp);
+
     camera.position.copy(camPos);
     camera.up.set(0, 1, 0);
-    camera.lookAt(camPos.x + aimDir.x * 30, camPos.y + aimDir.y * 30, camPos.z + aimDir.z * 30);
+    camera.lookAt(camPos.x + vx * 30, camPos.y + vy * 30, camPos.z + vz * 30);
 
-    const targetFov = tight ? FOV_TIGHT : FOV_WALK;
+    const hipFov = FOV_WALK + (ARMED.fov - FOV_WALK) * armedK;
+    const targetFov = tight ? FOV_TIGHT : hipFov + (AIM.fov - hipFov) * aimK;
     fov += (targetFov - fov) * (1 - Math.exp(-8 * dt));
     if (Math.abs(camera.fov - fov) > 0.05) {
       camera.fov = fov;
@@ -145,8 +214,20 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
     lookYaw.value += dy * (1 - Math.exp(-lambda * dt));
   }
 
+  /** The crosshair ray without recoil kick or shake (what bullets follow). */
+  function aimRay(outPos, outDir) {
+    outPos.copy(camPos);
+    outDir.copy(aimDir);
+  }
+
   return {
     applyLook,
+    recoil,
+    shake,
+    aimRay,
+    get aimK() {
+      return aimK;
+    },
     setYaw,
     yaw,
     pitch,

@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CHAR_DIR = ROOT / "viewer" / "characters"
 OUT_DIR = CHAR_DIR / "clips"
-CHARS = ("Remy", "Amy", "James", "Michelle", "Aj")
+CHARS = ("Remy", "James")
 KINDS = ("Riding", "Scooter")
 
 GLB_MAGIC = 0x46546C67

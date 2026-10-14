@@ -1,8 +1,8 @@
 /**
  * Velo Antwerpen: take/return city bikes at GBFS stations (E).
  *
- * Dock rails + static bikes are baked into the district GLB. This module only
- * spawns the bike you ride, so stations are not doubled with runtime meshes.
+ * Dock rails stay in the district GLB. Docked bikes are `velo.glb` instances
+ * so a take can hide that slot and a return can put the same model back.
  */
 
 /** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
@@ -17,6 +17,13 @@ const CAPTION_DIST = 6.0; // slightly wider for GTA-style area captions
 const BIKE_SPEED = 8.6; // ~31 km/h cruise (MOVE.velo.speed); the viewer owns acceleration
 // Built by scripts/build_velo_glb.py at real size. Rebuild it there, not here.
 const MODEL_URL = new URL("./vehicles/velo.glb", import.meta.url).href;
+const MAX_DOCK_BIKES = 20;
+// Front axle is 0.72 m ahead of the bottom bracket (scripts/build_velo_glb.py).
+// The dock wheel guide sits 0.42 m street-side of the rail.
+const DOCK_GUIDE = 0.42;
+const FRONT_WHEEL = 0.72;
+const DOCK_PAD = DOCK_GUIDE + FRONT_WHEEL;
+const BAKED_DOCK_BIKE = /(?:^|_)velo_(?:frame_red|silver|mudguard|tire|bike(?:_\d+)?)$/;
 
 /**
  * Ride points in the bike's own frame: metres, front −Z, origin on the ground
@@ -153,6 +160,63 @@ export function placeRideVelo(mesh, dt, player) {
   }
 }
 
+/** Hide the stand-in bikes baked into older district GLBs (one mesh per material). */
+function hideBakedDockBikes(root) {
+  let n = 0;
+  root.traverse((o) => {
+    if (!BAKED_DOCK_BIKE.test(o.name || "")) return;
+    o.visible = false;
+    n += 1;
+  });
+  if (n) console.info(`[metropolis] velo: hid ${n} baked stand-in dock bikes`);
+}
+
+/** Rail axes in Three XZ: tan = local +X, street = local +Y after z = −y. */
+function railFrame(st) {
+  const cos = Math.cos(st.yaw);
+  const sin = Math.sin(st.yaw);
+  return {
+    tan: { x: cos, z: -sin },
+    street: { x: -sin, z: -cos },
+  };
+}
+
+/** Dock slot pose: front wheel in the guide, bike facing the rail. */
+export function dockSlotPose(st, slot) {
+  const { tan, street } = railFrame(st);
+  const length = st.railLength || 8;
+  const cap = Math.max(1, st.capacity);
+  const half = length * 0.5;
+  const spacing = length / cap;
+  const cx = -half + (slot + 0.5) * spacing;
+  return {
+    x: st.x + tan.x * cx + street.x * DOCK_PAD,
+    z: st.z + tan.z * cx + street.z * DOCK_PAD,
+    yaw: st.yaw + Math.PI,
+  };
+}
+
+function placeDocked(mesh, pose) {
+  mesh.position.set(pose.x, 0, pose.z);
+  mesh.rotation.set(0, pose.yaw, 0);
+  mesh.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = false;
+    o.receiveShadow = false;
+    o.frustumCulled = true;
+  });
+}
+
+function nearestDock(docks, player, present) {
+  let best = null;
+  for (const d of docks || []) {
+    if (d.present !== present) continue;
+    const dist = Math.hypot(d.mesh.position.x - player.x, d.mesh.position.z - player.z);
+    if (!best || dist < best.dist) best = { dock: d, dist };
+  }
+  return best?.dock || null;
+}
+
 /** Closest point on the station rail segment (Blender local X after yaw → Three XZ). */
 function distToRail(st, px, pz) {
   const half = (st.railLength || 8) * 0.5;
@@ -183,6 +247,7 @@ export async function createVelo(scene, THREE) {
     console.warn("[metropolis] velo: could not load", veloUrl(), e);
   }
   await model;
+  if (_model) hideBakedDockBikes(scene);
 
   const stations = (doc.stations || []).map((raw) => ({
     id: String(raw.id),
@@ -194,7 +259,25 @@ export async function createVelo(scene, THREE) {
     bikesAvailable: Math.max(0, Number(raw.bikesAvailable) || 0),
     railLength: Number(raw.railLength) || 8,
     slotSpacing: Number(raw.slotSpacing) || 0.95,
+    docks: [],
   }));
+
+  function fillDocks(st) {
+    const n = Math.min(MAX_DOCK_BIKES, st.bikesAvailable, st.capacity);
+    for (let i = 0; i < n; i++) {
+      // Spread along the rail (same rule as the old Blender bake).
+      const slot =
+        n > 1 ? Math.round((i * (st.capacity - 1)) / (n - 1)) : Math.floor(st.capacity / 2);
+      const pose = dockSlotPose(st, slot);
+      const mesh = makeVeloBike(THREE);
+      placeDocked(mesh, pose);
+      scene.add(mesh);
+      st.docks.push({ mesh, slot, present: true });
+    }
+  }
+  if (_model) {
+    for (const st of stations) fillDocks(st);
+  }
 
   // Street-parked bikes after a mid-ride hop-off (remount with E).
   const parked = [];
@@ -247,9 +330,37 @@ export async function createVelo(scene, THREE) {
     });
   }
 
-  function takeFromStation(st) {
+  function hideNearestDock(st, player) {
+    const dock = nearestDock(st.docks, player, true);
+    if (!dock) return;
+    dock.present = false;
+    dock.mesh.visible = false;
+  }
+
+  function showNearestDock(st, player) {
+    const dock = nearestDock(st.docks, player, false);
+    if (dock) {
+      dock.present = true;
+      dock.mesh.visible = true;
+      return;
+    }
+    if (st.docks.length >= Math.min(MAX_DOCK_BIKES, st.capacity)) return;
+    const used = new Set(st.docks.map((d) => d.slot));
+    for (let i = 0; i < st.capacity; i++) {
+      if (used.has(i)) continue;
+      const pose = dockSlotPose(st, i);
+      const mesh = makeVeloBike(THREE);
+      placeDocked(mesh, pose);
+      scene.add(mesh);
+      st.docks.push({ mesh, slot: i, present: true });
+      return;
+    }
+  }
+
+  function takeFromStation(st, player) {
     if (st.bikesAvailable <= 0) return false;
     st.bikesAvailable -= 1;
+    hideNearestDock(st, player);
     const mesh = makeVeloBike(THREE);
     scene.add(mesh);
     ride = { stationId: st.id, mesh, name: st.name };
@@ -262,12 +373,13 @@ export async function createVelo(scene, THREE) {
     return true;
   }
 
-  function returnToStation(st) {
+  function returnToStation(st, player) {
     if (!ride || freeSlots(st) <= 0) return false;
     st.bikesAvailable += 1;
     scene.remove(ride.mesh);
     disposeMesh(ride.mesh);
     ride = null;
+    showNearestDock(st, player);
     return true;
   }
 
@@ -304,7 +416,7 @@ export async function createVelo(scene, THREE) {
     const near = nearestStation(player.x, player.z);
     if (ride) {
       // Prefer docking when at a station with a free slot.
-      if (near && freeSlots(near.st) > 0 && returnToStation(near.st)) {
+      if (near && freeSlots(near.st) > 0 && returnToStation(near.st, player)) {
         return {
           action: "return",
           name: near.st.name,
@@ -331,7 +443,7 @@ export async function createVelo(scene, THREE) {
       toastT = 2.2;
       return { action: "empty" };
     }
-    if (takeFromStation(near.st)) {
+    if (takeFromStation(near.st, player)) {
       return {
         action: "take",
         name: near.st.name,
@@ -384,12 +496,20 @@ export async function createVelo(scene, THREE) {
       disposeMesh(b.mesh);
     }
     parked.length = 0;
+    for (const st of stations) {
+      for (const d of st.docks) {
+        scene.remove(d.mesh);
+        disposeMesh(d.mesh);
+      }
+      st.docks.length = 0;
+    }
     ride = null;
   }
 
   console.info(
     `[metropolis] velo: ${stations.length} stations,` +
-      ` ${stations.reduce((n, s) => n + s.bikesAvailable, 0)} bikes available`
+      ` ${stations.reduce((n, s) => n + s.bikesAvailable, 0)} bikes available,` +
+      ` ${stations.reduce((n, s) => n + s.docks.length, 0)} docked`
   );
 
   // Rails with their docked bikes as solid boxes, same shape as the vehicle solids.

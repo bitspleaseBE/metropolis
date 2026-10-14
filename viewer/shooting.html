@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <title>Klein Antwerpen · Shooting range</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1014; color: #eee;
+        font: 14px/1.4 "Helvetica Neue", Arial, sans-serif; }
+      canvas { display: block; }
+      #panel { position: fixed; left: 16px; top: 16px; z-index: 700; background: rgba(10,12,16,0.82); padding: 12px 14px;
+        border-radius: 6px; width: 250px; }
+      #panel h1 { margin: 0 0 8px; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; }
+      #panel .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+      #panel button { background: #262b33; color: #eee; border: 1px solid #3a414c; border-radius: 4px; padding: 5px 9px;
+        font: 600 12px "Helvetica Neue", Arial, sans-serif; cursor: pointer; }
+      #panel button.on { background: #ffd800; color: #111; border-color: #ffd800; }
+      #panel label { font-size: 12px; display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+      #stats { font: 12px/1.55 ui-monospace, Menlo, monospace; color: #cfe9d0; white-space: pre; margin-top: 8px; }
+      #keys { font-size: 12px; color: #bbb; margin-top: 8px; line-height: 1.6; }
+      #keys kbd { background: #eee; color: #111; border-radius: 3px; padding: 0 4px; font: 700 11px "Helvetica Neue", Arial; }
+      body.locked #panel { opacity: 0.35; pointer-events: none; }
+      #start { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 650;
+        pointer-events: none; }
+      #start div { background: rgba(0,0,0,0.6); padding: 14px 22px; border-radius: 6px; font-weight: 700; letter-spacing: 0.08em;
+        text-transform: uppercase; }
+      body.locked #start { display: none; }
+      #hud-tr { position: fixed; top: 18px; right: 24px; z-index: 600; text-align: right; pointer-events: none; }
+      #hud-wallet { font-weight: 700; font-size: 1.45rem; color: #8fe08c; text-shadow: 0 0 2px #000, 0 1px 2px #000; }
+      #hud-health { width: 150px; height: 6px; margin: 8px 0 0 auto; background: rgba(0,0,0,0.55); border-radius: 3px; overflow: hidden; }
+      #hud-health i { display: block; height: 100%; width: 100%; background: #3bbf55; }
+      #feed { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); z-index: 640; pointer-events: none; text-align: center; }
+      #feed div { background: rgba(10,12,16,0.78); padding: 7px 12px; border-left: 3px solid #ffd800; border-radius: 3px; margin-top: 6px;
+        font-weight: 600; animation: fade 2.6s forwards; }
+      @keyframes fade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+      #gta { position: fixed; inset: 0; z-index: 610; pointer-events: none; display: none; }
+      #gta.on { display: block; }
+      #gta .v, #gta .h { position: absolute; background: rgba(0,255,200,0.35); }
+      #gta .v { top: 0; bottom: 0; width: 1px; }
+      #gta .h { left: 0; right: 0; height: 1px; }
+      #gta .box { position: absolute; border: 1px dashed rgba(0,255,200,0.75); }
+      #gta .lbl { position: absolute; color: rgba(0,255,200,0.9); font: 600 11px ui-monospace, Menlo, monospace; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="panel">
+      <h1>Shooting range</h1>
+      <div class="row" id="cast"></div>
+      <div class="row">
+        <button id="give">Give all (G)</button>
+        <button id="strip">Strip</button>
+        <button id="reset">Reset targets</button>
+      </div>
+      <label><input type="checkbox" id="gtaToggle" /> GTA V framing overlay (O)</label>
+      <label><input type="checkbox" id="moverToggle" checked /> Moving target</label>
+      <div id="stats"></div>
+      <div id="keys">
+        <kbd>Click</kbd> lock mouse · <kbd>WASD</kbd> move · <kbd>Shift</kbd> sprint<br />
+        <kbd>RMB</kbd> aim · <kbd>LMB</kbd> fire / punch · <kbd>R</kbd> reload<br />
+        <kbd>Tab</kbd> hold for weapon wheel · <kbd>Wheel</kbd> / <kbd>1-6</kbd> switch<br />
+        Pad: <kbd>LT</kbd> aim · <kbd>RT</kbd> fire · <kbd>LB</kbd> wheel · <kbd>B</kbd> reload · <kbd>A</kbd> sprint<br />
+        Walk over the bench to pick weapons up.<br />
+        Knife or fists: the dummy comes up to spar.
+      </div>
+    </div>
+    <div id="start"><div>Click to play</div></div>
+    <div id="hud-tr"><div id="hud-wallet">€0.00</div><div id="hud-health"><i></i></div></div>
+    <div id="feed"></div>
+    <div id="gta">
+      <i class="v" style="left: 50%"></i><i class="h" style="top: 50%"></i>
+      <i class="v" style="left: 33.33%"></i><i class="v" style="left: 66.66%"></i>
+      <i class="h" style="top: 33.33%"></i><i class="h" style="top: 66.66%"></i>
+      <!-- GTA V aimed pistol, 16:9: right shoulder ~44% across, head top ~30% down, body left of the reticle. -->
+      <div class="box" style="left: 31%; top: 30%; width: 15%; height: 70%"></div>
+      <span class="lbl" style="left: 31%; top: calc(30% - 16px)">GTA V aim framing (approx.)</span>
+    </div>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+      import { PLAYERS, createPlayerAvatar, getStoredPlayerId } from "./players.js";
+      import { createPlayerMotion } from "./player-motion.js";
+      import { createThirdPersonCamera } from "./third-person.js";
+      import { createCombatPlayer } from "./combat-player.js";
+      import { createLoot, ARMOR_MAX } from "./loot.js";
+      import { SLOTS, WEAPONS, preloadWeapons } from "./weapons.js";
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      document.body.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x9fb8cc);
+      scene.fog = new THREE.Fog(0x9fb8cc, 60, 140);
+      const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.05, 400);
+
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      scene.environmentIntensity = 0.6;
+      scene.add(new THREE.HemisphereLight(0xdfe9f5, 0x5a5348, 1.1));
+      const sun = new THREE.DirectionalLight(0xfff1dc, 2.2);
+      sun.position.set(-18, 30, 12);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 90 });
+      scene.add(sun);
+
+      // --- The range: firing line at z = 0, lanes running toward -Z.
+      const solid = [];
+      const concrete = new THREE.MeshStandardMaterial({ color: 0x9a968e, roughness: 0.95 });
+      const darker = new THREE.MeshStandardMaterial({ color: 0x6f6b64, roughness: 0.9 });
+      const wood = new THREE.MeshStandardMaterial({ color: 0x7a5636, roughness: 0.8 });
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0x77736b, roughness: 1 }));
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+      function box(w, h, d, x, y, z, mat = concrete) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        m.position.set(x, y, z);
+        m.castShadow = m.receiveShadow = true;
+        scene.add(m);
+        solid.push(m);
+        return m;
+      }
+      box(30, 6, 1, 0, 3, -52); // berm wall
+      box(1, 4, 60, -15, 2, -22, darker);
+      box(1, 4, 60, 15, 2, -22, darker);
+      box(30, 0.3, 4, 0, 4.15, 3, darker); // booth roof
+      for (const x of [-9, -3, 3, 9]) box(0.25, 1.1, 0.6, x, 0.55, -1.2, wood); // lane dividers
+      const bench = box(6, 0.9, 1, -10, 0.45, 5, wood);
+      box(30, 4, 0.6, 0, 2, 9, darker); // back wall
+
+      // Lane distance markers.
+      function marker(text, x, z) {
+        const c = document.createElement("canvas");
+        c.width = 128;
+        c.height = 64;
+        const g = c.getContext("2d");
+        g.fillStyle = "#f2d300";
+        g.fillRect(0, 0, 128, 64);
+        g.fillStyle = "#111";
+        g.font = "bold 40px Helvetica";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(text, 64, 34);
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c) }));
+        m.position.set(x, 0.02, z);
+        m.rotation.x = -Math.PI / 2;
+        scene.add(m);
+      }
+
+      // Paper silhouettes. Score rings from the chest centre.
+      function paperTexture() {
+        const c = document.createElement("canvas");
+        c.width = 256;
+        c.height = 512;
+        const g = c.getContext("2d");
+        g.fillStyle = "#f4efe2";
+        g.fillRect(0, 0, 256, 512);
+        g.fillStyle = "#26303a";
+        g.beginPath();
+        g.ellipse(128, 92, 46, 56, 0, 0, Math.PI * 2);
+        g.fill();
+        g.beginPath();
+        g.moveTo(40, 512);
+        g.lineTo(40, 230);
+        g.quadraticCurveTo(48, 160, 128, 152);
+        g.quadraticCurveTo(208, 160, 216, 230);
+        g.lineTo(216, 512);
+        g.fill();
+        g.strokeStyle = "#f4efe2";
+        g.lineWidth = 3;
+        for (const r of [28, 58, 88]) {
+          g.beginPath();
+          g.ellipse(128, 300, r, r * 1.25, 0, 0, Math.PI * 2);
+          g.stroke();
+        }
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      const paperTex = paperTexture();
+      const targets = [];
+      function paper(x, z, label) {
+        const g = new THREE.Group();
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.0, 0.06), wood);
+        post.position.y = 0.5;
+        post.castShadow = true;
+        g.add(post);
+        const sheet = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.2), new THREE.MeshStandardMaterial({ map: paperTex, side: THREE.DoubleSide, roughness: 1 }));
+        sheet.position.y = 1.6;
+        sheet.castShadow = true;
+        sheet.userData = { paper: true, label, hits: 0 };
+        g.add(sheet);
+        g.position.set(x, 0, z);
+        scene.add(g);
+        targets.push(sheet);
+        marker(label, x, -1.6);
+        return g;
+      }
+      paper(-12, -5, "5 m");
+      paper(-6, -10, "10 m");
+      paper(0, -20, "20 m");
+      paper(6, -40, "40 m");
+      const mover = paper(12, -15, "15 m");
+
+      const occluders = () => [...solid, ...targets, ground];
+
+      // --- Player.
+      const player = new THREE.Object3D();
+      player.position.set(0, 1.7, 2.5);
+      const thirdPerson = createThirdPersonCamera(THREE, camera, () => null);
+      const motion = createPlayerMotion(THREE, player, () => thirdPerson.yaw(), (y) => thirdPerson.setYaw(y));
+      const avatar = createPlayerAvatar(THREE, scene, { remember: false });
+      const query = new URLSearchParams(location.search);
+      // ?test lets scripts fire without pointer lock (scripts/test_combat.mjs).
+      const testMode = query.has("test");
+      let playerId = query.get("player") || getStoredPlayerId();
+      avatar.setPlayer(playerId);
+      let armor = 0;
+      let money = 0;
+      const walletEl = document.getElementById("hud-wallet");
+      const feedEl = document.getElementById("feed");
+      function note(text) {
+        const d = document.createElement("div");
+        d.textContent = text;
+        feedEl.prepend(d);
+        setTimeout(() => d.remove(), 2700);
+      }
+
+      // --- Sparring dummy: a second cast member who takes hits, dies, drops loot, gets up.
+      const HOME = { x: -3, z: -14 };
+      const SPAR = { x: 6, z: 1.6 };
+      const DUMMY_JOG = 3.4;
+      const dummy = { x: HOME.x, y: 0, z: HOME.z, hx: HOME.x, hz: HOME.z, sway: 1, r: 0.27, h: 1.74, kind: "dummy", hp: 100, dead: false, deadT: 0 };
+      const dummyAvatar = createPlayerAvatar(THREE, scene, { remember: false });
+      function setDummyCast() {
+        const other = PLAYERS.find((p) => p.id !== playerId) || PLAYERS[1];
+        dummyAvatar.setPlayer(other.id);
+      }
+      setDummyCast();
+
+      const loot = createLoot(THREE, scene, {
+        onPickup(item) {
+          if (item.cash) {
+            money += item.cash;
+            walletEl.textContent = `€${money.toFixed(2)}`;
+            note(`Cash +€${item.cash}`);
+            return true;
+          }
+          if (item.armor) {
+            if (armor >= ARMOR_MAX) return false;
+            armor = Math.min(ARMOR_MAX, armor + item.armor);
+            cp.hud.setArmor(armor);
+            note(`Body armor ${armor}%`);
+            return true;
+          }
+          if (item.weapon) {
+            const r = cp.give(item.weapon, item.rounds);
+            if (r === "full") return false;
+            note(r === "new" ? `Picked up ${WEAPONS[item.weapon].label}` : `${WEAPONS[item.weapon].label} ammo`);
+            return true;
+          }
+          return false;
+        },
+      });
+      function stockBench() {
+        loot.clear();
+        Object.keys(WEAPONS).forEach((id, i) => loot.spawn({ weapon: id, rounds: undefined }, -12.2 + i * 1.1, 0.9, 5));
+        loot.spawn({ armor: 50 }, -6.2, 0, 5.5);
+      }
+      preloadWeapons(THREE).then(stockBench);
+
+      // Melee step-in toward the locked target, stopping at striking distance.
+      let lunge = null;
+      const LUNGE_STOP = 0.75;
+      const LUNGE_SPEED = 5;
+      const cp = createCombatPlayer(THREE, {
+        scene,
+        camera,
+        avatar,
+        thirdPerson,
+        targets: () => [dummy],
+        occluders,
+        groundY: () => 0,
+        blocked: () => !testMode && !document.pointerLockElement && !padActive,
+        onHit(h) {
+          if (h.target === dummy) {
+            if (dummy.dead) return null;
+            dummy.hp -= h.damage;
+            dummyAvatar.hitReact();
+            if (h.head) note(`Headshot · ${Math.round(h.damage)}`);
+            if (dummy.hp <= 0) {
+              dummy.dead = true;
+              dummy.deadT = 4;
+              setTimeout(() => loot.drop("dummy", dummy.x, 0, dummy.z + 0.6), 700);
+              return "kill";
+            }
+            return "hit";
+          }
+          if (h.object?.userData?.paper) {
+            const s = h.object.userData;
+            s.hits++;
+            const local = h.object.worldToLocal(h.point.clone());
+            // Chest centre is 300px of 512 down a 1.2 m sheet.
+            const dy = (local.y - (0.6 - (300 / 512) * 1.2)) / 1.25;
+            const d = Math.hypot(local.x, dy);
+            const score = d < 0.066 ? 10 : d < 0.137 ? 8 : d < 0.206 ? 5 : local.y > 0.34 ? 10 : 2;
+            rangeScore += score;
+            lastPaper = `${s.label}: ${score}${local.y > 0.34 ? " (head)" : ""}`;
+            return "hit";
+          }
+          return null;
+        },
+        onMelee(m) {
+          if (m.kind === "knife" && m.target) lunge = { x: m.target.x, z: m.target.z, t: 0.22 };
+          if (dummy.dead) return;
+          const dx = dummy.x - player.position.x;
+          const dz = dummy.z - player.position.z;
+          const dist = Math.hypot(dx, dz);
+          const y = avatar.facing;
+          const fwd = (-Math.sin(y) * dx - Math.cos(y) * dz) / Math.max(1e-3, dist);
+          if (dist < m.range + 0.3 && fwd > 0.5) {
+            setTimeout(() => {
+              dummy.hp -= m.damage;
+              dummyAvatar.hitReact();
+              cp.hud.hit(dummy.hp <= 0);
+              cp.fx.hitTick(dummy.hp <= 0);
+              if (m.kind === "knife") cp.fx.blood(new THREE.Vector3(dummy.x, 1.25, dummy.z), 10);
+              if (dummy.hp <= 0 && !dummy.dead) {
+                dummy.dead = true;
+                dummy.deadT = 4;
+                setTimeout(() => loot.drop("dummy", dummy.x, 0, dummy.z + 0.6), 700);
+              }
+            }, (m.hit ?? 0.18) * 1000);
+          }
+        },
+      });
+      let rangeScore = 0;
+      let lastPaper = "";
+
+      // --- Cast picker.
+      const castEl = document.getElementById("cast");
+      for (const p of PLAYERS) {
+        const b = document.createElement("button");
+        b.textContent = p.name || p.id;
+        b.dataset.id = p.id;
+        b.onclick = async () => {
+          playerId = p.id;
+          await avatar.setPlayer(p.id);
+          avatar.setWeapon(cp.combat.weapon);
+          setDummyCast();
+          for (const x of castEl.children) x.classList.toggle("on", x.dataset.id === playerId);
+        };
+        castEl.appendChild(b);
+      }
+      for (const x of castEl.children) x.classList.toggle("on", x.dataset.id === playerId);
+
+      function giveAll() {
+        for (const id of Object.keys(WEAPONS)) cp.give(id, WEAPONS[id].melee ? 0 : WEAPONS[id].mag + WEAPONS[id].maxReserve);
+        armor = ARMOR_MAX;
+        cp.hud.setArmor(armor);
+        note("All weapons");
+      }
+      document.getElementById("give").onclick = giveAll;
+      document.getElementById("strip").onclick = () => {
+        cp.combat.clear();
+        armor = 0;
+        cp.hud.setArmor(0);
+        stockBench();
+      };
+      document.getElementById("reset").onclick = () => {
+        rangeScore = 0;
+        lastPaper = "";
+        cp.resetStats();
+        for (const t of targets) t.userData.hits = 0;
+        dummy.hp = 100;
+        dummy.dead = false;
+      };
+      const gtaEl = document.getElementById("gta");
+      document.getElementById("gtaToggle").onchange = (e) => gtaEl.classList.toggle("on", e.target.checked);
+      const moverToggle = document.getElementById("moverToggle");
+
+      // --- Input.
+      const keys = {};
+      let padActive = false;
+      renderer.domElement.addEventListener("click", () => {
+        cp.fx.unlock();
+        if (!document.pointerLockElement) renderer.domElement.requestPointerLock?.()?.catch?.(() => {});
+      });
+      document.addEventListener("pointerlockchange", () => {
+        document.body.classList.toggle("locked", !!document.pointerLockElement);
+        if (!document.pointerLockElement) {
+          cp.combat.setTrigger(false);
+          cp.combat.setAim(false);
+          cp.combat.setWheel(false);
+        }
+      });
+      addEventListener("mousemove", (e) => {
+        if (!document.pointerLockElement) return;
+        if (cp.combat.wheelOpen) {
+          const id = cp.hud.point(e.movementX, e.movementY);
+          if (id) cp.combat.setHover(id);
+          return;
+        }
+        thirdPerson.applyLook(e.movementX, e.movementY);
+      });
+      addEventListener("mousedown", (e) => {
+        if (!document.pointerLockElement) return;
+        if (e.button === 0) cp.combat.setTrigger(true);
+        if (e.button === 2) {
+          if (cp.combat.armed) cp.combat.setAim(true);
+          else cp.combat.kick();
+        }
+      });
+      addEventListener("mouseup", (e) => {
+        if (e.button === 0) cp.combat.setTrigger(false);
+        if (e.button === 2) cp.combat.setAim(false);
+      });
+      addEventListener("contextmenu", (e) => e.preventDefault());
+      addEventListener(
+        "wheel",
+        (e) => {
+          if (!document.pointerLockElement || cp.combat.wheelOpen) return;
+          cp.combat.cycle(e.deltaY > 0 ? 1 : -1);
+        },
+        { passive: true },
+      );
+      addEventListener("keydown", (e) => {
+        if (e.code === "Tab") {
+          e.preventDefault();
+          if (!e.repeat) {
+            cp.hud.resetCursor();
+            cp.combat.setWheel(true);
+          }
+          return;
+        }
+        keys[e.key.toLowerCase()] = true;
+        if (e.shiftKey) keys.shift = true;
+        if (e.code === "KeyR") cp.combat.reload();
+        if (e.code === "KeyG") giveAll();
+        if (e.code === "KeyO") {
+          const t = document.getElementById("gtaToggle");
+          t.checked = !t.checked;
+          gtaEl.classList.toggle("on", t.checked);
+        }
+        const n = Number(e.key);
+        if (n >= 1 && n <= SLOTS.length) cp.combat.equip(SLOTS[n - 1]);
+      });
+      addEventListener("keyup", (e) => {
+        if (e.code === "Tab") {
+          e.preventDefault();
+          cp.combat.setWheel(false);
+          return;
+        }
+        keys[e.key.toLowerCase()] = false;
+        if (!e.shiftKey) keys.shift = false;
+      });
+
+      const clampStick = (x, y) => {
+        const m = Math.hypot(x, y);
+        return m > 1 ? { x: x / m, y: y / m } : { x, y };
+      };
+
+      // Gamepad, GTA layout (standard mapping).
+      const pad = { lt: false, rt: false, lb: false, b: false };
+      function pollPad(dt) {
+        const gp = [...(navigator.getGamepads?.() || [])].find((g) => g && g.mapping === "standard");
+        if (!gp) return null;
+        const dz = (v) => (Math.abs(v) < 0.15 ? 0 : (v - Math.sign(v) * 0.15) / 0.85);
+        const lx = dz(gp.axes[0]);
+        const ly = dz(gp.axes[1]);
+        const rx = dz(gp.axes[2]);
+        const ry = dz(gp.axes[3]);
+        const lt = gp.buttons[6]?.value > 0.35;
+        const rt = gp.buttons[7]?.value > 0.35;
+        const lb = gp.buttons[4]?.pressed;
+        const b = gp.buttons[1]?.pressed;
+        if (lx || ly || rx || ry || lt || rt || lb || b) padActive = true;
+        if (lb !== pad.lb) {
+          if (lb) cp.hud.resetCursor();
+          cp.combat.setWheel(lb);
+        }
+        if (lb) {
+          const id = cp.hud.point(rx, ry, true);
+          if (id) cp.combat.setHover(id);
+        } else {
+          // Stick look with a curve; aim assist slows the reticle over a target.
+          const assist = cp.enemyUnder && cp.combat.aiming ? 0.45 : 1;
+          const k = 900 * dt * assist;
+          thirdPerson.applyLook(rx * Math.abs(rx) * k, ry * Math.abs(ry) * k * 0.75);
+        }
+        if (lt !== pad.lt) cp.combat.armed ? cp.combat.setAim(lt) : lt && cp.combat.kick();
+        if (rt !== pad.rt) cp.combat.setTrigger(rt);
+        if (b && !pad.b) cp.combat.reload();
+        Object.assign(pad, { lt, rt, lb, b });
+        return { w: ly < -0.2, s: ly > 0.2, a: lx < -0.2, d: lx > 0.2, shift: gp.buttons[0]?.pressed, stick: lx || ly ? clampStick(lx, -ly) : null };
+      }
+
+      // --- Loop.
+      const clock = new THREE.Clock();
+      let t = 0;
+      const statsEl = document.getElementById("stats");
+      let statsT = 0;
+      const _feet = new THREE.Vector3();
+
+      function frame() {
+        const real = Math.min(0.05, clock.getDelta());
+        const dt = window.__range?.freeze ? 0 : real * cp.timeScale;
+        t += dt;
+        const padKeys = pollPad(real);
+        const k = padKeys && (padKeys.w || padKeys.s || padKeys.a || padKeys.d) ? padKeys : keys;
+        const aimingWalk = cp.combat.armed && cp.combat.aiming;
+        motion.setFootScale(cp.footScale);
+        const mv = { ...k, shift: k.shift && !aimingWalk };
+        const locked = !!document.pointerLockElement || padActive || testMode;
+        motion.step(dt, locked ? mv : {}, "walk");
+        if (lunge) {
+          const dx = lunge.x - player.position.x;
+          const dz = lunge.z - player.position.z;
+          const d = Math.hypot(dx, dz);
+          const step = Math.min(Math.max(0, d - LUNGE_STOP), LUNGE_SPEED * dt);
+          if (d > 1e-3) {
+            player.position.x += (dx / d) * step;
+            player.position.z += (dz / d) * step;
+          }
+          if ((lunge.t -= dt) <= 0) lunge = null;
+        }
+        player.position.x = Math.max(-14, Math.min(14, player.position.x));
+        player.position.z = Math.max(-0.6, Math.min(8.2, player.position.z));
+
+        const spd = Math.hypot(motion.state.fwd, motion.state.side);
+        _feet.set(player.position.x, 0, player.position.z);
+        cp.update(window.__range?.freeze ? 0 : real, _feet, { moving: Math.min(1, spd / 3.6), moveYaw: motion.travelYaw() });
+        const bodyYaw = cp.bodyYaw(spd > 0.12 ? motion.travelYaw() : avatar.facing);
+        avatar.update(dt, player.position, spd, bodyYaw, "walk", null, cp.fight);
+        thirdPerson.update(real, player.position, { armed: cp.combat.armed, aim: cp.combat.aiming ? 1 : 0 });
+
+        // Dummy faces you; gets back up after a few seconds.
+        if (moverToggle.checked) mover.position.x = 12 + Math.sin(t * 1.1) * 1.8;
+        if (dummy.dead) {
+          dummy.deadT -= dt;
+          if (dummy.deadT <= 0) {
+            dummy.dead = false;
+            dummy.hp = 100;
+          }
+        }
+        // Knife or fists: the dummy jogs up a lane to spar inside the booth (bullets
+        // can't reach you there). A gun out sends it back downrange to pace.
+        let dummySpeed = 0;
+        let face = Math.atan2(-(player.position.x - dummy.x), -(player.position.z - dummy.z));
+        if (!window.__range?.holdDummy && !dummy.dead) {
+          const spar = !cp.combat.armed;
+          const gx = spar ? SPAR.x : HOME.x;
+          const gz = spar ? SPAR.z : HOME.z;
+          const dx = gx - dummy.hx;
+          const dz = gz - dummy.hz;
+          const d = Math.hypot(dx, dz);
+          dummy.sway = Math.max(0, Math.min(1, dummy.sway + (d < 0.05 && !spar ? dt : -dt * 4)));
+          if (d > 0.05) {
+            const step = Math.min(d, DUMMY_JOG * dt);
+            dummy.hx += (dx / d) * step;
+            dummy.hz += (dz / d) * step;
+            dummySpeed = DUMMY_JOG;
+            if (d > 1) face = Math.atan2(-dx, -dz);
+          }
+          const sway = Math.sin(t * 0.5) * 2.5 * dummy.sway;
+          dummy.x = dummy.hx + sway;
+          dummy.z = dummy.hz;
+          dummySpeed = Math.max(dummySpeed, Math.abs(Math.cos(t * 0.5) * 1.25) * dummy.sway);
+        }
+        dummyAvatar.update(dt, { x: dummy.x, y: 1.7, z: dummy.z }, dummy.dead ? 0 : dummySpeed, face, "walk", null, {
+          dead: dummy.dead,
+          aim: 0,
+        });
+
+        loot.update(dt, player.position.x, player.position.z);
+        const dbg = window.__range?.debugCam;
+        if (dbg) {
+          camera.position.set(...dbg.p);
+          camera.lookAt(...dbg.t);
+        }
+        renderer.render(scene, camera);
+
+        if ((statsT -= real) <= 0) {
+          statsT = 0.2;
+          const s = cp.stats;
+          const acc = s.shots ? Math.round((s.hits / s.shots) * 100) : 0;
+          const c = cp.combat;
+          const a = c.ammoOf(c.weapon);
+          statsEl.textContent = [
+            `weapon   ${c.weapon}${a && !c.def?.melee ? ` ${a.mag}/${a.reserve}` : ""}`,
+            `shots    ${s.shots}   hits ${s.hits}  (${acc}%)`,
+            `heads    ${s.heads}   kills ${s.kills}`,
+            `score    ${rangeScore}  ${lastPaper}`,
+            `spread   ${c.spread.toFixed(2)}°`,
+            `fov      ${camera.fov.toFixed(1)}°  aim ${thirdPerson.aimK.toFixed(2)}`,
+            `boom     ${camera.position.distanceTo(player.position).toFixed(2)} m`,
+            `dummy    ${dummy.dead ? "down" : Math.max(0, Math.round(dummy.hp)) + " hp"}`,
+            `armor    ${armor}`,
+          ].join("\n");
+        }
+        requestAnimationFrame(frame);
+      }
+      thirdPerson.setYaw(0);
+      thirdPerson.snap(player.position);
+      frame();
+
+      addEventListener("resize", () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+        cp.fx.setViewportHeight(innerHeight);
+      });
+      cp.fx.setViewportHeight(innerHeight);
+      window.__range = { cp, avatar, dummy, player, thirdPerson, giveAll, camera, renderer, scene, motion, keys };
+    </script>
+  </body>
+</html>

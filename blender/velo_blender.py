@@ -1,16 +1,15 @@
-"""Velo Antwerpen dock rails + docked city bikes (runs inside Blender).
+"""Velo Antwerpen dock rails (runs inside Blender).
 
 ``layout["velo_stations"]`` (see ``cityview.velo``) lists docking terminals at their
 surveyed positions. Mesh convention: rail length on local X, front (street) on local +Y,
 ``yaw`` is ``rotation_z``.
 
-Baked bikes give stations a clean Velo look. The walk viewer only spawns the ride bike
-(``viewer/velo.js``) so docks are not doubled at runtime.
+Docked bikes are not baked here. ``viewer/velo.js`` instances ``velo.glb`` in each
+slot so a take (E) can hide that bike and a return can put the same model back.
 """
 
 from __future__ import annotations
 
-import math
 import sys
 from pathlib import Path
 
@@ -25,106 +24,11 @@ from cityview.railclear import CLEAR_FURNITURE  # noqa: E402
 from cityview import velo as veloplan  # noqa: E402
 
 LIFT = 0.04
-MAX_BAKED_BIKES = 8
-# The bike below is modelled at 1:1.55; this brings it to a real Velo (wheel r ≈ 0.31 m,
-# saddle ≈ 0.95 m). viewer/velo.js scales its ride bike by the same factor.
-BIKE_SCALE = 1.55
-SLOT_PAD = 0.76  # bike centre in front of the rail: front wheel sits in the dock guide
 
 
 def _box(bm, base: Matrix, size, center) -> None:
     m = base @ Matrix.Translation(Vector(center)) @ Matrix.Diagonal(Vector((size[0], size[1], size[2], 1.0)))
     bmesh.ops.create_cube(bm, size=1.0, matrix=m)
-
-
-def _cyl(bm, base: Matrix, radius: float, height: float, center, segs: int = 10) -> None:
-    m = base @ Matrix.Translation(Vector(center))
-    bmesh.ops.create_cone(
-        bm,
-        cap_ends=True,
-        cap_tris=False,
-        segments=segs,
-        radius1=radius,
-        radius2=radius,
-        depth=height,
-        matrix=m,
-    )
-
-
-def _tube(bm, base: Matrix, a, b, radius: float, segs: int = 8) -> None:
-    """Cylinder from point a to point b in the bike/station local frame."""
-    ax, ay, az = a
-    bx, by, bz = b
-    dx, dy, dz = bx - ax, by - ay, bz - az
-    length = math.sqrt(dx * dx + dy * dy + dz * dz) or 1e-6
-    mid = ((ax + bx) * 0.5, (ay + by) * 0.5, (az + bz) * 0.5)
-    # Align +Z of cone (depth axis after create_cone is Z in older bmesh — actually depth is Z)
-    # bmesh create_cone depth along local Z. Build rotation from (0,0,1) to dir.
-    dir_v = Vector((dx, dy, dz)).normalized()
-    z = Vector((0.0, 0.0, 1.0))
-    if abs(dir_v.dot(z)) > 0.999:
-        rot = Matrix.Identity(3) if dir_v.z > 0 else Matrix.Rotation(math.pi, 3, "X")
-    else:
-        rot = z.rotation_difference(dir_v).to_matrix()
-    m = base @ Matrix.Translation(Vector(mid)) @ rot.to_4x4()
-    bmesh.ops.create_cone(
-        bm,
-        cap_ends=True,
-        cap_tris=False,
-        segments=segs,
-        radius1=radius,
-        radius2=radius,
-        depth=length,
-        matrix=m,
-    )
-
-
-def _wheel(bm_tire, bm_rim, base: Matrix, center, radius: float = 0.2) -> None:
-    """Tire, rim, and hub in the bike's plane.
-
-    The frame lies in XZ (bike faces +X). The wheel must share that plane so a
-    side view shows a circle, with the axle running left–right along Y.
-    """
-    cx, cy, cz = center
-    segs = 12
-    for i in range(segs):
-        a0 = (i / segs) * math.tau
-        a1 = ((i + 1) / segs) * math.tau
-        x0, z0 = radius * math.cos(a0), radius * math.sin(a0)
-        x1, z1 = radius * math.cos(a1), radius * math.sin(a1)
-        _tube(bm_tire, base, (cx + x0, cy, cz + z0), (cx + x1, cy, cz + z1), 0.018, segs=4)
-        # Silver rim just inside the tire, same plane.
-        rim_r = radius * 0.86
-        _tube(
-            bm_rim,
-            base,
-            (cx + rim_r * math.cos(a0), cy, cz + rim_r * math.sin(a0)),
-            (cx + rim_r * math.cos(a1), cy, cz + rim_r * math.sin(a1)),
-            0.006,
-            segs=3,
-        )
-    for i in range(6):
-        a = (i / 6) * math.tau
-        _tube(
-            bm_rim,
-            base,
-            (cx, cy, cz),
-            (cx + radius * 0.82 * math.cos(a), cy, cz + radius * 0.82 * math.sin(a)),
-            0.0035,
-            segs=3,
-        )
-    # create_cone depth is local Z; tip it onto Y so the hub is the axle.
-    hub = base @ Matrix.Translation(Vector((cx, cy, cz))) @ Matrix.Rotation(math.pi / 2.0, 4, "X")
-    bmesh.ops.create_cone(
-        bm_rim,
-        cap_ends=True,
-        cap_tris=False,
-        segments=8,
-        radius1=0.02,
-        radius2=0.02,
-        depth=0.045,
-        matrix=hub,
-    )
 
 
 class Parts:
@@ -153,8 +57,8 @@ def _station_rail(p: Parts, base: Matrix, length: float, capacity: int) -> None:
         _box(metal, base, (0.055, 0.36, 0.42), (cx, -0.1, LIFT + 0.26))
     slots = max(4, int(capacity))
     spacing = length / max(1, slots)
-    screen = p.bm("tire")
-    panel = p.bm("mudguard")
+    screen = p.bm("screen")
+    panel = p.bm("panel")
     for i in range(slots):
         cx = -half + (i + 0.5) * spacing
         # Dock post with a lock head and status LED, plus a short wheel guide in front.
@@ -174,100 +78,9 @@ def _station_rail(p: Parts, base: Matrix, length: float, capacity: int) -> None:
     _box(panel, base, (0.36, 0.3, 0.14), (tx, 0.0, LIFT + 1.82))
 
 
-def _velo_bike(p: Parts, base: Matrix) -> None:
-    """Cleaner step-through Velo: tube frame, small wheels, front rack, white mudguard.
-
-    Bike faces local +X; docked with a π/2 yaw so the front wheel sits in the street-side fork.
-    """
-    tire = p.bm("tire")
-    silver = p.bm("silver")
-    frame = p.bm("frame")
-    mud = p.bm("mudguard")
-    red = p.bm("signal_red")
-
-    wr = 0.2
-    _wheel(tire, silver, base, (0.33, 0.0, wr), wr)   # front
-    _wheel(tire, silver, base, (-0.33, 0.0, wr), wr)  # rear
-
-    # Step-through tube polyline (side view in XZ, Y=0). Thick enough to read as red at street distance.
-    pts = [
-        (0.3, 0.0, 0.14),   # near front hub up
-        (0.22, 0.0, 0.36),  # head cluster
-        (0.05, 0.0, 0.26),  # low mid (step-through)
-        (-0.05, 0.0, 0.22), # BB
-        (-0.22, 0.0, 0.36), # seat cluster
-        (-0.3, 0.0, 0.2),   # toward rear hub
-    ]
-    for a, b in zip(pts, pts[1:]):
-        _tube(frame, base, a, b, 0.022, segs=7)
-    # Seat stay + red fork (the fork is part of the red frame, not the dark dock metal)
-    _tube(frame, base, (-0.22, 0.0, 0.36), (-0.33, 0.0, wr), 0.016, segs=6)
-    _tube(frame, base, (0.24, -0.03, 0.4), (0.33, -0.03, wr), 0.013, segs=5)
-    _tube(frame, base, (0.24, 0.03, 0.4), (0.33, 0.03, wr), 0.013, segs=5)
-    # Seat post + saddle
-    _tube(silver, base, (-0.22, 0.0, 0.36), (-0.22, 0.0, 0.58), 0.012, segs=6)
-    _box(tire, base, (0.18, 0.1, 0.035), (-0.22, 0.0, 0.62))
-    # Stem + bars
-    _tube(silver, base, (0.22, 0.0, 0.4), (0.22, 0.0, 0.6), 0.012, segs=6)
-    _tube(silver, base, (0.22, -0.22, 0.62), (0.22, 0.22, 0.62), 0.011, segs=6)
-    # Front rack
-    _box(silver, base, (0.16, 0.28, 0.012), (0.4, 0.0, 0.48))
-    _tube(silver, base, (0.36, -0.1, 0.48), (0.36, -0.1, 0.34), 0.008, segs=5)
-    _tube(silver, base, (0.36, 0.1, 0.48), (0.36, 0.1, 0.34), 0.008, segs=5)
-    # White rear mudguard: a shallow shell over the top of the rear wheel (XZ plane).
-    rear_x, rear_z = -0.33, wr
-    guard_r = wr + 0.04
-    guard_n = 6
-    for yoff in (-0.025, 0.025):
-        for i in range(guard_n):
-            t0 = i / guard_n
-            t1 = (i + 1) / guard_n
-            a0 = math.pi * 0.22 + t0 * math.pi * 0.72
-            a1 = math.pi * 0.22 + t1 * math.pi * 0.72
-            _tube(
-                mud,
-                base,
-                (rear_x + guard_r * math.cos(a0), yoff, rear_z + guard_r * math.sin(a0)),
-                (rear_x + guard_r * math.cos(a1), yoff, rear_z + guard_r * math.sin(a1)),
-                0.008,
-                segs=4,
-            )
-    _box(red, base, (0.035, 0.05, 0.035), (rear_x + guard_r * math.cos(math.pi * 0.9), 0.0, rear_z + guard_r * math.sin(math.pi * 0.9)))
-    # Crank hint
-    _box(silver, base, (0.04, 0.05, 0.05), (-0.02, 0.0, 0.2))
-
-
-_BIKE_PARTS = ("frame", "silver", "tire", "mudguard", "signal_red")
-
-
-def _bike_prototype(mats: dict):
-    """One real-size bike mesh with a material slot per part (shared by every docked bike)."""
-    p = Parts()
-    _velo_bike(p, Matrix.Diagonal(Vector((BIKE_SCALE, BIKE_SCALE, BIKE_SCALE, 1.0))))
-    out = bmesh.new()
-    mesh = bpy.data.meshes.new("velo_bike")
-    for slot, key in enumerate(_BIKE_PARTS):
-        bm = p.meshes.get(key)
-        if bm is None:
-            continue
-        for f in bm.faces:
-            f.material_index = slot
-        tmp = bpy.data.meshes.new(f"_velo_{key}")
-        bm.to_mesh(tmp)
-        bm.free()
-        out.from_mesh(tmp)
-        bpy.data.meshes.remove(tmp)
-    out.to_mesh(mesh)
-    out.free()
-    for key in _BIKE_PARTS:
-        mesh.materials.append(mats.get(key))
-    return mesh
-
-
 def add_velo_stations(layout: dict, rails, mats: dict, spawn_xy=None) -> dict:
-    """Dock rails merge into one mesh per material; bikes are GPU instances per streaming cell."""
-    from cityview.district_chunks import assign_object
-
+    """Dock rails only. ``spawn_xy`` is accepted so ``build_city`` can pass the spawn; bikes are not chunked meshes."""
+    del spawn_xy
     origin = tuple(layout.get("origin") or (0.0, 0.0))
     if "velo_stations" not in layout:
         plan = veloplan.plan_velo(layout, None, origin)
@@ -275,9 +88,7 @@ def add_velo_stations(layout: dict, rails, mats: dict, spawn_xy=None) -> dict:
         layout["velo_stats"] = plan["stats"]
 
     p = Parts()
-    bike_mesh = None
-    groups: dict[object, object] = {}
-    counts = {"stations": 0, "bikes": 0, "skipped_rail": 0}
+    counts = {"stations": 0, "skipped_rail": 0}
     for st in layout.get("velo_stations") or []:
         x, y = float(st["x"]), float(st["y"])
         if rails.within(x, y, CLEAR_FURNITURE):
@@ -290,38 +101,11 @@ def add_velo_stations(layout: dict, rails, mats: dict, spawn_xy=None) -> dict:
         _station_rail(p, base, length, capacity)
         counts["stations"] += 1
 
-        bikes_n = min(MAX_BAKED_BIKES, int(st.get("bikesAvailable") or 0), capacity)
-        spacing = length / max(1, capacity)
-        half = length * 0.5
-        for i in range(bikes_n):
-            slot = int(round(i * (capacity - 1) / max(1, bikes_n - 1))) if bikes_n > 1 else capacity // 2
-            cx = -half + (slot + 0.5) * spacing
-            # Front wheel nosed into the dock (bike +X → station −Y), at real size.
-            pos = base @ Vector((cx, SLOT_PAD, 0.0))
-            if bike_mesh is None:
-                bike_mesh = _bike_prototype(mats)
-            key = assign_object("velo", pos.x, pos.y, spawn_xy=spawn_xy)
-            parent = groups.get(key)
-            if parent is None:
-                label = "core" if key == "core" else f"{key[0]}_{key[1]}"
-                parent = bpy.data.objects.new(f"velo_bikes_{label}", None)
-                parent.location = (pos.x, pos.y, 0.0)
-                bpy.context.collection.objects.link(parent)
-                groups[key] = parent
-            obj = bpy.data.objects.new(f"velo_bike_{counts['bikes']}", bike_mesh)
-            obj.parent = parent
-            obj.location = (pos.x - parent.location.x, pos.y - parent.location.y, 0.0)
-            obj.rotation_euler = (0.0, 0.0, yaw - math.pi / 2.0)
-            bpy.context.collection.objects.link(obj)
-            counts["bikes"] += 1
-
     name_map = {
         "metal": "velo_dock_metal",
-        "frame": "velo_frame_red",
-        "silver": "velo_silver",
-        "mudguard": "velo_mudguard",
-        "tire": "velo_tire",
         "signal_red": "velo_accent_red",
+        "screen": "velo_dock_screen",
+        "panel": "velo_dock_panel",
     }
     for key, obj_name in name_map.items():
         bm = p.meshes.get(key)
@@ -337,5 +121,4 @@ def add_velo_stations(layout: dict, rails, mats: dict, spawn_xy=None) -> dict:
         if mat is not None:
             mesh.materials.append(mat)
         bpy.context.collection.objects.link(obj)
-    counts["bike_groups"] = len(groups)
     return counts

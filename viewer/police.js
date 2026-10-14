@@ -437,7 +437,7 @@ export async function createPolice(scene, THREE, opts = {}) {
       if (m.state === "dead") {
         m.deadFor += dt;
         m.root.rotation.x = Math.max(m.root.rotation.x, -Math.PI / 2);
-        if (!m.looted && Math.hypot(m.root.position.x - player.x, m.root.position.z - player.z) < 1.7) {
+        if (!opts.onKilled && !m.looted && Math.hypot(m.root.position.x - player.x, m.root.position.z - player.z) < 1.7) {
           m.looted = true;
           const got = opts.onLoot?.();
           opts.notify?.(got === "gun" ? "You took a pistol" : "You took a magazine");
@@ -474,6 +474,7 @@ export async function createPolice(scene, THREE, opts = {}) {
       m.cool -= dt;
       if (m.cool <= 0 && dist < SHOT_M && !player.dead && canSee(player.x, player.z, m.root.position.x, m.root.position.z, Math.sin(m.yaw), -Math.cos(m.yaw))) {
         m.cool = 0.85;
+        opts.onShot?.(m.root.position, player);
         player.hurt?.(SHOT_DMG);
       }
     }
@@ -492,6 +493,7 @@ export async function createPolice(scene, THREE, opts = {}) {
     m.root.position.copy(world);
     m.root.position.y = 0;
     wanted?.addStar(unit.clan);
+    opts.onKilled?.({ x: world.x, z: world.z, kind: unit.kind });
     return true;
   }
 
@@ -574,6 +576,30 @@ export async function createPolice(scene, THREE, opts = {}) {
     return take.length;
   }
 
+  /** Officers on foot as hitscan targets: { x, y, z, r, h, kind, ref }. */
+  function shootables(out = []) {
+    out.length = 0;
+    for (const u of units) {
+      for (const m of u.crew) {
+        if (m.state !== "foot") continue;
+        const p = m.root.position;
+        const t = (m._shot ??= { kind: u.kind === "police" ? "police" : "gang", ref: { m, u }, dead: false, r: 0.28, h: 1.78 });
+        t.x = p.x;
+        t.y = p.y;
+        t.z = p.z;
+        out.push(t);
+      }
+    }
+    return out;
+  }
+
+  /** A bullet hit. True when it killed. */
+  function shoot(ref, damage) {
+    const before = ref.m.health;
+    const killed = hurtMember(ref.m, ref.u, damage);
+    return killed ? "kill" : before > ref.m.health ? "hit" : null;
+  }
+
   function blips() {
     const out = [];
     for (const u of units) {
@@ -592,6 +618,8 @@ export async function createPolice(scene, THREE, opts = {}) {
   return {
     update,
     hit,
+    shootables,
+    shoot,
     blips,
     startFactionPursuit: (spec) => wanted?.startFactionPursuit(spec) || false,
     onPlayerDown() {

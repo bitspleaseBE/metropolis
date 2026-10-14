@@ -9,7 +9,7 @@ Adobe Mixamo civilians for the web viewer. Humanoids + animation clips only — 
 | `{Name}_Scooter.glb` | Standing on an e-scooter deck, hands on the grips |
 | `{Name}_GetUp.glb` | Face down → push-up → all fours → kneel → stand (source for the Rocketbox get-up) |
 
-Riders: Remy, Amy, James, Michelle. Sidewalk pedestrians use the Rocketbox people below.
+Riders: Remy, James. Sidewalk pedestrians use the Rocketbox people below.
 
 ## Playable cast (`players/`)
 
@@ -72,7 +72,7 @@ blender --background --python scripts/bake_rocketbox_getup.py -- Male_Adult_15 #
 
 Bike and step riders reuse the same people with Mixamo Riding / Scooter clips retargeted
 into `people/ride/<id>.glb` and `people/step/<id>.glb`. `viewer/micromobility.js` prefers
-these over the Mixamo Remy/Amy bodies.
+these over the Mixamo Remy/James bodies.
 
 ```bash
 blender --background --python scripts/bake_rocketbox_riders.py                 # all

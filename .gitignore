@@ -16,7 +16,10 @@ viewer/*.premeshopt.glb
 !viewer/characters/clips/*.glb
 viewer/characters/*.fbx
 # Mixamo source FBX (rebake via scripts/bake_player_locomotion.py). Clips ship as GLB.
-assets/mixamo/
+assets/mixamo
+assets/rocketbox
+# Quaternius CC0 weapon sources (rebake via scripts/build_weapon_glbs.py).
+assets/weapons
 viewer/characters/players/_preview/
 viewer/characters/players/_styled/
 scripts/node_modules/

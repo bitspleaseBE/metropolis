@@ -150,7 +150,11 @@ class BuildingExportTests(unittest.TestCase):
         ring_far = [[500.0, 500.0], [510.0, 500.0], [510.0, 510.0], [500.0, 510.0]]
         layout = {
             "buildings": [
-                {"id": 1, "ring": ring_near},
+                {
+                    "id": 1,
+                    "ring": ring_near,
+                    "holes": [[[4.0, 3.0], [6.0, 3.0], [6.0, 5.0], [4.0, 5.0]]],
+                },
                 {"id": 2, "ring": ring_far},
                 {"id": 3, "ring": [[1.0, 1.0]]},  # too few verts
             ]
@@ -160,6 +164,7 @@ class BuildingExportTests(unittest.TestCase):
         )
         self.assertEqual(len(payload["buildings"]), 1)
         self.assertEqual(payload["buildings"][0]["id"], 1)
+        self.assertEqual(payload["buildings"][0]["holes"][0][0], [4.0, 3.0])
         self.assertTrue(point_in_ring(5.0, 4.0, payload["buildings"][0]["ring"]))
         self.assertFalse(point_in_ring(20.0, 20.0, payload["buildings"][0]["ring"]))
 

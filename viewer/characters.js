@@ -39,9 +39,9 @@ export function fitCharacterRoot(root, THREE, targetH) {
   return root;
 }
 
-export const CHARACTERS = ["Remy", "Amy", "James", "Michelle"];
-/** Smallest walking mesh in the rider cast. Remy and James start after the city is visible. */
-export const STARTER = "Amy";
+export const CHARACTERS = ["Remy", "James"];
+/** Smallest walking mesh in the rider cast. Remy starts after the city is visible. */
+export const STARTER = "James";
 
 const base = new URL("./characters/", import.meta.url);
 const loader = new GLTFLoader();
