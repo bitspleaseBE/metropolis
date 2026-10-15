@@ -56,8 +56,28 @@
   window.__DISTRICT.ready = (async () => {
     const index = await loadIndex();
     window.__DISTRICT.index = index;
+    let progress = null;
+    try {
+      progress = await import("./district-progress.js");
+      window.__districtProgress = progress;
+    } catch (err) {
+      console.warn("[district] progress lock unavailable", err);
+    }
+    const play = progress ? progress.loadPlay() : null;
     const fallbackId = (index && index.default) || "2018-harmonie";
     let id = requested || fallbackId;
+    if (progress && play && !progress.isUnlocked(play, id)) {
+      id = progress.HOME;
+      try {
+        const u = new URL(location.href);
+        u.searchParams.set("district", id);
+        u.searchParams.delete("d");
+        u.searchParams.delete("at");
+        history.replaceState(null, "", u);
+      } catch (_) {
+        /* file:// or a locked-down history */
+      }
+    }
 
     if (await districtBuilt(id)) {
       window.__DISTRICT.base = baseFor(id);
@@ -117,6 +137,8 @@
    * border instead of dropping them at the neighbour's spawn.
    */
   window.enterDistrict = function enterDistrict(id, at) {
+    const progress = window.__districtProgress;
+    if (progress && !progress.isUnlocked(progress.loadPlay(), id)) return false;
     const u = new URL(location.href);
     u.searchParams.set("district", id);
     u.searchParams.delete("d");

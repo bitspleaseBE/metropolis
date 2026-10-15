@@ -31,7 +31,9 @@ export function createDistrictBorder(opts) {
     edges = (d.edges || [])
       .map((e) => {
         const meta = districts.find((x) => x.id === e.to);
-        // Standalone / locked districts are reached from the menu, never by walking.
+        // Standalone districts are reached from the menu, never by walking.
+        // Campaign locks stay in the list so the border can say why, and update()
+        // refuses the handoff until district-progress opens them.
         if (meta && (meta.standalone || meta.unlocked === false || meta.access !== "border")) return null;
         const g = e.gate || {};
         if (g.lat == null || g.lon == null || !projectGate) return null;
@@ -113,6 +115,7 @@ export function createDistrictBorder(opts) {
     go.type = "button";
     go.dataset.act = "go";
     go.textContent = "Go to district";
+    edge.locked = false;
     go.onclick = () => {
       if (typeof window.enterDistrict === "function") window.enterDistrict(edge.to);
     };
@@ -129,6 +132,37 @@ export function createDistrictBorder(opts) {
     actions.appendChild(go);
     actions.appendChild(stay);
     root.appendChild(actions);
+    promptEl.appendChild(root);
+  }
+
+  function mayEnter(id) {
+    const progress = typeof window !== "undefined" ? window.__districtProgress : null;
+    if (!progress || typeof progress.isUnlocked !== "function") return true;
+    return progress.isUnlocked(progress.loadPlay(), id);
+  }
+
+  function lockCopy(id) {
+    const progress = typeof window !== "undefined" ? window.__districtProgress : null;
+    if (!progress || typeof progress.lockReason !== "function") {
+      return "Play Antwerpen and Klein Antwerpen first";
+    }
+    return progress.lockReason(progress.loadPlay(), id) || "Keep playing to unlock";
+  }
+
+  function showLocked(edge) {
+    if (!promptEl) return;
+    active = edge;
+    edge.locked = true;
+    while (promptEl.firstChild) promptEl.removeChild(promptEl.firstChild);
+    promptEl.style.display = "block";
+    const root = document.createElement("div");
+    root.className = "district-border";
+    const title = document.createElement("strong");
+    title.textContent = edge.label + " is locked";
+    root.appendChild(title);
+    const p = document.createElement("p");
+    p.textContent = lockCopy(edge.to);
+    root.appendChild(p);
     promptEl.appendChild(root);
   }
 
@@ -166,6 +200,16 @@ export function createDistrictBorder(opts) {
         bestD = d;
         best = e;
       }
+    }
+    if (!best) {
+      if (active) hide();
+    } else if (!mayEnter(best.to)) {
+      // Play can open a district without a reload. Don't hand off into it early,
+      // and don't treat a locked edge as a crossing (that sets `leaving` forever).
+      if (!active || active.to !== best.to || !active.locked) showLocked(best);
+      return;
+    } else if (active && active.locked) {
+      hide();
     }
     if (seamless) {
       if (
