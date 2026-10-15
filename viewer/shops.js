@@ -559,8 +559,10 @@ export async function createShops(scene, THREE, opts = {}) {
     const tz = -nx;
     const wantDetail =
       shop.shopfront && (fx - nearX) * (fx - nearX) + (fz - nearZ) * (fz - nearZ) <= detailM2;
+    // Enterable shops always get a front, wherever they are: its door is the way into the interior.
+    const wantFront = wantDetail || (shop.shopfront && shop.enter);
     // Far fascias skip ground rays — pavement height defaults to 0.
-    const g = wantDetail ? groundAt(fx + nx * 1.2, fz + nz * 1.2) : 0;
+    const g = wantFront ? groundAt(fx + nx * 1.2, fz + nz * 1.2) : 0;
     const gy = Number.isFinite(g) ? g : 0;
     // One house bay wide — never spill onto the neighbour's elevation.
     const boardW = shop.houseW ? Math.min(shop.w, shop.houseW * 0.9) : shop.w;
@@ -597,8 +599,8 @@ export async function createShops(scene, THREE, opts = {}) {
       accentSrgb,
     );
     vCount += 24;
-    const front = wantDetail ? buildFront(shop, fx, fz, nx, nz, tx, tz, gy, boardW) : [0, 0];
-    if (wantDetail) detailed += 1;
+    const front = wantFront ? buildFront(shop, fx, fz, nx, nz, tx, tz, gy, boardW) : [0, 0];
+    if (wantFront) detailed += 1;
     // Blade: thick hanging box with the category icon on the street-facing faces.
     const bx = fx + tx * (half - 0.15) + nx * (0.28 + BLADE / 2);
     const bz = fz + tz * (half - 0.15) + nz * (0.28 + BLADE / 2);
