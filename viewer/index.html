@@ -311,6 +311,31 @@
         border-color: #ff2bd6;
         color: #120018;
       }
+      #line-plan {
+        position: fixed;
+        top: 18px;
+        left: 22px;
+        min-width: 14rem;
+        max-width: 22rem;
+        padding: 12px 16px;
+        background: rgba(10, 12, 16, 0.86);
+        color: #f2f2f2;
+        border-radius: 4px;
+        text-align: left;
+        display: none;
+        pointer-events: none;
+        z-index: 4;
+      }
+      #line-plan .line {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      #line-plan .next {
+        font-size: 0.9rem;
+        line-height: 1.45;
+        margin: 0;
+      }
       #ride {
         top: 18px;
         background: rgba(10, 12, 16, 0.78);
@@ -1074,8 +1099,9 @@
       body.menu-open #status,
       body.menu-open #hud,
       body.menu-open #click-cue,
-      body.menu-open #prompt,
-      body.menu-open #ride {
+        body.menu-open #prompt,
+        body.menu-open #ride,
+        body.menu-open #line-plan {
         visibility: hidden !important;
       }
       @media (max-width: 700px) {
@@ -1278,6 +1304,10 @@
       <p class="line" id="ride-line">Tram</p>
       <p class="next" id="ride-next">Next: —</p>
     </div>
+    <div id="line-plan">
+      <p class="line" id="line-plan-title">Stop</p>
+      <p class="next" id="line-plan-lines"></p>
+    </div>
     <div id="prompt"></div>
     <div id="hud">
       <h1>Klein Antwerpen</h1>
@@ -1355,6 +1385,9 @@ import { SLOTS } from "./weapons.js";
       const btnFree = document.getElementById("btn-free");
       const btnNight = document.getElementById("btn-night");
       const rideEl = document.getElementById("ride");
+      const linePlanEl = document.getElementById("line-plan");
+      const linePlanTitle = document.getElementById("line-plan-title");
+      const linePlanLines = document.getElementById("line-plan-lines");
       const rideLine = document.getElementById("ride-line");
       const rideNext = document.getElementById("ride-next");
       const promptEl = document.getElementById("prompt");
@@ -2881,8 +2914,21 @@ let knifeLunge = null;
         return true;
       }
 
+      function showLinePlan(plan) {
+        if (!linePlanEl || !plan) return;
+        linePlanTitle.textContent = plan.title || "Stop";
+        linePlanLines.textContent = plan.text || "";
+        linePlanEl.style.display = "block";
+      }
+      function hideLinePlan() {
+        if (linePlanEl) linePlanEl.style.display = "none";
+      }
       function handleInteractE() {
         if (mode !== "walk") return;
+        if (linePlanEl && linePlanEl.style.display === "block") {
+          hideLinePlan();
+          return;
+        }
         const p = walkControls.getObject().position;
         if (interiors && (interiors.active || interiors.busy)) {
           handleInteriorE(p);
@@ -2937,6 +2983,11 @@ let knifeLunge = null;
         if (handleScooterE(p)) return;
         if (!onTram && !scooters?.isRiding() && interiors?.findEnterable(p, playerMotion.yaw()) && handleInteriorE(p)) return;
         const result = transit.tryInteract({ x: p.x, z: p.z });
+        if (result.action === "plan") {
+          showLinePlan(result);
+          promptEl.style.display = "none";
+          return;
+        }
         if (result.action === "board") {
           // Stay pointer-locked: unlock() fires pointerlockchange → pause menu.
           // Mouse look is already gated off while transit.isRiding().
@@ -3008,6 +3059,7 @@ let knifeLunge = null;
           return;
         }
         if (hud.riding) {
+          hideLinePlan();
           rideEl.style.display = "block";
           rideLine.textContent = `${hud.mode === "bus" ? "Bus" : "Tram"} ${hud.line}`;
           if (hud.wantAlight) {
@@ -3031,8 +3083,10 @@ let knifeLunge = null;
             showPrompt(doorPrompt);
           } else if (hud.prompt) {
             rideEl.style.display = "none";
-            showPrompt(hud.prompt);
+            if (!(linePlanEl && linePlanEl.style.display === "block")) showPrompt(hud.prompt);
+            else promptEl.style.display = "none";
           } else {
+            hideLinePlan();
             if (!transit.isRiding || !transit.isRiding()) rideEl.style.display = "none";
             const shopPrompt =
               shops && mode === "walk" ? shops.getPrompt({ x: p.x, z: p.z, yaw: playerMotion.yaw() }, gameHour, gameDay) : null;

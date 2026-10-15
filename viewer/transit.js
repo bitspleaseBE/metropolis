@@ -235,6 +235,35 @@ function lineLabel(lines, mode) {
   return "tram";
 }
 
+/** How close you stand to read the stop's line plan (boarding a vehicle still wins). */
+export const LINE_PLAN_DIST = 8;
+
+/**
+ * The sheet posted at a halt: which lines call here.
+ * @param {{ name?: string, mode?: string, lines?: string[] }} stop
+ */
+export function formatLinePlan(stop) {
+  const title = haltDisplayName(stop && stop.name);
+  const mode = (stop && stop.mode) || "bus";
+  const kind = mode === "tram" || mode === "subway" ? "Tram" : mode === "train" ? "Train" : "Bus";
+  const lines = [];
+  const seen = new Set();
+  for (const line of (stop && stop.lines) || []) {
+    const label = String(line || "").trim();
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    lines.push(label);
+  }
+  const shown = lines.slice(0, 14);
+  const more = lines.length > shown.length ? " …" : "";
+  return {
+    title,
+    kind,
+    lines: shown,
+    text: shown.length ? `${kind} ${shown.join(" · ")}${more}` : "No lines posted",
+  };
+}
+
 // ---------------------------------------------------------------------------
 // De Lijn liveries.  White body, grey skirt, dark glazing band, yellow (#FFD800)
 // door / front stripes and the "lijn" mark — see De Lijn huisstijlgids 2022 and
@@ -1864,7 +1893,11 @@ export async function createTransit(scene, THREE, opts = {}) {
       return { action: "alight", drop };
     }
     const v = findBoardable(player);
-    if (!v) return { action: "none" };
+    if (!v) {
+      const plan = linePlanNear(player.x, player.z);
+      if (plan) return { action: "plan", ...plan };
+      return { action: "none" };
+    }
     ride = { vehicle: v, wantAlight: false };
     return {
       action: "board",
@@ -1952,6 +1985,10 @@ export async function createTransit(scene, THREE, opts = {}) {
             halt ? ` · ${haltDisplayName(halt.name)}` : ""
           }`,
         };
+      }
+      const plan = linePlanNear(playerPos.x, playerPos.z);
+      if (plan) {
+        return { riding: false, prompt: `E · line plan · ${plan.title}`, plan };
       }
       const near = nearestTramHalt(playerPos.x, playerPos.z);
       if (near && near.dist < 220) {
@@ -2046,6 +2083,21 @@ export async function createTransit(scene, THREE, opts = {}) {
   }
   const HALT_REACH2 = 20 * 20; // platform edge at Gounod is ~18 m from the OSM stop node
   let haltCurrent = null;
+
+  function linePlanNear(x, z) {
+    let best = null;
+    let bestD = Infinity;
+    for (const st of haltPois) {
+      if (st.mode !== "bus" && st.mode !== "tram") continue;
+      const d = Math.hypot(x - st.x, z - st.z);
+      if (d <= LINE_PLAN_DIST && d < bestD) {
+        bestD = d;
+        best = st;
+      }
+    }
+    if (!best) return null;
+    return formatLinePlan(best);
+  }
 
   /** Nearest real De Lijn halt for GTA-style captions; `{ stop, changed }`. */
   function locateStop(x, z) {
