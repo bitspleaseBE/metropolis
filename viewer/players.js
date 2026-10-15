@@ -1551,8 +1551,11 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       root.position.z = pos.z;
       // Walker stores eye height; feet sit eye−1.7 (jump lifts both).
       // On a scooter the eye is already deck + ride height, so the soles use the grip.
+      // On foot the soles may go below 0 (pond bed). Wheels keep the floor: their eye is
+      // under 1.7, so eye−1.7 would sink the bike.
       const eye = kind === "scooter" && deck ? 1.58 : 1.7;
-      root.position.y = Number.isFinite(pos.y) ? Math.max(0, pos.y - eye) : 0;
+      const feet = Number.isFinite(pos.y) ? pos.y - eye : 0;
+      root.position.y = kind === "walk" ? feet : Math.max(0, feet);
 
       // On wheels the bike snaps to targetYaw every frame; keep the rider with it so the
       // pedal IK does not twist the feet. On foot, snap once you are moving so a look-turn

@@ -19,6 +19,7 @@ const PACKAGE_FILES = new Set([
   "transit.json",
   "chunks.json",
   "district.json",
+  "water.json",
 ]);
 const DISTRICT_DIR = /^\.\/districts\/[0-9a-z][0-9a-z-]{0,40}\/$/;
 

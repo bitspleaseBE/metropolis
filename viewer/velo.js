@@ -18,6 +18,9 @@ const BIKE_SPEED = 8.6; // ~31 km/h cruise (MOVE.velo.speed); the viewer owns ac
 // Built by scripts/build_velo_glb.py at real size. Rebuild it there, not here.
 const MODEL_URL = new URL("./vehicles/velo.glb", import.meta.url).href;
 const MAX_DOCK_BIKES = 20;
+// The ride model is ~23k triangles; a docked bike is ~10 px tall at 150 m, so farther ones are not drawn.
+const DOCK_DRAW_M = 150;
+const DOCK_REFRESH_M = 15;
 // Front axle is 0.72 m ahead of the bottom bracket (scripts/build_velo_glb.py).
 // The dock wheel guide sits 0.42 m street-side of the rail.
 const DOCK_GUIDE = 0.42;
@@ -196,22 +199,83 @@ export function dockSlotPose(st, slot) {
   };
 }
 
-function placeDocked(mesh, pose) {
-  mesh.position.set(pose.x, 0, pose.z);
-  mesh.rotation.set(0, pose.yaw, 0);
-  mesh.traverse((o) => {
-    if (!o.isMesh) return;
-    o.castShadow = false;
-    o.receiveShadow = false;
-    o.frustumCulled = true;
+/**
+ * Every docked bike in the district as one InstancedMesh per velo.glb part (~24 draw calls),
+ * instead of a 24-mesh clone per dock slot. Only docks within DOCK_DRAW_M of the camera are
+ * drawn; refreshed when the camera has moved DOCK_REFRESH_M or a dock changed.
+ */
+function createDockRack(THREE, scene, capacity) {
+  const template = makeVeloBike(THREE);
+  template.updateMatrixWorld(true);
+  const parts = [];
+  template.traverse((o) => {
+    if (o.isMesh) parts.push({ geometry: o.geometry, material: o.material, local: o.matrixWorld.clone() });
   });
+  const group = new THREE.Group();
+  group.name = "VeloDocks";
+  const meshes = parts.map((p) => {
+    const m = new THREE.InstancedMesh(p.geometry, p.material, Math.max(1, capacity));
+    m.name = "velo_dock_" + (p.material?.name || "part");
+    m.count = 0;
+    m.castShadow = false;
+    m.receiveShadow = false;
+    m.matrixAutoUpdate = false;
+    group.add(m);
+    return m;
+  });
+  scene.add(group);
+  const bike = new THREE.Matrix4();
+  const part = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const up = new THREE.Vector3(0, 1, 0);
+  const at = new THREE.Vector3();
+  const one = new THREE.Vector3(1, 1, 1);
+  let dirty = true;
+  let cx = Infinity;
+  let cz = Infinity;
+
+  function rebuild(stations, x, z) {
+    let n = 0;
+    for (const st of stations) {
+      if (Math.hypot(st.x - x, st.z - z) > DOCK_DRAW_M + (st.railLength || 8)) continue;
+      for (const d of st.docks) {
+        if (!d.present || n >= capacity) continue;
+        bike.compose(at.set(d.x, 0, d.z), q.setFromAxisAngle(up, d.yaw), one);
+        for (let k = 0; k < meshes.length; k++) meshes[k].setMatrixAt(n, part.multiplyMatrices(bike, parts[k].local));
+        n++;
+      }
+    }
+    for (const m of meshes) {
+      m.count = n;
+      m.instanceMatrix.needsUpdate = true;
+      m.computeBoundingSphere();
+    }
+  }
+
+  return {
+    group,
+    markDirty() {
+      dirty = true;
+    },
+    update(stations, x, z) {
+      if (!dirty && Math.hypot(x - cx, z - cz) < DOCK_REFRESH_M) return;
+      dirty = false;
+      cx = x;
+      cz = z;
+      rebuild(stations, x, z);
+    },
+    dispose() {
+      for (const m of meshes) m.dispose();
+      group.removeFromParent();
+    },
+  };
 }
 
 function nearestDock(docks, player, present) {
   let best = null;
   for (const d of docks || []) {
     if (d.present !== present) continue;
-    const dist = Math.hypot(d.mesh.position.x - player.x, d.mesh.position.z - player.z);
+    const dist = Math.hypot(d.x - player.x, d.z - player.z);
     if (!best || dist < best.dist) best = { dock: d, dist };
   }
   return best?.dock || null;
@@ -268,15 +332,17 @@ export async function createVelo(scene, THREE) {
       // Spread along the rail (same rule as the old Blender bake).
       const slot =
         n > 1 ? Math.round((i * (st.capacity - 1)) / (n - 1)) : Math.floor(st.capacity / 2);
-      const pose = dockSlotPose(st, slot);
-      const mesh = makeVeloBike(THREE);
-      placeDocked(mesh, pose);
-      scene.add(mesh);
-      st.docks.push({ mesh, slot, present: true });
+      st.docks.push({ ...dockSlotPose(st, slot), slot, present: true });
     }
   }
+  let rack = null;
   if (_model) {
     for (const st of stations) fillDocks(st);
+    rack = createDockRack(
+      THREE,
+      scene,
+      stations.reduce((n, st) => n + Math.min(MAX_DOCK_BIKES, st.capacity), 0),
+    );
   }
 
   // Street-parked bikes after a mid-ride hop-off (remount with E).
@@ -334,25 +400,22 @@ export async function createVelo(scene, THREE) {
     const dock = nearestDock(st.docks, player, true);
     if (!dock) return;
     dock.present = false;
-    dock.mesh.visible = false;
+    rack?.markDirty();
   }
 
   function showNearestDock(st, player) {
     const dock = nearestDock(st.docks, player, false);
     if (dock) {
       dock.present = true;
-      dock.mesh.visible = true;
+      rack?.markDirty();
       return;
     }
     if (st.docks.length >= Math.min(MAX_DOCK_BIKES, st.capacity)) return;
     const used = new Set(st.docks.map((d) => d.slot));
     for (let i = 0; i < st.capacity; i++) {
       if (used.has(i)) continue;
-      const pose = dockSlotPose(st, i);
-      const mesh = makeVeloBike(THREE);
-      placeDocked(mesh, pose);
-      scene.add(mesh);
-      st.docks.push({ mesh, slot: i, present: true });
+      st.docks.push({ ...dockSlotPose(st, i), slot: i, present: true });
+      rack?.markDirty();
       return;
     }
   }
@@ -496,14 +559,15 @@ export async function createVelo(scene, THREE) {
       disposeMesh(b.mesh);
     }
     parked.length = 0;
-    for (const st of stations) {
-      for (const d of st.docks) {
-        scene.remove(d.mesh);
-        disposeMesh(d.mesh);
-      }
-      st.docks.length = 0;
-    }
+    for (const st of stations) st.docks.length = 0;
+    rack?.dispose();
+    rack = null;
     ride = null;
+  }
+
+  /** Redraw the docked bikes around the camera (cheap unless it moved or a dock changed). */
+  function setCamera(x, z) {
+    rack?.update(stations, x, z);
   }
 
   console.info(
@@ -536,6 +600,7 @@ export async function createVelo(scene, THREE) {
     getPrompt,
     locateStation,
     update,
+    setCamera,
     setNight,
     dispose,
     count: stations.length,

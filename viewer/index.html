@@ -1606,6 +1606,7 @@ import { SLOTS } from "./weapons.js";
         get farField() { return farField; },
         get minimap() { return minimap; },
         get outdoors() { return outdoors; },
+        get water() { return water; },
         get districtBorder() { return districtBorder; },
         insidePlayRing: (x, z) => insidePlayRing(x, z),
         get quality() { return visuals.quality; },
@@ -1879,18 +1880,22 @@ import { SLOTS } from "./weapons.js";
       let chunkStream = null;
       let farField = null;
       let removedBuildings = null;
+      /** buildings.json loads (ours + neighbours) whose `removed` ids chunk merges wait for. */
+      const removalDocs = [];
+      let mergeChunk = null;
       let neighbours = null;
       let landmarkStream = null;
       const _groundRay = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 2.5);
       let groundMeshes = null;
+      // tram_ / courtyard_ / rail_: walkable surface height (plaza rings, play areas).
+      const GROUND_MESH = /(sidewalk|road_|park_|curb|ground|tram_|courtyard_|rail_)/i;
       /** Sidewalk / road tiles only. Raycasting the whole city (façades included) stalls for tens of seconds. */
       function collectGroundFromRoot(root, meshes, size) {
         if (!root) return;
         root.traverse((obj) => {
           if (!obj.isMesh) return;
           const n = obj.name || "";
-          // tram_ / courtyard_ / rail_: walkable surface height (plaza rings, play areas).
-          if (!/(sidewalk|road_|park_|curb|ground|tram_|courtyard_|rail_)/i.test(n)) return;
+          if (!GROUND_MESH.test(n)) return;
           const geo = obj.geometry;
           if (!geo) return;
           if (!geo.boundingBox) geo.computeBoundingBox();
@@ -1922,6 +1927,21 @@ import { SLOTS } from "./weapons.js";
           ? _groundRay.intersectObjects(groundMeshes, false)
           : _groundRay.intersectObject(cityRoot, true))[0];
         return hit && hit.point.y < 0.6 ? hit.point.y : 0;
+      }
+      let _footSurface = null;
+      /**
+       * Walker's foot height: silt bed_y in shallow water, else groundAt (never below 0).
+       * Drops over 0.25 m (a pond kade) ease at 3.5 m/s; kerbs snap. dt 0 holds an ease.
+       */
+      function walkSurface(x, z, dt) {
+        const hit = water?.at?.(x, z);
+        const target = hit?.wade
+          ? (Number.isFinite(hit.bed_y) ? hit.bed_y : -0.28)
+          : Math.max(0, groundAt(x, z));
+        const gap = _footSurface == null ? 0 : target - _footSurface;
+        if (Math.abs(gap) < 0.25) _footSurface = target;
+        else _footSurface += Math.sign(gap) * Math.min(Math.abs(gap), 3.5 * dt);
+        return _footSurface;
       }
       const _riderObstacles = [{ x: 0, z: 0, r: 0.45 }];
       /** Walker plus every bus / tram, so a clip throws the rider instead of passing through. */
@@ -2340,10 +2360,15 @@ let knifeLunge = null;
 
         // One cheap skirt plane so looking past the GLB ground isn't a black hole.
         const skirtSpan = Math.max(size.x, size.z) * 2.8;
+        // Lowest layer, so the largest push-back (layerBias tops out at 5): an unbiased skirt
+        // out-draws slope-biased water (Scheldt, ponds) at grazing angles from a few hundred m.
         skirtMat = new THREE.MeshLambertMaterial({
           color: GROUND_SKIRT,
           fog: true,
           depthWrite: true,
+          polygonOffset: true,
+          polygonOffsetFactor: 6,
+          polygonOffsetUnits: 6,
         });
         const skirt = new THREE.Mesh(new THREE.CircleGeometry(skirtSpan * 0.5, 48), skirtMat);
         skirt.rotation.x = -Math.PI / 2;
@@ -3447,16 +3472,48 @@ let knifeLunge = null;
       // meshes (one draw call each); after this it is a few hundred, while per-tile frustum
       // culling still drops everything behind/beside the camera. Geometry is baked in root
       // space, so materials, polygon-offset layers and look are untouched.
-      function mergeStaticMeshes(root, tile = 128) {
+      /**
+       * Plain Float32 copy of a geometry. Meshopt GLBs ship quantized, interleaved attributes
+       * (Int16 positions, Int8 normals) that can neither take a baked transform nor merge.
+       */
+      function floatGeometry(src) {
+        const g = new THREE.BufferGeometry();
+        for (const [name, a] of Object.entries(src.attributes)) {
+          if (a.array instanceof Float32Array && !a.isInterleavedBufferAttribute && !a.normalized) {
+            g.setAttribute(name, a.clone());
+            continue;
+          }
+          const n = a.count;
+          const k = a.itemSize;
+          const out = new Float32Array(n * k);
+          for (let i = 0; i < n; i++) {
+            const o = i * k;
+            out[o] = a.getX(i);
+            if (k > 1) out[o + 1] = a.getY(i);
+            if (k > 2) out[o + 2] = a.getZ(i);
+            if (k > 3) out[o + 3] = a.getW(i);
+          }
+          g.setAttribute(name, new THREE.BufferAttribute(out, k));
+        }
+        if (src.index) g.setIndex(src.index.clone());
+        return g;
+      }
+
+      function mergeStaticMeshes(root, tile = 128, { keepGround = false } = {}) {
         const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
         const rel = new THREE.Matrix4();
         const centre = new THREE.Vector3();
         const buckets = new Map();
         root.traverse((obj) => {
           if (!obj.isMesh || obj.isSkinnedMesh || obj.isInstancedMesh || Array.isArray(obj.material)) return;
+          // Hidden (removed buildings) must stay hidden.
+          if (!obj.visible) return;
           // Landmark stand-ins are swapped for streamed GLBs; merging them into a
           // tile would leave a beige slab that can no longer be hidden.
           const meshName = obj.name || "";
+          // Walkable surfaces batch apart so a tile's name still tells groundAt what it holds.
+          const ground = GROUND_MESH.test(meshName) ? (/sidewalk/i.test(meshName) ? "s" : "g") : "-";
+          if (keepGround && ground !== "-") return;
           if (/^(?:lmbase_|lmhold_)/.test(meshName)) return;
           let holdParent = obj.parent;
           while (holdParent) {
@@ -3466,7 +3523,7 @@ let knifeLunge = null;
           if (obj.children.length) return; // would orphan child nodes
           const g = obj.geometry;
           const pos = g && g.attributes.position;
-          if (!pos || !(pos.array instanceof Float32Array) || pos.isInterleavedBufferAttribute) return;
+          if (!pos || Object.keys(g.morphAttributes).length) return;
           if (!g.boundingBox) g.computeBoundingBox();
           rel.multiplyMatrices(inv, obj.matrixWorld);
           g.boundingBox.getCenter(centre).applyMatrix4(rel);
@@ -3474,7 +3531,8 @@ let knifeLunge = null;
           const ext = g.boundingBox.getSize(_clampTmp);
           if (Math.max(ext.x, ext.z) > tile * 1.5) return;
           const sig = Object.keys(g.attributes).sort().join(",") + (g.index ? "|i" : "|n");
-          const key = `${obj.material.uuid}|${sig}|${Math.floor(centre.x / tile)}|${Math.floor(centre.z / tile)}`;
+          // renderOrder keeps lawn / courtyards behind the pond cutters (water.js RENDER_ORDER).
+          const key = `${obj.material.uuid}|${sig}|${ground}|${obj.renderOrder}|${Math.floor(centre.x / tile)}|${Math.floor(centre.z / tile)}`;
           let b = buckets.get(key);
           if (!b) buckets.set(key, (b = { material: obj.material, meshes: [], mats: [] }));
           b.meshes.push(obj);
@@ -3482,10 +3540,11 @@ let knifeLunge = null;
         });
         let before = 0;
         let after = 0;
+        const meshes = [];
         for (const b of buckets.values()) {
           if (b.meshes.length < 2) continue;
           const geoms = b.meshes.map((m, i) => {
-            const g = m.geometry.clone();
+            const g = floatGeometry(m.geometry);
             g.applyMatrix4(b.mats[i]);
             return g;
           });
@@ -3495,12 +3554,14 @@ let knifeLunge = null;
           merged.computeBoundingSphere();
           const mesh = new THREE.Mesh(merged, b.material);
           mesh.name = `merged_${b.meshes[0].name || "mesh"}`;
+          mesh.renderOrder = b.meshes[0].renderOrder;
           mesh.castShadow = false;
           mesh.receiveShadow = false;
           mesh.frustumCulled = true;
           mesh.matrixAutoUpdate = false;
           mesh.updateMatrix();
           root.add(mesh);
+          meshes.push(mesh);
           for (const m of b.meshes) {
             m.geometry.dispose();
             m.removeFromParent();
@@ -3508,7 +3569,7 @@ let knifeLunge = null;
           before += b.meshes.length;
           after++;
         }
-        return { before, after };
+        return { before, after, meshes };
       }
 
       // Pre-compile every shader variant (day, and night with the pooled lamp lights) while
@@ -3537,7 +3598,9 @@ let knifeLunge = null;
           const shading = downgradeCityMaterials(cityRoot);
           console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
           const liquid = applyLiquidMaterials(THREE, cityRoot);
-          if (liquid.upgraded) console.info(`[metropolis] water: ${liquid.upgraded} liquid materials`);
+          if (liquid.upgraded || liquid.ponds) {
+            console.info(`[metropolis] water: ${liquid.upgraded} liquid materials, ${liquid.ponds} ponds sunk`);
+          }
           try {
             const surfUrl =
               (typeof window.districtUrl === "function" && window.districtUrl("road-surfaces.json")) ||
@@ -3575,6 +3638,17 @@ let knifeLunge = null;
             return null;
           };
           await visualsReady;
+          // One biased clone per source material and mesh-name class (the tuning below reads
+          // the mesh name), not one per mesh: per-mesh clones left thousands of unique
+          // materials, so mergeStaticMeshes could not batch the façades.
+          const biasClones = new Map();
+          const PBR_CLASS = /glass|water|gold|road_|asphalt|cobble|park_path|sidewalk|curb|tram_|rail_|roof|metal/g;
+          const biasClone = (m, bias, n, isFacade) => {
+            const key = `${m.uuid}|${bias.factor}|${isFacade ? 1 : 0}|${(n.match(PBR_CLASS) || []).join(",")}`;
+            let c = biasClones.get(key);
+            if (!c) biasClones.set(key, (c = m.clone()));
+            return c;
+          };
           cityRoot.traverse((obj) => {
             if (obj.isMesh) {
               obj.castShadow = false;
@@ -3582,17 +3656,17 @@ let knifeLunge = null;
               obj.frustumCulled = true;
               if (obj.material) {
                 const bias = layerBias(obj.name);
+                const n = (obj.name || "").toLowerCase();
+                const isFacade =
+                  n.includes("facade") || n.includes("bldg_") || n.includes("chim") || n.includes("roof");
                 // Facades / zebra_rail share materials with coplanar neighbours (building
                 // rings, plain zebras); clone so the bias doesn't pull those forward too.
                 if (bias && /facade|_landmark|zebra_rail/i.test(obj.name || "")) {
                   obj.material = Array.isArray(obj.material)
-                    ? obj.material.map((m) => m.clone())
-                    : obj.material.clone();
+                    ? obj.material.map((m) => biasClone(m, bias, n, isFacade))
+                    : biasClone(obj.material, bias, n, isFacade);
                 }
                 const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-                const n = (obj.name || "").toLowerCase();
-                const isFacade =
-                  n.includes("facade") || n.includes("bldg_") || n.includes("chim") || n.includes("roof");
                 for (const m of mats) {
                   if (!m) continue;
                   // Smooth shading: facets were a strong "GTA 3" tell. Low keeps the old look.
@@ -3626,7 +3700,9 @@ let knifeLunge = null;
                       dayEnv: m.envMapIntensity ?? 1,
                     });
                   }
-                  if (bias) {
+                  // Sunk ponds sit 0.38 m under the lawn; a slope-scaled push-back would sink
+                  // them behind the -0.8 m far-field ground at grazing angles.
+                  if (bias && !m.userData.cityviewPond) {
                     m.polygonOffset = true;
                     m.polygonOffsetFactor = bias.factor;
                     m.polygonOffsetUnits = bias.units;
@@ -3902,6 +3978,18 @@ let knifeLunge = null;
                 }, 120);
               };
               removedBuildings = createRemovedBuildings(scene);
+              mergeChunk = (chunkRoot) => {
+                // After every buildings.json so far: a merged tile can't hide a removed building.
+                void Promise.allSettled(removalDocs).then(() => {
+                  if (!chunkRoot.parent) return; // unloaded meanwhile
+                  removedBuildings.apply(chunkRoot);
+                  for (const m of mergeStaticMeshes(chunkRoot, 128, { keepGround: true }).meshes) {
+                    m.updateMatrixWorld(true);
+                    m.matrixWorldAutoUpdate = false;
+                  }
+                  scheduleGroundRefresh();
+                });
+              };
               chunkStream = createChunkStream({
                 THREE,
                 scene,
@@ -3912,6 +4000,7 @@ let knifeLunge = null;
                   removedBuildings.apply(chunkRoot);
                   applyLiquidMaterials(THREE, chunkRoot);
                   scheduleGroundRefresh();
+                  mergeChunk(chunkRoot);
                 },
                 onChunkUnloaded: () => scheduleGroundRefresh(),
               });
@@ -3920,7 +4009,7 @@ let knifeLunge = null;
               }
               farField = createFarField({ THREE, scene });
               const ownStream = chunkStream;
-              void fetchJsonCached("./buildings.json")
+              const ownDoc = fetchJsonCached("./buildings.json")
                 .then((r) => (r.ok ? r.json() : null))
                 .then((doc) => {
                   if (!doc) return;
@@ -3935,6 +4024,7 @@ let knifeLunge = null;
                   });
                   console.info(`[metropolis] far field: ${n} cells`);
                 });
+              removalDocs.push(ownDoc);
               // Core is already on screen — stream nearby cells in the background.
               void chunkStream.prime(spawnPos.x, spawnPos.z).then(() => {
                 console.info(
@@ -3960,6 +4050,8 @@ let knifeLunge = null;
               onChunkLoaded: (chunkRoot) => {
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                 removedBuildings?.apply(chunkRoot);
+                applyLiquidMaterials(THREE, chunkRoot);
+                mergeChunk?.(chunkRoot);
               },
               onFootprints: (id, doc, t) => {
                 const n = outdoors?.addBuildings ? outdoors.addBuildings(doc, t) : 0;
@@ -3972,7 +4064,7 @@ let knifeLunge = null;
             });
             for (const n of neighbours.neighbours) {
               if (!farField) break;
-              void Promise.all([
+              const docs = Promise.all([
                 fetchJsonCached(n.base + "buildings.json").then((r) => (r.ok ? r.json() : null)),
                 fetchJsonCached(n.base + "chunks.json").then((r) => (r.ok ? r.json() : null)),
               ]).then(([doc, cat]) => {
@@ -3987,6 +4079,7 @@ let knifeLunge = null;
                   transform: n.transform,
                 });
               });
+              removalDocs.push(docs);
             }
             if (neighbours.neighbours.length) {
               console.info(
@@ -4398,12 +4491,7 @@ let knifeLunge = null;
             // Shallow water: stand on silt bed_y. Elsewhere: groundAt (never below 0).
             let surface = 0;
             if (shopFloor != null) surface = shopFloor;
-            else if (onFoot) {
-              const hit = water?.at?.(walker.position.x, walker.position.z);
-              surface = hit?.wade
-                ? (Number.isFinite(hit.bed_y) ? hit.bed_y : -0.28)
-                : Math.max(0, groundAt(walker.position.x, walker.position.z));
-            }
+            else if (onFoot) surface = walkSurface(walker.position.x, walker.position.z, dt);
             if (!scripted) walker.position.y = baseEye + surface + JUMP.y;
           }
 
@@ -4436,16 +4524,11 @@ let knifeLunge = null;
               if ((knifeLunge.t -= dt) <= 0) knifeLunge = null;
             }
             let surface = 0;
-            if (kind === "walk") {
-              const hit = water?.at?.(w.position.x, w.position.z);
-              surface = hit?.wade
-                ? (Number.isFinite(hit.bed_y) ? hit.bed_y : -0.28)
-                : Math.max(0, groundAt(w.position.x, w.position.z));
-            }
+            if (kind === "walk") surface = walkSurface(w.position.x, w.position.z, 0);
             w.position.y = playerMotion.eye(kind) + surface + JUMP.y;
             const overlapSpeed = fastestOverlap(w.position, onScooter || ridingVelo ? 0.55 : 0.36);
             const wallHit = !!(outdoors && outdoors.rejectIfIndoors(w.position, _beforeStep));
-            if (kind === "walk" && water) water.rejectIfDeep(w.position, _beforeStep);
+            if (water) water.rejectIfDeep(w.position, _beforeStep, kind !== "walk");
             if (wallHit) playerMotion.bump(0.5);
             clampWalkerXZ(w.position);
             if (districtBorder) districtBorder.update();
@@ -4672,6 +4755,7 @@ let knifeLunge = null;
           landmarkStream.update(camera.position.x, camera.position.z, mode, camH);
         }
         shops && shops.update(gameHour, gameDay, camera.position.x, camera.position.z);
+        velo?.setCamera?.(camera.position.x, camera.position.z);
         terraces && !inShop && terraces.update();
         refreshRideHud();
         const sRide = scooters && scooters.isRiding() ? scooters.getRideHud() : null;
