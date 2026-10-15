@@ -1606,6 +1606,7 @@ import { SLOTS } from "./weapons.js";
         get farField() { return farField; },
         get minimap() { return minimap; },
         get outdoors() { return outdoors; },
+        get water() { return water; },
         get districtBorder() { return districtBorder; },
         insidePlayRing: (x, z) => insidePlayRing(x, z),
         get quality() { return visuals.quality; },
@@ -2344,10 +2345,15 @@ let knifeLunge = null;
 
         // One cheap skirt plane so looking past the GLB ground isn't a black hole.
         const skirtSpan = Math.max(size.x, size.z) * 2.8;
+        // Lowest layer, so the largest push-back (layerBias tops out at 5): an unbiased skirt
+        // out-draws slope-biased water (Scheldt, ponds) at grazing angles from a few hundred m.
         skirtMat = new THREE.MeshLambertMaterial({
           color: GROUND_SKIRT,
           fog: true,
           depthWrite: true,
+          polygonOffset: true,
+          polygonOffsetFactor: 6,
+          polygonOffsetUnits: 6,
         });
         const skirt = new THREE.Mesh(new THREE.CircleGeometry(skirtSpan * 0.5, 48), skirtMat);
         skirt.rotation.x = -Math.PI / 2;
@@ -3510,7 +3516,8 @@ let knifeLunge = null;
           const ext = g.boundingBox.getSize(_clampTmp);
           if (Math.max(ext.x, ext.z) > tile * 1.5) return;
           const sig = Object.keys(g.attributes).sort().join(",") + (g.index ? "|i" : "|n");
-          const key = `${obj.material.uuid}|${sig}|${ground}|${Math.floor(centre.x / tile)}|${Math.floor(centre.z / tile)}`;
+          // renderOrder keeps lawn / courtyards behind the pond cutters (water.js RENDER_ORDER).
+          const key = `${obj.material.uuid}|${sig}|${ground}|${obj.renderOrder}|${Math.floor(centre.x / tile)}|${Math.floor(centre.z / tile)}`;
           let b = buckets.get(key);
           if (!b) buckets.set(key, (b = { material: obj.material, meshes: [], mats: [] }));
           b.meshes.push(obj);
@@ -3532,6 +3539,7 @@ let knifeLunge = null;
           merged.computeBoundingSphere();
           const mesh = new THREE.Mesh(merged, b.material);
           mesh.name = `merged_${b.meshes[0].name || "mesh"}`;
+          mesh.renderOrder = b.meshes[0].renderOrder;
           mesh.castShadow = false;
           mesh.receiveShadow = false;
           mesh.frustumCulled = true;
@@ -3575,7 +3583,9 @@ let knifeLunge = null;
           const shading = downgradeCityMaterials(cityRoot);
           console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
           const liquid = applyLiquidMaterials(THREE, cityRoot);
-          if (liquid.upgraded) console.info(`[metropolis] water: ${liquid.upgraded} liquid materials`);
+          if (liquid.upgraded || liquid.ponds) {
+            console.info(`[metropolis] water: ${liquid.upgraded} liquid materials, ${liquid.ponds} ponds sunk`);
+          }
           try {
             const surfUrl =
               (typeof window.districtUrl === "function" && window.districtUrl("road-surfaces.json")) ||
@@ -3675,7 +3685,9 @@ let knifeLunge = null;
                       dayEnv: m.envMapIntensity ?? 1,
                     });
                   }
-                  if (bias) {
+                  // Sunk ponds sit 0.38 m under the lawn; a slope-scaled push-back would sink
+                  // them behind the -0.8 m far-field ground at grazing angles.
+                  if (bias && !m.userData.cityviewPond) {
                     m.polygonOffset = true;
                     m.polygonOffsetFactor = bias.factor;
                     m.polygonOffsetUnits = bias.units;
@@ -4023,6 +4035,7 @@ let knifeLunge = null;
               onChunkLoaded: (chunkRoot) => {
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                 removedBuildings?.apply(chunkRoot);
+                applyLiquidMaterials(THREE, chunkRoot);
                 mergeChunk?.(chunkRoot);
               },
               onFootprints: (id, doc, t) => {
