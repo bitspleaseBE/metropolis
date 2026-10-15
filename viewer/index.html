@@ -1357,6 +1357,7 @@ import { SLOTS } from "./weapons.js";
       import { createDistrictBorder } from "./district-border.js";
       import { shadeHedges } from "./hedge-shade.js";
       import { shadeStreets } from "./street-grit.js";
+      import { applySurfaceOrder, auditSurfaceFlicker, coplanarLift, surfaceBias } from "./ground-order.js";
       import { createPlayClock } from "./district-progress.js";
       import { createChunkStream } from "./chunk-stream.js";
       import { createFarField } from "./far-field.js";
@@ -3681,28 +3682,9 @@ let knifeLunge = null;
             console.warn("[metropolis] street surfaces skipped", err);
           }
           // Cheap: disable expensive features for FPS; freeze static transforms.
-          // Coplanar street layers: bias is monotone with the Blender height stack
-          // (Z_GROUND < Z_PARK < Z_ROAD < markings < sidewalk < curb < tram bed < rails
-          // < zebra-on-rails), so the offset can never invert the stack at distance.
-          const layerBias = (name) => {
-            const n = (name || "").toLowerCase();
-            // Photo façades sit on the extruded wall; pull them forward so grazing
-            // night views don't z-fight into a checkerboard (also rebuilt prouder).
-            if (n.includes("facade") || n.includes("_landmark")) return { factor: -3, units: -3 };
-            if (n.startsWith("zebra_rail")) return { factor: -5, units: -5 };
-            if (n.startsWith("rail_")) return { factor: -4, units: -4 };
-            if (n.startsWith("tram_")) return { factor: -3, units: -3 };
-            if (n.startsWith("curb")) return { factor: -2, units: -2 };
-            if (n.startsWith("sidewalk")) return { factor: -1, units: -1 };
-            if (n.startsWith("zebra") || n.startsWith("dash")) return { factor: 0, units: 0 };
-            if (n.startsWith("road_") || n.startsWith("park_path")) return { factor: 1, units: 1 };
-            if (n.startsWith("park_")) return { factor: 2, units: 2 };
-            // Water fills a hole cut from park grass; bed is below the gravel yard.
-            if (n.startsWith("water_bed")) return { factor: 5, units: 5 };
-            if (n.startsWith("water")) return { factor: 3, units: 3 };
-            if (n === "ground") return { factor: 4, units: 4 };
-            return null;
-          };
+          // Coplanar street layers: constant bias (no slope factor) so a look
+          // along the road cannot swap the stack. See ground-order.js.
+          const layerBias = surfaceBias;
           await visualsReady;
           // One biased clone per source material and mesh-name class (the tuning below reads
           // the mesh name), not one per mesh: per-mesh clones left thousands of unique
@@ -3773,6 +3755,12 @@ let knifeLunge = null;
                     m.polygonOffsetFactor = bias.factor;
                     m.polygonOffsetUnits = bias.units;
                   }
+                  const lift = coplanarLift(obj.name);
+                  if (lift && !obj.userData._surfaceLift) {
+                    obj.position.y += lift;
+                    obj.userData._surfaceLift = lift;
+                    obj.updateMatrix();
+                  }
                   m.needsUpdate = true;
                 }
               }
@@ -3783,6 +3771,11 @@ let knifeLunge = null;
           visuals.applyAnisotropy(cityRoot);
           scene.add(cityRoot);
           cityRoot.updateMatrixWorld(true);
+          const flicker = auditSurfaceFlicker(cityRoot);
+          window.__metropolis.groundFlicker = flicker;
+          console.info(
+            `[metropolis] ground flicker check: ${flicker.pairs} overlapping strips still share a depth (${flicker.checked} checked)`,
+          );
           cityRoot.traverse((obj) => {
             obj.matrixAutoUpdate = false;
             if (obj.isMesh && /^lamp_h_/i.test(obj.name || "")) {
@@ -4063,6 +4056,7 @@ let knifeLunge = null;
                 catalog,
                 onChunkLoaded: (chunkRoot) => {
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                  applySurfaceOrder(chunkRoot);
                   shadeHedges(chunkRoot);
                   shadeStreets(chunkRoot);
                   removedBuildings.apply(chunkRoot);
@@ -4117,6 +4111,7 @@ let knifeLunge = null;
               project: projectGateLatLon,
               onChunkLoaded: (chunkRoot) => {
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                applySurfaceOrder(chunkRoot);
                 shadeHedges(chunkRoot);
                 shadeStreets(chunkRoot);
                 removedBuildings?.apply(chunkRoot);
