@@ -1,0 +1,39 @@
+name: District packages up to date
+
+# Pages deploys the committed viewer/ without rebuilding, so a PR that changes the
+# build pipeline (cityview/, blender/, assets/) or a district's sources must also
+# commit the rebuilt viewer/districts/<id>/ packages. Each full `district build`
+# stamps build.json with a hash of its inputs; this job recomputes it (no Blender).
+#
+# A maintainer can add the `districts-stale-ok` label to report without failing.
+# Agents never add it: rebuild locally instead (docs/district-agent.md).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Freshness unit tests
+        run: python3 -m unittest cityview.test_district_freshness
+
+      - name: Packages match pipeline code and district sources
+        env:
+          ALLOW_STALE_DISTRICTS: ${{ contains(github.event.pull_request.labels.*.name, 'districts-stale-ok') && '1' || '' }}
+        run: python3 -m cityview district stale

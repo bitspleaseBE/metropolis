@@ -6,8 +6,7 @@
  *
  * `base` stays "./" until a built package is confirmed. Module top-level code can
  * call districtUrl() during import (before ready resolves); an optimistic
- * districts/ path would 404 on Pages, where GLBs are git-ignored and only the
- * legacy klein_antwerpen.glb + root JSON ship.
+ * districts/ path would 404 for a package committed without its core.glb.
  */
 (function () {
   const params = new URLSearchParams(location.search);
@@ -28,7 +27,7 @@
     return "./districts/" + id + "/";
   }
 
-  // District GLBs are built locally and git-ignored; Pages ships JSON-only packages.
+  // District GLBs are built locally and committed; Pages serves them as-is.
   // A package without its core.glb is not playable as a district (use legacy root).
   const builtCache = new Map();
   function districtBuilt(id) {

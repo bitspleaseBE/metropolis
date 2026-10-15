@@ -13,6 +13,7 @@ import math
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -281,9 +282,9 @@ def _run_blender(job_path: Path) -> None:
 
 
 def _compress_glb(path: Path) -> None:
-    from cityview.cli import compress_viewer_glb
+    from cityview.glb_compress import compress_viewer_glb
 
-    compress_viewer_glb(path)
+    compress_viewer_glb(path, required=True)
 
 
 def _publish_package(
@@ -297,7 +298,6 @@ def _publish_package(
     require_chunks: bool = False,
 ) -> None:
     from cityview.district_chunks import empty_chunks_manifest, write_chunks_manifest
-    from cityview.districts import DISTRICTS_INDEX, VIEWER_DISTRICTS
 
     ensure_district_dirs(paths)
     # Only the district that owns the legacy Pages city may mirror into viewer/ root;
@@ -306,9 +306,6 @@ def _publish_package(
     # Viewer needs district.json for origin / seam (Pages only serves viewer/).
     (paths.viewer / "district.json").write_text(json.dumps(doc, indent=2) + "\n")
     write_districts_index()
-    if DISTRICTS_INDEX.exists():
-        VIEWER_DISTRICTS.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(DISTRICTS_INDEX, VIEWER_DISTRICTS / "index.json")
 
     core_src = output_dir / "core.glb"
     scene_glb = output_dir / f"{scene_name}.glb"
@@ -435,7 +432,8 @@ def district_build(
     out: Path | None = None,
     skip_blender: bool = False,
 ) -> int:
-    """Full district build: data → Blender → viewer package → checks."""
+    """Full district build: data → Blender → viewer package → checks → build stamp."""
+    started = time.monotonic()
     paths = district_paths(district_id)
     from cityview.districts import DISTRICT_REGISTRY
 
@@ -663,6 +661,12 @@ def district_build(
         if not skip_blender:
             return 1
     write_districts_index()
+    if skip_blender:
+        print(f"{district_id}: JSON-only package, not stamped; a full build is needed before a PR")
+    else:
+        from cityview.district_freshness import write_stamp
+
+        write_stamp(district_id, build_seconds=time.monotonic() - started)
     print(f"District {district_id} package at {paths.viewer}")
     return 0
 

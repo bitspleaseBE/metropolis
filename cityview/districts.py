@@ -14,6 +14,7 @@ Built viewer data lands in ``viewer/districts/<id>/``.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -265,12 +266,19 @@ def load_index() -> dict[str, Any]:
     return json.loads(DISTRICTS_INDEX.read_text())
 
 
+def _replace_text(path: Path, text: str) -> None:
+    # Parallel district builds rewrite and read the index concurrently; never expose a half-written file.
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
 def write_index(doc: dict[str, Any]) -> Path:
     DISTRICTS_ROOT.mkdir(parents=True, exist_ok=True)
     text = json.dumps(doc, indent=2) + "\n"
-    DISTRICTS_INDEX.write_text(text)
+    _replace_text(DISTRICTS_INDEX, text)
     if VIEWER_DISTRICTS.exists():
-        (VIEWER_DISTRICTS / "index.json").write_text(text)
+        _replace_text(VIEWER_DISTRICTS / "index.json", text)
     return DISTRICTS_INDEX
 
 
