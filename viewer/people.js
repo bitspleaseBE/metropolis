@@ -55,6 +55,8 @@ function sharesHousehold(personOrCluster, withPersonOrCluster) {
 
 // Always in the first batch, so the opening streets already show these households.
 const SERVICE = new Set(["Police_Male_03", "Police_Male_04"]);
+/** Police and shop staff (manifest role "staff") are only ever requested by id. */
+const reserved = (p) => SERVICE.has(p.id) || p.role === "staff";
 
 const FIRST = [
   "Hasidic_Father", "Hasidic_Mother", "Hasidic_Boy", "Hasidic_Girl",
@@ -159,8 +161,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   }
 
   // First batch: the fixed households, then a spread over ages and looks.
-  const first = new Set(FIRST.filter((id) => byId.has(id) && !SERVICE.has(id)));
-  const rest = shuffle(people.filter((p) => !first.has(p.id) && !SERVICE.has(p.id)));
+  const first = new Set(FIRST.filter((id) => byId.has(id) && !reserved(byId.get(id))));
+  const rest = shuffle(people.filter((p) => !first.has(p.id) && !reserved(p)));
   const need = { child: 4, senior: 2 };
   for (const p of rest) {
     if (first.size >= initial) break;
@@ -183,7 +185,7 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
 
   // Optional stream-in: fill up to `resident`, then stop. Continuous rotate/evict was uploading
   // ~10 MB textures every few seconds for the whole session and made the tab unplayable.
-  const queue = shuffle(people.filter((p) => !loaded.has(p.id) && !SERVICE.has(p.id)).map((p) => p.id));
+  const queue = shuffle(people.filter((p) => !loaded.has(p.id) && !reserved(p)).map((p) => p.id));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let retiring = null;
   (async () => {
@@ -218,7 +220,7 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   const avail = (filter) => [...loaded.values()].filter((t) => filter(t.person));
   /** Prefer people nobody is wearing right now, so streamed-in models actually show up. */
   function choose(filter, exclude) {
-    let all = avail((p) => filter(p) && !exclude.has(p.id) && !SERVICE.has(p.id));
+    let all = avail((p) => filter(p) && !exclude.has(p.id) && !reserved(p));
     if (all.length > 1) all = all.filter((t) => t !== retiring);
     if (!all.length) return null;
     const least = Math.min(...all.map((t) => t.users));
@@ -369,6 +371,7 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
       root,
       mixer,
       action,
+      walk: action,
       getUp,
       height,
       hipsY,
@@ -425,10 +428,66 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
   async function acquireMatching(filter) {
     const ready = choose(filter, new Set());
     if (ready) return instance(ready);
-    const person = people.find((p) => filter(p) && !SERVICE.has(p.id));
+    const person = people.find((p) => filter(p) && !reserved(p));
     if (!person) return null;
     const t = await load(person.id);
     return t ? instance(t) : null;
+  }
+
+  // Idle (scripts/bake_rocketbox_idle.py) loads on first use: only interiors stand people still.
+  const idleLoads = new Map();
+  function loadIdle(t) {
+    if (t.idle !== undefined) return Promise.resolve(t.idle);
+    const id = t.person.id;
+    if (!idleLoads.has(id)) {
+      idleLoads.set(
+        id,
+        loader
+          .loadAsync(new URL(`idle/${id}.glb`, DIR).href)
+          .then((g) => dropScaleTracks(THREE, g.animations[0]), () => null)
+          .then((clip) => {
+            t.idle = clip;
+            idleLoads.delete(id);
+            return clip;
+          }),
+      );
+    }
+    return idleLoads.get(id);
+  }
+
+  /**
+   * Cross-fade an instance between its walk and the standing idle. Returns false when the
+   * person has no idle clip loaded (call loadIdle first); `fade` 0 snaps.
+   */
+  function setIdle(inst, on, fade = 0.35) {
+    const clip = inst.template.idle;
+    if (!clip) return false;
+    if (!!inst.idling === on) return true;
+    if (!inst.idleAction) {
+      inst.idleAction = inst.mixer.clipAction(clip);
+      inst.idleAction.time = Math.random() * clip.duration;
+    }
+    const [from, to] = on ? [inst.walk, inst.idleAction] : [inst.idleAction, inst.walk];
+    if (to) {
+      to.enabled = true;
+      to.setEffectiveWeight(1);
+      to.play();
+    }
+    if (from && to && fade > 0) to.crossFadeFrom(from, fade, false);
+    else if (from) from.stop();
+    inst.action = to || inst.action;
+    inst.idling = on;
+    inst.mixer.update(0);
+    return true;
+  }
+
+  /** A clone of person `id` already standing in the idle (walk pose without a baked idle). */
+  async function acquireStanding(id) {
+    const inst = await acquire(id);
+    if (!inst) return null;
+    await loadIdle(inst.template);
+    setIdle(inst, true, 0);
+    return inst;
   }
 
   function release(inst) {
@@ -446,7 +505,12 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     templateHas,
     acquire,
     acquireMatching,
+    acquireStanding,
+    loadIdle,
+    setIdle,
     release,
+    /** Manifest entries (read-only), e.g. to pick staff by role or customers by age. */
+    people,
     get residentCount() {
       return loaded.size;
     },

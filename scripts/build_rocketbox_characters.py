@@ -17,7 +17,7 @@ import bpy
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from garment_tint import apply_tints  # noqa: E402
+from garment_tint import apply_tints, tint_mask  # noqa: E402
 from rocketbox_props import add_extras  # noqa: E402
 from rocketbox_roster import ROSTER  # noqa: E402
 
@@ -61,7 +61,9 @@ def set_pixels(img, arr: np.ndarray) -> None:
     img.pack()
 
 
-def build_material(mat, folder: Path, part: str, recolor) -> None:
+def build_material(mat, folder: Path, part: str, recolor, uniform=None):
+    """Node tree for one Rocketbox material; returns the uniform pixel mask for the body."""
+    mask = None
     color = next(folder.glob(f"*_{part}_color*.tga"), None)
     normal = next(folder.glob(f"*_{part}_normal*.tga"), None)
     mat.use_nodes = True
@@ -74,9 +76,13 @@ def build_material(mat, folder: Path, part: str, recolor) -> None:
     bsdf.inputs["Specular IOR Level"].default_value = 0.35
     if color:
         img = load_image(color, DETAIL_RES if part == "opacity" else COLOR_RES)
-        if recolor and part == "body":
+        if (recolor or uniform) and part == "body":
             px = pixels(img)
-            px[..., :3] = apply_tints(px[..., :3], recolor)
+            if recolor:
+                px[..., :3] = apply_tints(px[..., :3], recolor)
+            if uniform:
+                mask = tint_mask(px[..., :3], uniform)
+                px[..., :3] = apply_tints(px[..., :3], [uniform])
             set_pixels(img, px)
         tex = nt.nodes.new("ShaderNodeTexImage")
         tex.image = img
@@ -96,6 +102,29 @@ def build_material(mat, folder: Path, part: str, recolor) -> None:
         nm.inputs["Strength"].default_value = 0.8
         nt.links.new(tex.outputs["Color"], nm.inputs["Color"])
         nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
+    return mask
+
+
+def split_uniform(mesh, body, mask: np.ndarray) -> int:
+    """Move body faces whose UV centre lands on the uniform mask to a ``<id>_uniform`` copy."""
+    mats = mesh.data.materials
+    uni = body.copy()
+    uni.name = f"{mesh.name}_uniform"
+    mats.append(uni)
+    bi, ui = list(mats).index(body), len(mats) - 1
+    uv = mesh.data.uv_layers.active.data
+    h, w = mask.shape
+    moved = 0
+    for poly in mesh.data.polygons:
+        if poly.material_index != bi:
+            continue
+        us = [uv[li].uv for li in poly.loop_indices]
+        u = (sum(p.x for p in us) / len(us)) % 1.0
+        v = (sum(p.y for p in us) / len(us)) % 1.0
+        if mask[min(h - 1, int((1.0 - v) * h)), min(w - 1, int(u * w))]:
+            poly.material_index = ui
+            moved += 1
+    return moved
 
 
 def channelbag(action):
@@ -202,9 +231,14 @@ def build(entry: dict) -> dict:
     arm.name = "Bip01"
     mesh.name = entry["id"]
 
-    for mat in mesh.data.materials:
+    uniform_mask, body_mat = None, None
+    for mat in list(mesh.data.materials):
         part = mat.name.rsplit("_", 1)[-1].lower()
-        build_material(mat, folder, part, entry.get("recolor"))
+        mask = build_material(mat, folder, part, entry.get("recolor"), entry.get("uniform"))
+        if mask is not None:
+            uniform_mask, body_mat = mask, mat
+    if uniform_mask is not None:
+        print(f"  {entry['id']}: {split_uniform(mesh, body_mat, uniform_mask)} faces → uniform")
 
     bpy.context.view_layer.update()
     zs = [(mesh.matrix_world @ v.co).z for v in mesh.data.vertices]
@@ -231,7 +265,7 @@ def build(entry: dict) -> dict:
         export_lights=False,
     )
     print(f"OK {entry['id']}: {height:.2f} m, walk {speed:.2f} m/s, {glb.stat().st_size // 1024} KB")
-    return {
+    out = {
         "id": entry["id"],
         "file": glb.name,
         "age": entry["age"],
@@ -240,6 +274,9 @@ def build(entry: dict) -> dict:
         "height": round(height, 3),
         "walkSpeed": round(speed, 3),
     }
+    if entry.get("uniform"):
+        out["role"] = "staff"
+    return out
 
 
 def main() -> None:

@@ -892,16 +892,19 @@
 
       async function loadCrowd(file, id) {
         const personId = id || file.replace(/\.glb$/i, "");
-        const [gltf, ride, step] = await Promise.all([
+        const [gltf, ride, step, idle] = await Promise.all([
           loader.loadAsync(`characters/people/${file}`),
           loadClip(`characters/people/ride/${personId}.glb`),
           loadClip(`characters/people/step/${personId}.glb`),
+          loadClip(`characters/people/idle/${personId}.glb`),
         ]);
         const root = cloneSkeleton(gltf.scene);
         fit(root);
         const mixer = new THREE.AnimationMixer(root);
         const clip = dropScale(gltf.animations[0]);
         const clips = new Map(clip ? [["Walk", clip]] : []);
+        // Shop staff and customers standing still (scripts/bake_rocketbox_idle.py, people.setIdle).
+        if (idle) clips.set("Idle", idle);
         if (ride) {
           clips.set("Bicycle", ride);
           clips.set("Bakfiets", ride);
@@ -956,8 +959,8 @@
           return;
         }
         const action = model.mixer.clipAction(clip);
-        // Idle on foot: freeze the walk at the bind-ish first frame.
-        const idleFeet = combo.mode === "On foot" && combo.gait === "Idle";
+        // Idle on foot without a baked idle: freeze the walk at the bind-ish first frame.
+        const idleFeet = combo.mode === "On foot" && combo.gait === "Idle" && clipName !== "Idle";
         show(model.root, model.mixer, action);
         if (idleFeet) {
           action.paused = true;
@@ -1098,20 +1101,25 @@
         }
         for (const person of manifest.people) {
           try {
-            const model = await loadCrowd(person.file);
-            const clip = [...model.clips.values()][0];
+            const model = await loadCrowd(person.file, person.id);
+            const clip = model.clips.get("Walk");
             if (!clip) {
               rows.push({ label: person.id, pass: false, text: "no clip" });
               addResult(person.id, false, "no clip");
               continue;
             }
-            const action = model.mixer.clipAction(clip);
-            action.reset().play();
-            model.mixer.update(0);
-            const m = measure(model.root, model.mixer, Math.min(clip.duration, 1.4));
-            const v = verdict("Walk", m);
-            rows.push({ label: person.id, ...v });
-            addResult(person.id, v.pass, v.text);
+            for (const name of model.clips.has("Idle") ? ["Walk", "Idle"] : ["Walk"]) {
+              const c = model.clips.get(name);
+              model.mixer.stopAllAction();
+              const action = model.mixer.clipAction(c);
+              action.reset().play();
+              model.mixer.update(0);
+              const m = measure(model.root, model.mixer, Math.min(c.duration, name === "Idle" ? 1.2 : 1.4));
+              const v = verdict(name, m);
+              const label = name === "Walk" ? person.id : `${person.id} idle`;
+              rows.push({ label, ...v });
+              addResult(label, v.pass, v.text);
+            }
           } catch (err) {
             rows.push({ label: person.id, pass: false, text: String(err.message || err) });
             addResult(person.id, false, String(err.message || err));
@@ -1133,7 +1141,7 @@
         if (current?.kind === "cast") {
           driveCast(dt);
         } else if (current) {
-          const idleFeet = combo.mode === "On foot" && combo.gait === "Idle";
+          const idleFeet = combo.mode === "On foot" && combo.gait === "Idle" && clipName !== "Idle";
           if (!idleFeet) current.mixer.update(dt);
           const mesh = VEHICLE[clipName];
           if (mesh?.visible) {

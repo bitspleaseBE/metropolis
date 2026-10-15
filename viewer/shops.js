@@ -443,8 +443,9 @@ export async function createShops(scene, THREE, opts = {}) {
     addFrontBox(h - pil, h, gy, glassTop, dIn, FRONT_OUT, dark);
 
     // Door on one side (stable per shop) when the bay is wide enough for a window too.
+    // Enterable shops carry doorA (cityview/interiors.py): the interior's door sits there.
     const doorW = fw >= 2.6 ? 1.0 : 0;
-    const doorLeft = hash(shop.id * 7 + 3) < 0.5;
+    const doorLeft = Number.isFinite(shop.doorA) && shop.doorA !== 0 ? shop.doorA < 0 : hash(shop.id * 7 + 3) < 0.5;
     const w0 = doorLeft ? -h + pil + doorW : -h + pil;
     const w1 = doorLeft ? h - pil : h - pil - doorW;
     if (doorW) {

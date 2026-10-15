@@ -1107,7 +1107,7 @@
   </head>
   <body>
     <div id="loading" class="indet" role="status" aria-live="polite">
-      <img class="ld-art" src="./menu/loading-antwerp.jpg" alt="" />
+      <img class="ld-art" alt="" />
       <div class="ld-veil" aria-hidden="true"></div>
       <div class="ld-card">
         <p class="ld-kicker">Klein Antwerpen</p>
@@ -1122,6 +1122,19 @@
       // 60 MB district download overlaps with the engine download instead of waiting for it.
       (() => {
         const root = document.getElementById("loading");
+        // Key art rotates per visit: the cast poster plus the generic Metropolis splash pool.
+        const art = [
+          "./menu/loading-antwerp.jpg",
+          "./menu/splash/generic-1.jpg",
+          "./menu/splash/generic-2.jpg",
+          "./menu/splash/generic-3.jpg",
+          "./menu/splash/generic-4.jpg",
+        ];
+        const artEl = root.querySelector(".ld-art");
+        artEl.addEventListener("error", () => {
+          if (!artEl.src.endsWith(art[0].slice(1))) artEl.src = art[0];
+        });
+        artEl.src = art[Math.floor(Math.random() * art.length)];
         const fill = document.getElementById("ld-fill");
         const stage = document.getElementById("ld-stage");
         const pct = document.getElementById("ld-pct");
@@ -1285,6 +1298,8 @@
       import { createVelo } from "./velo.js";
       import { createScooters } from "./scooters.js";
       import { createShops } from "./shops.js";
+      import { createInteriors } from "./interiors/interior-manager.js";
+      import { createInteriorLoading } from "./interiors/interior-loading.js";
       import { createTerraces } from "./terraces.js";
       import { createPropCollider } from "./props-collide.js";
       import { createPlayerMotion, JUMP as JUMP_CFG, makeJump, stepJump } from "./player-motion.js";
@@ -1575,6 +1590,7 @@ import { SLOTS } from "./weapons.js";
         get velo() { return velo; },
         get scooters() { return scooters; },
         get shops() { return shops; },
+        get interiors() { return interiors; },
         get props() { return props; },
         get terraces() { return terraces; },
         collideWorld,
@@ -1686,6 +1702,20 @@ import { SLOTS } from "./weapons.js";
           exposure: renderer.toneMappingExposure,
           sunAim: _sunAim,
         });
+        interiors && interiors.setNight(glow);
+        if (indoorLit) {
+          // Inside a shop: even, slightly warm ceiling light whatever the hour. Only intensities
+          // change (no lights added or toggled) so no shader recompiles on the way in.
+          scene.fog.density = 0;
+          hemi.color.set(0xfff6ea);
+          hemi.groundColor.set(0xb9ad9c);
+          hemi.intensity = visuals.high() ? 0.9 : 1.05;
+          sun.color.set(0xfff1dc);
+          sun.intensity = visuals.high() ? 0.45 : 0.55;
+          fill.intensity = visuals.high() ? 0.4 : 0.45;
+          renderer.toneMappingExposure = 0.98;
+          for (const l of lampLights) l.intensity = 0;
+        }
 
         const isNight = t > 0.5;
         btnNight.textContent = isNight ? "Day" : "Night";
@@ -1839,6 +1869,8 @@ import { SLOTS } from "./weapons.js";
       let velo = null;
       let scooters = null;
       let shops = null;
+      let interiors = null;
+      let indoorLit = false;
       let terraces = null;
       let props = null;
       let parkedCars = null;
@@ -2337,7 +2369,7 @@ let knifeLunge = null;
       const playerRoot = new THREE.Object3D();
       playerRoot.position.set(-2.921, 1.7, -0.261);
       scene.add(playerRoot);
-      const thirdPerson = createThirdPersonCamera(THREE, camera, () => outdoors);
+      const thirdPerson = createThirdPersonCamera(THREE, camera, () => (interiors?.active ? interiors.cameraBlocker : outdoors));
       const playerMotion = createPlayerMotion(
         THREE,
         playerRoot,
@@ -2719,6 +2751,7 @@ let knifeLunge = null;
         if (transit.isRiding && transit.isRiding()) return;
         if (velo && velo.isRiding && velo.isRiding()) return;
         if (scooters && scooters.isRiding()) return;
+        if (next !== "walk" && interiors && (interiors.active || interiors.busy)) interiors.leaveNow();
         const prevMode = mode;
         mode = next;
         document.body.classList.toggle("free-view", mode === "free");
@@ -2797,9 +2830,29 @@ let knifeLunge = null;
         return result.action !== "none";
       }
 
+      /** E at a shop door, at the till, or at the door on the way out. True if handled. */
+      function handleInteriorE(p) {
+        if (!interiors) return false;
+        if (interiors.busy) return true;
+        const r = interiors.interact(p, playerMotion.yaw());
+        if (!r) return interiors.active;
+        promptEl.style.display = "none";
+        if (r.action === "talk") status.textContent = `${r.name || "Cashier"} · the till chat is coming soon`;
+        else if (r.action === "enter") status.textContent = `Entering ${r.name || "the shop"}`;
+        else if (r.action === "refused") {
+          status.textContent =
+            r.reason === "wanted" ? "Lose the heat before you go in" : r.reason === "locked" ? `${r.name} is locked` : `${r.name} is closed`;
+        }
+        return true;
+      }
+
       function handleInteractE() {
         if (mode !== "walk") return;
         const p = walkControls.getObject().position;
+        if (interiors && (interiors.active || interiors.busy)) {
+          handleInteriorE(p);
+          return;
+        }
         const onTram = transit.isRiding && transit.isRiding();
         const onVelo = velo && velo.isRiding && velo.isRiding();
         // Prefer Velo when riding a bike or standing at a station; otherwise rentable scooter / tram.
@@ -2847,6 +2900,7 @@ let knifeLunge = null;
         }
         if (onVelo) return;
         if (handleScooterE(p)) return;
+        if (!onTram && !scooters?.isRiding() && interiors?.findEnterable(p, playerMotion.yaw()) && handleInteriorE(p)) return;
         const result = transit.tryInteract({ x: p.x, z: p.z });
         if (result.action === "board") {
           // Stay pointer-locked: unlock() fires pointerlockchange → pause menu.
@@ -2890,6 +2944,11 @@ let knifeLunge = null;
       function refreshRideHud() {
         const onVelo = velo && velo.isRiding && velo.isRiding();
         const p = walkControls.getObject().position;
+        if (interiors && (interiors.active || interiors.busy)) {
+          rideEl.style.display = "none";
+          showPrompt(interiors.busy || mode !== "walk" ? null : interiors.prompt(p, playerMotion.yaw()));
+          return;
+        }
         if (onVelo) {
           const hud = velo.getRideHud();
           rideEl.style.display = "none"; // the speedometer carries the ride
@@ -2928,9 +2987,13 @@ let knifeLunge = null;
           promptEl.style.display = "none";
         } else {
           const veloPrompt = velo && velo.getPrompt ? velo.getPrompt({ x: p.x, z: p.z }) : null;
+          const doorPrompt = !veloPrompt && interiors && mode === "walk" ? interiors.prompt(p, playerMotion.yaw()) : null;
           if (veloPrompt) {
             rideEl.style.display = "none";
             showPrompt(veloPrompt);
+          } else if (doorPrompt) {
+            rideEl.style.display = "none";
+            showPrompt(doorPrompt);
           } else if (hud.prompt) {
             rideEl.style.display = "none";
             showPrompt(hud.prompt);
@@ -4020,8 +4083,44 @@ let knifeLunge = null;
           terraces = createTerraces(scene, THREE, shops.records, { groundAt });
           terraces?.setNight?.(glow);
           console.info(`[metropolis] shops: ${shops.count} signs`);
+          void initInteriors();
         } catch (err) {
           console.warn("[metropolis] shop signs failed", err);
+        }
+      }
+
+      async function initInteriors() {
+        try {
+          interiors = await createInteriors({
+            THREE,
+            scene,
+            shops,
+            people: pedestrians?.people || null,
+            player: playerRoot,
+            groundAt,
+            eye: () => playerMotion.eye("walk"),
+            keep: [playerRoot, playerAvatar.root],
+            overlay: createInteriorLoading(),
+            lighting(on) {
+              indoorLit = on;
+              applyTimeOfDay(tod);
+            },
+            snapCamera(yaw) {
+              thirdPerson.setYaw(yaw);
+              thirdPerson.snap(playerRoot.position);
+            },
+            clock: () => ({ hour: gameHour, day: gameDay }),
+            wantedLevel: () => wanted.level || 0,
+          });
+          interiors.setNight(smooth(0.4, 0.9, tod));
+          console.info(`[metropolis] interiors: ${interiors.count} enterable shops`);
+          const debugKey = _q.get("interior");
+          if (debugKey && mode === "walk") {
+            const rec = interiors.debugEnter(debugKey);
+            console.info(rec ? `[metropolis] ?interior → ${rec.name} (${rec.template}/${rec.variant})` : `[metropolis] ?interior=${debugKey}: no match`);
+          }
+        } catch (err) {
+          console.warn("[metropolis] interiors failed", err);
         }
       }
 
@@ -4235,6 +4334,11 @@ let knifeLunge = null;
         const ridingVelo = velo && velo.isRiding && velo.isRiding();
         const riding = ridingTram;
         const onScooter = scooters && scooters.isRiding();
+        if (interiors && !menuOpen) interiors.update(dt);
+        // Inside a shop the room is the world: its floor, its walls, no street simulation.
+        const inShop = !!interiors?.active;
+        const shopFloor = inShop ? interiors.floorY : null;
+        const scripted = !!interiors?.busy;
         {
           const wpos = walkControls.getObject().position;
           const wade = water?.at?.(wpos.x, wpos.z);
@@ -4266,14 +4370,14 @@ let knifeLunge = null;
         } else if (!menuOpen) {
           // Just stood up inside a bus or car: keep sliding clear so it does not
           // knock you straight back down and leave the camera rolled.
-          if (!playerCrash.vulnerable && mode === "walk") {
+          if (!playerCrash.vulnerable && mode === "walk" && !inShop && !scripted) {
             const w = walkControls.getObject();
             pushOutOfSolids(w.position);
             collideWorld(w.position, false);
           }
           // ---- Jump (Space): fence-height hop, a short hang, then you just fall ----
           const canJump =
-            mode === "walk" && !riding && !ridingVelo && !onScooter && walkEngaged();
+            mode === "walk" && !riding && !ridingVelo && !onScooter && !scripted && walkEngaged();
           if (!canJump) {
             JUMP.active = false;
             JUMP.v = 0;
@@ -4293,16 +4397,28 @@ let knifeLunge = null;
             const onFoot = !riding && !ridingVelo && !onScooter;
             // Shallow water: stand on silt bed_y. Elsewhere: groundAt (never below 0).
             let surface = 0;
-            if (onFoot) {
+            if (shopFloor != null) surface = shopFloor;
+            else if (onFoot) {
               const hit = water?.at?.(walker.position.x, walker.position.z);
               surface = hit?.wade
                 ? (Number.isFinite(hit.bed_y) ? hit.bed_y : -0.28)
                 : Math.max(0, groundAt(walker.position.x, walker.position.z));
             }
-            walker.position.y = baseEye + surface + JUMP.y;
+            if (!scripted) walker.position.y = baseEye + surface + JUMP.y;
           }
 
-          if (!riding && mode === "walk" && walkEngaged()) {
+          if (!riding && mode === "walk" && walkEngaged() && !scripted && inShop) {
+            // Walking inside a shop: the room's walls, counters and people, nothing else.
+            const w = walkControls.getObject();
+            _beforeStep.x = w.position.x;
+            _beforeStep.z = w.position.z;
+            playerMotion.step(dt, combat.aiming && keys.shift ? { ...keys, shift: false } : keys, "walk");
+            w.position.y = playerMotion.eye("walk") + shopFloor + JUMP.y;
+            interiors.collide(w.position);
+            const commanded = Math.hypot(playerMotion.state.fwd, playerMotion.state.side) * dt;
+            const moved = Math.hypot(w.position.x - _beforeStep.x, w.position.z - _beforeStep.z);
+            footFree += ((commanded > 1e-4 ? Math.min(1, moved / commanded) : 1) - footFree) * (1 - Math.exp(-10 * dt));
+          } else if (!riding && mode === "walk" && walkEngaged() && !scripted) {
             const kind = ridingVelo ? "velo" : onScooter ? "scooter" : "walk";
             const w = walkControls.getObject();
             _beforeStep.x = w.position.x;
@@ -4416,8 +4532,12 @@ let knifeLunge = null;
         // Eye sits just above the grip so the soles, not the ankles, meet the deck.
         if (scooterDeck) wPos.y = scooterDeck.y + 1.58;
         // The legs pace to ground speed, strafe included (A/D and every off-axis stick angle).
-        const spd =
-          moveKind === "walk" ? Math.hypot(playerMotion.state.fwd, playerMotion.state.side) * footFree : Math.abs(playerMotion.speed);
+        const cutscene = interiors?.cutscene;
+        const spd = cutscene
+          ? cutscene.speed
+          : moveKind === "walk"
+            ? Math.hypot(playerMotion.state.fwd, playerMotion.state.side) * footFree
+            : Math.abs(playerMotion.speed);
         // On wheels the body must face the bike, even when nearly stopped — otherwise the
         // pedal IK aims with the camera while the cranks face travel, and the feet twist.
         // On foot, face travel once you are moving; idle faces the camera.
@@ -4433,6 +4553,7 @@ let knifeLunge = null;
           dead: playerCrash.dead,
         });
         if (armedOnFoot) bodyYaw = combatPlayer.bodyYaw(bodyYaw);
+        if (cutscene) bodyYaw = cutscene.yaw;
         if (mode === "walk" || mode === "free") {
           if (ridingTram) {
             // First-person cabin ride: keep the body off the platform (update() forces visible).
@@ -4462,7 +4583,10 @@ let knifeLunge = null;
         }
 
         const walker = mode === "walk" ? walkControls.getObject() : playerAvatar.root;
-        if (!menuOpen) {
+        if (!menuOpen && inShop) {
+          // The street waits outside: only the clock keeps running.
+          advanceClock(dt);
+        } else if (!menuOpen) {
           advanceClock(dt);
           updateLampLights(dt, walker);
           if (stars.visible) stars.position.copy(camera.position);
@@ -4543,12 +4667,12 @@ let knifeLunge = null;
           camera.lookAt(_rideLook);
         }
 
-        if (landmarkStream) {
+        if (landmarkStream && !inShop) {
           const camH = mode === "free" ? freeCam.height : camera.position.y;
           landmarkStream.update(camera.position.x, camera.position.z, mode, camH);
         }
         shops && shops.update(gameHour, gameDay, camera.position.x, camera.position.z);
-        terraces && terraces.update();
+        terraces && !inShop && terraces.update();
         refreshRideHud();
         const sRide = scooters && scooters.isRiding() ? scooters.getRideHud() : null;
         const vRide = velo && velo.isRiding && velo.isRiding() ? velo.getRideHud() : null;

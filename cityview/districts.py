@@ -321,6 +321,7 @@ def viewer_package_files() -> tuple[str, ...]:
         "transit.json",
         "velo.json",
         "shops.json",
+        "interiors.json",
         "props.json",
         "water.json",
         "spawn.json",

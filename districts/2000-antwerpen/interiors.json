@@ -1,0 +1,14 @@
+{
+  "note": "Hand-tuned interiors (cityview/interiors.py). Keys: template, variant, size, staff, customers, seed, locked, w, d.",
+  "by_osm": {
+    "node/247308726": {"ref": "Albert Heijn Groenplaats", "size": "L", "staff": 3, "customers": 8},
+    "node/251542005": {"ref": "Carrefour Market", "size": "L", "staff": 3, "customers": 7},
+    "node/2405486929": {"ref": "Den Engel, Grote Markt brown café", "variant": "brown", "staff": 2, "customers": 7},
+    "node/1411578471": {"ref": "Quetzal chocolate bar", "variant": "coffee", "staff": 2, "customers": 5},
+    "node/1031123517": {"ref": "McDonald's Groenplaats", "variant": "fastfood", "size": "L", "staff": 3, "customers": 8},
+    "node/9445654834": {"ref": "KBC", "variant": "branch", "w": 12.0, "d": 14.0, "staff": 2, "customers": 2},
+    "way/783100218": {"ref": "ZNA Sint-Elisabeth emergency", "variant": "hospital", "size": "L", "w": 18.0, "d": 22.0, "staff": 3, "customers": 6},
+    "node/11074286638": {"ref": "Lynk & Co dressed as a repair workshop", "template": "garage", "variant": "workshop", "w": 14.0, "d": 18.0, "staff": 2, "customers": 1}
+  },
+  "by_name": {}
+}

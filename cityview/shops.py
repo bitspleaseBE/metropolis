@@ -33,9 +33,12 @@ AMENITY_CATS = {
     "dentist": "care",
     "doctors": "care",
     "veterinary": "care",
+    "hospital": "care",
+    "clinic": "care",
     "post_office": "service",
     "bureau_de_change": "service",
     "money_transfer": "service",
+    "car_repair": "service",
 }
 FOOD_SHOPS = frozenset(
     {
@@ -48,10 +51,14 @@ SERVICE_SHOPS = frozenset(
     {
         "hairdresser", "beauty", "massage", "tattoo", "laundry", "dry_cleaning", "copyshop",
         "optician", "travel_agency", "funeral_directors", "estate_agent", "mobile_phone",
-        "computer", "electronics", "repair", "tailor", "photo", "pawnbroker",
+        "computer", "electronics", "repair", "tailor", "photo", "pawnbroker", "car_repair", "tyres",
     }
 )
 SKIP_SHOPS = frozenset({"vacant", "no", "yes"})
+# Hospital sites are mapped as a campus area whose centroid can sit deep in a courtyard.
+BIG_SITE_KINDS = frozenset({"hospital"})
+BIG_SITE_SEARCH_M = 80.0
+ATM_BANK_M = 30.0  # an ATM node this close to a bank's façade belongs to that bank
 
 DEFAULT_HOURS: dict[str, list[list[tuple[float, float]]]] = {
     # Sunday .. Saturday
@@ -61,6 +68,9 @@ DEFAULT_HOURS: dict[str, list[list[tuple[float, float]]]] = {
     "service": [[]] + [[(9.0, 18.0)]] * 5 + [[(9.0, 16.0)]],
     "pharmacy": [[]] + [[(8.5, 18.5)]] * 5 + [[(9.0, 12.5)]],
     "care": [[]] + [[(8.0, 18.0)]] * 5 + [[]],
+}
+KIND_DEFAULT_HOURS: dict[str, list[list[tuple[float, float]]]] = {
+    "hospital": [[(0.0, 24.0)]] * 7,
 }
 
 FACADE_SEARCH_M = 18.0  # dense historic cores (Meir / Groenplaats) need a little slack
@@ -253,11 +263,11 @@ class _BuildingIndex:
 
 
 def snap_to_facade(
-    x: float, y: float, index: _BuildingIndex
+    x: float, y: float, index: _BuildingIndex, search: float = FACADE_SEARCH_M
 ) -> dict[str, Any] | None:
     """Nearest façade point (street-facing edges preferred) for a shop node."""
     best = None
-    for b in index.near(x, y, FACADE_SEARCH_M):
+    for b in index.near(x, y, search):
         ring = b["ring"]
         inside = _point_in_ring(x, y, ring)
         for i0, i1, (nx, ny), street in _edges(b):
@@ -266,7 +276,7 @@ def snap_to_facade(
             if length < SIGN_MIN_W + 0.6:
                 continue
             t, d = _seg_project(x, y, a[0], a[1], c[0], c[1])
-            if d > FACADE_SEARCH_M:
+            if d > search:
                 continue
             # A node outside a building must sit in front of the face it snaps to.
             if not inside and (x - a[0]) * nx + (y - a[1]) * ny < -0.5:
@@ -434,7 +444,7 @@ def plan_shops(
             if any(math.hypot(x - ox, y - oy) < 20.0 for ox, oy in seen_names.get(name_key, ())):
                 continue
             seen_names.setdefault(name_key, []).append((x, y))
-        snap = snap_to_facade(x, y, index)
+        snap = snap_to_facade(x, y, index, BIG_SITE_SEARCH_M if kind in BIG_SITE_KINDS else FACADE_SEARCH_M)
         if snap is None:
             continue
         along = snap["t"] * snap["length"]
@@ -456,7 +466,10 @@ def plan_shops(
             "ny": round(snap["ny"], 4),
             "w": round(snap["w"], 2),
             "houseW": snap.get("houseW") or snap["w"],
-            "hours": [[list(s) for s in day] for day in (hours or DEFAULT_HOURS[category])],
+            "hours": [
+                [list(s) for s in day]
+                for day in (hours or KIND_DEFAULT_HOURS.get(kind) or DEFAULT_HOURS[category])
+            ],
             "hoursKnown": hours is not None,
             "mood": style.get("mood") or "retail",
             "fascia": [round(c, 3) for c in style["fascia"][:3]],
@@ -497,7 +510,24 @@ def plan_shops(
         if refs and (str(el.get("type")), int(el["id"])) in refs:
             rec["ref"] = refs[(str(el.get("type")), int(el["id"]))].get("slug")
         placed.append(rec)
+    _flag_bank_atms(elements, placed, origin)
     return placed
+
+
+def _flag_bank_atms(
+    elements: list[dict[str, Any]], placed: list[dict[str, Any]], origin: tuple[float, float]
+) -> None:
+    """``atm: true`` on banks with a mapped ATM node in front of them."""
+    banks = [s for s in placed if s["kind"] == "bank"]
+    if not banks:
+        return
+    for el in elements:
+        if el.get("type") != "node" or "lat" not in el or (el.get("tags") or {}).get("amenity") != "atm":
+            continue
+        x, y = project(float(el["lat"]), float(el["lon"]), origin[0], origin[1])
+        best = min(banks, key=lambda s: math.hypot(s["x"] - x, s["y"] - y))
+        if math.hypot(best["x"] - x, best["y"] - y) <= ATM_BANK_M:
+            best["atm"] = True
 
 
 def district_shop_inputs(paths) -> dict[str, Any]:
@@ -524,6 +554,8 @@ def district_shop_inputs(paths) -> dict[str, Any]:
 # centre has thousands of POIs that crush GPU time for little gameplay value.
 # Cover the historic core + Centraal / Keyserlei snack belt from Groenplaats or Stadspark.
 VIEWER_SHOP_RADIUS_M = 2000.0
+# Enterable destinations the city has only a few of: kept anywhere in the district.
+FAR_ENTERABLE_KINDS = frozenset({"hospital", "clinic", "car_repair"})
 
 
 def export_shops_for_viewer(
@@ -533,7 +565,11 @@ def export_shops_for_viewer(
 ) -> dict[str, Any]:
     sx = float(spawn["x"]) if spawn else 0.0
     sy = float(spawn["y"]) if spawn else 0.0
-    near = [s for s in shops if math.hypot(s["x"] - sx, s["y"] - sy) <= radius]
+    near = [
+        s
+        for s in shops
+        if s.get("kind") in FAR_ENTERABLE_KINDS or math.hypot(s["x"] - sx, s["y"] - sy) <= radius
+    ]
     return {
         "attribution": "Shops: (c) OpenStreetMap contributors (ODbL)",
         "shops": near,

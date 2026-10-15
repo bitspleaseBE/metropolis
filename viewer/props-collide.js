@@ -9,13 +9,16 @@
 const URL_PROPS = "./props.json";
 const CELL = 8;
 
-export async function createPropCollider() {
-  let data = { trunks: [], boxes: [], segments: [] };
-  try {
-    const res = await fetch(URL_PROPS);
-    if (res.ok) data = await res.json();
-  } catch (err) {
-    console.warn("props.json unavailable", err);
+/** `opts.data` (same shape as props.json) skips the fetch, e.g. for an interior's furniture. */
+export async function createPropCollider(opts = {}) {
+  let data = opts.data || { trunks: [], boxes: [], segments: [] };
+  if (!opts.data) {
+    try {
+      const res = await fetch(URL_PROPS);
+      if (res.ok) data = await res.json();
+    } catch (err) {
+      console.warn("props.json unavailable", err);
+    }
   }
   const grid = new Map();
   const key = (gx, gz) => gx * 73856093 + gz * 19349663;
