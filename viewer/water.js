@@ -665,16 +665,19 @@ export async function createWater(opts = {}) {
     return null;
   }
 
-  /** Soft barrier for deep water (same slide pattern as outdoors.rejectIfIndoors). */
-  function rejectIfDeep(pos, before) {
-    const hit = at(pos.x, pos.z);
-    if (!hit || !hit.deep) return false;
+  /**
+   * Soft barrier for deep water (same slide pattern as outdoors.rejectIfIndoors).
+   * ``wheels``: shallow water blocks too — a Velo or scooter cannot wade.
+   */
+  function rejectIfDeep(pos, before, wheels = false) {
+    const blocks = (h) => !!h && (h.deep || (wheels && h.wade));
+    if (!blocks(at(pos.x, pos.z))) return false;
     const tryX = { x: pos.x, z: before.z };
     const tryZ = { x: before.x, z: pos.z };
-    if (!at(tryX.x, tryX.z)?.deep) {
+    if (!blocks(at(tryX.x, tryX.z))) {
       pos.x = tryX.x;
       pos.z = tryX.z;
-    } else if (!at(tryZ.x, tryZ.z)?.deep) {
+    } else if (!blocks(at(tryZ.x, tryZ.z))) {
       pos.x = tryZ.x;
       pos.z = tryZ.z;
     } else {
