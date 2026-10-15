@@ -84,7 +84,7 @@ function nearestEdge(x, z, body) {
 }
 
 /**
- * Upgrade baked water materials to a cheap liquid (transmission + ripples).
+ * Upgrade baked water materials to a cheap liquid (tinted alpha + ripples).
  * Safe on already-merged tile batches: matches material / mesh name.
  */
 export function applyLiquidMaterials(THREE, root) {
@@ -107,15 +107,17 @@ export function applyLiquidMaterials(THREE, root) {
         const deep = n.includes("water_deep") || n.includes("deep");
         const color = mat.color ? mat.color.clone() : new THREE.Color(deep ? 0x1a2e47 : 0x346f7a);
         if (THREE.MeshPhysicalMaterial) {
+          // No transmission: any visible transmissive mesh makes three.js redraw the whole
+          // opaque scene into a refraction target every frame (2× draw calls). A darker
+          // tint over a thinner alpha gives the same see-through-to-the-bed look.
+          color.multiplyScalar(deep ? 0.85 : 0.4);
           liq = new THREE.MeshPhysicalMaterial({
             color,
             roughness: deep ? 0.22 : 0.06,
             metalness: 0.0,
-            transmission: deep ? 0.15 : 0.72,
-            thickness: deep ? 2.5 : 0.45,
             ior: 1.333,
             transparent: true,
-            opacity: deep ? 0.92 : 0.78,
+            opacity: deep ? 0.92 : 0.65,
             envMapIntensity: deep ? 0.55 : 1.05,
             side: THREE.DoubleSide,
             depthWrite: !deep,
