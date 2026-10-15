@@ -202,6 +202,48 @@ class ViewerShopExportTests(unittest.TestCase):
         self.assertEqual([s["id"] for s in out["shops"]], [1])
         self.assertIn("OpenStreetMap", out["attribution"])
 
+    def test_hospitals_and_garages_survive_the_radius(self):
+        shops = [
+            {"id": 1, "x": 900.0, "y": 0.0, "kind": "hospital"},
+            {"id": 2, "x": 900.0, "y": 0.0, "kind": "car_repair"},
+            {"id": 3, "x": 900.0, "y": 0.0, "kind": "restaurant"},
+        ]
+        out = export_shops_for_viewer(shops, {"x": 0.0, "y": 0.0}, radius=100.0)
+        self.assertEqual([s["id"] for s in out["shops"]], [1, 2])
+
+
+class EnterableKindTests(unittest.TestCase):
+    def test_new_amenities_are_shopfronts(self):
+        self.assertEqual(category_for({"amenity": "hospital"}), ("hospital", "care"))
+        self.assertEqual(category_for({"amenity": "clinic"}), ("clinic", "care"))
+        self.assertEqual(category_for({"amenity": "car_repair"}), ("car_repair", "service"))
+        self.assertEqual(category_for({"shop": "car_repair"}), ("car_repair", "service"))
+        self.assertIsNone(category_for({"amenity": "atm"}))
+        self.assertIsNone(category_for({"amenity": "place_of_worship"}))
+
+    def test_hospital_open_all_week_and_snaps_from_deep_campus(self):
+        # Campus centroid 30 m behind the street wall: beyond the normal 18 m search.
+        layout = _layout()
+        layout["buildings"][0]["ring"] = [[0.0, 0.0], [40.0, 0.0], [40.0, 60.0], [0.0, 60.0]]
+        layout["buildings"][0]["street_edges"][0]["length"] = 40.0
+        osm = {"elements": [_node(30, 20.0, 30.0, amenity="hospital", name="ZNA")]}
+        shops = plan_shops(osm, layout, ORIGIN)
+        self.assertEqual(len(shops), 1)
+        self.assertEqual(shops[0]["hours"][0], [[0.0, 24.0]])
+        self.assertEqual(shops[0]["cat"], "care")
+
+    def test_atm_node_flags_nearby_bank(self):
+        osm = {
+            "elements": [
+                _node(40, 6.0, 2.0, amenity="bank", name="KBC"),
+                _node(41, 7.0, -1.0, amenity="atm"),
+                _node(42, 16.0, 2.0, amenity="bank", name="Far Bank"),
+            ]
+        }
+        by_id = {s["id"]: s for s in plan_shops(osm, _layout(), ORIGIN)}
+        self.assertTrue(by_id[40].get("atm"))
+        self.assertNotIn(41, by_id)
+
 
 if __name__ == "__main__":
     unittest.main()

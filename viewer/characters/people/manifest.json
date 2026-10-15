@@ -506,6 +506,26 @@
    "walkSpeed": 1.009
   },
   {
+   "id": "Staff_Male_01",
+   "file": "Staff_Male_01.glb",
+   "age": "adult",
+   "sex": "m",
+   "look": "staff",
+   "height": 1.81,
+   "walkSpeed": 1.009,
+   "role": "staff"
+  },
+  {
+   "id": "Staff_Female_01",
+   "file": "Staff_Female_01.glb",
+   "age": "adult",
+   "sex": "f",
+   "look": "staff",
+   "height": 1.739,
+   "walkSpeed": 1.216,
+   "role": "staff"
+  },
+  {
    "id": "Sports_Female_02",
    "file": "Sports_Female_02.glb",
    "age": "adult",

@@ -12,10 +12,11 @@ A rebuild (`python3 -m cityview district build <id>`) rewrites the viewer packag
 |---|---|
 | `cityview/districts.py` `DISTRICT_REGISTRY` — postcode, spawn, menu name, facade styles | `districts/<id>/district.json` `spawn` / `boundary` (re-synced from the registry on every build; `origin` is kept) |
 | `districts/<id>/cache/*.json` — OSM, trees, benches, Velo, GTFS, CityJSON sectors | `output/<id>/` — layout JSON, Blender job, `.blend`, `core.glb`, `chunks/` (one folder per district, so parallel builds never share files) |
-| `assets/boundaries/antwerp_postcodes.geojson`, `antwerp_water.json` | `viewer/districts/<id>/buildings.json`, `roads.json`, `map.json`, `props.json`, `velo.json`, `shops.json`, `water.json` |
+| `assets/boundaries/antwerp_postcodes.geojson`, `antwerp_water.json` | `viewer/districts/<id>/buildings.json`, `roads.json`, `map.json`, `props.json`, `velo.json`, `shops.json`, `interiors.json`, `water.json` |
 | `districts/<id>/landmarks/manifest.json` | `viewer/districts/<id>/core.glb`, `chunks/*.glb`, `chunks.json`, `landmarks.json`, streamed `landmarks/*.glb` |
 | `districts/<id>/facades/elevations/` | `districts/<id>/facades/atlas/` (atlas, bands, `facade_doors.json`) and its copy under the viewer |
 | `districts/<id>/vegetation_overrides.json`, `shop_overrides.json` | derived tree / shop placement in the GLB and `shops.json` |
+| `districts/<id>/interiors.json` (curated rooms, `by_osm` / `by_name`) | `viewer/districts/<id>/interiors.json` |
 | `cityview/*.py`, `blender/*.py`, `viewer/*.js` | `viewer/districts/index.json`, `viewer/menu/*` (postcode map, minimaps) |
 
 Local metres are **east, north** from `district.json` `origin`. The Three.js viewer uses `z = −y`. When a check prints `(73.9, -80.9)`, that is Blender XY, not lat/lon. A viewer yaw `θ` faces `(−sin θ, cos θ)` in Blender XY, so the spawn `yaw` for a heading `(dx, dy)` is `atan2(−dx, dy)`.
@@ -35,7 +36,7 @@ flowchart TD
     TRANSIT --> FURN["Street furniture, clipped to postcode<br/>trees.py · benches.py · velo.py ·<br/>clutter.py · barriers.py · courtyards.py"]
     FURN --> SPAWN["Spawn + facades<br/>spawn_from_place · district_facades.py<br/>(atlas, bands, door table)"]
     SPAWN --> BLENDER["Blender<br/>build_city.py → core.glb (160 m) + 256 m chunks"]
-    BLENDER --> PUBLISH["Publish viewer package<br/>buildings / roads / map / props / velo / shops"]
+    BLENDER --> PUBLISH["Publish viewer package<br/>buildings / roads / map / props / velo / shops / interiors"]
     PUBLISH --> CHECK["district check<br/>budgets, spawn, walkability, facades"]
     CHECK --> MENU["Index + menu<br/>districts index · menu_map.py"]
 
@@ -87,7 +88,10 @@ python3 -m cityview district build 2018-harmonie --no-render
 python3 -m cityview district build 2000-antwerpen --skip-blender   # JSON only, no GLB
 python3 -m cityview district check 2018-harmonie --no-sims
 python3 -m cityview district review 2000-antwerpen
+python3 -m cityview district interiors 2000-antwerpen  # interiors.json on the published shops.json, no Blender
 ```
+
+`district interiors` keeps every published sign where the full build put it (`district shops` re-plans from OSM alone and moves signs off the baked façades), only appending far enterable places that are missing and sizing rooms from the published `buildings.json`.
 
 `district add` writes `districts/<id>/district.json` and turns on only the stages that exist in the extract (no trains in the historic core, no port props in Harmonie). `district build` re-syncs the registry, plans from the caches, runs Blender unless you pass `--skip-blender`, publishes the viewer package, then runs `district check`. A failed check is a failed build (unless you skipped Blender and the GLB is missing). A full build of a dense district takes 1–2.5 h; builds of different districts can run in parallel because each writes to its own `output/<id>/`.
 
@@ -110,12 +114,16 @@ Agent finishing work after a build is in [district-agent.md](district-agent.md):
 5. **Street furniture**, all clipped to the postcode ring. Trees: Groeninventaris + OSM, deduped within 1.8 m, snapped off carriageways, Poisson fill only in sparse parks. A specimen shorter than two humans (`MIN_TREE_HEIGHT` 3.4 m) is emitted as a bush mound, not a trunk+crown; tree crowns keep ≥ 2 m walker clearance. Benches: city registers + OSM, deduped within 1.5 m. Velo: GBFS dock rails only — Blender does not bake the bikes; `viewer/velo.js` instances `velo.glb` in each slot. Clutter and barriers from OSM; barriers are sampled every 0.8 m and cut where a gate, footway or square crosses them.
 6. **Spawn + facades.** `district.json` `spawn` projected to local metres (`snap_road: false` keeps a plaza/park point as given). Missing district elevations are generated; `pack_district_atlas` writes the atlas, storey bands and `facade_doors.json` (door positions read off that district's own pictures — the hand-read `facade_kit.DOORS` only matches the shared 2018 set).
 7. **Blender** (`blender/build_city.py`). LOD2 shells; photo facades on street edges and on walls facing parks/water (`open_edges`) at the measured eave height of that wall (`street_edge_eaves`); pilotis towers get facades from their underside; doorsteps, awnings, sills from the atlas tables. Park grass subtracts overlapping water rings (`water_holes_for_ring`); shallow water is a silt bed plus surface disc, deep water a single opaque disc. Everything within `CORE_R` (160 m) of spawn goes in `core.glb`, the rest into 256 m cells (`district_chunks.py`; rooftop batches carry a `__c_ix_iy` tag so they peel with their building).
-8. **Publish.** `export_walker_buildings` writes every solid footprint in the postcode (rings + holes). `export_props_for_viewer` writes trunks, boxes, barrier segments within 450 m of spawn. Roads become `roads.json`, the minimap `map.json`, and `export_water_for_viewer` writes `water.json` (wade / deep rings, `bed_y`, `bank`).
+8. **Publish.** `export_walker_buildings` writes every solid footprint in the postcode (rings + holes). `export_props_for_viewer` writes trunks, boxes, barrier segments within 450 m of spawn. Roads become `roads.json`, the minimap `map.json`, and `export_water_for_viewer` writes `water.json` (wade / deep rings, `bed_y`, `bank`). Shopfronts within `VIEWER_SHOP_RADIUS_M` (2000 m) of spawn go to `shops.json`; hospitals, clinics and car repair (`FAR_ENTERABLE_KINDS`) are kept anywhere in the postcode, and an `amenity=atm` node within 30 m flags its bank. `cityview/interiors.py` then writes `interiors.json`: one record per shopfront whose kind has a room template (supermarket, grocery, restaurant, bar_coffee, bank, care, garage; churches never), with the room `w × d` from the façade bay and the footprint depth behind it (capped per template), the door offset `doorA` (also stamped on the shop record), staff / customer counts and the seed the viewer generates the room from.
 9. **Check.** Package files, size budgets (`budgets.py`: core ≤ 80 MB / 3 M tris, chunk ≤ 13 MB / 900 k tris), spawn not inside a ring, streamed landmark GLBs, unique facade hashes, then **walkability**: no 3 m stretch of street sealed across its width, no public gate or path/fence crossing still on a collider.
 
 ### In the viewer
 
 `viewer/chunk-stream.js` loads the core and the cells around the walker. `viewer/neighbour-districts.js` streams the bordering districts' chunks in their own frame (a few cm lower, so the current district wins z-fights on shared border streets); `viewer/removed-buildings.js` hides neighbour buildings the current package replaces; `viewer/far-field.js` draws distant blocks. Because every district only places what lies inside its own postcode, nothing is drawn twice where two packages overlap.
+
+**Shop interiors** (`viewer/interiors/`) read `interiors.json` and join each record to its shopfront by id. Pressing E at an open door plays a short walk-in (door opens, player walks through) behind the loading veil (`interior-loading.js`), then swaps to a pocket room built at the real façade: `interior-gen.js` lays out the room from the record's template, variant, size and seed; `furniture.js` instances the fixtures with their colliders; and `interior-npcs.js` borrows staff (uniforms in the brand fascia colour, wordmark on the chest, the cashier tagged for later dialog) and customers from the people pool. While inside, the outdoor scene is hidden and only light intensities change, so no shaders recompile. The last 3 rooms stay cached with their people; the 4th visit disposes the oldest room and returns its NPCs to the pool. Churches are always locked, closed shops refuse entry, and `?interior=<shop id | template | variant>` walks straight into a match. At night `door-glow.js` lays a warm threshold sliver and pavement spill in front of every open enterable door, one InstancedMesh for the whole district.
+
+The splash art for the boot loader and the interior veil lives in `viewer/menu/splash/`. `manifest.json` maps each room template to its images, with a `generic` pool as the fallback; a shop always shows the same image, picked by its id. The boot loader rotates `loading-antwerp.jpg` together with the generic pool. All splash art is cast-free (no Pieter, Mo or Jacob). To add art, drop a 1024×576 JPG into the folder and list it in the manifest.
 
 ## How walking actually works
 

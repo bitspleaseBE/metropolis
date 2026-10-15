@@ -30,7 +30,7 @@ PLACE_AMENITIES = frozenset(
         "restaurant", "cafe", "bar", "pub", "fast_food", "ice_cream", "biergarten",
         "nightclub", "bank", "pharmacy", "dentist", "doctors", "veterinary", "post_office",
         "bureau_de_change", "money_transfer", "theatre", "cinema", "arts_centre", "library",
-        "townhall", "marketplace", "casino",
+        "townhall", "marketplace", "casino", "hospital", "clinic", "atm", "car_repair",
     }
 )
 PLACE_TOURISM = frozenset({"museum", "attraction", "artwork", "gallery", "hotel", "viewpoint"})

@@ -154,7 +154,10 @@ def two_bone_ik(arm, upper, lower, end, goal: Vector) -> None:
 
 def import_armature(path: Path) -> bpy.types.Object:
     before = set(bpy.data.objects)
-    bpy.ops.import_scene.gltf(filepath=str(path))
+    if path.suffix.lower() == ".fbx":
+        bpy.ops.import_scene.fbx(filepath=str(path), use_anim=True, ignore_leaf_bones=True)
+    else:
+        bpy.ops.import_scene.gltf(filepath=str(path))
     new = [o for o in bpy.data.objects if o not in before]
     for o in new:
         if o.type == "MESH" and not any(md.type == "ARMATURE" for md in o.modifiers):
@@ -162,12 +165,21 @@ def import_armature(path: Path) -> bpy.types.Object:
     return next(o for o in bpy.data.objects if o.type == "ARMATURE" and o in new)
 
 
-def retarget(pid: str) -> Path:
+def retarget(
+    pid: str,
+    source: Path = SOURCE,
+    out_dir: Path = OUT,
+    clip_name: str = "GetUp",
+    *,
+    step: int = 1,
+    sparse: bool = False,
+) -> Path:
+    """``step`` keys every n-th frame; ``sparse`` exports only the keyed bones (no sampling)."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.render.fps = FPS
 
-    src_arm = import_armature(SOURCE)
+    src_arm = import_armature(source)
     prefix = next(b.name[: -len("Hips")] for b in src_arm.data.bones if b.name.endswith("Hips"))
     src = Skel(src_arm, lambda s: prefix + s)
     act = src_arm.animation_data.action
@@ -207,6 +219,10 @@ def retarget(pid: str) -> Path:
     floor_t = floor_z(tgt_arm)
     scene.frame_set(f1)
     floor_s = floor_z(src_arm)
+    if not math.isfinite(floor_s):  # skeleton-only source: the lowest toe joint is the floor
+        scene.frame_set(f0)
+        floor_s = min((src_arm.matrix_world @ src_arm.pose.bones[src.name(f"{m}ToeBase")].head).z
+                      for m, _ in SIDES)
     toe_clear = {r: tgt.rest_head(f"Bip01 {r} Toe0").z - floor_t for _, r in SIDES}
 
     # Rocketbox bodies and coats are bulkier around the bones than Remy: measure how far the torso
@@ -274,7 +290,9 @@ def retarget(pid: str) -> Path:
                     lifted = math.asin(max(-1.0, min(1.0, (arm_vec.z + dip) / span)))
                     turn_bone(tgt_arm, foot, Matrix.Rotation(lifted - cur, 3, axis.normalized()))
 
-    frames = range(f0, f1 + 1)
+    frames = list(range(f0, f1 + 1, step))
+    if frames[-1] != f1:
+        frames.append(f1)
     lifts = [0.0] * len(frames)
     for _ in range(2):  # the leg IK pulls knees back down after a lift, so measure again
         sunk = []
@@ -299,7 +317,7 @@ def retarget(pid: str) -> Path:
         obj_loc.append((f, tgt_arm.location.copy()))
 
     # Keys straight into fcurves (inserting while solving would re-evaluate over the pose).
-    out_act = bpy.data.actions.new("GetUp")
+    out_act = bpy.data.actions.new(clip_name)
     slot = out_act.slots.new(id_type="OBJECT", name=tgt_arm.name)
     strip = out_act.layers.new("Base").strips.new(type="KEYFRAME")
     cb = strip.channelbags.new(slot)
@@ -337,7 +355,7 @@ def retarget(pid: str) -> Path:
             export_format="GLB",
             export_animations=True,
             export_animation_mode="ACTIONS",
-            export_force_sampling=True,
+            export_force_sampling=not sparse,
             export_skins=True,
             export_morph=False,
             export_apply=False,
@@ -348,8 +366,8 @@ def retarget(pid: str) -> Path:
         )
         gltf, binary = read_glb(full)
     clip, blob = strip_to_clips(gltf, binary)
-    OUT.mkdir(parents=True, exist_ok=True)
-    dst = OUT / f"{pid}.glb"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    dst = out_dir / f"{pid}.glb"
     write_glb(dst, clip, blob)
     print(f"OK {pid}: legs ×{ratio:.2f}, {len(pairs)} bones, {dst.stat().st_size // 1024} KB")
     return dst

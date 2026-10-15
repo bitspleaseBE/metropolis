@@ -1,0 +1,10 @@
+{
+  "generic": ["generic-1.jpg", "generic-2.jpg", "generic-3.jpg", "generic-4.jpg"],
+  "supermarket": ["supermarket-1.jpg", "supermarket-2.jpg"],
+  "grocery": ["grocery-1.jpg", "grocery-2.jpg"],
+  "restaurant": ["restaurant-1.jpg", "restaurant-2.jpg"],
+  "bar_coffee": ["bar_coffee-1.jpg", "bar_coffee-2.jpg"],
+  "bank": ["bank-1.jpg", "bank-2.jpg"],
+  "care": ["care-1.jpg", "care-2.jpg"],
+  "garage": ["garage-1.jpg", "garage-2.jpg"]
+}

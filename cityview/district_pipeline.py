@@ -51,7 +51,8 @@ from cityview.paths import BLENDER_SCRIPTS, OUTPUT, ROOT, VIEWER
 from cityview.props import export_props_for_viewer
 from cityview.water import export_water_for_viewer
 from cityview.places import fetch_places
-from cityview.shops import district_shop_inputs, export_shops_for_viewer, plan_shops
+from cityview.interiors import district_interior_overrides, export_interiors_for_viewer
+from cityview.shops import FAR_ENTERABLE_KINDS, district_shop_inputs, export_shops_for_viewer, plan_shops
 from cityview.streetscape import (
     export_walker_buildings,
     export_roads_near_spawn,
@@ -400,6 +401,9 @@ def _publish_package(
         shops = export_shops_for_viewer([], spawn)
     else:
         shops = export_shops_for_viewer(plan_shops(osm, layout, origin, **district_shop_inputs(paths)), spawn)
+    interiors = export_interiors_for_viewer(
+        shops["shops"], layout.get("buildings") or [], district_interior_overrides(paths)
+    )
     props = export_props_for_viewer(layout, spawn)
     water = export_water_for_viewer(layout)
     from cityview.viewer_map import export_viewer_map
@@ -412,6 +416,7 @@ def _publish_package(
         ("transit.json", transit),
         ("velo.json", velo),
         ("shops.json", shops),
+        ("interiors.json", interiors),
         ("props.json", props),
         ("water.json", water),
     ):
@@ -700,6 +705,43 @@ def district_republish_roads(district_id: str) -> Path:
     return dest
 
 
+def district_republish_interiors(district_id: str) -> Path:
+    """Write interiors.json against the published shops.json + buildings.json (no Blender).
+
+    Published sign positions come from the full build and are kept as they are: this only
+    appends far enterable places (hospitals, garages) missing from the package, flags banks
+    that have an ATM, and stamps ``doorA`` / ``enter`` onto enterable shops.
+    """
+    paths = district_paths(district_id)
+    doc = load_district(district_id)
+    origin = tuple(doc["origin"])
+    shops_path = paths.viewer / "shops.json"
+    shops_doc = json.loads(shops_path.read_text())
+    shops = shops_doc.get("shops") or []
+    have = {s["id"] for s in shops}
+    if doc.get("style_policy") != "industrial":
+        osm = json.loads(paths.osm_cache.read_text())
+        layout = layout_from_osm(osm, origin, style_policy=doc.get("style_policy") or "historic")
+        planned = plan_shops(osm, layout, origin, **district_shop_inputs(paths))
+        atm_ids = {s["id"] for s in planned if s.get("atm")}
+        for s in shops:
+            if s["id"] in atm_ids:
+                s["atm"] = True
+        added = [s for s in planned if s["id"] not in have and s["kind"] in FAR_ENTERABLE_KINDS]
+        shops.extend(added)
+        if added:
+            print(f"shops.json: +{len(added)} far enterable ({', '.join(s['name'] or s['kind'] for s in added)})")
+    bpath = paths.viewer / "buildings.json"
+    buildings = json.loads(bpath.read_text()).get("buildings") or [] if bpath.exists() else []
+    interiors = export_interiors_for_viewer(shops, buildings, district_interior_overrides(paths))
+    shops_doc["shops"] = shops
+    shops_path.write_text(json.dumps(shops_doc) + "\n")
+    dest = paths.viewer / "interiors.json"
+    dest.write_text(json.dumps(interiors) + "\n")
+    print(f"Wrote {dest} ({len(interiors['interiors'])} enterable of {len(shops)} shopfronts)")
+    return dest
+
+
 def district_republish_shops(district_id: str) -> Path:
     """Rewrite viewer/districts/<id>/shops.json from cached OSM + places + overrides (no Blender).
 
@@ -718,9 +760,15 @@ def district_republish_shops(district_id: str) -> Path:
     spawn_path = paths.viewer / "spawn.json"
     spawn = json.loads(spawn_path.read_text()) if spawn_path.exists() else None
     shops = export_shops_for_viewer(plan_shops(osm, layout, origin, **district_shop_inputs(paths)), spawn)
+    interiors = export_interiors_for_viewer(
+        shops["shops"], layout.get("buildings") or [], district_interior_overrides(paths)
+    )
     dest = paths.viewer / "shops.json"
     dest.write_text(json.dumps(shops) + "\n")
     print(f"Wrote {dest} ({len(shops['shops'])} shopfronts)")
+    idest = paths.viewer / "interiors.json"
+    idest.write_text(json.dumps(interiors) + "\n")
+    print(f"Wrote {idest} ({len(interiors['interiors'])} enterable)")
 
     props_path = paths.viewer / "props.json"
     if props_path.exists() and spawn:
@@ -1116,6 +1164,7 @@ def migrate_legacy_viewer_to_2018() -> None:
         "transit.json": "transit.json",
         "velo.json": "velo.json",
         "shops.json": "shops.json",
+        "interiors.json": "interiors.json",
         "props.json": "props.json",
         "spawn.json": "spawn.json",
         "landmarks.json": "landmarks.json",

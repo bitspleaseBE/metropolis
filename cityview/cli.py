@@ -32,6 +32,7 @@ from cityview.barriers import attach_barriers, summarize as summarize_barriers
 from cityview.courtyards import attach_courtyards, summarize as summarize_courtyards
 from cityview.clutter import attach_clutter, summarize as summarize_clutter
 from cityview.props import export_props_for_viewer
+from cityview.interiors import export_interiors_for_viewer
 from cityview.shops import export_shops_for_viewer, plan_shops
 from cityview.trees import attach_trees, summarize as summarize_trees
 from cityview.velo import (
@@ -359,15 +360,24 @@ def city_command(args: argparse.Namespace) -> int:
     velo_path.write_text(json.dumps(velo_payload) + "\n")
     print(f"Wrote {velo_path} ({len(velo_payload['stations'])} Velo stations)")
     shop_inputs: dict = {}
+    interior_overrides: dict = {}
     if district_id:
         from cityview.districts import district_paths as _dpaths
+        from cityview.interiors import district_interior_overrides
         from cityview.shops import district_shop_inputs
 
         shop_inputs = district_shop_inputs(_dpaths(district_id))
+        interior_overrides = district_interior_overrides(_dpaths(district_id))
     shops_payload = export_shops_for_viewer(plan_shops(osm, layout, origin, **shop_inputs), spawn)
+    interiors_payload = export_interiors_for_viewer(
+        shops_payload["shops"], layout.get("buildings") or [], interior_overrides
+    )
     shops_path = VIEWER / "shops.json"
     shops_path.write_text(json.dumps(shops_payload) + "\n")
     print(f"Wrote {shops_path} ({len(shops_payload['shops'])} shopfronts)")
+    interiors_path = VIEWER / "interiors.json"
+    interiors_path.write_text(json.dumps(interiors_payload) + "\n")
+    print(f"Wrote {interiors_path} ({len(interiors_payload['interiors'])} enterable)")
     props_payload = export_props_for_viewer(layout, spawn)
     props_path = VIEWER / "props.json"
     props_path.write_text(json.dumps(props_payload) + "\n")
@@ -510,6 +520,11 @@ def district_command(args: argparse.Namespace) -> int:
 
         district_republish_shops(args.id)
         return 0
+    if action == "interiors":
+        from cityview.district_pipeline import district_republish_interiors
+
+        district_republish_interiors(args.id)
+        return 0
     if action == "roads":
         from cityview.district_pipeline import district_republish_roads
 
@@ -640,6 +655,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     d_shops.add_argument("id", help="District id")
     d_shops.set_defaults(func=district_command)
+
+    d_interiors = dsub.add_parser(
+        "interiors",
+        help="Plan enterable interiors onto the published shops.json (keeps sign positions) "
+        "into viewer/districts/<id>/interiors.json, no Blender",
+    )
+    d_interiors.add_argument("id", help="District id")
+    d_interiors.set_defaults(func=district_command)
 
     d_roads = dsub.add_parser(
         "roads",

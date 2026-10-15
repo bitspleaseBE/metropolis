@@ -9,6 +9,8 @@ Each entry becomes viewer/characters/people/<id>.glb with its walk clip baked in
   walk    Rocketbox walk clip (in-place after the build strips root travel)
   recolor garment tints, see `tint()`; applied to the body texture only
   extras  props modelled by the build (hat, beard, sidelocks, kippah, coat, skirt, ...)
+  uniform one `tint()` for shop staff: the garment is painted near-white and its faces move to a
+          separate ``<id>_uniform`` material whose colour the viewer sets to the shop's brand
 
 Uniformed professions (fire, military, pilots, SWAT), swimwear and football kits are left
 out, as is Female_Adult_16: face veils are banned in public in Belgium.
@@ -128,6 +130,11 @@ ROSTER: list[dict] = [
         "walk": "m_walk_neutral_01",
         "recolor": [tint((8, 40), (92, 62, 46), sat=(0.15, 0.7), val=(0.25, 0.85), keep=0.35)],
     },
+    # Shop staff (indoors only): plain shirt + dark trousers, shirt recoloured per shop.
+    {**_adult("Business_Male_06", "m", "staff"), "id": "Staff_Male_01",
+     "uniform": tint((0, 360), (238, 238, 236), sat=(0.0, 0.18), val=(0.42, 1.0))},
+    {**_adult("Female_Adult_15", "f", "staff"), "id": "Staff_Female_01",
+     "uniform": tint((195, 255), (238, 238, 236), sat=(0.1, 1.0), val=(0.08, 1.0), uv=(0.0, 0.0, 1.0, 0.72))},
     _adult("Sports_Female_02", "f", "asian", "f_walk_neutral_02"),
     _adult("Sports_Male_04", "m", "european"),
     _adult("Wood_Male_01", "m", "muslim", "m_walk_stroll_01"),
