@@ -56,7 +56,7 @@ def build_one(district_id: str, log_dir: Path, run_started: float, extra: list[s
     started = time.monotonic()
     marks: dict[str, float] = {}
     print(f"[{_fmt(started - run_started)}] start {district_id}", flush=True)
-    with log_path.open("w") as log:
+    with log_path.open("w", buffering=1) as log:
         log.write(f"$ {' '.join(cmd)}\n")
         proc = subprocess.Popen(
             cmd, cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1

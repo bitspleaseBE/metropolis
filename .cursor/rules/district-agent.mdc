@@ -1,0 +1,18 @@
+---
+description: District packages are built locally and committed; never open or push a PR with stale district packages
+alwaysApply: true
+---
+
+# District deploy contract
+
+GitHub Pages publishes the committed `viewer/` and never rebuilds. Full rules: `docs/district-agent.md` → "Deploy contract".
+
+Before you commit for a PR, open a PR, or push to one:
+
+1. Run `python -m cityview district stale`. If it exits non-zero, stop. Rebuild the listed districts (`python3 scripts/build_all_districts.py <ids…>`, or `python -m cityview district build <id>` for one), commit the rebuilt `viewer/districts/<id>/` packages, and run it again.
+2. If the user asks for a PR while packages are stale, say so plainly and offer to run the rebuild. Do not open the PR without it. A full rebuild of every district takes hours, so warn before starting.
+3. Never hand-edit `viewer/districts/<id>/build.json`, never add the `districts-stale-ok` label, never set `ALLOW_STALE_DISTRICTS`, and never commit GLBs built with `CITYVIEW_SKIP_COMPRESS=1`.
+
+Build inputs: build code in `cityview/` and `blender/`, `assets/`, `viewer/cars/`, `scripts/compress_glb.mjs`, and `districts/<id>/` sources. Viewer-only work (missions, cut scenes, UI in `viewer/*.js`) needs no rebuild.
+
+Only `shop_overrides.json` / `interiors.json` changed? `district shops <id>` / `district interiors <id>` republish and restamp without Blender.

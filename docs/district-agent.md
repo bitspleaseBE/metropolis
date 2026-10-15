@@ -4,6 +4,18 @@ How to finish a district after `python -m cityview district build <id>` using th
 
 For the pipeline itself, walkability, road/park collision, and adding a custom building, see [city-pipeline.md](city-pipeline.md). The per-district backlog of buildings that still need their own model (with Blender/kit agent instructions) is [todo.md](todo.md).
 
+## Deploy contract
+
+District building is local only. GitHub Pages publishes the committed `viewer/` exactly as it is and never runs Blender, so what you commit under `viewer/districts/<id>/` is what players get.
+
+- **A change that feeds a build ships with its rebuilt packages.** Build inputs are the build code (`cityview/*.py` except tests and review/serve tooling, `blender/`), `assets/`, `viewer/cars/`, `scripts/compress_glb.mjs`, and a district's own sources under `districts/<id>/` (cache, facades, landmarks, overrides, `district.json`; not `review/`, `references/`, `buildings/`, `special_buildings.json`). A shared input change means every district is rebuilt.
+- **Know before you open a PR.** Run `python -m cityview district stale`. It compares each package's `build.json` stamp with the tree and prints the exact files that changed and the rebuild command. Exit 0 means the packages are current.
+- **Rebuild in parallel.** `python3 scripts/build_all_districts.py <id> …` runs the builds side by side (each writes its own `output/<id>/`), refreshes the districts index and Maps menu once, and writes timings to `output/build-logs/<run>/summary.md`. A single district: `python -m cityview district build <id>`. Only a full build that passes `district check` writes the stamp; `--skip-blender` never does.
+- **Shop and interior tweaks stay fast.** When the only changed input is `shop_overrides.json` (or `interiors.json`), `district shops <id>` (or `district interiors <id>`) republishes and updates the stamp without Blender. Anything else changed alongside still needs a full build.
+- **Meshopt is part of the build.** Publish compresses every core, chunk and landmark GLB and fails if `node` is missing. Never commit with `CITYVIEW_SKIP_COMPRESS=1`; the PR check rejects uncompressed GLBs.
+- **Do not open or update a PR that `district stale` fails.** CI (`.github/workflows/district-freshness.yml`) runs the same check on every PR. If it fails, rebuild the listed districts, commit the packages and push. Never edit `build.json` by hand, never add the `districts-stale-ok` label (maintainers only), and never set `ALLOW_STALE_DISTRICTS`.
+- **Viewer-only work needs no rebuild.** Missions, cut scenes, UI and other `viewer/*.js` / `viewer/*.html` changes do not touch build inputs; `district stale` stays green.
+
 ## Open the pack
 
 1. Read `districts/<id>/review/LATEST.md` (also mirrored at `viewer/districts/<id>/review/AGENT_REVIEW.md`).
@@ -15,12 +27,13 @@ For the pipeline itself, walkability, road/park collision, and adding a custom b
 
 - Edit **this district’s package only** (`districts/<id>/…`, `viewer/districts/<id>/…`).
 - Never reuse another district’s façade elevation **pixel hashes** (`assert_facades_unique` will fail).
-- Prefer JSON / mesh kit fixes first; full Blender rebuild only when landmark GLBs or core geometry must change.
+- Prefer JSON / mesh kit fixes first, but a change to any build input still needs its full rebuild before the PR (see [Deploy contract](#deploy-contract)).
 - After visual work: drop a still under `districts/<id>/review/proofs/<task_id>.jpg`, set `Status: [x] done`, re-run:
 
 ```bash
 python -m cityview district review <id>
 python -m cityview district check <id> --no-sims
+python -m cityview district stale <id>
 ```
 
 ## Plaza trees (aerial → override)
@@ -87,6 +100,12 @@ python -m cityview.district_facades 2000-antwerpen --force --pack
 
 # Playability
 python -m cityview district check 2000-antwerpen --no-sims
+
+# Which packages are older than their inputs (the PR check)
+python -m cityview district stale
+
+# Rebuild several districts side by side, with timings
+python3 scripts/build_all_districts.py 2000-antwerpen 2060-noord
 
 # Places (all shops / horeca / sights) and Commons picture references
 python -m cityview district places 2000-antwerpen
