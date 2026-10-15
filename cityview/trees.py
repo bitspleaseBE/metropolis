@@ -78,7 +78,7 @@ CONIFER_GENERA = frozenset(
 )
 # Typical mature height (m) of each genus as a paved street / square tree in Antwerp.
 GENUS_MAX_HEIGHT = {
-    "Platanus": 22.0, "Quercus": 20.0, "Fagus": 20.0, "Populus": 22.0, "Fraxinus": 17.0,
+    "Platanus": 25.0, "Quercus": 20.0, "Fagus": 20.0, "Populus": 25.0, "Fraxinus": 17.0,
     "Tilia": 18.0, "Aesculus": 17.0, "Acer": 16.0, "Ulmus": 17.0, "Pterocarya": 16.0,
     "Robinia": 15.0, "Betula": 15.0, "Gleditsia": 14.0, "Alnus": 14.0, "Salix": 13.0,
     "Carpinus": 13.0, "Ginkgo": 14.0, "Liquidambar": 15.0, "Zelkova": 15.0,
@@ -86,12 +86,33 @@ GENUS_MAX_HEIGHT = {
     "Crataegus": 7.0, "Amelanchier": 6.0, "Magnolia": 8.0, "Cercis": 7.0,
 }
 DEFAULT_MAX_HEIGHT = 14.0
-MAX_TREE_HEIGHT = 22.0  # 4-6 storey terraces are ~13-18 m; nothing should tower 2×
+# 4-6 storey terraces are ~13-18 m; old Leien planes and poplars top them, nothing towers 2×.
+MAX_TREE_HEIGHT = 25.0
 # Two adult humans (~1.7 m). Anything shorter is a bush, not a tree.
 MIN_TREE_HEIGHT = 3.4
+# A specimen kept as a tree is drawn at least as a nursery standard, so its clear stem
+# (CLEAR_FRACTION of the height) still passes over a 1.8 m walker.
+MIN_STANDARD_HEIGHT = 5.0
 # Foliage must clear a walker; Blender crowns sit on top of this clearance.
 MIN_CROWN_CLEARANCE = 2.0
-GIRTH_SCALE_CM = 110.0
+# Girth (cm at breast height) → height saturates towards the genus maximum.
+GIRTH_BASE_M = 3.0
+GIRTH_SCALE_CM = 85.0
+# Below this a tree uses the "young" mesh form (slender leader, higher clear stem share).
+YOUNG_MAX_HEIGHT = 8.5
+FORMS = ("young", "mature")
+# Clear stem (trunk below the crown) as a fraction of height, per crown archetype and form.
+# Each (archetype, form) is one instanced mesh scaled by (r/r0, r/r0, h/h0), so the trunk
+# share is fixed per mesh; ``blender/trees_blender`` models its trunk to these values.
+CLEAR_FRACTION = {
+    "broad": {"young": 0.5, "mature": 0.4},
+    "round": {"young": 0.5, "mature": 0.4},
+    "irregular": {"young": 0.48, "mature": 0.36},
+    "open": {"young": 0.5, "mature": 0.42},
+    "columnar": {"young": 0.42, "mature": 0.25},
+    "ornamental": {"young": 0.45, "mature": 0.36},
+    "conifer": {"young": 0.3, "mature": 0.2},
+}
 # Narrow, upright habits (cultivar epithets) → thin crown.
 COLUMNAR_MARKS = ("fastigiata", "columnaris", "pyramidalis", "fontaine", "erecta", "fastigiate")
 
@@ -116,6 +137,18 @@ def archetype_for(genus: str, shape: str) -> str:
     if shape == "columnar":
         return "columnar"
     return _GENUS_ARCHETYPE.get(genus, "round")
+
+
+def form_for(height: float) -> str:
+    """Mesh form for a tree of ``height`` metres: ``"young"`` or ``"mature"``."""
+    return "young" if float(height) < YOUNG_MAX_HEIGHT else "mature"
+
+
+def crown_spread_radius(height: float) -> float:
+    """Typical crown radius: slender when young (~0.35 h wide), broad when mature (~0.6 h)."""
+    h = max(float(height), MIN_TREE_HEIGHT)
+    t = min(1.0, max(0.0, (h - 5.0) / 13.0))
+    return h * (0.18 + 0.13 * t * t * (3.0 - 2.0 * t))
 
 # --- placement tuning -----------------------------------------------------
 # A surveyed trunk only has to stay off the tram bed (+ kerb margin); its crown may
@@ -502,7 +535,9 @@ def tree_traits(rec: dict[str, Any], x: float, y: float) -> dict[str, Any]:
         if girth:
             # Circumference at breast height → urban height, saturating towards the
             # genus' street-tree maximum (growth slows long before girth does).
-            height = 2.5 + (h_max - 2.5) * (1.0 - math.exp(-float(girth) / GIRTH_SCALE_CM))
+            height = GIRTH_BASE_M + (h_max - GIRTH_BASE_M) * (
+                1.0 - math.exp(-float(girth) / GIRTH_SCALE_CM)
+            )
         else:
             height = 6.5 + tone * 4.5
         height *= 0.93 + 0.14 * tone
@@ -514,8 +549,7 @@ def tree_traits(rec: dict[str, Any], x: float, y: float) -> dict[str, Any]:
     if crown_d:
         radius = crown_d * 0.5
     else:
-        # Open-grown urban broadleaves: crown spread ≈ 0.55–0.7 × height.
-        radius = 0.3 * max(height, MIN_TREE_HEIGHT) + 0.3 + (tone - 0.5) * 0.7
+        radius = crown_spread_radius(height) * (0.85 + 0.3 * tone)
     if columnar:
         radius *= 0.5
     elif conifer:
@@ -523,38 +557,48 @@ def tree_traits(rec: dict[str, Any], x: float, y: float) -> dict[str, Any]:
     radius = max(0.6, min(7.0, radius))
     shape = "conifer" if conifer else ("columnar" if columnar else "broadleaf")
     height = fit_height_to_crown(height, radius, shape)
-    # Street trees keep walker clearance under the crown; grow a short specimen up
-    # rather than letting foliage sit on the ground (unless it belongs as a bush).
+    # Street trees keep walker clearance under the crown; grow a short specimen up to a
+    # nursery standard rather than letting foliage sit on the ground (unless it is a bush).
     if height >= MIN_TREE_HEIGHT:
-        height = max(height, MIN_CROWN_CLEARANCE + max(1.4, 0.55 * radius))
-        height = fit_height_to_crown(min(height, h_max, MAX_TREE_HEIGHT), radius, shape)
-        # Still too short after the crown-fit → bush territory.
-        if height < MIN_TREE_HEIGHT:
-            height = round(height, 2)
+        height = max(height, MIN_STANDARD_HEIGHT, MIN_CROWN_CLEARANCE + max(1.4, 0.55 * radius))
+        height = fit_height_to_crown(
+            min(height, max(h_max, MIN_STANDARD_HEIGHT), MAX_TREE_HEIGHT), radius, shape
+        )
+    archetype = archetype_for(genus, shape)
     return {
         "genus": genus,
         "species": species,
         "height": round(height, 2),
         "radius": round(radius, 2),
         "shape": shape,
-        "archetype": archetype_for(genus, shape),
+        "archetype": archetype,
+        "form": form_for(height),
         "tone": round(tone, 3),
-        "clearance": round(crown_clearance(height, shape), 2),
+        "clearance": round(crown_clearance(height, shape, archetype), 2),
     }
 
 
 def fit_height_to_crown(height: float, radius: float, shape: str) -> float:
     """Cap height so a crown never sits on a bare pole (pruned / narrow crowns)."""
-    ratio = {"broadleaf": 3.4, "columnar": 7.0, "conifer": 5.0}.get(shape, 3.4)
+    ratio = {"broadleaf": 4.6, "columnar": 7.0, "conifer": 5.0}.get(shape, 4.6)
     return min(height, 2.4 + ratio * radius)
 
 
-def crown_clearance(height: float, shape: str) -> float:
-    """Approximate foliage bottom height (metres) matching ``blender/trees_blender``."""
-    if shape == "conifer":
-        # Still a tree: keep the skirt above a crouched walker, taper above that.
-        return max(1.5, 0.22 * height)
-    return max(MIN_CROWN_CLEARANCE, 0.38 * height)
+def crown_clearance(height: float, shape: str, archetype: str | None = None) -> float:
+    """Foliage bottom height (metres): the clear stem the Blender mesh for this tree models."""
+    kind = archetype or archetype_for("", shape)
+    fractions = CLEAR_FRACTION.get(kind, CLEAR_FRACTION["round"])
+    return float(height) * fractions[form_for(height)]
+
+
+def refresh_derived(tree: dict[str, Any]) -> dict[str, Any]:
+    """Recompute form and clearance after ``height`` (or the archetype) was edited."""
+    h = float(tree.get("height") or 0.0)
+    shape = tree.get("shape") or "broadleaf"
+    kind = tree.get("archetype") or archetype_for(tree.get("genus") or "", shape)
+    tree["form"] = form_for(h)
+    tree["clearance"] = round(crown_clearance(h, shape, kind), 2)
+    return tree
 
 
 def is_tree_sized(traits: dict[str, Any]) -> bool:
@@ -648,6 +692,7 @@ def apply_vegetation_overrides(
                 tree["radius"] = float(rec["radius"])
             if rec.get("height") is not None:
                 tree["height"] = float(rec["height"])
+            refresh_derived(tree)
             out.append(tree)
             stats["override_added"] += 1
     return out, stats
@@ -810,7 +855,7 @@ def plan_trees(
             traits["height"] = round(
                 fit_height_to_crown(traits["height"], traits["radius"], traits["shape"]), 2
             )
-            traits["clearance"] = round(crown_clearance(traits["height"], traits["shape"]), 2)
+            refresh_derived(traits)
         # Shorter than two humans → bush mound (different mesh, no trunk).
         if not is_tree_sized(traits):
             bush = bush_from_traits(x, y, traits)
@@ -869,11 +914,9 @@ def plan_trees(
                     rec["girth_cm"] = 80.0 + tone * 120.0
                     traits = tree_traits(rec, x, y)
                     if not is_tree_sized(traits):
-                        traits["height"] = MIN_TREE_HEIGHT + 0.4 + tone * 2.0
+                        traits["height"] = MIN_STANDARD_HEIGHT + tone * 2.0
                         traits["radius"] = max(traits["radius"], 1.4)
-                        traits["clearance"] = round(
-                            crown_clearance(traits["height"], traits["shape"]), 2
-                        )
+                        refresh_derived(traits)
                     tree = {"x": round(x, 2), "y": round(y, 2), "source": "fill"}
                     tree.update(traits)
                     trees.append(tree)

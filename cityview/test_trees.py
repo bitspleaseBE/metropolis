@@ -10,9 +10,14 @@ from cityview.railclear import CLEAR_TREE
 from cityview.roadclear import TRUNK_MARGIN
 from cityview.trees import (
     CLEAR_REAL_TRUNK,
+    MAX_TREE_HEIGHT,
     MIN_CROWN_CLEARANCE,
+    MIN_STANDARD_HEIGHT,
     MIN_TREE_HEIGHT,
+    YOUNG_MAX_HEIGHT,
     _point_in_ring,
+    fit_height_to_crown,
+    form_for,
     is_tree_sized,
     plan_trees,
     poisson_fill,
@@ -116,22 +121,58 @@ class RealTreeTests(unittest.TestCase):
         tree = plan_trees(layout, payload, ORIGIN)["trees"][0]
         self.assertLessEqual(tree["radius"], 2.6 - 1.4 + 1e-6)
         # Pruned as a whole: no tall bare pole under a shrunken crown.
-        self.assertLessEqual(tree["height"], 2.4 + 3.4 * tree["radius"] + 1e-6)
+        self.assertLessEqual(
+            tree["height"], fit_height_to_crown(1e9, tree["radius"], tree["shape"]) + 1e-6
+        )
+        self.assertEqual(tree["form"], form_for(tree["height"]))
 
     def test_heights_stay_in_street_scale(self):
         huge = tree_traits({"species": "Platanus hispanica", "girth_cm": 420.0}, 0, 0)
-        self.assertLessEqual(huge["height"], 22.0)
-        self.assertGreater(huge["height"], 17.0)
+        self.assertLessEqual(huge["height"], MAX_TREE_HEIGHT)
+        self.assertGreater(huge["height"], 20.0)
         cherry = tree_traits({"species": "Prunus serrulata", "girth_cm": 300.0}, 0, 0)
         self.assertLessEqual(cherry["height"], 8.5 * 1.07 + 1e-6)
         for girth in (20.0, 80.0, 160.0, 260.0):
             t = tree_traits({"species": "Tilia cordata", "girth_cm": girth}, 3.0, 4.0)
-            # Crown spread stays plausible for the height (≥ ~45 % of it).
-            self.assertGreaterEqual(2 * t["radius"], 0.45 * t["height"] - 0.3)
+            # Slender when young, broad when mature: spread between ~30 % and ~75 % of height.
+            self.assertGreaterEqual(2 * t["radius"], 0.3 * t["height"])
+            self.assertLessEqual(2 * t["radius"], 0.75 * t["height"])
+
+    def test_young_trees_are_slimmer_than_mature_ones(self):
+        young = tree_traits({"species": "Tilia cordata", "girth_cm": 20.0}, 3.0, 4.0)
+        old = tree_traits({"species": "Tilia cordata", "girth_cm": 260.0}, 3.0, 4.0)
+        self.assertEqual(young["form"], "young")
+        self.assertEqual(old["form"], "mature")
+        self.assertLess(young["radius"] / young["height"], old["radius"] / old["height"])
+
+    def test_city_heights_are_street_tree_scale(self):
+        # A 45 cm girth lime (the inventory median) is a ~9 m street tree, not a 7 m shrub.
+        mid = tree_traits({"species": "Tilia cordata", "girth_cm": 45.0}, 3.0, 4.0)
+        self.assertGreater(mid["height"], 8.5)
+        for girth in (5.0, 20.0, 45.0, 120.0, 400.0):
+            for species in ("Platanus x hispanica", "Populus nigra", "Acer campestre", "Malus"):
+                t = tree_traits({"species": species, "girth_cm": girth}, 1.0, 2.0)
+                self.assertLessEqual(t["height"], MAX_TREE_HEIGHT)
+
+    def test_broadleaf_trunks_clear_a_walker(self):
+        for girth in (5.0, 12.0, 20.0, 45.0, 90.0, 180.0, 300.0):
+            for species in ("Tilia cordata", "Acer platanoides", "Quercus robur", "Betula pendula",
+                            "Prunus avium", "Platanus x hispanica"):
+                t = tree_traits({"species": species, "girth_cm": girth}, girth, 7.0)
+                if not is_tree_sized(t):
+                    continue
+                self.assertGreaterEqual(t["height"], MIN_STANDARD_HEIGHT - 1e-6)
+                self.assertGreaterEqual(t["clearance"], 2.2 - 1e-6, (species, girth, t))
+
+    def test_form_split(self):
+        self.assertEqual(form_for(MIN_STANDARD_HEIGHT), "young")
+        self.assertEqual(form_for(YOUNG_MAX_HEIGHT - 0.01), "young")
+        self.assertEqual(form_for(YOUNG_MAX_HEIGHT), "mature")
+        self.assertEqual(form_for(22.0), "mature")
 
     def test_small_surveyed_crown_caps_height(self):
         t = tree_traits({"species": "Tilia cordata", "girth_cm": 220.0, "crown": "2"}, 0, 0)
-        self.assertLessEqual(t["height"], 2.4 + 3.4 * t["radius"] + 1e-6)
+        self.assertLessEqual(t["height"], fit_height_to_crown(1e9, t["radius"], t["shape"]) + 1e-6)
         self.assertGreaterEqual(t["height"], MIN_TREE_HEIGHT)
         self.assertGreaterEqual(t["clearance"], MIN_CROWN_CLEARANCE - 1e-6)
 
