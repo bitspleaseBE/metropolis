@@ -31,8 +31,9 @@ sys.path.insert(0, str(ROOT))
 
 from cityview.districts import DISTRICT_REGISTRY  # noqa: E402
 
-# Log lines that mark the Blender phase of a build (first and last Blender output).
-BLENDER_START = "Blender 4."
+# Log lines that mark the Blender phase of a build: the pipeline echoes the Blender
+# command line before launching it, and publish starts by copying Blender's GLBs.
+BLENDER_START = "Blender --background"
 PUBLISH_START = "Copied "
 
 
