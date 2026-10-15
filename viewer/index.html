@@ -1326,6 +1326,7 @@ import { SLOTS } from "./weapons.js";
       import { createGamepad, interactLabel } from "./gamepad.js";
       import { createDistrictBorder } from "./district-border.js";
       import { shadeHedges } from "./hedge-shade.js";
+      import { shadeStreets } from "./street-grit.js";
       import { createPlayClock } from "./district-progress.js";
       import { createChunkStream } from "./chunk-stream.js";
       import { createFarField } from "./far-field.js";
@@ -3475,6 +3476,7 @@ let knifeLunge = null;
         });
         for (const m of retired) m.dispose();
         shadeHedges(root);
+        shadeStreets(root);
         return { lambert: retired.length, pbr };
       }
 
@@ -4008,6 +4010,7 @@ let knifeLunge = null;
                 onChunkLoaded: (chunkRoot) => {
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                   shadeHedges(chunkRoot);
+                  shadeStreets(chunkRoot);
                   removedBuildings.apply(chunkRoot);
                   applyLiquidMaterials(THREE, chunkRoot);
                   scheduleGroundRefresh();
@@ -4061,6 +4064,7 @@ let knifeLunge = null;
               onChunkLoaded: (chunkRoot) => {
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                 shadeHedges(chunkRoot);
+                shadeStreets(chunkRoot);
                 removedBuildings?.apply(chunkRoot);
                 applyLiquidMaterials(THREE, chunkRoot);
                 mergeChunk?.(chunkRoot);
