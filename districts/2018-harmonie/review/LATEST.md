@@ -1,7 +1,7 @@
 # Agent review — Klein Antwerpen · 2018
 
 - **District**: `2018-harmonie`
-- **Run**: `20261014T155009Z`
+- **Run**: `20261015T150915Z`
 - **Spawn**: Stadspark (51.211471, 4.412035)
 - **Instructions**: see [docs/district-agent.md](../../../docs/district-agent.md)
 - **Dossier**: `districts/2018-harmonie/special_buildings.json`
@@ -1508,7 +1508,7 @@ Proof: `review/proofs/ref-plantentuin.jpg`
 
 **Goal:** Every shop / bar / restaurant with a reference photo has a shop_overrides.json entry so its fascia colour, lettering, frame, awning and front type match the photo.
 
-**Acceptance:** 2 referenced places; each has an override (now 0 shops carry one) and a walk proof of the busiest street shows them.
+**Acceptance:** 2 referenced places; each has an override (now 6 shops carry one) and a walk proof of the busiest street shows them.
 
 **Geo / context:**
 ```json

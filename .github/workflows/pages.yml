@@ -1,4 +1,8 @@
-name: Deploy Klein Antwerpen to GitHub Pages
+name: Deploy viewer to GitHub Pages
+
+# Publishes the committed viewer/ as-is. District packages (GLBs, chunks, JSON) are
+# rebuilt and Meshopt-compressed locally with `python -m cityview district build <id>`
+# and committed; this workflow never runs Blender. See docs/district-agent.md.
 
 on:
   push:
@@ -24,71 +28,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Blender
-        run: |
-          set -euo pipefail
-          BLENDER_VERSION=4.2.13
-          ARCHIVE="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
-          BASE="https://download.blender.org/release/Blender4.2"
-          EXPECTED_SHA256="ed0c872742d590b42fbe3b91286f60f6f18e0f69f6314fd47db9ff419c7ce2f6"
-          curl -L --fail --retry 3 -o "/tmp/${ARCHIVE}" "${BASE}/${ARCHIVE}"
-          curl -L --fail --retry 3 -o "/tmp/blender.sha256" "${BASE}/blender-${BLENDER_VERSION}.sha256"
-          EXPECTED="$(awk -v f="$ARCHIVE" '$2 == f { print $1 }' /tmp/blender.sha256)"
-          test -n "$EXPECTED"
-          test "$EXPECTED" = "$EXPECTED_SHA256"
-          echo "${EXPECTED_SHA256}  /tmp/${ARCHIVE}" | sha256sum -c -
-          sudo mkdir -p /opt/blender
-          sudo tar -xJf "/tmp/${ARCHIVE}" -C /opt/blender --strip-components=1
-          echo "BLENDER_BIN=/opt/blender/blender" >> "$GITHUB_ENV"
-          /opt/blender/blender --version
-
-      - name: Build Klein Antwerpen district
-        env:
-          # Compress in the next step so the log shows before/after sizes clearly.
-          CITYVIEW_SKIP_COMPRESS: "1"
-        run: |
-          test -f assets/osm/harmonie.json
-          python3 -m cityview city --place klein-antwerpen --no-render
-          test -f viewer/klein_antwerpen.glb
-          ls -lh viewer/klein_antwerpen.glb output/antwerp_harmonie.glb
-
-      - name: Meshopt-compress city GLB
-        run: |
-          ls -lh viewer/klein_antwerpen.glb
-          node scripts/compress_glb.mjs viewer/klein_antwerpen.glb
-          ls -lh viewer/klein_antwerpen.glb
-          shopt -s nullglob
-          for f in viewer/landmarks/*.glb; do
-            node scripts/compress_glb.mjs "$f"
-          done
-          ls -lh viewer/landmarks || true
-          python3 - <<'PY'
-          import json, struct
-          from pathlib import Path
-          p = Path("viewer/klein_antwerpen.glb")
-          d = p.read_bytes()
-          l = struct.unpack("<I", d[12:16])[0]
-          j = json.loads(d[20 : 20 + l])
-          assert "EXT_meshopt_compression" in (j.get("extensionsUsed") or []), j.get("extensionsUsed")
-          assert any(n.get("name") == "HumanSpawn" for n in j["nodes"]), "HumanSpawn missing after compress"
-          print("meshopt ok; HumanSpawn present; lamps",
-                sum(1 for n in j["nodes"] if (n.get("name") or "").startswith("lamp_h_")))
-          PY
-          rm -f viewer/klein_antwerpen.glb.premeshopt.glb
-
-      - name: Verify façade photo textures are inside the GLB
-        run: |
-          test -f assets/textures/facade_atlas.jpg
-          python3 scripts/inspect_glb_textures.py viewer/klein_antwerpen.glb
-
-      - name: Extract rider animation clips
-        run: python3 scripts/extract_anim_clips.py
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

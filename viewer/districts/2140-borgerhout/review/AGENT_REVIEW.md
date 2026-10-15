@@ -1,7 +1,7 @@
 # Agent review — Borgerhout · 2140
 
 - **District**: `2140-borgerhout`
-- **Run**: `20261014T125857Z`
+- **Run**: `20261015T142335Z`
 - **Spawn**: Moorkensplein (51.2152, 4.4378)
 - **Instructions**: see [docs/district-agent.md](../../../docs/district-agent.md)
 - **Dossier**: `districts/2140-borgerhout/special_buildings.json`

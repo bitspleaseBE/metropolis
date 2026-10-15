@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from cityview.building_types import BUILDING_TYPES_PATH, attach_palettes, load_building_types, write_building_types
+from cityview.glb_compress import compress_viewer_glb
 from cityview.gtfs_delijn import enrich_layout_transit
 from cityview.jobs import add_photo_building, load_scene, resolve_photo, write_job
 from cityview.landmarks import viewer_landmark_index
@@ -54,25 +55,6 @@ def blender_bin() -> Path:
         return Path(override)
     return DEFAULT_BLENDER
 
-
-
-def compress_viewer_glb(path: Path) -> None:
-    """Meshopt-compress a GLB in place for faster Pages downloads (no-op if Node missing)."""
-    if not path.exists():
-        return
-    if os.environ.get("CITYVIEW_SKIP_COMPRESS", "").strip() in {"1", "true", "yes"}:
-        print(f"Skipping Meshopt compress ({path.name}): CITYVIEW_SKIP_COMPRESS set")
-        return
-    script = ROOT / "scripts" / "compress_glb.mjs"
-    if not script.exists():
-        print(f"Skipping Meshopt compress: missing {script}")
-        return
-    node = shutil.which("node")
-    if not node:
-        print(f"Skipping Meshopt compress ({path.name}): node not on PATH")
-        return
-    print(f"Compressing {path} …")
-    subprocess.run([node, str(script), str(path)], check=True, cwd=ROOT)
 
 
 def _publish_landmark_glbs(output_dir: Path) -> None:
@@ -516,15 +498,23 @@ def district_command(args: argparse.Namespace) -> int:
         _district_refs(args.id, load_district(args.id), refresh=bool(args.refresh))
         return 0
     if action == "shops":
+        from cityview.district_freshness import restamp_after_republish
         from cityview.district_pipeline import district_republish_shops
 
         district_republish_shops(args.id)
+        restamp_after_republish(args.id, "shops")
         return 0
     if action == "interiors":
+        from cityview.district_freshness import restamp_after_republish
         from cityview.district_pipeline import district_republish_interiors
 
         district_republish_interiors(args.id)
+        restamp_after_republish(args.id, "interiors")
         return 0
+    if action == "stale":
+        from cityview.district_freshness import report
+
+        return report(args.ids or None, as_json=bool(args.json))
     if action == "roads":
         from cityview.district_pipeline import district_republish_roads
 
@@ -620,6 +610,15 @@ def build_parser() -> argparse.ArgumentParser:
     d_check.add_argument("id", help="District id")
     d_check.add_argument("--no-sims", action="store_true", help="Skip headless Node sims")
     d_check.set_defaults(func=district_command)
+
+    d_stale = dsub.add_parser(
+        "stale",
+        help="List packages whose build stamp no longer matches pipeline code / district sources "
+        "(the PR check; exit 1 when any)",
+    )
+    d_stale.add_argument("ids", nargs="*", help="District ids (default: all)")
+    d_stale.add_argument("--json", action="store_true")
+    d_stale.set_defaults(func=district_command)
 
     d_chunks = dsub.add_parser(
         "chunks",

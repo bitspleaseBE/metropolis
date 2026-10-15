@@ -117,7 +117,7 @@ Every district Blender export writes `core.glb` (spawn neighbourhood, first pain
 
 The walk viewer loads `?district=2018-harmonie` by default. At a modelled edge listed in [`districts/index.json`](districts/index.json) (Nationale Bank / Leopoldplaats between 2018 and 2000) a prompt offers the neighbouring district.
 
-**Local QA (before Pages):** keep CI on the legacy path until this feels solid.
+**Local QA (before Pages):** Pages publishes exactly what you commit, so check the rebuilt package locally first.
 
 ```bash
 python3 -m cityview serve --host 127.0.0.1 --port 8767
@@ -154,10 +154,10 @@ Outputs land in `output/`:
 
 ## GitHub Pages
 
-CI (`.github/workflows/pages.yml`) downloads Blender on Ubuntu, rebuilds `--place klein-antwerpen --no-render`, and deploys `viewer/` (including `klein_antwerpen.glb`).
+CI (`.github/workflows/pages.yml`) publishes the committed `viewer/` folder as-is. It does not run Blender or rebuild any district: district packages under `viewer/districts/<id>/` (core, chunks, landmarks, JSON) are built and Meshopt-compressed locally with `python -m cityview district build <id>` and committed with the change that needs them. A PR check (`.github/workflows/district-freshness.yml`) fails when pipeline code or district sources change without the matching rebuilt packages. See [`docs/district-agent.md`](docs/district-agent.md#deploy-contract).
 
 1. Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**
-2. Push to `main` or `klein-antwerpen-2018`, or run the workflow manually
+2. Push to `main`, or run the workflow manually
 3. Site URL: `https://<org>.github.io/metropolis/`
 
 ## Whole city LOD strategy
@@ -217,7 +217,7 @@ Walls in the 3D city are real image textures, not flat colours:
 3. `python -m cityview.facade_textures` (needs `pip install -e .[textures]`) packs them into `assets/textures/facade_atlas.jpg` + `wall_*.jpg`. **These are committed**, so CI only needs Blender.
 4. `blender/build_city.py` maps the atlas onto each street façade (`facade_photo_atlas` material) and tiles wall textures on block walls; the glTF export embeds the JPEGs.
 5. **Windows, awnings and night** — `python -m cityview.facade_windows` finds the glass in each elevation (dark compact blobs of window proportions) and commits `assets/textures/facade_windows.json` + `facade_emissive.jpg`. Near the spawn, detected windows get 3D relief (granite sill with drip lip, head hood, jamb fins) and wide ground-floor glazing gets a shop awning; the emissive atlas lights a seeded subset of windows from their actual glass pixels, so the glow lines up with the photo. Near the spawn, dark cast-iron **downpipes** (brackets, hopper head, foot shoe) run down party-wall joints between neighbouring houses, thinned to one per ~5 m and kept clear of doors and shop glazing (`facade_kit.downpipes`); distant edges skip all of this relief (LOD).
-6. `python3 scripts/inspect_glb_textures.py viewer/klein_antwerpen.glb` proves the GLB contains the images (CI runs it).
+6. `python3 scripts/inspect_glb_textures.py viewer/districts/2018-harmonie/core.glb` proves the GLB contains the images.
 
 ## Day / night
 

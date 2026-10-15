@@ -15,6 +15,7 @@ When a change alters any of these, update the doc in the same change:
 - an output path or file in the viewer package changes
 - a threshold the doc quotes changes (budgets, `CORE_R`, cell size, dedupe distances, export radii)
 - collision / walkability policy the doc names changes
+- what counts as a build input for the `build.json` stamp changes (`cityview/district_freshness.py`); keep `docs/district-agent.md` "Deploy contract" in step too
 
 Rules:
 

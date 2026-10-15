@@ -3,5 +3,103 @@
     51.27421425,
     4.3647243499999995
   ],
-  "landmarks": []
+  "landmarks": [
+    {
+      "id": "117235287",
+      "name": "Muziekkiosk Koning Albertpark",
+      "kind": "bandstand",
+      "x": 3356.49,
+      "y": -8251.66,
+      "file": "landmarks/117235287.glb"
+    },
+    {
+      "id": "12470557",
+      "name": "Nationale Bank van Belgi\u00eb",
+      "kind": "civic",
+      "x": 3011.4,
+      "y": -6878.82,
+      "file": "landmarks/12470557.glb"
+    },
+    {
+      "id": "231220414",
+      "name": "Feestzaal Harmonie",
+      "kind": "hall",
+      "x": 3246.61,
+      "y": -7947.86,
+      "file": "landmarks/231220414.glb"
+    },
+    {
+      "id": "232921425",
+      "name": "In de Gulden Spoor",
+      "kind": "house",
+      "x": 3386.44,
+      "y": -7480.25,
+      "file": "landmarks/232921425.glb"
+    },
+    {
+      "id": "453577567",
+      "name": "Sint-Bonifaciuskerk",
+      "kind": "church",
+      "x": 3649.54,
+      "y": -7918.17,
+      "file": "landmarks/453577567.glb",
+      "reach": 60
+    },
+    {
+      "id": "501410388",
+      "name": "Mechelsesteenweg 123 (Art Deco)",
+      "kind": "apartments",
+      "x": 3177.21,
+      "y": -7510.72,
+      "file": "landmarks/501410388.glb"
+    },
+    {
+      "id": "501637650",
+      "name": "Peter Benoitstraat 34",
+      "kind": "house",
+      "x": 3048.17,
+      "y": -7699.45,
+      "file": "landmarks/501637650.glb"
+    },
+    {
+      "id": "501637651",
+      "name": "Peter Benoitstraat 38",
+      "kind": "house",
+      "x": 3048.96,
+      "y": -7715.23,
+      "file": "landmarks/501637651.glb"
+    },
+    {
+      "id": "501637652",
+      "name": "Peter Benoitstraat 40",
+      "kind": "house",
+      "x": 3057.28,
+      "y": -7719.01,
+      "file": "landmarks/501637652.glb"
+    },
+    {
+      "id": "503176291",
+      "name": "In de Gulden Spoor \u2013 poortgebouw",
+      "kind": "gatehouse",
+      "x": 3419.21,
+      "y": -7481.93,
+      "file": "landmarks/503176291.glb"
+    },
+    {
+      "id": "503713425",
+      "name": "Koetshuis Harmoniestraat 24",
+      "kind": "house",
+      "x": 3114.78,
+      "y": -7848.76,
+      "file": "landmarks/503713425.glb"
+    },
+    {
+      "id": "7345816",
+      "name": "ZAS Vincentius (Sint-Vincentiusgasthuis)",
+      "kind": "hospital",
+      "x": 3336.69,
+      "y": -7560.11,
+      "file": "landmarks/7345816.glb"
+    }
+  ]
 }
