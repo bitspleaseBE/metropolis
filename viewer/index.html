@@ -4737,6 +4737,7 @@ let knifeLunge = null;
           landmarkStream.update(camera.position.x, camera.position.z, mode, camH);
         }
         shops && shops.update(gameHour, gameDay, camera.position.x, camera.position.z);
+        velo?.setCamera?.(camera.position.x, camera.position.z);
         terraces && !inShop && terraces.update();
         refreshRideHud();
         const sRide = scooters && scooters.isRiding() ? scooters.getRideHud() : null;
