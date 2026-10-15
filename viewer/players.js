@@ -11,6 +11,7 @@ import { VELO_FWD, VELO_RIDE } from "./velo.js";
 import { leanToBars } from "./ride-lean.js";
 import { createArmedRig } from "./player-armed.js";
 import { captureSoles, createFootPlant, soleLevelers } from "./foot-plant.js";
+import { humanoidHeight } from "./humanoid-fit.js";
 
 export const PLAYERS = [
   {
@@ -1231,15 +1232,9 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     normalizeImportScale(visual);
     visual.updateMatrixWorld(true);
 
-    const targetH = 1.72;
-    const head = findNamed(
-      visual,
-      "Bip01_Head",
-      "Bip01 Head",
-      "Head",
-      "mixamorigHead",
-      "mixamorig:Head"
-    );
+    // Soles to crown, the way fitHumanoid sizes the crowd. Head-to-foot bones miss the
+    // skull and heel (~25 %), which drew the cast at ~2.2 m.
+    const targetH = 1.8;
     const foot = findNamed(
       visual,
       "Bip01_L_Foot",
@@ -1249,16 +1244,7 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       "mixamorigLeftFoot",
       "mixamorig:LeftFoot"
     );
-    let measureY = 0;
-    if (head && foot) {
-      head.updateWorldMatrix(true, false);
-      foot.updateWorldMatrix(true, false);
-      measureY = Math.abs(head.matrixWorld.elements[13] - foot.matrixWorld.elements[13]);
-    }
-    if (measureY < 0.2) {
-      const box = new THREE.Box3().setFromObject(visual);
-      measureY = box.max.y - box.min.y;
-    }
+    const measureY = humanoidHeight(THREE, visual);
     // Pedestrian loader uses >0.01; the old >0.3 gate left Mixamo James at 1.8 cm.
     const s = measureY > 0.01 ? targetH / measureY : 1;
     visual.scale.setScalar(s);

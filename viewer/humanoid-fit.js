@@ -24,6 +24,12 @@ function skinnedBounds(THREE, root, out) {
   return out;
 }
 
+/** Soles-to-crown height of `root` in its current pose, in world units. */
+export function humanoidHeight(THREE, root) {
+  const box = skinnedBounds(THREE, root, new THREE.Box3());
+  return box.isEmpty() ? 0 : box.max.y - box.min.y;
+}
+
 /**
  * Scale `root` (unparented, rest pose) to `targetH` metres tall with its feet at y = 0.
  * Returns the hips height above the feet, or null when the rig has no Hips bone.
