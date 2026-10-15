@@ -1,7 +1,7 @@
 # Agent review — Linkeroever · 2050
 
 - **District**: `2050-linkeroever`
-- **Run**: `20261014T122258Z`
+- **Run**: `20261015T134114Z`
 - **Spawn**: Frederik van Eedenplein (51.2212, 4.3878)
 - **Instructions**: see [docs/district-agent.md](../../../docs/district-agent.md)
 - **Dossier**: `districts/2050-linkeroever/special_buildings.json`
