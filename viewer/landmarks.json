@@ -13,55 +13,12 @@
       "file": "landmarks/117235287.glb"
     },
     {
-      "id": "12470557",
-      "name": "Nationale Bank van Belgi\u00eb",
-      "kind": "civic",
-      "x": -239.52,
-      "y": 1136.91,
-      "file": "landmarks/12470557.glb"
-    },
-    {
       "id": "231220414",
       "name": "Feestzaal Harmonie",
       "kind": "hall",
       "x": -3.94,
       "y": 67.86,
       "file": "landmarks/231220414.glb"
-    },
-    {
-      "id": "232921425",
-      "name": "In de Gulden Spoor",
-      "kind": "house",
-      "x": 136.12,
-      "y": 535.47,
-      "file": "landmarks/232921425.glb"
-    },
-    {
-      "id": "2396262252",
-      "name": "Monument Peter Benoit",
-      "kind": "memorial",
-      "x": 22.99,
-      "y": -59.65,
-      "file": "landmarks/2396262252.glb",
-      "stream": true,
-      "custom": "benoit_monument"
-    },
-    {
-      "id": "453577567",
-      "name": "Sint-Bonifaciuskerk",
-      "kind": "church",
-      "x": 399.62,
-      "y": 97.56,
-      "file": "landmarks/453577567.glb",
-      "reach": 60
-    },
-    {
-      "id": "501410388",
-      "name": "Mechelsesteenweg 123 (Art Deco)",
-      "kind": "apartments",
-      "x": -73.45,
-      "y": 505.0,
-      "file": "landmarks/501410388.glb"
     },
     {
       "id": "501637650",
@@ -88,14 +45,6 @@
       "file": "landmarks/501637652.glb"
     },
     {
-      "id": "503176291",
-      "name": "In de Gulden Spoor \u2013 poortgebouw",
-      "kind": "gatehouse",
-      "x": 168.93,
-      "y": 533.8,
-      "file": "landmarks/503176291.glb"
-    },
-    {
       "id": "503713425",
       "name": "Koetshuis Harmoniestraat 24",
       "kind": "house",
@@ -104,12 +53,63 @@
       "file": "landmarks/503713425.glb"
     },
     {
+      "id": "453577567",
+      "name": "Sint-Bonifaciuskerk",
+      "kind": "church",
+      "x": 399.62,
+      "y": 97.56,
+      "file": "landmarks/453577567.glb",
+      "reach": 60
+    },
+    {
+      "id": "232921425",
+      "name": "In de Gulden Spoor",
+      "kind": "house",
+      "x": 136.12,
+      "y": 535.47,
+      "file": "landmarks/232921425.glb"
+    },
+    {
+      "id": "501410388",
+      "name": "Mechelsesteenweg 123 (Art Deco)",
+      "kind": "apartments",
+      "x": -73.45,
+      "y": 505.0,
+      "file": "landmarks/501410388.glb"
+    },
+    {
+      "id": "503176291",
+      "name": "In de Gulden Spoor \u2013 poortgebouw",
+      "kind": "gatehouse",
+      "x": 168.93,
+      "y": 533.8,
+      "file": "landmarks/503176291.glb"
+    },
+    {
       "id": "7345816",
       "name": "ZAS Vincentius (Sint-Vincentiusgasthuis)",
       "kind": "hospital",
       "x": 86.28,
       "y": 455.61,
       "file": "landmarks/7345816.glb"
+    },
+    {
+      "id": "12470557",
+      "name": "Nationale Bank van Belgi\u00eb",
+      "kind": "civic",
+      "x": -239.52,
+      "y": 1136.91,
+      "file": "landmarks/12470557.glb"
+    },
+    {
+      "id": "2396262252",
+      "name": "Monument Peter Benoit",
+      "kind": "memorial",
+      "x": 22.99,
+      "y": -59.65,
+      "file": "landmarks/2396262252.glb",
+      "stream": true,
+      "custom": "benoit_monument"
     }
   ]
 }
