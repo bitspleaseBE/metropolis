@@ -3994,6 +3994,11 @@ let knifeLunge = null;
             },
           });
           pedestrians?.setOnKilled?.((d) => loot.drop("pedestrian", d.x, Math.max(0, groundAt(d.x, d.z)), d.z));
+          pedestrians?.setPlayer?.(() => walkControls.getObject().position);
+          pedestrians?.setOnAssault?.((hit) => {
+            hurtPlayer(hit.damage);
+            hud.notify("Knifed", 900);
+          });
           // Cars give way to trams/buses instead of driving through them.
           if (traffic.setObstacles) traffic.setObstacles(() => transit.vehicles || []);
           const nCars = traffic.count ?? 0;
