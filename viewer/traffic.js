@@ -13,7 +13,8 @@
  * default by highway class) exported into roads.json. Cars cruise slightly
  * under that limit (per-driver variance) and brake kinematically for leaders,
  * red lights, crossing traffic, trams/buses, the player and pedestrians. Waiting at a
- * red is never treated as "stuck". Cars NEVER pass through each other: a car that is
+ * red is never treated as "stuck". A jam gets a horn. Restless drivers drop a blocked
+ * exit and take another street; the rest wait. Cars NEVER pass through each other: a car that is
  * genuinely blocked for too long (gridlock, bad geometry) is despawned and respawned on
  * a free road instead of sliding through its blocker and leaving a ghost behind. Cars
  * brake for people in their lane; a hard overlap still knocks them down via `onHitPed`.
@@ -23,6 +24,7 @@ import { shared } from "./lanes.js";
 import { createCellGrid } from "./cell-grid.js";
 import { STARTER_CARS, cloneCarMesh, loadCarTemplates, makeLampParts, pickCarTemplate } from "./cars.js";
 import { fetchJsonCached } from "./json-cache.js";
+import { isRestless, jamReaction } from "./traffic-jam.js";
 
 const KMH = 1 / 3.6;
 const DEFAULT_SPEED_KMH = {
@@ -714,6 +716,8 @@ function pickNextPath(paths, path, atEnd, cars, car, THREE) {
     }
     c.score = c.align * 2.2 - crowd * 0.55 - c.d * 0.04;
     if (c.align < -0.25) c.score -= 3.5;
+    // The exit they just gave up on stays on the menu, but behind the others.
+    if (car.avoidNext === c.index) c.score -= 4;
   }
   candidates.sort((a, b) => b.score - a.score);
   // Nose-first: only hand off onto roads we enter facing roughly the same way.
@@ -761,6 +765,9 @@ function createCar(paths, THREE, parts, templates) {
     holdEntry: false, // waiting at the end of the road for the next road's entry to clear
     ignoreSignalsUntil: 0,
     wait: "",
+    restless: isRestless(Math.random()),
+    lastHonk: -99,
+    avoidNext: null,
     evict: false, // set by transit.js when this car keeps a tram / bus from moving
   };
 }
@@ -1132,6 +1139,8 @@ export async function createTraffic(scene, THREE, opts = {}) {
     car.wait = "";
     car.next = null;
     car.holdEntry = false;
+    car.lastHonk = simTime;
+    car.avoidNext = null;
     car.lateral = 0;
     respawnCounts[why] = (respawnCounts[why] || 0) + 1;
     placeCar(car, paths, THREE);
@@ -1308,6 +1317,43 @@ export async function createTraffic(scene, THREE, opts = {}) {
       camPos.z = z;
       camPos.set = true;
     }
+  }
+
+  let hornCtx = null;
+  let hornBusy = 0;
+  function playHonk(volume) {
+    const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!AC) return;
+    if (!hornCtx) hornCtx = new AC();
+    if (hornCtx.state === "suspended") hornCtx.resume().catch(() => {});
+    const t = hornCtx.currentTime;
+    if (t < hornBusy) return;
+    hornBusy = t + 0.42;
+    const gain = hornCtx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.22 * volume, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+    gain.connect(hornCtx.destination);
+    for (const f of [340, 455]) {
+      const osc = hornCtx.createOscillator();
+      osc.type = "square";
+      osc.frequency.value = f;
+      osc.connect(gain);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    }
+  }
+
+  /** A horn only from a jam the player can hear. */
+  function honkIfClose(car) {
+    const cx = camPos.set ? camPos.x : playerPos.x;
+    const cz = camPos.set ? camPos.z : playerPos.z;
+    if (!camPos.set && !playerPos.lengthSq()) return;
+    const dx = car.pos.x - cx;
+    const dz = car.pos.z - cz;
+    const d2 = dx * dx + dz * dz;
+    if (d2 > 42 * 42) return;
+    playHonk(Math.min(1, 16 / Math.sqrt(d2 + 9)));
   }
 
   function stepSim(step, walkObject) {
@@ -1633,6 +1679,21 @@ export async function createTraffic(scene, THREE, opts = {}) {
         car.queued = 0;
       }
       car.wait = crawling ? reason || "?" : "";
+      const jam = crawling ? jamReaction(car, simTime) : null;
+      if (jam?.honk) {
+        car.lastHonk = simTime;
+        honkIfClose(car);
+      }
+      if (jam?.detour) {
+        car.avoidNext = car.next.index;
+        car.next = null;
+        car.holdEntry = false;
+        car.blocked = 0;
+        car.queued = 0;
+        if (advanceJunction(car, 0.4)) continue;
+      } else if (jam?.bail && respawnCar(car, "detour")) {
+        continue;
+      }
 
       if (crawling && reason === "red" && facingRed) {
         // Legitimate wait: never respawn. If a light is somehow stuck red,
