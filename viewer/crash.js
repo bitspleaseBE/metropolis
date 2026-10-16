@@ -6,6 +6,8 @@
  * and, once you're on the ground, hands off to the Wasted card.
  */
 
+import { EYE_M } from "./person-scale.js";
+
 const G = 9.81;
 const LIE_EYE = 0.24; // m: eye height with your head on the paving
 const SLIDE_DECEL = 6.5; // m/s² of a body sliding on paving
@@ -31,7 +33,7 @@ export function createPlayerCrash(THREE, camera, opts = {}) {
   flashEl.id = "hurt-flash";
   document.body.append(vignette, flashEl);
   const canvas = opts.canvas || null;
-  const standEye = opts.eye ?? 1.7;
+  const standEye = opts.eye ?? EYE_M;
 
   const euler = new THREE.Euler(0, 0, 0, "YXZ");
   let health = 100;

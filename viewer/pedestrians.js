@@ -14,6 +14,7 @@
  * See .cursor/rules/movement-gallery.mdc.
  */
 import { createPeoplePool } from "./people.js";
+import { ADULT_M } from "./person-scale.js";
 import { fetchJsonCached } from "./json-cache.js";
 import { walksToRoutes, buildPedGraph } from "./npc/ped-graph.js";
 import { collectPois, planTrip } from "./npc/trips.js";
@@ -573,7 +574,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         // Side by side in rows of two, the second row a step behind.
         const row = mi >> 1;
         const lateral = Math.min(2, meshes.length - row * 2) === 2 ? ((mi & 1) - 0.5) * 0.5 : 0;
-        const m = member(mesh, startS - row * 0.95 * dir, side0 + lateral, speed, { scale: p.height / 1.75 });
+        const m = member(mesh, startS - row * 0.95 * dir, side0 + lateral, speed, { scale: p.height / ADULT_M });
         m.animRate = speed / p.naturalSpeed;
         p.action?.setEffectiveTimeScale(m.animRate);
         members.push(m);
@@ -1050,13 +1051,13 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         const dz = p.z - z;
         if (dx * dx + dz * dz > r2) continue;
         const scale = m.prof.scale || 1;
-        const t = (m._shot ??= { kind: "pedestrian", ref: m, dead: false, r: 0.26, h: 1.75 });
+        const t = (m._shot ??= { kind: "pedestrian", ref: m, dead: false, r: 0.26, h: ADULT_M });
         t.x = p.x;
         t.y = p.y - (m.mesh.userData.baseY || 0);
         t.z = p.z;
         // Knocked over but alive: a low, wide body you can still finish off.
         t.r = (m.down ? 0.5 : 0.26) * scale;
-        t.h = (m.down ? 0.45 : 1.75) * scale;
+        t.h = (m.down ? 0.45 : ADULT_M) * scale;
         t.headR = m.down ? 0 : undefined;
         out.push(t);
       }

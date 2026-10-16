@@ -23,6 +23,25 @@ export function skinnedFloor(THREE, root) {
   return floor;
 }
 
+/** Sole-to-crown span of a skinned humanoid in its current pose, metres. */
+export function skinnedHeight(THREE, root) {
+  root.updateMatrixWorld(true);
+  let lo = Infinity;
+  let hi = -Infinity;
+  const v = new THREE.Vector3();
+  root.traverse((o) => {
+    if (!o.isSkinnedMesh || !o.visible) return;
+    o.skeleton.update();
+    const n = o.geometry.attributes.position.count;
+    for (let i = 0; i < n; i++) {
+      o.getVertexPosition(i, v).applyMatrix4(o.matrixWorld);
+      if (v.y < lo) lo = v.y;
+      if (v.y > hi) hi = v.y;
+    }
+  });
+  return hi > lo ? hi - lo : 0;
+}
+
 /**
  * Heel and toe-tip contact points of each foot, in that foot bone's local space.
  * Call in the bind pose. Returns null when the mesh has no vertices on the feet.

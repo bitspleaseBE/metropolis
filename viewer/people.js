@@ -12,6 +12,7 @@
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { fitHumanoid } from "./humanoid-fit.js";
+import { HEIGHT_JITTER, heightFor } from "./person-scale.js";
 
 const DIR = new URL("./characters/people/", import.meta.url);
 const loader = new GLTFLoader();
@@ -346,8 +347,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
    */
   function instance(t) {
     const p = t.person;
-    const jitter = p.age === "child" ? 0.8 + Math.random() * 0.2 : 0.95 + Math.random() * 0.08;
-    const height = p.height * jitter;
+    const jitter = 1 + (Math.random() * 2 - 1) * HEIGHT_JITTER;
+    const height = heightFor(p.age) * jitter;
     const root = cloneSkeleton(t.scene);
     const hipsY = fitHumanoid(THREE, root, height);
     const mixer = new THREE.AnimationMixer(root);
@@ -375,7 +376,7 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
       getUp,
       height,
       hipsY,
-      naturalSpeed: p.walkSpeed * jitter,
+      naturalSpeed: p.walkSpeed * (height / (p.height || height)),
       template: t,
     };
   }

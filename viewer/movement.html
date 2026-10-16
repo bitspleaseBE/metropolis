@@ -74,7 +74,8 @@
       import { leanToBars } from "./ride-lean.js";
       import { makeBicycleMesh, makeCargoMesh, makeScooterMesh } from "./micromobility.js";
       import { createPlayerAvatar } from "./players.js";
-      import { skinnedFloor } from "./foot-plant.js";
+      import { skinnedFloor, skinnedHeight } from "./foot-plant.js";
+      import { ADULT_M } from "./person-scale.js";
       import { makeShareScooter, placeRideScooter, scooterDeck } from "./scooters.js";
       import { JUMP, MOVE, makeJump, stepJump } from "./player-motion.js";
 
@@ -435,19 +436,8 @@
           }
         });
         root.updateMatrixWorld(true);
-        const head = findBone(root, "head");
-        const foot = findBone(root, "lFoot");
-        let h = 0;
-        if (head && foot) {
-          head.updateWorldMatrix(true, false);
-          foot.updateWorldMatrix(true, false);
-          h = Math.abs(head.matrixWorld.elements[13] - foot.matrixWorld.elements[13]);
-        }
-        if (h < 0.2) {
-          const box = new THREE.Box3().setFromObject(root);
-          h = box.max.y - box.min.y;
-        }
-        if (h > 0.01) root.scale.multiplyScalar(1.72 / h);
+        const h = skinnedHeight(THREE, root);
+        if (h > 0.01) root.scale.multiplyScalar(ADULT_M / h);
         root.updateMatrixWorld(true);
         // Soles on the floor, as the game's fitHumanoid does. The ankle bone sits ~12 cm above them.
         const floor = skinnedFloor(THREE, root);

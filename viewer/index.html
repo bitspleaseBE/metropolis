@@ -1338,6 +1338,7 @@
       import { createPlayerMotion, JUMP as JUMP_CFG, makeJump, stepJump } from "./player-motion.js";
       import { createPlayerCrash } from "./crash.js";
       import { createPlayerAvatar, preloadPlayer } from "./players.js";
+      import { EYE_M } from "./person-scale.js";
       import { createThirdPersonCamera } from "./third-person.js";
       import { createMenu } from "./menu.js";
       import { createHud } from "./hud.js";
@@ -1884,7 +1885,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       }
 
       let mode = "walk"; // walk | free
-      const eyeHeight = 1.7;
+      const eyeHeight = EYE_M;
       const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
       const kb = { w: false, a: false, s: false, d: false, shift: false, space: false };
       let padDrive = false;
@@ -2434,9 +2435,9 @@ let knifeLunge = null;
         freeCam.minH = 35;
       }
 
-      // Player root stores eye height (~1.7); avatar feet sit at eye−1.7. Boom camera lags behind.
+      // Player root stores eye height (EYE_M); avatar feet sit at eye − EYE_M. Boom camera lags behind.
       const playerRoot = new THREE.Object3D();
-      playerRoot.position.set(-2.921, 1.7, -0.261);
+      playerRoot.position.set(-2.921, eyeHeight, -0.261);
       scene.add(playerRoot);
       const thirdPerson = createThirdPersonCamera(THREE, camera, () => (interiors?.active ? interiors.cameraBlocker : outdoors));
       const playerMotion = createPlayerMotion(
@@ -4752,7 +4753,7 @@ let knifeLunge = null;
         const crashing = playerCrash.active;
         const armedOnFoot = mode === "walk" && moveKind === "walk" && !ridingTram && !crashing;
         const driveByPose = onWheels && combat.armed && !crashing;
-        _feet.set(wPos.x, wPos.y - 1.7, wPos.z);
+        _feet.set(wPos.x, wPos.y - eyeHeight, wPos.z);
         combatPlayer.update(menuOpen ? 0 : realDt, _feet, {
           moving: Math.min(1, spd / 3.5),
           moveYaw: onWheels || spd > 0.12 ? playerMotion.travelYaw() : thirdPerson.yaw(),

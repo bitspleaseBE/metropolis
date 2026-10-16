@@ -12,6 +12,7 @@
  * is still one of the last three), its mixers simply stop being stepped: positions, poses and
  * walk plans stay as they were and resume on the next visit.
  */
+import { ADULT_M } from "../person-scale.js";
 import { mulberry32 } from "./rng.js";
 import { findPath } from "./interior-gen.js";
 import { wordmarkTexture } from "./furniture.js";
@@ -70,7 +71,7 @@ export function createInteriorNpcs({ THREE, people }) {
       spine.getWorldPosition(_v);
       _f.set(0, 0, 1).applyQuaternion(inst.root.getWorldQuaternion(_q)).normalize();
       _l.set(1, 0, 0).applyQuaternion(_q).normalize();
-      const s = inst.height / 1.75;
+      const s = inst.height / ADULT_M;
       const mat = new THREE.MeshStandardMaterial({ map: badgeTex, roughness: 0.55, polygonOffset: true, polygonOffsetFactor: -2 });
       owned.push(mat);
       const badge = new THREE.Mesh(badgeGeo, mat);

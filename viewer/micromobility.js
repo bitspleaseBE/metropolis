@@ -5,6 +5,7 @@
  */
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { fitHumanoid } from "./humanoid-fit.js";
+import { ADULT_M } from "./person-scale.js";
 import { makeShareScooter } from "./scooters.js";
 import { CHARACTERS, STARTER, loadCharacterTemplates, streamCharacterTemplates } from "./characters.js";
 import { shared } from "./lanes.js";
@@ -203,8 +204,8 @@ function makeMixamoRider(THREE, templates, seated) {
     }
   });
 
-  // Clips are baked for a 1.70 m rider; stay close so hands and feet land on the controls.
-  const hipsY = fitHumanoid(THREE, root, 1.67 + Math.random() * 0.06);
+  // Same standing height as the player. ride-lean closes the hands onto the bars.
+  const hipsY = fitHumanoid(THREE, root, ADULT_M);
 
   const mixer = new THREE.AnimationMixer(root);
   let action = null;
