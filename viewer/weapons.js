@@ -6,6 +6,12 @@
  * Angles are degrees of cone half-angle; damage is per pellet. `stock` is grip to butt
  * in metres, for shouldering long guns.
  */
+/** A gun can be fired from a bike or scooter. Fists and the knife cannot. */
+export function canFireWhileRiding(weaponId) {
+  const w = WEAPONS[weaponId];
+  return !!w && !w.melee;
+}
+
 export const WEAPONS = {
   knife: {
     id: "knife",

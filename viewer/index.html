@@ -1345,7 +1345,7 @@
       import { createWanted } from "./wanted.js";
       import { createCombatPlayer } from "./combat-player.js";
 import { absorb, ARMOR_MAX, createLoot } from "./loot.js";
-import { SLOTS } from "./weapons.js";
+import { SLOTS, canFireWhileRiding } from "./weapons.js";
       import { createPolice } from "./police.js";
       import { createMinimap } from "./minimap.js";
       import { createNeighbourDistricts } from "./neighbour-districts.js";
@@ -2486,15 +2486,16 @@ let knifeLunge = null;
         if (peopleHit.length || ridersHit.length) harmedPulse = true;
         return peopleHit.length + ridersHit.length + copsHit;
       }
-      const onFootBusy = () =>
+      const ridingWheels = () => !!velo?.isRiding?.() || !!scooters?.isRiding?.();
+      // A tram cabin locks your hands. A bike or scooter does not: a gun still fires.
+      const handsBusy = () =>
         menu.open ||
         mode !== "walk" ||
         playerCrash.active ||
         playerCrash.dead ||
         caught ||
-        !!(transit.isRiding && transit.isRiding()) ||
-        !!velo?.isRiding?.() ||
-        !!scooters?.isRiding?.();
+        !!(transit.isRiding && transit.isRiding());
+      const onFootBusy = () => handsBusy() || ridingWheels();
       const _shootTargets = [];
       const _pedTargets = [];
       const _copTargets = [];
@@ -2514,7 +2515,11 @@ let knifeLunge = null;
         // Footprints only: anything below a typical eave inside one is wall.
         solidAt: (x, y, z) => y < 22 && !!outdoors?.ready && outdoors.insideBuilding(x, z),
         groundY: (x, z) => Math.max(0, groundAt(x, z)),
-        blocked: onFootBusy,
+        blocked() {
+          if (handsBusy()) return true;
+          if (!ridingWheels()) return false;
+          return !canFireWhileRiding(combatPlayer.combat.weapon);
+        },
         onMelee(m) {
           const knife = m.kind === "knife";
           if (knife && m.target) knifeLunge = { x: m.target.x, z: m.target.z, t: 0.22 };
@@ -3264,11 +3269,12 @@ let knifeLunge = null;
 
       // GTA mouse: left fires (or punches / stabs), right aims a gun or kicks bare-handed.
       window.addEventListener("mousedown", (e) => {
-        if (!pointerLocked || onFootBusy()) return;
+        if (!pointerLocked || handsBusy()) return;
+        if (ridingWheels() && e.button === 0 && !canFireWhileRiding(combat.weapon)) return;
         if (e.button === 0) combat.setTrigger(true);
         if (e.button === 2) {
           if (combat.armed) combat.setAim(true);
-          else combat.kick();
+          else if (!ridingWheels()) combat.kick();
         }
       });
       window.addEventListener("mouseup", (e) => {
@@ -3327,18 +3333,18 @@ let knifeLunge = null;
         if (menu.open) return;
         if (e.code === "Tab") {
           e.preventDefault();
-          if (!e.repeat && !onFootBusy()) {
+          if (!e.repeat && !handsBusy()) {
             combatPlayer.hud.resetCursor();
             combat.setWheel(true);
           }
           return;
         }
-        if (e.code === "KeyR" && !e.repeat && !onFootBusy()) {
+        if (e.code === "KeyR" && !e.repeat && !handsBusy()) {
           combat.reload();
           return;
         }
         const slot = /^Digit([1-6])$/.exec(e.code);
-        if (slot && !onFootBusy()) {
+        if (slot && !handsBusy()) {
           const id = SLOTS[Number(slot[1]) - 1];
           if (combat.has(id)) combat.equip(id);
           return;
@@ -4487,14 +4493,8 @@ let knifeLunge = null;
           return;
         }
         if (g.pressed.square) tap("KeyE");
-        if (
-          mode === "walk" &&
-          !(transit.isRiding && transit.isRiding()) &&
-          !(velo && velo.isRiding && velo.isRiding()) &&
-          !(scooters && scooters.isRiding())
-        ) {
-          padCombat(g);
-        } else padCombat(null);
+        if (mode === "walk" && !handsBusy()) padCombat(g);
+        else padCombat(null);
         if (g.pressed.triangle) tap("KeyN");
         if (g.pressed.r1) tap("KeyH");
         if (g.pressed.up) tap("KeyV");
@@ -4704,7 +4704,8 @@ let knifeLunge = null;
                 pedal: playerAvatar.pedalPhase ? playerAvatar.pedalPhase() : 0,
               });
             }
-            if ((onScooter || ridingVelo) && !playerCrash.active && Math.abs(playerMotion.speed) > 0.15) {
+            const driveBy = combat.armed && (combat.aiming || combat.sinceShot < 0.6);
+            if ((onScooter || ridingVelo) && !playerCrash.active && Math.abs(playerMotion.speed) > 0.15 && !driveBy) {
               thirdPerson.easeYawToward(playerMotion.travelYaw(), dt, 3);
             }
           } else {
@@ -4749,6 +4750,7 @@ let knifeLunge = null;
           onWheels || (spd > 0.12 && mode === "walk") ? playerMotion.travelYaw() : thirdPerson.yaw();
         const crashing = playerCrash.active;
         const armedOnFoot = mode === "walk" && moveKind === "walk" && !ridingTram && !crashing;
+        const driveByPose = onWheels && combat.armed && !crashing;
         _feet.set(wPos.x, wPos.y - 1.7, wPos.z);
         combatPlayer.update(menuOpen ? 0 : realDt, _feet, {
           moving: Math.min(1, spd / 3.5),
@@ -4769,7 +4771,7 @@ let knifeLunge = null;
               bodyYaw,
               moveKind,
               scooterDeck,
-              armedOnFoot ? combatPlayer.fight : null,
+              armedOnFoot || driveByPose ? combatPlayer.fight : null,
             );
             playerAvatar.setVisible(!crashing);
           }
@@ -4780,8 +4782,8 @@ let knifeLunge = null;
           camera.position.copy(wPos);
         } else if (mode === "walk" && !riding) {
           thirdPerson.update(menuOpen ? 1 / 60 : realDt, wPos, {
-            armed: armedOnFoot && combat.armed,
-            aim: armedOnFoot && combat.aiming ? 1 : 0,
+            armed: (armedOnFoot || driveByPose) && combat.armed,
+            aim: (armedOnFoot || driveByPose) && combat.aiming ? 1 : 0,
           });
         }
 
