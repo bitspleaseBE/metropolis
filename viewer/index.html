@@ -335,8 +335,8 @@
         position: fixed;
         top: 18px;
         left: 22px;
-        min-width: 14rem;
-        max-width: 22rem;
+        min-width: 16rem;
+        max-width: 24rem;
         padding: 12px 16px;
         background: rgba(10, 12, 16, 0.86);
         color: #f2f2f2;
@@ -354,7 +354,90 @@
       #line-plan .next {
         font-size: 0.9rem;
         line-height: 1.45;
+        margin: 0 0 8px;
+      }
+      #line-plan-arrivals {
+        list-style: none;
         margin: 0;
+        padding: 0;
+      }
+      #line-plan-arrivals li {
+        margin: 0 0 8px;
+        padding: 0;
+      }
+      #line-plan-arrivals .arr-head {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        font-size: 0.88rem;
+      }
+      #line-plan-arrivals .arr-line {
+        font-weight: 700;
+        color: #ffd800;
+        min-width: 2.4rem;
+      }
+      #line-plan-arrivals .arr-dest {
+        flex: 1;
+        color: #e6e6e6;
+      }
+      #line-plan-arrivals .arr-eta {
+        color: #9ad6ff;
+        font-variant-numeric: tabular-nums;
+      }
+      #line-plan-arrivals .arr-stops {
+        margin: 2px 0 0 0;
+        font-size: 0.75rem;
+        color: #b8c0cc;
+        line-height: 1.35;
+      }
+      #city-board {
+        position: fixed;
+        top: 18px;
+        left: 22px;
+        width: min(22rem, calc(100vw - 44px));
+        display: none;
+        pointer-events: none;
+        z-index: 4;
+      }
+      #city-board .sheet {
+        background: #f4efe4;
+        color: #1a2430;
+        border-radius: 3px;
+        overflow: hidden;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+      }
+      #city-board header {
+        background: #c8102e;
+        color: #fff;
+        font: 700 0.72rem/1.2 "Helvetica Neue", Arial, sans-serif;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        padding: 8px 14px;
+      }
+      #city-board h2 {
+        margin: 10px 14px 4px;
+        font: 800 1.15rem/1.2 "Helvetica Neue", Arial, sans-serif;
+      }
+      #city-board .art {
+        display: block;
+        width: 100%;
+        height: 88px;
+        background: #dce7ef;
+      }
+      #city-board dl {
+        margin: 0;
+        padding: 8px 14px 14px;
+      }
+      #city-board dt {
+        font: 700 0.68rem/1.2 "Helvetica Neue", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #c8102e;
+        margin-top: 8px;
+      }
+      #city-board dd {
+        margin: 2px 0 0;
+        font: 400 0.88rem/1.35 "Helvetica Neue", Arial, sans-serif;
       }
       #ride {
         top: 18px;
@@ -1121,7 +1204,8 @@
       body.menu-open #click-cue,
         body.menu-open #prompt,
         body.menu-open #ride,
-        body.menu-open #line-plan {
+        body.menu-open #line-plan,
+        body.menu-open #city-board {
         visibility: hidden !important;
       }
       @media (max-width: 700px) {
@@ -1333,6 +1417,26 @@
     <div id="line-plan">
       <p class="line" id="line-plan-title">Stop</p>
       <p class="next" id="line-plan-lines"></p>
+      <ul id="line-plan-arrivals"></ul>
+    </div>
+    <div id="city-board">
+      <div class="sheet">
+        <header>Stad Antwerpen</header>
+        <h2 id="city-board-title">Leven in de stad</h2>
+        <svg class="art" viewBox="0 0 360 88" aria-hidden="true">
+          <rect width="360" height="88" fill="#dce7ef"/>
+          <path d="M0 72h360" stroke="#9bb4c4" stroke-width="8"/>
+          <path d="M18 72 V48 h14 V72 M42 72 V36 l10-10 10 10 V72 M82 72 V28 h22 V72" fill="#4a5d6e"/>
+          <path d="M128 72 V22 h8 V12 h8 V22 h8 V72" fill="#c8102e"/>
+          <rect x="200" y="50" width="86" height="22" rx="3" fill="#ffd800"/>
+          <circle cx="214" cy="72" r="6" fill="#1a2430"/>
+          <circle cx="272" cy="72" r="6" fill="#1a2430"/>
+          <rect x="300" y="56" width="36" height="16" rx="2" fill="#2f6fed"/>
+          <circle cx="310" cy="72" r="5" fill="#1a2430"/>
+          <circle cx="328" cy="72" r="5" fill="#1a2430"/>
+        </svg>
+        <dl id="city-board-facts"></dl>
+      </div>
     </div>
     <div id="prompt"></div>
     <div id="hud">
@@ -1351,7 +1455,7 @@
       import { aerialDensity, cameraFogScale, sampleAtmosphere, skySunElevation } from "./atmosphere.js";
 import { dressBareWalls } from "./wall-front.js";
       import { createTraffic } from "./traffic.js";
-      import { createTransit } from "./transit.js";
+      import { createTransit, hideInventedBusStops } from "./transit.js";
       import { createPedestrians } from "./pedestrians.js";
       import { createMicromobility } from "./micromobility.js";
       import { preloadStarter } from "./characters.js";
@@ -1385,6 +1489,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       import { createOutdoorsGuard } from "./outdoors.js";
       import { createWater, applyLiquidMaterials } from "./water.js";
       import { paintParkedCars, wireParkedCarLamps, hideParkedCarsOverlapping } from "./cars.js";
+      import { createParkedCars, readBakedParkedPoses } from "./parked-cars.js";
       import { createTouchControls, wantsTouchControls } from "./touch-controls.js";
       import { createGamepad, interactLabel } from "./gamepad.js";
       import { createDistrictBorder } from "./district-border.js";
@@ -1426,6 +1531,10 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       const linePlanEl = document.getElementById("line-plan");
       const linePlanTitle = document.getElementById("line-plan-title");
       const linePlanLines = document.getElementById("line-plan-lines");
+      const linePlanArrivals = document.getElementById("line-plan-arrivals");
+      const cityBoardEl = document.getElementById("city-board");
+      const cityBoardTitle = document.getElementById("city-board-title");
+      const cityBoardFacts = document.getElementById("city-board-facts");
       const rideLine = document.getElementById("ride-line");
       const rideNext = document.getElementById("ride-next");
       const promptEl = document.getElementById("prompt");
@@ -1810,6 +1919,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
         // Lamp point-light intensity is lerped in updateLampLights — don't snap it here.
         traffic.setNight && traffic.setNight(glow);
         parkedCars && parkedCars.setNight(glow);
+        parkedFleet && parkedFleet.setNight(glow);
         scooters && scooters.setNight(glow);
         micromobility && micromobility.setNight && micromobility.setNight(glow);
         velo && velo.setNight && velo.setNight(glow);
@@ -2036,6 +2146,10 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       }
       let props = null;
       let parkedCars = null;
+      /** Runtime kerb cars (stand still, E to sit in). Null until the fleet has spawned. */
+      let parkedFleet = null;
+      /** Poses copied off the baked meshes before they are hidden. */
+      let kerbPoses = [];
       let outdoors = null;
       let water = null;
       let chunkStream = null;
@@ -2105,7 +2219,12 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
         return _footSurface;
       }
       const _riderObstacles = [{ x: 0, z: 0, r: 0.45 }];
-      /** Walker plus every bus / tram, so a clip throws the rider instead of passing through. */
+      const _parkedRiderObs = [];
+      /**
+       * Walker, people, buses and trams, plus baked kerbside cars.
+       * Those parked cars are not `traffic.cars` — a rider treats them as boxes to
+       * pass, not as trams to stop for.
+       */
       function fillRiderObstacles(walker) {
         _riderObstacles.length = 0;
         _riderObstacles.push({ x: walker.position.x, z: walker.position.z, r: 0.45 });
@@ -2130,6 +2249,21 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
             speed: v.velocity || 0,
           });
         }
+        const kerb = kerbCarSolids();
+        for (let i = 0; i < kerb.length; i++) {
+          const s = kerb[i];
+          if (!s?.pos || !s.tan) continue;
+          let o = _parkedRiderObs[i];
+          if (!o) _parkedRiderObs[i] = o = { x: 0, z: 0, tx: 0, tz: 0, hl: 0, hw: 0, speed: 0 };
+          o.x = s.pos.x;
+          o.z = s.pos.z;
+          o.tx = s.tan.x;
+          o.tz = s.tan.z;
+          o.hl = s.hl;
+          o.hw = s.hw;
+          o.speed = 0;
+          _riderObstacles.push(o);
+        }
       }
       const _beforeStep = { x: 0, z: 0 };
       const _afterWall = { x: 0, z: 0 };
@@ -2140,7 +2274,11 @@ let footFree = 1;
 let knifeLunge = null;
       let _lastVehicleHitMs = 0;
       const HIT_SPEED = 1.8; // m/s: below this you walk beside it; above it you go down
-      /** Parked kerbside cars (velocity 0) captured before the city meshes are merged. */
+      /**
+       * Baked kerbside cars (`car_<n>_<model>` in the district GLB). Not the live
+       * traffic fleet. `src` is the root they were measured from, so a chunk unload
+       * drops only that chunk's boxes.
+       */
       const parkedCarSolids = [];
       const _parkSize = new THREE.Vector3();
       const _parkCenter = new THREE.Vector3();
@@ -2167,13 +2305,37 @@ let knifeLunge = null;
         return Math.max(0, (speed * (-Math.sin(yaw) * nx - Math.cos(yaw) * nz)) / n);
       }
 
+      function forgetParkedCarSolids(src) {
+        for (let i = parkedCarSolids.length - 1; i >= 0; i--) {
+          if (parkedCarSolids[i].src === src) parkedCarSolids.splice(i, 1);
+        }
+      }
+
+      /** Group around a wrapped body, or the mesh itself when the chunk was not wrapped. */
+      function parkedCarHost(mesh) {
+        if (!mesh.isMesh) return null;
+        let node = mesh;
+        while (node) {
+          if (node.visible === false) return null;
+          node = node.parent;
+        }
+        const name = mesh.name || "";
+        if (/_body$/.test(name)) {
+          const host = mesh.parent;
+          return host && /^car_\d+_/.test(host.name || "") ? host : null;
+        }
+        return /^car_\d+_/.test(name) ? mesh : null;
+      }
+
+      /** Replace this root's boxes. Hidden cars (Velo rails, steps) stay out. */
       function collectParkedCarSolids(root) {
-        parkedCarSolids.length = 0;
+        forgetParkedCarSolids(root);
+        if (!root) return;
         root.updateMatrixWorld(true);
         root.traverse((mesh) => {
-          if (!mesh.isMesh || !/_body$/.test(mesh.name || "")) return;
-          const host = mesh.parent;
-          if (!host || !/^car_\d+_/.test(host.name || "")) return;
+          const host = parkedCarHost(mesh);
+          if (!host) return;
+          if (host !== mesh && !/_body$/.test(mesh.name || "")) return;
           const geo = mesh.geometry;
           if (!geo) return;
           if (!geo.boundingBox) geo.computeBoundingBox();
@@ -2189,6 +2351,7 @@ let knifeLunge = null;
           _parkFwd.set(alongZ ? 0 : 1, 0, alongZ ? 1 : 0).applyQuaternion(_parkQuat);
           const h = Math.hypot(_parkFwd.x, _parkFwd.z) || 1;
           parkedCarSolids.push({
+            src: root,
             pos: { x: _parkCenter.x, z: _parkCenter.z },
             tan: { x: _parkFwd.x / h, z: _parkFwd.z / h },
             hl,
@@ -2337,6 +2500,12 @@ let knifeLunge = null;
         if (outdoors) outdoors.ensureOutdoors(pos);
       }
       const _vehicleSolids = [];
+      /** Runtime kerb cars once they exist; otherwise the baked boxes. */
+      function kerbCarSolids(opts) {
+        const live = parkedFleet?.solids?.(opts);
+        if (live && live.length) return live;
+        return parkedCarSolids;
+      }
       /** Trunks, posts, benches, racks, fences, cars, buses and trams: solid on foot and on wheels. */
       function collideWorld(pos, onWheels) {
         if (!props) return false;
@@ -2349,7 +2518,7 @@ let knifeLunge = null;
           const tram = v.mode === "tram";
           _vehicleSolids.push({ pos: v.pos, tan: v.tan, hl: tram ? 15.5 : 6.6, hw: tram ? 1.2 : 1.25 });
         }
-        for (const s of parkedCarSolids) _vehicleSolids.push(s);
+        for (const s of kerbCarSolids({ skipOccupied: true })) _vehicleSolids.push(s);
         if (velo && velo.solids) for (const s of velo.solids) _vehicleSolids.push(s);
         hit = props.resolveVehicles(pos, r, _vehicleSolids) || hit;
         if (terraces) hit = props.resolveCircles(pos, r, terraces.solids) || hit;
@@ -2626,7 +2795,8 @@ let knifeLunge = null;
         playerCrash.active ||
         playerCrash.dead ||
         caught ||
-        !!(transit.isRiding && transit.isRiding());
+        !!(transit.isRiding && transit.isRiding()) ||
+        !!parkedFleet?.isInside?.();
       const onFootBusy = () => handsBusy() || ridingWheels();
       const _shootTargets = [];
       const _pedTargets = [];
@@ -2747,6 +2917,7 @@ let knifeLunge = null;
         if (now - _lastVehicleHitMs < 900) return;
         if (playerCrash.active || playerCrash.dead || !playerCrash.vulnerable) return;
         if (transit.isRiding && transit.isRiding()) return;
+        if (parkedFleet?.isInside?.()) return;
         _lastVehicleHitMs = now;
         crashRide(Math.max(speed, 3.5), `Hit by a vehicle at ${Math.round(speed * 3.6)} km/h`);
       }
@@ -2754,6 +2925,7 @@ let knifeLunge = null;
       function considerMovingHit(pos) {
         if (playerCrash.active || playerCrash.dead || mode !== "walk") return;
         if (transit.isRiding && transit.isRiding()) return;
+        if (parkedFleet?.isInside?.()) return;
         if (velo && velo.isRiding && velo.isRiding()) return;
         if (scooters && scooters.isRiding()) return;
         const speed = fastestOverlap(pos, 0.36);
@@ -2764,6 +2936,7 @@ let knifeLunge = null;
         const yaw = thirdPerson.yaw();
         w.position.copy(spawnPos);
         w.position.y = eyeHeight;
+        parkedFleet?.vacate?.();
         playerCrash.respawn(w.position, yaw);
         playerMotion.stop();
         thirdPerson.setYaw(yaw);
@@ -3036,6 +3209,8 @@ let knifeLunge = null;
           hud.spend(result.cost, `${result.brand} ride`);
         } else if (result.action === "empty") {
           status.textContent = "That scooter's battery is empty";
+        } else if (result.action === "refused") {
+          status.textContent = "No scooter parking in this zone";
         }
         return result.action !== "none";
       }
@@ -3056,14 +3231,72 @@ let knifeLunge = null;
         return true;
       }
 
+      function hideCityBoard() {
+        if (cityBoardEl) cityBoardEl.style.display = "none";
+      }
+      function showCityBoard(plan) {
+        if (!cityBoardEl || !plan) return;
+        hideLinePlan();
+        if (cityBoardTitle) cityBoardTitle.textContent = plan.title || "Leven in de stad";
+        if (cityBoardFacts) {
+          cityBoardFacts.replaceChildren();
+          for (const fact of plan.facts || []) {
+            const dt = document.createElement("dt");
+            dt.textContent = fact.k || "";
+            const dd = document.createElement("dd");
+            dd.textContent = fact.v || "";
+            cityBoardFacts.append(dt, dd);
+          }
+        }
+        cityBoardEl.style.display = "block";
+      }
       function showLinePlan(plan) {
-        if (!linePlanEl || !plan) return;
+        if (!plan) return;
+        if (plan.action === "city") {
+          showCityBoard(plan);
+          return;
+        }
+        if (!linePlanEl) return;
+        hideCityBoard();
         linePlanTitle.textContent = plan.title || "Stop";
         linePlanLines.textContent = plan.text || "";
+        if (linePlanArrivals) {
+          linePlanArrivals.replaceChildren();
+          for (const row of plan.arrivals || []) {
+            const li = document.createElement("li");
+            const head = document.createElement("div");
+            head.className = "arr-head";
+            const line = document.createElement("span");
+            line.className = "arr-line";
+            line.textContent = row.line || "";
+            const dest = document.createElement("span");
+            dest.className = "arr-dest";
+            dest.textContent = row.dest ? `→ ${row.dest}` : "";
+            const eta = document.createElement("span");
+            eta.className = "arr-eta";
+            eta.textContent = row.etaLabel || "";
+            head.append(line, dest, eta);
+            li.append(head);
+            if (row.stops && row.stops.length) {
+              const via = document.createElement("p");
+              via.className = "arr-stops";
+              via.textContent = row.stops.join(" · ");
+              li.append(via);
+            }
+            linePlanArrivals.append(li);
+          }
+        }
         linePlanEl.style.display = "block";
       }
       function hideLinePlan() {
         if (linePlanEl) linePlanEl.style.display = "none";
+        hideCityBoard();
+      }
+      function boardOpen() {
+        return (
+          (linePlanEl && linePlanEl.style.display === "block") ||
+          (cityBoardEl && cityBoardEl.style.display === "block")
+        );
       }
       function counterAt(p) {
         if (!shops?.facing || playerCrash.dead) return null;
@@ -3093,11 +3326,26 @@ let knifeLunge = null;
       }
       function handleInteractE() {
         if (mode !== "walk") return;
-        if (linePlanEl && linePlanEl.style.display === "block") {
+        if (boardOpen()) {
           hideLinePlan();
+          hideCityBoard();
           return;
         }
         const p = walkControls.getObject().position;
+        if (parkedFleet?.isInside()) {
+          const result = parkedFleet.tryInteract({ x: p.x, z: p.z });
+          if (result.action === "exit") {
+            const w = walkControls.getObject();
+            const ground = Math.max(0, groundAt(result.x, result.z));
+            w.position.set(result.x, eyeHeight + ground, result.z);
+            thirdPerson.setYaw(result.yaw);
+            playerMotion.stop();
+            playerAvatar.setVisible(true);
+            promptEl.style.display = "none";
+            status.textContent = "Out of the car";
+          }
+          return;
+        }
         if (interiors && (interiors.active || interiors.busy)) {
           handleInteriorE(p);
           return;
@@ -3152,8 +3400,21 @@ let knifeLunge = null;
         if (handleScooterE(p)) return;
         if (useCounter(p)) return;
         if (!onTram && !scooters?.isRiding() && interiors?.findEnterable(p, playerMotion.yaw()) && handleInteriorE(p)) return;
+        if (!onTram && !onVelo && !scooters?.isRiding() && parkedFleet?.prompt({ x: p.x, z: p.z })) {
+          const result = parkedFleet.tryInteract({ x: p.x, z: p.z });
+          if (result.action === "enter") {
+            const w = walkControls.getObject();
+            w.position.set(result.x, result.y, result.z);
+            thirdPerson.setYaw(result.yaw);
+            playerMotion.stop();
+            playerAvatar.setVisible(false);
+            promptEl.style.display = "none";
+            status.textContent = "In the car";
+            return;
+          }
+        }
         const result = transit.tryInteract({ x: p.x, z: p.z });
-        if (result.action === "plan") {
+        if (result.action === "plan" || result.action === "city") {
           showLinePlan(result);
           promptEl.style.display = "none";
           return;
@@ -3203,6 +3464,11 @@ let knifeLunge = null;
         if (interiors && (interiors.active || interiors.busy)) {
           rideEl.style.display = "none";
           showPrompt(interiors.busy || mode !== "walk" ? null : interiors.prompt(p, playerMotion.yaw()));
+          return;
+        }
+        if (parkedFleet?.isInside()) {
+          rideEl.style.display = "none";
+          showPrompt(parkedFleet.prompt());
           return;
         }
         if (onVelo) {
@@ -3260,12 +3526,16 @@ let knifeLunge = null;
           } else if (doorPrompt) {
             rideEl.style.display = "none";
             showPrompt(doorPrompt);
+          } else if (mode === "walk" && parkedFleet?.prompt({ x: p.x, z: p.z })) {
+            rideEl.style.display = "none";
+            showPrompt(parkedFleet.prompt({ x: p.x, z: p.z }));
           } else if (hud.prompt) {
             rideEl.style.display = "none";
-            if (!(linePlanEl && linePlanEl.style.display === "block")) showPrompt(hud.prompt);
+            if (!boardOpen()) showPrompt(hud.prompt);
             else promptEl.style.display = "none";
           } else {
             hideLinePlan();
+            hideCityBoard();
             if (!transit.isRiding || !transit.isRiding()) rideEl.style.display = "none";
             const shopPrompt =
               shops && mode === "walk" ? shops.getPrompt({ x: p.x, z: p.z, yaw: playerMotion.yaw() }, gameHour, gameDay) : null;
@@ -3519,6 +3789,7 @@ let knifeLunge = null;
         }
         if (e.code === "KeyV") {
           if (transit.isRiding && transit.isRiding()) return;
+          if (parkedFleet?.isInside?.()) return;
           if (velo && velo.isRiding && velo.isRiding()) return;
           if (scooters && scooters.isRiding()) return;
           setMode(mode === "walk" ? "free" : "walk");
@@ -3768,9 +4039,13 @@ let knifeLunge = null;
           const ground = GROUND_MESH.test(meshName) ? (/sidewalk/i.test(meshName) ? "s" : "g") : "-";
           if (keepGround && ground !== "-") return;
           if (/^(?:lmbase_|lmhold_)/.test(meshName)) return;
+          // Kerbside cars stay separate so their boxes can be hidden and so people
+          // can steer around the real body, not a merged tile.
+          if (/^car_\d+_/.test(meshName)) return;
           let holdParent = obj.parent;
           while (holdParent) {
-            if (/^(?:lmbase_|lmhold_)/.test(holdParent.name || "")) return;
+            const pn = holdParent.name || "";
+            if (/^(?:lmbase_|lmhold_)/.test(pn) || /^car_\d+_/.test(pn)) return;
             holdParent = holdParent.parent;
           }
           if (obj.children.length) return; // would orphan child nodes
@@ -3886,6 +4161,7 @@ let knifeLunge = null;
           const shading = downgradeCityMaterials(cityRoot);
           const bareWalls = dressBareWalls(cityRoot);
           hideBakedVeloRacks(cityRoot);
+          hideInventedBusStops(cityRoot);
           console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr, ${bareWalls} bare walls`);
           const liquid = applyLiquidMaterials(THREE, cityRoot);
           if (liquid.upgraded || liquid.ponds) {
@@ -4034,6 +4310,7 @@ let knifeLunge = null;
           cityRoot.updateMatrixWorld(true);
           // Drop cars baked onto Velo rails / bike racks before mesh merge (live district GLB).
           await clearParkedCarsFromMicromobility(cityRoot, null);
+          kerbPoses = readBakedParkedPoses(THREE, cityRoot);
           collectParkedCarSolids(cityRoot);
           setLoad(0.9, "Building the streets");
           await nextFrame();
@@ -4102,7 +4379,7 @@ let knifeLunge = null;
           if (traffic.setOnHitPed && pedestrians.hitTest) {
             traffic.setOnHitPed((x, z, vx, vz, r) => pedestrians.hitTest(x, z, vx, vz, r));
           }
-          // Walkers slide around parked and moving cars / buses / trams.
+          // Walkers slide around baked parked cars and the live traffic / buses / trams.
           if (pedestrians.setVehicles) {
             pedestrians.setVehicles(() => {
               _vehicleSolids.length = 0;
@@ -4120,7 +4397,7 @@ let knifeLunge = null;
                   hw: tram ? 1.2 : 1.25,
                 });
               }
-              for (const s of parkedCarSolids) _vehicleSolids.push(s);
+              for (const s of kerbCarSolids()) _vehicleSolids.push(s);
               return _vehicleSolids;
             });
           }
@@ -4155,6 +4432,13 @@ let knifeLunge = null;
             hideParkedCarsOverlapping(cityRoot, { circles: stepCircles }, parkedCarSolids);
             collectParkedCarSolids(cityRoot);
           }
+          parkedFleet = await createParkedCars(scene, THREE);
+          parkedFleet.addPoses(
+            kerbPoses.filter(
+              (pose) => !stepCircles.some((c) => (pose.x - c.x) ** 2 + (pose.z - c.z) ** 2 < c.r * c.r),
+            ),
+            cityRoot,
+          );
           // Shop signs raycast the streets. They fill in after the city is on screen.
           minimap = createMinimap(THREE, {
             playBounds: playBounds || { minX: -500, maxX: 200, minZ: -800, maxZ: 100 },
@@ -4303,6 +4587,7 @@ let knifeLunge = null;
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                   dressBareWalls(chunkRoot);
                   hideBakedVeloRacks(chunkRoot);
+                  hideInventedBusStops(chunkRoot);
                   applySurfaceOrder(chunkRoot);
                   shadeHedges(chunkRoot);
                   shadeTrees(chunkRoot);
@@ -4313,8 +4598,14 @@ let knifeLunge = null;
                   applyLiquidMaterials(THREE, chunkRoot);
                   scheduleGroundRefresh();
                   mergeChunk(chunkRoot);
+                  if (parkedFleet) parkedFleet.addRoot(chunkRoot);
+                  else collectParkedCarSolids(chunkRoot);
                 },
-                onChunkUnloaded: () => scheduleGroundRefresh(),
+                onChunkUnloaded: (chunkRoot) => {
+                  parkedFleet?.removeRoot(chunkRoot);
+                  forgetParkedCarSolids(chunkRoot);
+                  scheduleGroundRefresh();
+                },
               });
               if (playBounds && chunkStream.expandBounds) {
                 playBounds = chunkStream.expandBounds(playBounds);
@@ -4365,6 +4656,7 @@ let knifeLunge = null;
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                 dressBareWalls(chunkRoot);
                 hideBakedVeloRacks(chunkRoot);
+                hideInventedBusStops(chunkRoot);
                 applySurfaceOrder(chunkRoot);
                 shadeHedges(chunkRoot);
                 shadeTrees(chunkRoot);
@@ -4374,6 +4666,12 @@ let knifeLunge = null;
                 removedBuildings?.apply(chunkRoot);
                 applyLiquidMaterials(THREE, chunkRoot);
                 mergeChunk?.(chunkRoot);
+                if (parkedFleet) parkedFleet.addRoot(chunkRoot);
+                else collectParkedCarSolids(chunkRoot);
+              },
+              onChunkUnloaded: (chunkRoot) => {
+                parkedFleet?.removeRoot(chunkRoot);
+                forgetParkedCarSolids(chunkRoot);
               },
               onFootprints: (id, doc, t) => {
                 const n = outdoors?.addBuildings ? outdoors.addBuildings(doc, t) : 0;
@@ -4773,6 +5071,7 @@ let knifeLunge = null;
         const ridingVelo = velo && velo.isRiding && velo.isRiding();
         const riding = ridingTram;
         const onScooter = scooters && scooters.isRiding();
+        const inParkedCar = !!(parkedFleet && parkedFleet.isInside());
         if (interiors && !menuOpen) interiors.update(dt);
         // Inside a shop the room is the world: its floor, its walls, no street simulation.
         const inShop = !!interiors?.active;
@@ -4809,14 +5108,14 @@ let knifeLunge = null;
         } else if (!menuOpen) {
           // Just stood up inside a bus or car: keep sliding clear so it does not
           // knock you straight back down and leave the camera rolled.
-          if (!playerCrash.vulnerable && mode === "walk" && !inShop && !scripted) {
+          if (!playerCrash.vulnerable && mode === "walk" && !inShop && !scripted && !inParkedCar) {
             const w = walkControls.getObject();
             pushOutOfSolids(w.position);
             collideWorld(w.position, false);
           }
           // ---- Jump (Space): fence-height hop, a short hang, then you just fall ----
           const canJump =
-            mode === "walk" && !riding && !ridingVelo && !onScooter && !scripted && walkEngaged();
+            mode === "walk" && !riding && !ridingVelo && !onScooter && !inParkedCar && !scripted && walkEngaged();
           if (!canJump) {
             JUMP.active = false;
             JUMP.v = 0;
@@ -4838,10 +5137,15 @@ let knifeLunge = null;
             let surface = 0;
             if (shopFloor != null) surface = shopFloor;
             else if (onFoot) surface = walkSurface(walker.position.x, walker.position.z, dt);
-            if (!scripted) walker.position.y = baseEye + surface + JUMP.y;
+            if (!scripted && !inParkedCar) walker.position.y = baseEye + surface + JUMP.y;
           }
 
-          if (!riding && mode === "walk" && walkEngaged() && !scripted && inShop) {
+          if (inParkedCar && mode === "walk") {
+            const seat = parkedFleet.seat();
+            const w = walkControls.getObject();
+            if (seat) w.position.set(seat.x, seat.y, seat.z);
+            playerMotion.stop();
+          } else if (!riding && mode === "walk" && walkEngaged() && !scripted && inShop) {
             // Walking inside a shop: the room's walls, counters and people, nothing else.
             const w = walkControls.getObject();
             _beforeStep.x = w.position.x;
@@ -4986,8 +5290,8 @@ let knifeLunge = null;
         if (armedOnFoot) bodyYaw = combatPlayer.bodyYaw(bodyYaw);
         if (cutscene) bodyYaw = cutscene.yaw;
         if (mode === "walk" || mode === "free") {
-          if (ridingTram) {
-            // First-person cabin ride: keep the body off the platform (update() forces visible).
+          if (ridingTram || inParkedCar) {
+            // In a cabin or a parked car: the body stays out of the seat until driving.
             playerAvatar.setVisible(false);
           } else {
             playerAvatar.update(
