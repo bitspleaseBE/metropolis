@@ -882,23 +882,27 @@ export async function createShops(scene, THREE, opts = {}) {
       paintPools();
     },
     locateShop,
-    /** Name + open state for the shopfront the player is facing, or null. */
-    getPrompt(p, hour, day) {
+    /** The shopfront the player is facing, or null. */
+    facing(p) {
       let best = null;
       let bestD = REACH;
-      const fx = -Math.sin(p.yaw);
-      const fz = -Math.cos(p.yaw);
+      const fx = -Math.sin(p.yaw || 0);
+      const fz = -Math.cos(p.yaw || 0);
       for (const r of records) {
         const dx = r.fx - p.x;
         const dz = r.fz - p.z;
         const d = Math.hypot(dx, dz);
         if (d > bestD) continue;
-        // In front of the shop and looking roughly at it.
         if (dx * r.nx + dz * r.nz > 0.3) continue;
         if ((dx * fx + dz * fz) / (d || 1) < 0.35) continue;
         best = r;
         bestD = d;
       }
+      return best;
+    },
+    /** Name + open state for the shopfront the player is facing, or null. */
+    getPrompt(p, hour, day) {
+      const best = this.facing(p);
       if (!best) return null;
       const title = best.name || prettyKind(best.kind);
       const kind = best.name ? ` · ${prettyKind(best.kind)}` : "";

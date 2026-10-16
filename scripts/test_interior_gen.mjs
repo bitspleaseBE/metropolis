@@ -7,6 +7,14 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { generateInterior, findPath, INTERIOR_TEMPLATES } from "../viewer/interiors/interior-gen.js";
+import { isUniform, staffToSpawn } from "../viewer/interiors/crew-plan.js";
+
+const lum = (hex) => {
+  const r = (hex >> 16) & 255;
+  const g = (hex >> 8) & 255;
+  const b = hex & 255;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+};
 
 const root = new URL("../viewer/districts/", import.meta.url);
 const records = [];
@@ -31,6 +39,8 @@ for (const rec of records) {
     }
     assert.ok(Math.abs(door.x) <= w / 2 - 0.5, "door outside the street wall");
     assert.ok(a.staffSpots.some((s) => s.role === "cashier"), "no cashier");
+    assert.ok(a.dado, "no wall finish");
+    assert.ok(lum(a.wall) < 0.78, `wall still reads white #${a.wall.toString(16)}`);
     const solidsInDoor = a.placements.filter(
       (p) => !["doorMat", "lightPanel", "menuBoard", "till", "espresso"].includes(p.item) && Math.abs(p.x - door.x) < 0.5 && p.z > -1.2,
     );
@@ -58,4 +68,11 @@ if (failures.length) {
   console.log(`${failures.length} of ${records.length} interiors failed`);
   process.exit(1);
 }
+const dining = generateInterior({ id: "t", template: "restaurant", variant: "dining", size: "L", w: 12, d: 16, seed: 1 });
+const crew = staffToSpawn(dining.staffSpots, "restaurant", 3);
+assert.ok(crew.length <= 2 && crew.length >= 1, `dining spawned ${crew.length} staff`);
+assert.ok(crew.every((s) => s.role === "cashier" || s.role === "chef"), "a dining room still has a floor waitress");
+assert.equal(isUniform({ id: "Medical_Female_01" }), true);
+assert.equal(isUniform({ id: "Staff_Female_01", role: "staff" }), true);
+assert.equal(isUniform({ id: "Female_Adult_01", sex: "f" }), false);
 console.log(`ok: ${records.length} interiors`);

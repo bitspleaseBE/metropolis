@@ -27,6 +27,12 @@ const FLEETS = [
   { name: "Bolt", body: 0x34d186, trim: 0x1b1f22, deck: 0x1b1f22 },
 ];
 
+const DOTT_FEEDS = [
+  "https://gbfs.api.ridedott.com/public/v2/antwerp/gbfs.json",
+  "https://gbfs.api.ridedott.com/public/v2/antwerpen/gbfs.json",
+];
+const METERS_PER_DEG_LAT = 110540;
+
 function mulberry(seed) {
   let a = seed >>> 0;
   return () => {
@@ -159,6 +165,101 @@ export function makeShareScooter(THREE, fleet = FLEETS[0]) {
   return g;
 }
 
+function pointInRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0];
+    const yi = ring[i][1];
+    const xj = ring[j][0];
+    const yj = ring[j][1];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-9) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Three.js (x, z = −y) against a Blender-XY ring. */
+function threeInRing(x, z, ring) {
+  return pointInRing(x, -z, ring);
+}
+
+function zoneHit(x, z, zones, kinds) {
+  for (const zoned of zones) {
+    if (!kinds.has(zoned.k) || !zoned.ring) continue;
+    if (threeInRing(x, z, zoned.ring)) return zoned;
+  }
+  return null;
+}
+
+function allowedShareSpot(p, zones) {
+  if (zoneHit(p.x, p.z, zones, new Set(["nogo", "nopark"]))) return false;
+  const drops = zones.filter((z) => z.k === "drop");
+  if (!drops.length) return true;
+  return Boolean(zoneHit(p.x, p.z, drops, new Set(["drop"])));
+}
+
+function projectLatLon(lat, lon, origin) {
+  const oLat = origin[0];
+  const oLon = origin[1];
+  const x = (lon - oLon) * 111320 * Math.cos((oLat * Math.PI) / 180);
+  const y = (lat - oLat) * METERS_PER_DEG_LAT;
+  return { x, z: -y };
+}
+
+function inventDropSpots(zones, rand, n) {
+  const drops = zones.filter((z) => z.k === "drop" && (z.ring || []).length >= 3);
+  const out = [];
+  for (const z of drops) {
+    const xs = z.ring.map((p) => p[0]);
+    const ys = z.ring.map((p) => p[1]);
+    const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const cy = ys.reduce((a, b) => a + b, 0) / ys.length;
+    const span = Math.max(4, Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    for (let i = 0; i < n && out.length < n; i++) {
+      const ang = rand() * Math.PI * 2;
+      const r = 1.2 + rand() * Math.min(8, span * 0.25);
+      const x = cx + Math.cos(ang) * r;
+      const y = cy + Math.sin(ang) * r;
+      if (!pointInRing(x, y, z.ring)) continue;
+      if (zoneHit(x, -y, zones, new Set(["nogo", "nopark"]))) continue;
+      out.push({ x, z: -y, yaw: ang + Math.PI / 2 });
+    }
+  }
+  return out;
+}
+
+async function tryDottBikes(origin, zones, count) {
+  if (!origin) return [];
+  for (const gbfs of DOTT_FEEDS) {
+    try {
+      const root = await fetch(gbfs);
+      if (!root.ok) continue;
+      const doc = await root.json();
+      const feeds = (doc.data && doc.data.feeds) || [];
+      const status = feeds.find((f) => f.name === "free_bike_status");
+      if (!status?.url) continue;
+      const res = await fetch(status.url);
+      if (!res.ok) continue;
+      const body = await res.json();
+      const bikes = (body.data && body.data.bikes) || [];
+      const out = [];
+      for (const bike of bikes) {
+        if (bike.is_disabled || bike.is_reserved) continue;
+        const p = projectLatLon(Number(bike.lat), Number(bike.lon), origin);
+        if (!Number.isFinite(p.x) || !allowedShareSpot(p, zones)) continue;
+        p.yaw = Number(bike.heading) ? (Number(bike.heading) * Math.PI) / 180 : 0;
+        out.push(p);
+        if (out.length >= count) return out;
+      }
+      if (out.length) return out;
+    } catch {
+      // CORS / unknown city slug — invent inside drop zones instead.
+    }
+  }
+  return [];
+}
+
 function buildKerbSpots(roads, rand) {
   const spots = [];
   for (const road of roads) {
@@ -216,9 +317,16 @@ export function scooterDeck(mesh) {
 
 export async function createScooters(scene, THREE, opts = {}) {
   let roads = [];
+  let shareZones = [];
+  let origin = null;
   try {
     const res = await fetchJsonCached("./roads.json");
-    if (res.ok) roads = (await res.json()).roads || [];
+    if (res.ok) {
+      const doc = await res.json();
+      roads = doc.roads || [];
+      shareZones = doc.shareZones || [];
+      origin = Array.isArray(doc.origin) && doc.origin.length === 2 ? doc.origin : null;
+    }
   } catch (err) {
     console.warn("[metropolis] scooters: roads.json failed", err);
   }
@@ -226,7 +334,13 @@ export async function createScooters(scene, THREE, opts = {}) {
   const spawn = opts.spawnCenter || { x: 0, z: 0 };
   const isFree = opts.isFree || (() => true);
   const groundAt = opts.groundAt || (() => 0);
-  const candidates = buildKerbSpots(roads, rand).filter((p) => isFree(p.x, p.z));
+  const count = opts.count ?? COUNT;
+  const live = await tryDottBikes(origin, shareZones, count);
+  const kerb = buildKerbSpots(roads, rand).filter(
+    (p) => isFree(p.x, p.z) && allowedShareSpot(p, shareZones),
+  );
+  const invented = kerb.length ? [] : inventDropSpots(shareZones, rand, count);
+  const candidates = live.length ? live.filter((p) => isFree(p.x, p.z)) : [...kerb, ...invented];
   // Shuffle, but pull a handful of spots near the spawn to the front.
   for (let i = candidates.length - 1; i > 0; i--) {
     const j = (rand() * (i + 1)) | 0;
@@ -247,14 +361,14 @@ export async function createScooters(scene, THREE, opts = {}) {
     fleet.push({ mesh, brand: fleetCfg.name, battery: 35 + Math.round(rand() * 60), parked: true });
   };
   for (const p of ordered) {
-    if (fleet.length >= COUNT) break;
+    if (fleet.length >= count) break;
     if (fleet.some((f) => Math.hypot(f.mesh.position.x - p.x, f.mesh.position.z - p.z) < MIN_GAP)) continue;
-    const fl = FLEETS[(rand() * FLEETS.length) | 0];
+    const fl = live.length ? FLEETS[0] : FLEETS[(rand() * FLEETS.length) | 0];
     place(p, fl);
-    if (rand() < 0.3 && fleet.length < COUNT) {
+    if (!live.length && rand() < 0.3 && fleet.length < count) {
       // Dockless scooters travel in pairs: a second one dropped right beside the first.
       const q = { x: p.x + Math.cos(p.yaw) * 0.7, z: p.z - Math.sin(p.yaw) * 0.7, yaw: p.yaw + (rand() - 0.5) * 0.4 };
-      if (isFree(q.x, q.z)) place(q, fl);
+      if (isFree(q.x, q.z) && allowedShareSpot(q, shareZones)) place(q, fl);
     }
   }
 
@@ -281,6 +395,11 @@ export async function createScooters(scene, THREE, opts = {}) {
       const pz = player.z - Math.sin(yaw) * 0.6;
       s.mesh.position.set(px, groundAt(px, pz), pz);
       s.mesh.rotation.set(0, yaw, 0.11);
+      if (zoneHit(px, pz, shareZones, new Set(["nogo", "nopark"]))) {
+        toast = "No parking in this zone";
+        toastT = 2.4;
+        return { action: "refused", reason: "nopark" };
+      }
       s.mesh.userData.kickstand.visible = true;
       s.parked = true;
       const cost = ride.cost;
@@ -349,7 +468,12 @@ export async function createScooters(scene, THREE, opts = {}) {
   }
 
   function getPrompt(player) {
-    if (ride) return "E · park scooter here";
+    if (ride) {
+      if (zoneHit(player.x, player.z, shareZones, new Set(["nogo", "nopark"]))) {
+        return "Can't park in this zone";
+      }
+      return "E · park scooter here";
+    }
     const n = nearest(player.x, player.z);
     if (!n) return null;
     if (n.s.battery < 8) return `${n.s.brand} battery empty`;

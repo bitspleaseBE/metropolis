@@ -168,6 +168,29 @@ export function createTerraces(scene, THREE, records, opts = {}) {
     count: nTables,
     /** Open tables (with their chairs) for player collision: [x, z, radius] in viewer space. */
     solids,
+    /** Chair spots at open terraces: { id, x, z, y, yaw }. Empty when the café is closed. */
+    seats() {
+      const out = [];
+      for (const site of sites) {
+        if (site.r.open !== true) continue;
+        const yaw = Math.atan2(site.r.nx, site.r.nz);
+        site.tables.forEach((t, i) => {
+          const jit = (hash(site.r.id * 31 + i) - 0.5) * 0.5;
+          for (let c = 0; c < 2; c++) {
+            const side = c ? 1 : -1;
+            const face = yaw - side * (Math.PI / 2) + jit;
+            out.push({
+              id: `${site.r.id}:${i}:${c}`,
+              x: t.x + site.tx * side * 0.55,
+              z: t.z + site.tz * side * 0.55,
+              y: t.gy,
+              yaw: face,
+            });
+          }
+        });
+      }
+      return out;
+    },
     /** Call after shops.update(); re-lays out only when a terrace opens or closes. */
     update() {
       let key = "";

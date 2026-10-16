@@ -204,5 +204,5 @@ export function createFarField({ THREE, scene }) {
     }
   }
 
-  return { addSource, update, sources };
+  return { addSource, update, sources, material };
 }

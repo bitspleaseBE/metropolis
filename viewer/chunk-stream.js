@@ -13,9 +13,10 @@ import {
   LOAD_M,
   UNLOAD_M,
   overviewLatched,
+  pickWithin,
 } from "./landmark-stream.js";
 
-export { LOAD_M, UNLOAD_M, overviewLatched };
+export { LOAD_M, UNLOAD_M, overviewLatched, pickWithin };
 
 /** Whether this chunk should be resident. */
 export function chunkWanted(ctx, item) {
@@ -62,6 +63,7 @@ const yieldFrame = () => new Promise((r) => requestAnimationFrame(r));
  * @param {{ x: number, z: number, sx?: number, y?: number }} [opts.transform] — neighbour frame
  *   → ours: x' = x·sx + x, z' = z + z (the east scale absorbs the cos(lat) difference)
  * @param {{ id: string, file: string, cx: number, cy: number, reach?: number }[]} [opts.extraItems]
+ * @param {number} [opts.maxResident] — cap on chunks kept in memory (nearest first)
  */
 export function createChunkStream({
   THREE,
@@ -74,6 +76,7 @@ export function createChunkStream({
   transform = null,
   extraItems = [],
   name = "DistrictChunks",
+  maxResident = Infinity,
 }) {
   const cellM = Number(catalog?.cell_m) || 256;
   const sx = transform ? Number(transform.sx) || 1 : 1;
@@ -203,21 +206,28 @@ export function createChunkStream({
     camX = x;
     camZ = z;
     overview = overviewLatched(mode, height, overview);
+    const keep = new Set(
+      pickWithin(items, x, z, maxResident, (item) => {
+        const st = resident.get(item.id);
+        const loaded = !!(st && st.group);
+        return chunkWanted({ x, z, overview, loaded }, item);
+      }),
+    );
     for (const item of items) {
       const st = resident.get(item.id);
       const loaded = !!(st && st.group);
-      const want = chunkWanted({ x, z, overview, loaded }, item);
-      if (want) enqueue(item);
+      if (keep.has(item)) enqueue(item);
       else if (loaded || (st && (st.loading || st.queued))) unloadOne(item);
     }
   }
 
-  async function prime(x, z) {
+  async function prime(x, z, opts = {}) {
     camX = x;
     camZ = z;
-    const near = items
-      .filter((item) => Math.hypot(item.x - x, item.z - z) <= LOAD_M)
-      .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z));
+    const limit = Number.isFinite(opts.limit) ? opts.limit : maxResident;
+    const near = pickWithin(items, x, z, limit, (item) =>
+      chunkWanted({ x, z, overview: false, loaded: false }, item),
+    );
     for (const item of near) enqueue(item);
     // Drain the queue (and any walk-triggered enqueues that arrive meanwhile).
     while (busy || queue.length) {

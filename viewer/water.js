@@ -19,6 +19,17 @@ const DEFAULT_BED_Y = -0.28; // legacy water.json value (surface at −0.04)
 // −0.28, Blender Z_WATER / Z_WATER_BED) until a rebuild bakes the pond this low itself.
 const POND_SURFACE_Y = -0.38;
 const POND_BED_Y = -0.7;
+
+/** Surface above the silt. The bed mesh has to move with the surface or it hides the water. */
+export function pondStack(lawnY = 0) {
+  return { surface: lawnY + POND_SURFACE_Y, bed: lawnY + POND_BED_Y };
+}
+
+/** `water_123` → `water_bed_123`. Anything else has no paired silt disc. */
+export function siltBedName(surfaceName) {
+  const match = /^water_(\d+)$/i.exec(String(surfaceName || ""));
+  return match ? `water_bed_${match[1]}` : "";
+}
 // Stays above the GLB skirt plane (box.min.y − 0.35 ≈ −0.49).
 const BANK_FOOT_Y = -0.45;
 const KADE_TOP_Y = 0.03;
@@ -328,10 +339,20 @@ function samplePoints(THREE, geom, world, max) {
   return list.slice(0, max);
 }
 
+/** Move a flat disc so its world top sits at `targetY` in the root's local frame. */
+function placeFlat(mesh, targetY, rootY, box) {
+  if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+  const top = box.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld).max.y;
+  mesh.position.y += targetY - (top - rootY);
+  mesh.updateMatrix();
+  mesh.updateMatrixWorld(true);
+}
+
 /**
  * Sink park ponds below the lawn. A pond is a shallow water mesh (``water_shallow``
  * bake) or a legacy ``water`` disc that lawn (``park_``) covers — the pre-hole bakes
- * draw Stadspark grass straight over Stadsparkvijver. Docks and the Scheldt are
+ * draw Stadspark grass straight over Stadsparkvijver. The silt bed drops with the
+ * surface; left at its bake height it covers the water. Docks and the Scheldt are
  * left alone. Also sets RENDER_ORDER on lawn / courtyard meshes of every root.
  */
 export function sinkPonds(THREE, root) {
@@ -339,9 +360,11 @@ export function sinkPonds(THREE, root) {
   root.updateMatrixWorld(true);
   const waters = [];
   const lawns = [];
+  const beds = new Map();
   root.traverse((obj) => {
     if (!obj.isMesh || !obj.geometry || !obj.geometry.attributes.position) return;
     const name = obj.name || "";
+    if (/^water_bed_/i.test(name)) beds.set(name.toLowerCase(), obj);
     if (LAWN_MESH.test(name)) {
       obj.renderOrder = RENDER_ORDER.lawn;
       if (/^park_/i.test(name)) lawns.push(obj);
@@ -409,14 +432,16 @@ export function sinkPonds(THREE, root) {
     rel.multiplyMatrices(inv, obj.matrixWorld);
     const { edges } = boundaryEdges(THREE, geom, rel);
     if (edges.length < 3) continue;
-    const surfY = lawnY + POND_SURFACE_Y;
+    const { surface: surfY, bed: bedY } = pondStack(lawnY);
 
     // Surface: shift the disc down (works for quantized node-scaled meshes too).
-    obj.position.y += surfY - (waterY - rootY);
-    obj.updateMatrix();
-    obj.updateMatrixWorld(true);
+    // The silt disc is baked above that (bed −0.28, surface −0.38), so leave it
+    // and the pond reads as an empty pale basin.
+    placeFlat(obj, surfY, rootY, box);
     obj.material = surfMat;
     obj.renderOrder = 0;
+    const bed = beds.get(siltBedName(obj.name).toLowerCase());
+    if (bed) placeFlat(bed, bedY, rootY, box);
 
     // Cutters: the pond outline, triangulated like the surface, at lawn and yard height.
     const flat = (y) => {

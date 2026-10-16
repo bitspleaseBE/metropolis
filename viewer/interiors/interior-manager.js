@@ -11,6 +11,7 @@
  * The last three interiors stay in memory with their people, so walking back into a shop you
  * just left finds the same customers where they were. The fourth evicts the oldest.
  */
+import { EYE_M } from "../person-scale.js";
 import { generateInterior, roomFrame } from "./interior-gen.js";
 import { createFurnitureKit } from "./furniture.js";
 import { createInteriorNpcs } from "./interior-npcs.js";
@@ -62,7 +63,7 @@ function kickerFor(rec) {
 export async function createInteriors(opts) {
   const { THREE, scene, people, shops, player } = opts;
   const groundAt = opts.groundAt || (() => 0);
-  const eye = opts.eye || (() => 1.7);
+  const eye = opts.eye || (() => EYE_M);
   const overlay = opts.overlay || { show: async () => {}, hide: async () => {} };
   const lighting = opts.lighting || (() => {});
   const snapCamera = opts.snapCamera || (() => {});

@@ -93,6 +93,7 @@
       import { createCombatPlayer } from "./combat-player.js";
       import { createLoot, ARMOR_MAX } from "./loot.js";
       import { SLOTS, WEAPONS, preloadWeapons } from "./weapons.js";
+      import { EYE_M } from "./person-scale.js";
 
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(Math.min(2, devicePixelRatio));
@@ -222,7 +223,7 @@
 
       // --- Player.
       const player = new THREE.Object3D();
-      player.position.set(0, 1.7, 2.5);
+      player.position.set(0, EYE_M, 2.5);
       const thirdPerson = createThirdPersonCamera(THREE, camera, () => null);
       const motion = createPlayerMotion(THREE, player, () => thirdPerson.yaw(), (y) => thirdPerson.setYaw(y));
       const avatar = createPlayerAvatar(THREE, scene, { remember: false });
@@ -583,7 +584,7 @@
           dummy.z = dummy.hz;
           dummySpeed = Math.max(dummySpeed, Math.abs(Math.cos(t * 0.5) * 1.25) * dummy.sway);
         }
-        dummyAvatar.update(dt, { x: dummy.x, y: 1.7, z: dummy.z }, dummy.dead ? 0 : dummySpeed, face, "walk", null, {
+        dummyAvatar.update(dt, { x: dummy.x, y: EYE_M, z: dummy.z }, dummy.dead ? 0 : dummySpeed, face, "walk", null, {
           dead: dummy.dead,
           aim: 0,
         });

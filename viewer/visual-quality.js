@@ -11,15 +11,33 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
+import { sampleAtmosphere } from "./atmosphere.js";
 
 const QUALITY_KEY = "metropolis-quality";
 const SHADOW_EXTENT = 48;
 const SHADOW_MAP = 1024;
 
+/**
+ * Phones and iPads. Safari never sets `deviceMemory`, and an iPad with a
+ * trackpad reports a fine pointer, so the old check treated them as an 8 GB desktop.
+ * `?mem=roomy` opts out; `?mem=tight` forces the cap on a desktop.
+ */
+export function isTightDevice() {
+  const mem = new URLSearchParams(location.search).get("mem");
+  if (mem === "tight") return true;
+  if (mem === "roomy") return false;
+  const reported = navigator.deviceMemory;
+  const touch = (navigator.maxTouchPoints || 0) > 0;
+  if (reported == null) return touch;
+  return reported <= 4;
+}
+
 /** @returns {"low"|"high"} */
 export function resolveQuality() {
   const q = new URLSearchParams(location.search).get("q");
   if (q === "low" || q === "high") return q;
+  // A stored "high" on an iPad is how the tab gets killed and reloaded.
+  if (isTightDevice()) return "low";
   try {
     const stored = localStorage.getItem(QUALITY_KEY);
     if (stored === "low" || stored === "high") return stored;
@@ -28,8 +46,7 @@ export function resolveQuality() {
   }
   const coarse = matchMedia("(pointer: coarse)").matches;
   const saveData = !!(navigator.connection && navigator.connection.saveData);
-  const lowMem = (navigator.deviceMemory || 8) <= 4;
-  return coarse || saveData || lowMem ? "low" : "high";
+  return coarse || saveData ? "low" : "high";
 }
 
 export function storeQuality(q) {
@@ -152,6 +169,12 @@ export function createVisualQuality(opts) {
   const _gain = new THREE.Vector3(1.05, 1.02, 0.98);
   const _warm = new THREE.Vector3(1.06, 1.02, 0.96);
   const _cool = new THREE.Vector3(0.96, 0.99, 1.06);
+  const aerialSunDir = new THREE.Vector3(0.4, 0.6, -0.3);
+  const aerialSunColor = new THREE.Color(0xffe2b0);
+  let aerialFalloff = 0.02;
+  let aerialStrength = 0.22;
+  /** Materials whose fog chunk carries the aerial uniforms. */
+  const fogMats = [];
   let lastEnvKey = "";
   let lastTodBucket = -1;
   let lastExposure = -1;
@@ -259,14 +282,16 @@ export function createVisualQuality(opts) {
   }
 
   function patchHeightFog(mat) {
-    if (!high() || !mat || mat.userData._heightFog) return;
+    if (!high() || !mat || mat.fog === false || mat.userData._heightFog) return;
     mat.userData._heightFog = true;
+    fogMats.push(mat);
     const prev = mat.onBeforeCompile;
     mat.onBeforeCompile = (shader) => {
       if (typeof prev === "function") prev(shader);
-      shader.uniforms.fogHeightFalloff = { value: 0.035 };
-      shader.uniforms.fogSunDir = { value: new THREE.Vector3(0.4, 0.7, -0.3) };
-      shader.uniforms.fogSunColor = { value: new THREE.Color(0xffe2b0) };
+      shader.uniforms.fogHeightFalloff = { value: aerialFalloff };
+      shader.uniforms.fogSunDir = { value: aerialSunDir.clone() };
+      shader.uniforms.fogSunColor = { value: aerialSunColor.clone() };
+      shader.uniforms.fogSunStrength = { value: aerialStrength };
       mat.userData.fogUniforms = shader.uniforms;
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <fog_fragment>",
@@ -274,12 +299,13 @@ export function createVisualQuality(opts) {
         #ifdef USE_FOG
           #ifdef FOG_EXP2
             float fogDepth = vFogDepth;
-            float hFade = exp(-max(0.0, (fogHeightFalloff) * max(0.0, vFogWorldPos.y)));
+            float hazeH = max(0.0, cameraPosition.y) + max(0.0, vFogWorldPos.y);
+            float hFade = exp(-fogHeightFalloff * hazeH * 0.5);
             float fogFactor = 1.0 - exp(-fogDensity * fogDensity * fogDepth * fogDepth * hFade);
             vec3 look = normalize(vFogWorldPos - cameraPosition);
-            float sunAmt = pow(max(0.0, dot(look, fogSunDir)), 8.0);
-            vec3 fogCol = mix(fogColor, fogSunColor, sunAmt * 0.45);
-            gl_FragColor.rgb = mix(gl_FragColor.rgb, fogCol, fogFactor);
+            float sunAmt = pow(max(0.0, dot(look, fogSunDir)), 6.0);
+            vec3 fogCol = mix(fogColor, fogSunColor, sunAmt * fogSunStrength);
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, fogCol, clamp(fogFactor, 0.0, 1.0));
           #else
             #include <fog_fragment>
           #endif
@@ -298,10 +324,29 @@ export function createVisualQuality(opts) {
       shader.fragmentShader = shader.fragmentShader
         .replace(
           "#include <common>",
-          `#include <common>\nvarying vec3 vFogWorldPos;\nuniform float fogHeightFalloff;\nuniform vec3 fogSunDir;\nuniform vec3 fogSunColor;`,
+          `#include <common>\nvarying vec3 vFogWorldPos;\nuniform float fogHeightFalloff;\nuniform vec3 fogSunDir;\nuniform vec3 fogSunColor;\nuniform float fogSunStrength;`,
         );
     };
     mat.needsUpdate = true;
+  }
+
+  /** Horizon sun for the haze. Cheap: a handful of uniform writes, a few times a second. */
+  function setAerial(air) {
+    if (air.falloff != null) aerialFalloff = air.falloff;
+    if (air.strength != null) aerialStrength = air.strength;
+    if (air.sunColor) aerialSunColor.setStyle(air.sunColor.startsWith("#") ? air.sunColor : `#${air.sunColor}`);
+    if (air.sunDir) aerialSunDir.copy(air.sunDir);
+    if (aerialSunDir.lengthSq() < 1e-8) aerialSunDir.set(0.4, 0.5, -0.3);
+    aerialSunDir.normalize();
+    if (!high()) return;
+    for (const m of fogMats) {
+      const u = m.userData.fogUniforms;
+      if (!u) continue;
+      if (u.fogHeightFalloff) u.fogHeightFalloff.value = aerialFalloff;
+      if (u.fogSunDir) u.fogSunDir.value.copy(aerialSunDir);
+      if (u.fogSunColor) u.fogSunColor.value.copy(aerialSunColor);
+      if (u.fogSunStrength) u.fogSunStrength.value = aerialStrength;
+    }
   }
 
   function tunePbrMaterial(mat, meshName = "") {
@@ -438,23 +483,22 @@ export function createVisualQuality(opts) {
   }
 
   function updateSky(_tod, _hour) {
-    // Never touch scene.background on high — index.html owns the zenith→horizon canvas.
-    if (opts.sunMesh) opts.sunMesh.visible = true;
-    if (opts.sunHaze) opts.sunHaze.visible = true;
+    // index.html owns the sky texture and the sun disc. Don't force them back on.
   }
 
-  function updateGrade(tod) {
+  function updateGrade(tod, hour) {
     if (!gradePass) return;
     const night = tod;
-    const dusk = Math.max(0, 1 - Math.abs(tod - 0.45) / 0.45);
-    gradePass.uniforms.uSat.value = 1.06 - 0.05 * night;
-    gradePass.uniforms.uVignette.value = 0.16 + 0.12 * night;
-    gradePass.uniforms.uSplit.value = 0.22 + 0.25 * dusk;
-    _warm.set(1.05 + 0.06 * dusk, 1.02, 0.95 - 0.03 * night);
-    _cool.set(0.96, 0.99 + 0.03 * night, 1.05);
+    const air = sampleAtmosphere(hour ?? 12);
+    const warm = air.warm;
+    gradePass.uniforms.uSat.value = 1.04 + 0.08 * air.weights.pink + 0.03 * air.weights.golden - 0.06 * night;
+    gradePass.uniforms.uVignette.value = 0.14 + 0.08 * night + 0.03 * warm;
+    gradePass.uniforms.uSplit.value = 0.16 + 0.22 * air.weights.golden + 0.06 * air.weights.pink;
+    _warm.set(1.04 + 0.12 * air.weights.golden + 0.06 * air.weights.pink, 1.01, 0.94 - 0.06 * warm);
+    _cool.set(0.96, 0.99 + 0.02 * night, 1.04 - 0.04 * warm);
     gradePass.uniforms.uSplitWarm.value.copy(_warm);
     gradePass.uniforms.uSplitCool.value.copy(_cool);
-    _gain.set(1.03 - 0.05 * night, 1.01, 0.98 + 0.03 * night);
+    _gain.set(1.02 - 0.04 * night + 0.03 * air.weights.golden, 1.0, 0.98);
     gradePass.uniforms.uGain.value.copy(_gain);
     _lift.set(0.008, 0.006, 0.004);
     gradePass.uniforms.uLift.value.copy(_lift);
@@ -481,7 +525,6 @@ export function createVisualQuality(opts) {
 
   function updateEnv(tod) {
     if (!high()) return;
-    const night = Math.max(0, (tod - 0.35) / 0.65);
     // Discrete slots only — never reassign the env texture every frame.
     let key = "day";
     if (tod >= 0.7) key = "night";
@@ -493,14 +536,6 @@ export function createVisualQuality(opts) {
     }
     const intensity = key === "night" ? 0.7 : key === "dusk" ? 0.85 : 1.0;
     scene.environmentIntensity = intensity;
-    // Fog sun from the stable aim, not the shadow-offset light.
-    _sunDir.copy(_sunAim).normalize();
-    for (const m of wetMats) {
-      const u = m.userData.fogUniforms;
-      if (!u) continue;
-      if (u.fogSunDir) u.fogSunDir.value.copy(_sunDir);
-      if (u.fogSunColor) u.fogSunColor.value.setRGB(1, 0.88 - 0.2 * night, 0.65 - 0.25 * night);
-    }
   }
 
   function setPixelRatio(pr) {
@@ -534,11 +569,11 @@ export function createVisualQuality(opts) {
     if (state.sunAim) setSunAim(state.sunAim);
     // Shadows follow the player every frame; the rest only when tod moves a notch.
     updateShadowFrustum(state.playerPos, state.dayAmt);
-    const bucket = Math.round(state.tod * 40); // ~0.025 steps
+    const bucket = Math.round(state.tod * 40) + Math.round((state.hour || 0) * 8) * 100;
     if (bucket !== lastTodBucket) {
       lastTodBucket = bucket;
       updateBloom(state.tod);
-      updateGrade(state.tod);
+      updateGrade(state.tod, state.hour);
       updateWetness(state.tod);
       updateEnv(state.tod);
       updateSky(state.tod, state.hour);
@@ -591,6 +626,7 @@ export function createVisualQuality(opts) {
     tunePbrMaterial,
     varyWindowGlow,
     patchHeightFog,
+    setAerial,
     keepCityPbr: keepCityPbrHigh,
     setBuildingCast,
     setSunAim,

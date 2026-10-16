@@ -14,11 +14,19 @@
  * See .cursor/rules/movement-gallery.mdc.
  */
 import { createPeoplePool } from "./people.js";
+import { ADULT_M } from "./person-scale.js";
 import { fetchJsonCached } from "./json-cache.js";
 import { walksToRoutes, buildPedGraph } from "./npc/ped-graph.js";
 import { collectPois, planTrip } from "./npc/trips.js";
 import { assignTrip, advanceTrip } from "./npc/ped-trip.js";
 import { createPopulation } from "./npc/population.js";
+import {
+  KNIFE_COOLDOWN,
+  KNIFE_DAMAGE,
+  approach,
+  classifyShot,
+  fleeVector,
+} from "./crowd-react.js";
 
 /** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
 function roadsUrl() {
@@ -152,7 +160,10 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   }
   let pool = null;
   try {
-    pool = await createPeoplePool(THREE, opts.people);
+    pool = await createPeoplePool(THREE, {
+      ...(opts.people || {}),
+      districtId: opts.district?.id || opts.people?.districtId || "",
+    });
   } catch (err) {
     console.warn("[cityview] people unavailable, using stand-ins", err);
   }
@@ -566,7 +577,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         // Side by side in rows of two, the second row a step behind.
         const row = mi >> 1;
         const lateral = Math.min(2, meshes.length - row * 2) === 2 ? ((mi & 1) - 0.5) * 0.5 : 0;
-        const m = member(mesh, startS - row * 0.95 * dir, side0 + lateral, speed, { scale: p.height / 1.75 });
+        const m = member(mesh, startS - row * 0.95 * dir, side0 + lateral, speed, { scale: p.height / ADULT_M });
         m.animRate = speed / p.naturalSpeed;
         p.action?.setEffectiveTimeScale(m.animRate);
         members.push(m);
@@ -584,6 +595,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
       }
     }
     const g = { members, routeIdx, route, kind, side0, trip: null, tripS: 0, tripGraph: null };
+    for (let mi = 0; mi < members.length; mi++) members[mi].reactId = groupId * 8 + mi;
     // Prefer a ~2 min POI trip when the graph can route it; else keep junction wandering.
     // Always start the trip from this sidewalk seat — assignTrip teleports to path[0],
     // so a random far POI would yank the whole group away from the arrival seam.
@@ -638,6 +650,8 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   let blocked = () => false;
   let blockerOn = false;
   let onKilled = () => {};
+  let onAssault = () => {};
+  let playerAt = () => null;
 
   for (let i = 0; i < FIRST; i++) {
     const g = spawnGroup(PROFILES, spawnPool, i);
@@ -1040,13 +1054,13 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         const dz = p.z - z;
         if (dx * dx + dz * dz > r2) continue;
         const scale = m.prof.scale || 1;
-        const t = (m._shot ??= { kind: "pedestrian", ref: m, dead: false, r: 0.26, h: 1.75 });
+        const t = (m._shot ??= { kind: "pedestrian", ref: m, dead: false, r: 0.26, h: ADULT_M });
         t.x = p.x;
         t.y = p.y - (m.mesh.userData.baseY || 0);
         t.z = p.z;
         // Knocked over but alive: a low, wide body you can still finish off.
         t.r = (m.down ? 0.5 : 0.26) * scale;
-        t.h = (m.down ? 0.45 : 1.75) * scale;
+        t.h = (m.down ? 0.45 : ADULT_M) * scale;
         t.headR = m.down ? 0 : undefined;
         out.push(t);
       }
@@ -1062,21 +1076,72 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   }
 
   const PANIC_S = 9;
-  /** Gunfire nearby: everyone within `radius` hurries off for a while. */
+  /** Gunfire nearby: most people run away; a stable few close in with a knife. */
   function panic(x, z, radius) {
-    const r2 = radius * radius;
+    const flat = [];
     for (const g of groups) {
       for (const m of g.members) {
-        if (m.down) continue;
         const p = m.mesh.position;
-        if ((p.x - x) ** 2 + (p.z - z) ** 2 > r2) continue;
-        if (!m.panic) m.calmSpeed = m.speed;
-        m.panic = PANIC_S;
-        m.speed = (m.calmSpeed || WALK_SPEED) * 2.3;
-        // Faster cadence so the hurried walk doesn't skate.
-        if (m.mesh.userData.mixer) m.mesh.userData.mixer.timeScale = 1.9;
+        flat.push({ id: m.reactId ?? 0, x: p.x, z: p.z, down: !!m.down, ref: m });
       }
     }
+    const shot = { x, z };
+    const split = classifyShot(flat, shot, radius);
+    const knives = new Set(split.knife);
+    const runners = new Set(split.flee);
+    for (const person of flat) {
+      if (!knives.has(person.id) && !runners.has(person.id)) continue;
+      const m = person.ref;
+      if (!m.panic) m.calmSpeed = m.speed;
+      m.panic = PANIC_S;
+      m.threat = shot;
+      if (knives.has(person.id)) {
+        m.knife = true;
+        m.fleeX = 0;
+        m.fleeZ = 0;
+        m.speed = (m.calmSpeed || WALK_SPEED) * 1.7;
+      } else {
+        m.knife = false;
+        const away = fleeVector(person, shot);
+        m.fleeX = away.x;
+        m.fleeZ = away.z;
+        m.speed = (m.calmSpeed || WALK_SPEED) * 2.3;
+      }
+      if (m.mesh.userData.mixer) m.mesh.userData.mixer.timeScale = 1.9;
+    }
+  }
+
+  /** Run from the last shot, or step in and cut when this person drew a knife. */
+  function applyReaction(m, dt) {
+    if (!m.panic || m.down) return;
+    if (m.knife) {
+      const at = playerAt() || m.threat;
+      if (!at) return;
+      const from = m.mesh.position;
+      const step = approach(from, at, dt, m.speed || WALK_SPEED);
+      if (!blocked(step.x, step.z)) {
+        m.offX = (m.offX || 0) + (step.x - from.x);
+        m.offZ = (m.offZ || 0) + (step.z - from.z);
+      }
+      m.headingX = step.dirX;
+      m.headingZ = step.dirZ;
+      m.knifeCd = Math.max(0, (m.knifeCd || 0) - dt);
+      if (step.strike && m.knifeCd <= 0) {
+        m.knifeCd = KNIFE_COOLDOWN;
+        onAssault({ damage: KNIFE_DAMAGE, x: from.x, z: from.z });
+      }
+      return;
+    }
+    if (!m.fleeX && !m.fleeZ) return;
+    const step = (m.speed || WALK_SPEED) * dt;
+    const nx = m.mesh.position.x + m.fleeX * step;
+    const nz = m.mesh.position.z + m.fleeZ * step;
+    if (!blocked(nx, nz)) {
+      m.offX = (m.offX || 0) + m.fleeX * step;
+      m.offZ = (m.offZ || 0) + m.fleeZ * step;
+    }
+    m.headingX = m.fleeX;
+    m.headingZ = m.fleeZ;
   }
 
   function calm(m, dt) {
@@ -1084,6 +1149,9 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     m.panic = Math.max(0, m.panic - dt);
     if (m.panic) return;
     m.speed = m.calmSpeed || m.speed;
+    m.knife = false;
+    m.fleeX = 0;
+    m.fleeZ = 0;
     if (m.mesh.userData.mixer) m.mesh.userData.mixer.timeScale = 1;
   }
 
@@ -1249,12 +1317,17 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     if (useTrip) placeMemberFromTrip(m, dt, precise);
     else placeMember(m, dt, precise);
 
-    if (m.offX || m.offZ) {
+    if ((m.offX || m.offZ) && !m.panic) {
       const keep = Math.max(0, 1 - dt * 0.8);
       m.offX = Math.abs(m.offX * keep) < 0.01 ? 0 : m.offX * keep;
       m.offZ = Math.abs(m.offZ * keep) < 0.01 ? 0 : m.offZ * keep;
       m.mesh.position.x = m.routeX + (m.offX || 0);
       m.mesh.position.z = m.routeZ + (m.offZ || 0);
+    }
+    if (m.panic && (m.fleeX || m.fleeZ || m.knife)) {
+      const hx = m.knife ? m.headingX : m.fleeX;
+      const hz = m.knife ? m.headingZ : m.fleeZ;
+      if (hx != null && hz != null) m.mesh.rotation.y = Math.atan2(hx, hz);
     }
 
     // Go around parked / moving cars instead of walking through them.
@@ -1311,6 +1384,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
           calm(m, dt);
           if (m.down && updateDown(m, dt)) continue;
           if (m.recover > 0) recoverStep(m, dt);
+          applyReaction(m, dt);
           setWalkAnim(m, !m.waiting && result !== "wait");
           updateMemberLod(m, dt, cx, cz, hot2, warm2, cold2, true);
         }
@@ -1320,6 +1394,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         calm(m, dt);
         if (m.down && updateDown(m, dt)) continue;
         if (m.recover > 0) recoverStep(m, dt);
+        applyReaction(m, dt);
 
         const route = walkRoutes[m.routeIdx];
         const rLen = routeLength(route);
@@ -1397,6 +1472,14 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     /** fn({ x, y, z, yaw }) once a killed pedestrian's body comes to rest (y = ground). */
     setOnKilled(fn) {
       onKilled = fn;
+    },
+    /** Feet of the player a knife fighter closes on. */
+    setPlayer(fn) {
+      playerAt = typeof fn === "function" ? fn : () => null;
+    },
+    /** `{ damage, x, z }` when a knife connects. */
+    setOnAssault(fn) {
+      onAssault = typeof fn === "function" ? fn : () => {};
     },
     setCrossingGate(fn) {
       crossingOk = typeof fn === "function" ? fn : () => true;

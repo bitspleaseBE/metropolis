@@ -7,6 +7,8 @@
  * objects `{ x, y, z, r, h, kind, ref }` with feet at y. World geometry is raycast
  * meshes plus an optional `solidAt(x, y, z)` sampler (building footprints).
  */
+import { ADULT_M } from "./person-scale.js";
+
 const HEAD_R = 0.13;
 // Up to the neck, overlapping the head sphere so a level shot can't slip between them.
 const BODY_TOP = 0.87;
@@ -26,7 +28,7 @@ export function createHitscan(THREE, opts = {}) {
     const a = d.x * d.x + d.z * d.z;
     // Head first: a headshot wins over a body hit at nearly the same distance.
     const headY = t.y + t.h * 0.92;
-    const hr = (t.headR ?? HEAD_R) * (t.h / 1.75);
+    const hr = (t.headR ?? HEAD_R) * (t.h / ADULT_M);
     const hx = o.x - t.x;
     const hy = o.y - headY;
     const hz = o.z - t.z;

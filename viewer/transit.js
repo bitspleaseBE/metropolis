@@ -235,6 +235,106 @@ function lineLabel(lines, mode) {
   return "tram";
 }
 
+/** How close you stand to read the stop's line plan (boarding a vehicle still wins). */
+export const LINE_PLAN_DIST = 8;
+
+/** Hide baked pole+roof invented at OSM/GTFS bus nodes. City shelters stay. */
+export function hideInventedBusStops(root) {
+  if (!root || typeof root.traverse !== "function") return 0;
+  const busIds = new Set();
+  let hidden = 0;
+  root.traverse((obj) => {
+    const n = obj.name || "";
+    if (/^stop_.+_roof$/.test(n)) {
+      obj.visible = false;
+      hidden += 1;
+    }
+    const m = /^stop_(.+)_sign_bus_/.exec(n);
+    if (m) busIds.add(m[1]);
+  });
+  if (!busIds.size) return hidden;
+  root.traverse((obj) => {
+    const n = obj.name || "";
+    for (const id of busIds) {
+      if (n.startsWith(`stop_${id}_pole_`) || n.startsWith(`stop_${id}_sign_bus_`)) {
+        obj.visible = false;
+        hidden += 1;
+        break;
+      }
+    }
+  });
+  return hidden;
+}
+export const DEFAULT_CITY_FACTS = [
+  { k: "Zone 30", v: "Most streets in the centre" },
+  { k: "Velo", v: "City bikes at the yellow racks" },
+  { k: "De Lijn", v: "Tram and bus times at the shelters" },
+];
+
+/**
+ * The sheet posted at a halt: which lines call here.
+ * @param {{ name?: string, mode?: string, lines?: string[] }} stop
+ */
+export function formatLinePlan(stop) {
+  const title = haltDisplayName(stop && stop.name);
+  const mode = (stop && stop.mode) || "bus";
+  const kind = mode === "tram" || mode === "subway" ? "Tram" : mode === "train" ? "Train" : "Bus";
+  const lines = [];
+  const seen = new Set();
+  for (const line of (stop && stop.lines) || []) {
+    const label = String(line || "").trim();
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    lines.push(label);
+  }
+  const shown = lines.slice(0, 14);
+  const more = lines.length > shown.length ? " …" : "";
+  return {
+    title,
+    kind,
+    lines: shown,
+    text: shown.length ? `${kind} ${shown.join(" · ")}${more}` : "No lines posted",
+  };
+}
+
+/** Seconds until the next vehicle → short board text. */
+export function formatEtaSeconds(sec) {
+  const n = Number(sec);
+  if (!Number.isFinite(n) || n <= 12) return "now";
+  if (n < 90) return "1 min";
+  return `${Math.round(n / 60)} min`;
+}
+
+/**
+ * E-key sheet at a real board. City plates get an infographic; shelters
+ * and tram signs show lines, upcoming stops, and the next vehicle.
+ * @param {{ kind?: string, stopName?: string, mode?: string, lines?: string[], info?: { title?: string, facts?: {k:string,v:string}[] } }} board
+ * @param {{ line: string, dest: string, eta: number, etaLabel: string, stops: string[] }[]} [arrivals]
+ */
+export function formatBoardSheet(board, arrivals) {
+  if ((board && board.kind) === "city_board") {
+    const info = (board && board.info) || {};
+    const facts = Array.isArray(info.facts) && info.facts.length ? info.facts : DEFAULT_CITY_FACTS;
+    return {
+      action: "city",
+      title: info.title || "Leven in de stad",
+      facts,
+    };
+  }
+  const plan = formatLinePlan({
+    name: board && (board.stopName || board.name),
+    mode: board && board.mode,
+    lines: board && board.lines,
+  });
+  const rows = Array.isArray(arrivals) ? arrivals : [];
+  return {
+    action: "plan",
+    ...plan,
+    arrivals: rows,
+    nextStops: rows[0] ? rows[0].stops : [],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // De Lijn liveries.  White body, grey skirt, dark glazing band, yellow (#FFD800)
 // door / front stripes and the "lijn" mark — see De Lijn huisstijlgids 2022 and
@@ -269,6 +369,19 @@ const TRAM_LEN =
 BODY_LEN.tram = TRAM_LEN;
 const TRAM_DIM = { w: TRAM_WAGON.w, h: TRAM_WAGON.h, l: TRAM_LEN, lift: TRAM_WAGON.lift };
 const BUS_DIM = { w: 2.4, h: 2.7, l: 13.5, lift: 0.05 };
+/**
+ * Flat body, not a rounded box. The bevel used to drag the outer 12% of each
+ * elevation (white roof line, jpeg fringe) around every corner, which read as
+ * a white rim. One segment per face keeps the livery 1:1 on the panel.
+ * `colorLift` stays at 1 so the white paint does not cross the bloom threshold.
+ */
+export const BUS_BODY = {
+  widthSegments: 1,
+  heightSegments: 1,
+  depthSegments: 1,
+  uvInset: 0.02,
+  colorLift: 1,
+};
 // Scratch vectors for articulated tram placement (no per-frame alloc).
 const _tramPos = [];
 const _tramTan = [];
@@ -696,13 +809,26 @@ function makeSharedParts(THREE, liveryBase) {
     return t;
   };
   const litMats = [];
-  const wrap = (name, glow) => {
+  const wrap = (name, glow, { lift = 1.22, inset = 0 } = {}) => {
+    const map = load(name);
+    const glowMap = glow ? load(glow) : null;
+    if (inset > 0) {
+      for (const tex of [map, glowMap]) {
+        if (!tex) continue;
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.offset.set(inset, inset);
+        tex.repeat.set(1 - inset * 2, 1 - inset * 2);
+      }
+    }
     const m = new THREE.MeshLambertMaterial({
-      map: load(name),
+      map,
       emissive: 0x000000,
-      emissiveMap: glow ? load(glow) : null,
+      emissiveMap: glowMap,
     });
-    m.color.setScalar(1.22); // the flat wraps read grey under Lambert + ACES; lift them to paint-white
+    // Tram wraps read grey under Lambert + ACES. Buses stay at 1: a lift past 1
+    // clips the white body and bloom paints a rim on every edge.
+    m.color.setScalar(lift);
     if (glow) litMats.push(m);
     return m;
   };
@@ -734,16 +860,18 @@ function makeSharedParts(THREE, liveryBase) {
   const tramTailMats = [...tramSideMats, bellowsEnd, tramFront];
   const tramMidMats = [...tramSideMats, bellowsEnd, bellowsEnd];
   // Right-hand traffic: the door side of a bus faces -x (right of travel along +z).
+  // Grey roof panel so the top edge is a break in the white body, not a blown rim.
+  const busRoofMat = new THREE.MeshLambertMaterial({ color: 0xc5c9cc });
+  const busOpts = { lift: BUS_BODY.colorLift, inset: BUS_BODY.uvInset };
   const busMats = [
-    wrap("bus_side_l", "bus_side_l_glow"),
-    wrap("bus_side_r", "bus_side_r_glow"),
-    roofMat,
+    wrap("bus_side_l", "bus_side_l_glow", busOpts),
+    wrap("bus_side_r", "bus_side_r_glow", busOpts),
+    busRoofMat,
     underMat,
-    wrap("bus_front"),
-    wrap("bus_rear"),
+    wrap("bus_front", null, busOpts),
+    wrap("bus_rear", null, busOpts),
   ];
   const wagonR = 0.22; // rounded body corners (~modern Albatros look)
-  const busR = 0.28; // soften the sharp box corners of the bus body
   // Cab cars: longer body + windshield rake on the outer face only (bellows end stays square).
   const tramLeadBody = makeRoundedBox(THREE, TRAM_WAGON.w, TRAM_WAGON.h, TRAM_WAGON_END_L, wagonR, 4);
   slantCabFace(tramLeadBody, "front", 0.72);
@@ -755,10 +883,18 @@ function makeSharedParts(THREE, liveryBase) {
     tramTailBody,
     tramJoint: new THREE.BoxGeometry(TRAM_WAGON.w * 0.82, TRAM_WAGON.h * 0.86, TRAM_JOINT_GAP),
     busBody: (() => {
-      const g = makeRoundedBox(THREE, BUS_DIM.w, BUS_DIM.h, BUS_DIM.l, busR, 4);
-      // Mild cab rake front and rear so the bus doesn't read as a sharp brick.
-      slantCabFace(g, "front", 0.55);
-      slantCabFace(g, "rear", 0.45);
+      const g = new THREE.BoxGeometry(
+        BUS_DIM.w,
+        BUS_DIM.h,
+        BUS_DIM.l,
+        BUS_BODY.widthSegments,
+        BUS_BODY.heightSegments,
+        BUS_BODY.depthSegments,
+      );
+      // Mild cab rake. One segment, so the rake shears the panel instead of
+      // smearing the livery around a bevel.
+      slantCabFace(g, "front", 0.42);
+      slantCabFace(g, "rear", 0.28);
       return g;
     })(),
     tramPod: new THREE.BoxGeometry(1.35, 0.24, 1.8),
@@ -787,7 +923,7 @@ function makeSharedParts(THREE, liveryBase) {
     tramTailMats,
     tramMidMats,
     busMats,
-    allMats: [...new Set([...tramLeadMats, ...tramTailMats, ...tramMidMats, ...busMats, jointMat, bellowsEnd])],
+    allMats: [...new Set([...tramLeadMats, ...tramTailMats, ...tramMidMats, ...busMats, busRoofMat, jointMat, bellowsEnd])],
     jointMat,
     metalMat: new THREE.MeshLambertMaterial({ color: 0x2f3336 }),
     podMat: new THREE.MeshLambertMaterial({ color: 0x8d9296 }),
@@ -1061,6 +1197,37 @@ export async function createTransit(scene, THREE, opts = {}) {
 
   const allPaths = buildPaths(data.paths || [], THREE);
   const worldStops = attachHaltsToPaths(allPaths, data.stops || [], THREE);
+  const boards = [];
+  for (const rec of data.boards || []) {
+    const pos = blenderToThree(rec.x, rec.y, new THREE.Vector3());
+    boards.push({
+      kind: rec.kind || "shelter",
+      stopId: rec.stopId,
+      stopName: rec.stopName || "",
+      mode: rec.mode || "bus",
+      lines: rec.lines || [],
+      info: rec.info || null,
+      x: pos.x,
+      z: pos.z,
+    });
+  }
+  // Older packages have no boards[]: keep E on the slim tram poles we still show.
+  if (!boards.length) {
+    for (const st of worldStops) {
+      if (st.mode !== "tram" && st.mode !== "subway") continue;
+      if (!st.name || String(st.id).startsWith("synth_")) continue;
+      boards.push({
+        kind: "tram_sign",
+        stopId: st.id,
+        stopName: st.name,
+        mode: st.mode,
+        lines: st.lines || [],
+        info: null,
+        x: st.x,
+        z: st.z,
+      });
+    }
+  }
   const tramPaths = allPaths.filter((p) => p.mode === "tram" || p.mode === "subway");
   const busPaths = allPaths.filter((p) => p.mode === "bus");
   const trainPaths = allPaths.filter((p) => p.mode === "train");
@@ -1828,7 +1995,11 @@ export async function createTransit(scene, THREE, opts = {}) {
       return { action: "alight", drop };
     }
     const v = findBoardable(player);
-    if (!v) return { action: "none" };
+    if (!v) {
+      const board = boardNear(player.x, player.z);
+      if (board) return formatBoard(board);
+      return { action: "none" };
+    }
     ride = { vehicle: v, wantAlight: false };
     return {
       action: "board",
@@ -1916,6 +2087,15 @@ export async function createTransit(scene, THREE, opts = {}) {
             halt ? ` · ${haltDisplayName(halt.name)}` : ""
           }`,
         };
+      }
+      const board = boardNear(playerPos.x, playerPos.z);
+      if (board) {
+        if (board.kind === "city_board") {
+          return { riding: false, prompt: "E · city information", city: true };
+        }
+        const name = haltDisplayName(board.stopName || board.name);
+        const kind = board.mode === "tram" || board.mode === "subway" ? "tram" : "bus";
+        return { riding: false, prompt: `E · ${kind} times · ${name}`, plan: true };
       }
       const near = nearestTramHalt(playerPos.x, playerPos.z);
       if (near && near.dist < 220) {
@@ -2010,6 +2190,99 @@ export async function createTransit(scene, THREE, opts = {}) {
   }
   const HALT_REACH2 = 20 * 20; // platform edge at Gounod is ~18 m from the OSM stop node
   let haltCurrent = null;
+
+  function boardNear(x, z) {
+    let best = null;
+    let bestD = Infinity;
+    for (const board of boards) {
+      const d = Math.hypot(x - board.x, z - board.z);
+      if (d <= LINE_PLAN_DIST && d < bestD) {
+        bestD = d;
+        best = board;
+      }
+    }
+    return best;
+  }
+
+  function stopsAfter(path, halt, reverse, n = 6) {
+    const halts = (path.halts || []).filter((h) => !String(h.id).startsWith("synth_") && h.name);
+    const idx = halts.findIndex((h) => (halt.id && h.id === halt.id) || h.name === halt.name);
+    if (idx < 0) return [];
+    const out = [];
+    if (reverse) {
+      for (let i = idx - 1; i >= 0 && out.length < n; i--) out.push(haltDisplayName(halts[i].name));
+    } else {
+      for (let i = idx + 1; i < halts.length && out.length < n; i++) out.push(haltDisplayName(halts[i].name));
+    }
+    return out;
+  }
+
+  function haltOnPath(path, board) {
+    const halts = path.halts || [];
+    const byId = board.stopId != null ? halts.find((h) => String(h.id) === String(board.stopId)) : null;
+    if (byId) return byId;
+    if (board.stopName) {
+      const byName = halts.find((h) => h.name === board.stopName);
+      if (byName) return byName;
+    }
+    const share = (board.lines || []).some((line) => (path.lines || []).includes(line));
+    if (!share) return null;
+    let best = null;
+    let bestD = Infinity;
+    for (const h of halts) {
+      const d = Math.hypot(h.x - board.x, h.z - board.z);
+      if (d < 40 && d < bestD) {
+        bestD = d;
+        best = h;
+      }
+    }
+    return best;
+  }
+
+  function arrivalsAt(board) {
+    const rows = [];
+    for (const v of vehicles) {
+      if (v.phase === "gone") continue;
+      const path = allPaths[v.pathIndex];
+      if (!path) continue;
+      const halt = haltOnPath(path, board);
+      if (!halt) continue;
+      let eta;
+      let dwelling = false;
+      if (v.phase === "dwell" && v.currentHalt && (v.currentHalt.name === halt.name || v.currentHalt.id === halt.id)) {
+        eta = 0;
+        dwelling = true;
+      } else {
+        let ds = v.reverse ? v.s - halt.s : halt.s - v.s;
+        if (ds < -8) ds += path.length;
+        if (ds < 0 || ds > path.length * 0.85) continue;
+        eta = ds / Math.max(v.velocity, 2.5) + (v.phase === "dwell" ? v.dwellLeft : 0);
+      }
+      const dest = destinationFor(path, v.reverse);
+      rows.push({
+        line: v.lineText || lineLabel(path.lines, path.mode),
+        dest,
+        eta,
+        etaLabel: dwelling ? "now" : formatEtaSeconds(eta),
+        stops: stopsAfter(path, halt, v.reverse),
+        key: `${v.lineText}|${dest}`,
+      });
+    }
+    rows.sort((a, b) => a.eta - b.eta);
+    const seen = new Set();
+    const out = [];
+    for (const row of rows) {
+      if (seen.has(row.key)) continue;
+      seen.add(row.key);
+      out.push(row);
+      if (out.length >= 6) break;
+    }
+    return out;
+  }
+
+  function formatBoard(board) {
+    return formatBoardSheet(board, board.kind === "city_board" ? [] : arrivalsAt(board));
+  }
 
   /** Nearest real De Lijn halt for GTA-style captions; `{ stop, changed }`. */
   function locateStop(x, z) {

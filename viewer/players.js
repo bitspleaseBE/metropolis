@@ -10,8 +10,8 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { VELO_FWD, VELO_RIDE } from "./velo.js";
 import { leanToBars } from "./ride-lean.js";
 import { createArmedRig } from "./player-armed.js";
-import { captureSoles, createFootPlant, soleLevelers } from "./foot-plant.js";
-import { humanoidHeight } from "./humanoid-fit.js";
+import { captureSoles, createFootPlant, skinnedHeight, soleLevelers } from "./foot-plant.js";
+import { ADULT_M, EYE_M } from "./person-scale.js";
 
 export const PLAYERS = [
   {
@@ -156,13 +156,12 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   const _seatCfg = { fwd: VELO_FWD, y: 0, z: 0, x: 0 };
   const _seatW = new THREE.Vector3();
   let visualBaseY = 0;
-  /** Sole contact on foot; null until the rig is built. `lift` raises the ankle-grounded body onto its soles; `liftPeak` holds it through a stride. */
+  /** Sole contact on foot; null until the rig is built. `lift` raises the ankle-grounded body onto its soles. */
   let plantFeet = null;
   /** Per foot: the local turn that levels a toe-down bind, and the last value written. */
   let footLevel = [];
   let soleDrop = 0;
   let lift = 0;
-  let liftPeak = 0;
   const _gripL = new THREE.Vector3();
   const _gripR = new THREE.Vector3();
   const _ikA = new THREE.Vector3();
@@ -334,9 +333,12 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   const upperBodyClip = (clip) => filterClipBones(clip, false);
   const legsOnlyClip = (clip) => filterClipBones(clip, true);
 
-  // Reused each frame for Mixamo thigh-lift polish.
+  // Reused each frame. Shoulder leveling borrows two positions; the thigh lift
+  // only applies if a Mixamo-skinned player is loaded.
   const _qLift = new THREE.Quaternion();
   const _vBone = new THREE.Vector3();
+  const _spreadL = new THREE.Vector3();
+  const _spreadA = new THREE.Vector3();
 
   /**
    * After the mixer: boost Mixamo hip flexion so steps read as thigh-led.
@@ -847,115 +849,6 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
   }
 
   /**
-   * Mocap walks (especially Mo and Jacob) keep a narrow track and knock the knees
-   * inward. Abduct each thigh in world space so the whole leg swings out — calf and
-   * foot stay parented, so the knee crease does not twist (aimBone on Biped +X legs
-   * was pinching Mo's left knee mesh into a line).
-   */
-  const FOOT_GAP = 0.22;
-  const KNEE_GAP = 0.36;
-  const SPREAD_MAX = 0.1; // metres of outward knee travel per frame correction
-  const _spreadR = new THREE.Vector3();
-  const _spreadL = new THREE.Vector3();
-  const _spreadA = new THREE.Vector3();
-  const _spreadT = new THREE.Vector3();
-  const _spreadKnee = new THREE.Vector3();
-  const _spreadHip = new THREE.Vector3();
-  const _spreadAnkle = new THREE.Vector3();
-  const _spreadFrom = new THREE.Vector3();
-  const _spreadTo = new THREE.Vector3();
-  const _spreadAxis = new THREE.Vector3();
-  const _spreadQ = new THREE.Quaternion();
-  const _spreadFootQ = new THREE.Quaternion();
-  const _spreadMid = new THREE.Vector3();
-  function abductThigh(thigh, worldDelta) {
-    const parent = thigh.parent;
-    if (!parent) return;
-    parent.getWorldQuaternion(_ikParentQ);
-    thigh.getWorldQuaternion(_ikWorldQ);
-    _ikWorldQ.premultiply(worldDelta);
-    thigh.quaternion.copy(_ikParentQ.invert()).multiply(_ikWorldQ);
-    thigh.updateMatrixWorld(true);
-  }
-  /** Swing the knee out around the hip→ankle axis so a bent leg stops folding into an X. */
-  function openKneePlane(thigh, calf, foot, side, out) {
-    thigh.getWorldPosition(_spreadHip);
-    calf.getWorldPosition(_spreadKnee);
-    foot.getWorldPosition(_spreadAnkle);
-    _spreadAxis.subVectors(_spreadAnkle, _spreadHip);
-    if (_spreadAxis.lengthSq() < 1e-6) return;
-    _spreadAxis.normalize();
-    _spreadFrom.copy(_spreadKnee).sub(_spreadHip);
-    _spreadFrom.addScaledVector(_spreadAxis, -_spreadFrom.dot(_spreadAxis));
-    if (_spreadFrom.lengthSq() < 1e-6) return; // nearly straight — nothing to open
-    _spreadTo.copy(_spreadFrom).addScaledVector(_spreadR, side * out);
-    _spreadTo.addScaledVector(_spreadAxis, -_spreadTo.dot(_spreadAxis));
-    if (_spreadTo.lengthSq() < 1e-6) return;
-    const cross = _spreadT.crossVectors(_spreadFrom, _spreadTo).dot(_spreadAxis);
-    const ang = Math.atan2(cross, _spreadFrom.dot(_spreadTo));
-    if (Math.abs(ang) < 0.01) return;
-    foot.getWorldQuaternion(_spreadFootQ);
-    _spreadQ.setFromAxisAngle(_spreadAxis, ang);
-    abductThigh(thigh, _spreadQ);
-    // Keep the foot's world aim. Do not aimBone the calf — on Mo/Jacob's Biped
-    // +X legs that twists the knee crease into a pinched mesh.
-    foot.parent.getWorldQuaternion(_ikParentQ);
-    foot.quaternion.copy(_ikParentQ.invert()).multiply(_spreadFootQ);
-    foot.updateMatrixWorld(true);
-  }
-  function spreadFeet() {
-    const b = bodyBones;
-    if (!b?.lThigh || !b.rThigh || !b.lCalf || !b.rCalf || !b.lFoot || !b.rFoot) return;
-    // Character right from the hips — feet can cross mid-stride and flip the axis.
-    b.lThigh.getWorldPosition(_spreadL);
-    b.rThigh.getWorldPosition(_spreadA);
-    _spreadR.subVectors(_spreadA, _spreadL);
-    _spreadR.y = 0;
-    if (_spreadR.lengthSq() < 1e-8) {
-      root.getWorldQuaternion(_spreadQ);
-      _spreadR.set(1, 0, 0).applyQuaternion(_spreadQ);
-      _spreadR.y = 0;
-    }
-    if (_spreadR.lengthSq() < 1e-8) return;
-    _spreadR.normalize();
-    // Knee width from the hip midline — ankle mid drifts with the stride.
-    _spreadMid.copy(_spreadL).add(_spreadA).multiplyScalar(0.5);
-    b.lFoot.getWorldPosition(_spreadL);
-    b.rFoot.getWorldPosition(_spreadA);
-    const footGap = _spreadT.subVectors(_spreadA, _spreadL).dot(_spreadR);
-    const footNeed = Math.max(0, FOOT_GAP - footGap) * 0.5;
-    for (const [thigh, calf, foot, side] of [
-      [b.lThigh, b.lCalf, b.lFoot, -1],
-      [b.rThigh, b.rCalf, b.rFoot, 1],
-    ]) {
-      thigh.getWorldPosition(_spreadHip);
-      calf.getWorldPosition(_spreadKnee);
-      const lat = _spreadT.subVectors(_spreadKnee, _spreadMid).dot(_spreadR);
-      const want = side * (KNEE_GAP * 0.5);
-      const out = Math.min(SPREAD_MAX, Math.max(0, side * (want - lat), footNeed));
-      if (out < 0.004) continue;
-      // Prefer opening the bend plane on a bent leg; fall back to whole-leg abduct.
-      foot.getWorldPosition(_spreadAnkle);
-      const bent =
-        _spreadFrom.copy(_spreadKnee).sub(_spreadHip).length() +
-          _spreadTo.copy(_spreadAnkle).sub(_spreadKnee).length() >
-        _spreadHip.distanceTo(_spreadAnkle) + 0.02;
-      if (bent) openKneePlane(thigh, calf, foot, side, out);
-      else {
-        foot.getWorldQuaternion(_spreadFootQ);
-        _spreadFrom.copy(_spreadKnee).sub(_spreadHip);
-        _spreadTo.copy(_spreadFrom).addScaledVector(_spreadR, side * out);
-        if (_spreadFrom.lengthSq() < 1e-8 || _spreadTo.lengthSq() < 1e-8) continue;
-        _spreadQ.setFromUnitVectors(_spreadFrom.normalize(), _spreadTo.normalize());
-        abductThigh(thigh, _spreadQ);
-        foot.parent.getWorldQuaternion(_ikParentQ);
-        foot.quaternion.copy(_ikParentQ.invert()).multiply(_spreadFootQ);
-        foot.updateMatrixWorld(true);
-      }
-    }
-  }
-
-  /**
    * The boxing clips throw from a bladed stance the gait doesn't have, so over a run
    * the fists land wide and at belly height. While a fist is going out, turn the
    * shoulders into it and steer it to full reach on the chin line ahead.
@@ -1232,9 +1125,12 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     normalizeImportScale(visual);
     visual.updateMatrixWorld(true);
 
-    // Soles to crown, the way fitHumanoid sizes the crowd. Head-to-foot bones miss the
-    // skull and heel (~25 %), which drew the cast at ~2.2 m.
-    const targetH = 1.8;
+    // Sole to crown, the same ruler as everyone else (viewer/person-scale.js).
+    // Measuring ankle-to-skull and calling that the body left the hair and the
+    // shoes on top, so the player stood a head above the staff.
+    const span = skinnedHeight(THREE, visual);
+    const s = span > 0.01 ? ADULT_M / span : 1;
+    visual.scale.setScalar(s);
     const foot = findNamed(
       visual,
       "Bip01_L_Foot",
@@ -1244,10 +1140,6 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       "mixamorigLeftFoot",
       "mixamorig:LeftFoot"
     );
-    const measureY = humanoidHeight(THREE, visual);
-    // Pedestrian loader uses >0.01; the old >0.3 gate left Mixamo James at 1.8 cm.
-    const s = measureY > 0.01 ? targetH / measureY : 1;
-    visual.scale.setScalar(s);
     // Player motion with yaw=0 walks toward −Z. Both binds need the half-turn;
     // a thigh cross-product here faced Pieter at the camera.
     visual.rotation.y = Math.PI;
@@ -1352,7 +1244,6 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     footLevel = soles ? soleLevelers(THREE, soles).map((f) => ({ ...f, last: new THREE.Quaternion(), set: false })) : [];
     soleDrop = soles ? Math.max(...soles.map((s) => s.drop)) : 0;
     lift = soleDrop;
-    liftPeak = soleDrop;
     if (combatClips?.animations?.length && armBones) {
       armed = createArmedRig(THREE, {
         root,
@@ -1535,11 +1426,11 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       if (!visual) return;
       root.position.x = pos.x;
       root.position.z = pos.z;
-      // Walker stores eye height; feet sit eye−1.7 (jump lifts both).
+      // Walker stores eye height; feet sit eye−EYE_M (jump lifts both).
       // On a scooter the eye is already deck + ride height, so the soles use the grip.
       // On foot the soles may go below 0 (pond bed). Wheels keep the floor: their eye is
-      // under 1.7, so eye−1.7 would sink the bike.
-      const eye = kind === "scooter" && deck ? 1.58 : 1.7;
+      // under EYE_M, so eye−EYE_M would sink the bike.
+      const eye = kind === "scooter" && deck ? 1.58 : EYE_M;
       const feet = Number.isFinite(pos.y) ? pos.y - eye : 0;
       root.position.y = kind === "walk" ? feet : Math.max(0, feet);
 
@@ -1690,16 +1581,10 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
           root.updateMatrixWorld(true);
           // The sole's rim reaches a little below the heel, ball and toe points.
           const still = Math.abs(moveSpeed) < 0.15 && !melee;
-          if (!still) {
-            armed?.squareHips();
-            spreadFeet();
-          }
-          const want = plantFeet(root, { still }) + 0.02;
-          // The clip carries the hip bob. Hold the deepest stance of the last stride so
-          // the body keeps one height through the cycle instead of hopping each step.
-          const decay = still ? 0.2 : 0.025;
-          liftPeak = Math.max(Math.min(soleDrop + 0.12, Math.max(0, want)), liftPeak - decay * dt);
-          lift += (liftPeak - lift) * (1 - Math.exp(-8 * dt));
+          if (!still) armed?.squareHips();
+          const want = Math.max(0, plantFeet(root, { still }) + 0.02);
+          // Follow this frame's sole. Holding the lowest plant of the stride locked a limp.
+          lift += (want - lift) * (1 - Math.exp(-8 * dt));
         } else if (dead) {
           lift += (soleDrop - lift) * (1 - Math.exp(-6 * dt));
         }
