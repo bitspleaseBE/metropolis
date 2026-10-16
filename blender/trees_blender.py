@@ -148,9 +148,6 @@ CARDS = {
     "conifer": (56, 28),
 }
 TRI_BUDGET = {"mature": 360, "young": 180}
-# Instances are grouped per tile inside each streaming cell so three.js can frustum-cull
-# them; 0 keeps one group per cell.
-TREE_TILE_M = 128.0
 
 
 def _tree_material():
@@ -300,7 +297,7 @@ def _core(m: _TreeMesh, centre: Vector, radii: Vector, subdiv: int, rgb) -> None
         vs = [verts[i] for i in f]
         cos = [centre + Vector((v.x * radii.x, v.y * radii.y, v.z * radii.z)) for v in vs]
         nors = [Vector((v.x / radii.x, v.y / radii.y, v.z / radii.z)) for v in vs]
-        cols = [_scale(rgb, 0.42 * (0.7 + 0.35 * (v.z + 1.0) * 0.5)) for v in vs]
+        cols = [_scale(rgb, 0.55 * (0.7 + 0.35 * (v.z + 1.0) * 0.5)) for v in vs]
         m.add(cos, [SOLID_UV] * 3, cols, nors)
 
 
@@ -405,7 +402,7 @@ def _broadleaf(m: _TreeMesh, kind: str, form: str, h: float, r: float, clear: fl
             li += 1
         c, rad = lobes[li]
         share = 4.0 * math.pi * ((rad.x + rad.z) * 0.5) ** 2 / max(1.0, n_cards * weights[li] / total)
-        size = min(1.15 * math.sqrt(share), 1.3 * min(rad.x, rad.z))
+        size = min(1.3 * math.sqrt(share), 1.45 * min(rad.x, rad.z))
         while True:
             d = Vector((rng.gauss(0, 1), rng.gauss(0, 1), rng.gauss(0, 1))).normalized()
             if d.z > -0.55 or rng.random() < 0.4:
@@ -495,18 +492,20 @@ def _archetype_mesh(kind: str, form: str, mat):
         _conifer(m, form, h, r, clear, rb, rng)
     else:
         _broadleaf(m, kind, form, h, r, clear, rb, rng)
-    assert m.tris <= TRI_BUDGET[form], f"tree_{kind}_{form}: {m.tris} tris > {TRI_BUDGET[form]}"
+    if m.tris > TRI_BUDGET[form]:
+        raise ValueError(f"tree_{kind}_{form}: {m.tris} tris > {TRI_BUDGET[form]}")
     mesh = m.to_mesh(f"tree_{kind}_{form}", mat)
     mesh["tris"] = m.tris
     return mesh
 
 
 def add_instanced_trees(layout: dict, rails, spawn_xy=None) -> dict:
-    """Every tree is an instance of a (kind, form) archetype, grouped per streaming tile.
+    """Every tree is an instance of a (kind, form) archetype, grouped per streaming cell.
 
-    Trees of one tile are children of one Empty (``trees_<cell>_t<x>_<y>``), which the
-    glTF exporter's ``export_gpu_instances`` turns into ``EXT_mesh_gpu_instancing``:
-    three.js loads one ``InstancedMesh`` per archetype and tile.
+    Trees of one cell are children of one Empty (``trees_<cell>``), which the glTF
+    exporter's ``export_gpu_instances`` turns into ``EXT_mesh_gpu_instancing``: three.js
+    loads one ``InstancedMesh`` per archetype and cell. Splitting cells into 128 m tiles
+    for frustum culling doubled the tree draw calls for 20-30 % fewer tree triangles.
     """
     from cityview.district_chunks import assign_object, cell_tag
 
@@ -537,14 +536,13 @@ def add_instanced_trees(layout: dict, rails, spawn_xy=None) -> dict:
             mesh = meshes[(kind, form)] = _archetype_mesh(kind, form, mat)
         h0, r0 = ARCHETYPE_REF[(kind, form)]
         key = assign_object("tree", x, y, spawn_xy=spawn_xy)
-        tile = (math.floor(x / TREE_TILE_M), math.floor(y / TREE_TILE_M)) if TREE_TILE_M > 0 else (0, 0)
-        parent = groups.get((key, tile))
+        parent = groups.get(key)
         if parent is None:
             label = "core" if key == "core" else f"{key[0]}_{key[1]}"
-            parent = bpy.data.objects.new(f"trees_{label}_t{tile[0]}_{tile[1]}{cell_tag(key)}", None)
+            parent = bpy.data.objects.new(f"trees_{label}{cell_tag(key)}", None)
             parent.location = (x, y, 0.0)
             bpy.context.collection.objects.link(parent)
-            groups[(key, tile)] = parent
+            groups[key] = parent
         obj = bpy.data.objects.new(f"tree_{i}", mesh)
         obj.parent = parent
         obj.location = (x - parent.location.x, y - parent.location.y, 0.0)
