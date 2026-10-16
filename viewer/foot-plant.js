@@ -163,9 +163,6 @@ const smooth = (a, b, x) => {
  */
 const MAX_PITCH = (40 * Math.PI) / 180;
 const PITCH_GIVE = 0.35;
-/** Soft yaw pull toward the character's forward — Mo's left plant stays pigeon-toed in the bake. */
-const YAW_PULL = 0.7;
-const YAW_MAX = 0.55;
 
 export function createFootPlant(THREE, soles) {
   const heel = new THREE.Vector3();
@@ -193,11 +190,6 @@ export function createFootPlant(THREE, soles) {
   };
 
   function plant(root, { still = false } = {}) {
-    root.getWorldQuaternion(worldQ);
-    // Cast faces −Z at yaw 0 (players.js / movement gallery).
-    fwd.set(0, 0, -1).applyQuaternion(worldQ);
-    fwd.y = 0;
-    if (fwd.lengthSq() > 1e-8) fwd.normalize();
     for (let i = 0; i < soles.length; i++) {
       ankle.setFromMatrixPosition(soles[i].bone.matrixWorld);
       ankles[i] = ankle.y;
@@ -233,25 +225,6 @@ export function createFootPlant(THREE, soles) {
           level.setFromUnitVectors(dir.normalize(), flat.normalize());
           turn.slerpQuaternions(ident, level, w);
           rotateFoot(s.bone, turn);
-        }
-      }
-      // Ease pigeon-toed feet toward the body's forward (Mo's left walk). Soft on
-      // the swing foot too so a trailing toe does not stay locked inward.
-      if (fwd.lengthSq() > 1e-8) {
-        const yw = Math.max(w, 0.35);
-        heel.copy(s.heel).applyMatrix4(s.bone.matrixWorld);
-        tip.copy(s.tip).applyMatrix4(s.bone.matrixWorld);
-        flat.subVectors(tip, heel);
-        flat.y = 0;
-        if (flat.lengthSq() > 1e-8) {
-          flat.normalize();
-          let yaw = Math.atan2(flat.x * fwd.z - flat.z * fwd.x, flat.dot(fwd));
-          if (yaw > YAW_MAX) yaw = YAW_MAX;
-          else if (yaw < -YAW_MAX) yaw = -YAW_MAX;
-          if (Math.abs(yaw) > 0.02) {
-            turn.setFromAxisAngle(up, -yaw * yw * YAW_PULL);
-            rotateFoot(s.bone, turn);
-          }
         }
       }
     }

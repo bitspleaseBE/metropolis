@@ -119,11 +119,21 @@ export function createMenu(hooks) {
       <h2>Metropolis Antwerp</h2>
       <p class="cm-about-lead">I love Antwerp. It's just for fun.</p>
       <ul class="cm-about-sources">
-        <li>Bron: Stad Antwerpen — Team Data &amp; Digitaal Vlaanderen.</li>
+        <li>
+          Street survey (traffic poles, speeds, markings, parking bays, chargers, bike racks,
+          shelters, city boards, quay / jetties, share-zones): ©
+          <a href="https://www.antwerpen.be/info/gratis-open-data-licentie" target="_blank" rel="noopener noreferrer">Stad Antwerpen</a>
+          — Team Data &amp; Digitaal Vlaanderen, gratis open-data licentie.
+        </li>
         <li>
           Map data ©
           <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
-          contributors.
+          contributors (ODbL).
+        </li>
+        <li>
+          Velo occupancy:
+          <a href="https://gbfs.smartbike.com/antwerp/1.0/gbfs.json" target="_blank" rel="noopener noreferrer">Clear Channel SmartBike GBFS</a>.
+          Shared scooters: city drop zones; Dott GBFS when the feed is reachable.
         </li>
       </ul>
       <button type="button" class="cm-back" data-back>Back</button>
@@ -853,6 +863,7 @@ export function createMenu(hooks) {
       /* ignore */
     }
     syncSound();
+    window.dispatchEvent(new CustomEvent("metropolis-sound", { detail: !on }));
   });
   syncSound();
 

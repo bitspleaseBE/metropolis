@@ -17,10 +17,27 @@ const QUALITY_KEY = "metropolis-quality";
 const SHADOW_EXTENT = 48;
 const SHADOW_MAP = 1024;
 
+/**
+ * Phones and iPads. Safari never sets `deviceMemory`, and an iPad with a
+ * trackpad reports a fine pointer, so the old check treated them as an 8 GB desktop.
+ * `?mem=roomy` opts out; `?mem=tight` forces the cap on a desktop.
+ */
+export function isTightDevice() {
+  const mem = new URLSearchParams(location.search).get("mem");
+  if (mem === "tight") return true;
+  if (mem === "roomy") return false;
+  const reported = navigator.deviceMemory;
+  const touch = (navigator.maxTouchPoints || 0) > 0;
+  if (reported == null) return touch;
+  return reported <= 4;
+}
+
 /** @returns {"low"|"high"} */
 export function resolveQuality() {
   const q = new URLSearchParams(location.search).get("q");
   if (q === "low" || q === "high") return q;
+  // A stored "high" on an iPad is how the tab gets killed and reloaded.
+  if (isTightDevice()) return "low";
   try {
     const stored = localStorage.getItem(QUALITY_KEY);
     if (stored === "low" || stored === "high") return stored;
@@ -29,8 +46,7 @@ export function resolveQuality() {
   }
   const coarse = matchMedia("(pointer: coarse)").matches;
   const saveData = !!(navigator.connection && navigator.connection.saveData);
-  const lowMem = (navigator.deviceMemory || 8) <= 4;
-  return coarse || saveData || lowMem ? "low" : "high";
+  return coarse || saveData ? "low" : "high";
 }
 
 export function storeQuality(q) {

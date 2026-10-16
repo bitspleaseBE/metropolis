@@ -89,6 +89,7 @@ export async function createNeighbourDistricts(o) {
       extraItems,
       name: "Neighbour_" + id,
       onChunkLoaded: o.onChunkLoaded,
+      maxResident: o.maxResident ?? Infinity,
     });
     let ring = null;
     if (Array.isArray(doc.boundary) && doc.boundary.length >= 3) {
