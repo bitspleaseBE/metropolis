@@ -45,6 +45,7 @@ async function json(url) {
  * @param {{ lat: number, lon: number }} o.origin — current district origin
  * @param {(lat: number, lon: number) => { x: number, z: number }} o.project
  * @param {(root: object) => void} [o.onChunkLoaded]
+ * @param {(root: object) => void} [o.onChunkUnloaded]
  * @param {(id: string, doc: object, transform: object) => void} [o.onFootprints]
  * @param {(base: string, transform: object) => void} [o.onMapSource]
  */
@@ -89,6 +90,7 @@ export async function createNeighbourDistricts(o) {
       extraItems,
       name: "Neighbour_" + id,
       onChunkLoaded: o.onChunkLoaded,
+      onChunkUnloaded: o.onChunkUnloaded,
       maxResident: o.maxResident ?? Infinity,
     });
     let ring = null;

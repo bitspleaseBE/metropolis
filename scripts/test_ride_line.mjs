@@ -30,7 +30,18 @@ assert.ok(TWO_WAY.bikeOffset > 0.4 && TWO_WAY.bikeOffset < 0.6, "two-way cyclewa
  * Riders run along z on a path centred on x = 0. dir +1 heads +z, -1 heads -z.
  * Walkers: { x, z, r } standing still. Returns per-rider finish times and overlap count.
  */
-function ride(path, riders, { walkers = [], seconds = 40, dt = 1 / 30, watch = null } = {}) {
+function overlapsBox(c, rider, box) {
+  const dx = c.x - box.x;
+  const dz = c.z - box.z;
+  const len = Math.hypot(box.tx, box.tz) || 1;
+  const ax = box.tx / len;
+  const az = box.tz / len;
+  const along = Math.abs(dx * ax + dz * az);
+  const side = Math.abs(dx * -az + dz * ax);
+  return along < box.hl + rider.halfLen && side < box.hw + BODY_W;
+}
+
+function ride(path, riders, { walkers = [], boxes = [], seconds = 40, dt = 1 / 30, watch = null } = {}) {
   const room = lineRoom(path);
   const rs = riders.map((r) => {
     const k = KINDS[r.kind];
@@ -54,6 +65,7 @@ function ride(path, riders, { walkers = [], seconds = 40, dt = 1 / 30, watch = n
         things.push({ x: oc.x, z: oc.z, tx: 0, tz: o.dir, hl: o.halfLen, hw: HALF_W, v: o.cur, line: o.line });
       }
       for (const w of walkers) things.push({ x: w.x, z: w.z, tx: 0, tz: 0, hl: w.r, hw: w.r, v: 0 });
+      for (const b of boxes) things.push({ x: b.x, z: b.z, tx: b.tx, tz: b.tz, hl: b.hl, hw: b.hw, v: 0 });
       const front = r.kind === "cargo" ? r.nose + r.halfLen - 0.5 : 0;
       const me = {
         x: c.x, z: c.z, tx: 0, tz: r.dir, line: r.line, aim: r.aim,
@@ -88,6 +100,9 @@ function ride(path, riders, { walkers = [], seconds = 40, dt = 1 / 30, watch = n
       }
       for (const w of walkers) {
         if (Math.abs(ca.z - w.z) < a.halfLen + w.r - 0.05 && Math.abs(ca.x - w.x) < BODY_W + w.r) overlaps++;
+      }
+      for (const b of boxes) {
+        if (overlapsBox(ca, a, b)) overlaps++;
       }
     }
     watch?.(rs, t);
@@ -144,6 +159,18 @@ check(
   "walker on the kerb lane of a road",
   ride(ROAD, [{ id: 1, kind: "bicycle", dir: 1, z: 0, finish: 30 }], { walkers: [{ x: -2.6, z: 15, r: 0.32 }] }),
   { within: 10, still: 1 },
+);
+
+// Kerbside parked car sits on the bike line (centre ~3.05 m off the road centre).
+// It is a box to ride around, not a driving car and not a tram to queue behind.
+check(
+  "parked car on the kerb",
+  ride(
+    ROAD,
+    [{ id: 1, kind: "bicycle", dir: 1, z: 0, finish: 40 }],
+    { boxes: [{ x: -3.05, z: 18, tx: 0, tz: 1, hl: 2.1, hw: 0.875 }], seconds: 25 },
+  ),
+  { within: 20, still: 4 },
 );
 
 check(
