@@ -672,6 +672,7 @@ def _retarget(
         t_side = _rest_head(tgt_arm, t_knuck[0]) - _rest_head(tgt_arm, t_knuck[2])
         a = frame(s_aim, s_side) @ frame(t_aim, t_side).transposed()
         hand_align[t_hand] = _rest_rot(src_arm, s_hand).inverted() @ a @ _rest_rot(tgt_arm, t_hand)
+    align.update(hand_align)
 
     def leg(arm, a, b):
         return (_rest_head(arm, a) - _rest_head(arm, b)).length
@@ -682,7 +683,6 @@ def _retarget(
     obj_rot = rot(tgt_arm.matrix_world)
     obj_scale = tgt_arm.matrix_world.to_scale()
     tgt_pelvis0 = _rest_head(tgt_arm, "Bip01 Pelvis")
-    fist = clip_name in {"Punch", "Cross", "Kick"}
     # Thumbs are not in the Mixamo map. The copied fingers still have to key them.
     thumbs = [
         name
@@ -705,7 +705,12 @@ def _retarget(
             pb = tgt_arm.pose.bones[t]
             pb.matrix = Matrix.Translation(pb.head) @ (tmw_rot_inv @ (q_src @ align[t])).to_4x4()
             bpy.context.view_layer.update()
-        _plant_limbs(src_arm, tgt_arm, sn, ratio, fist, hand_align)
+        # Rotation match only. _plant_limbs re-solved every ankle and made an uneven stride.
+        # Fingers still follow the Mixamo curl; that is not the leg IK.
+        src_fwd = _flat_fwd(src_arm, sn("LeftToeBase"), sn("LeftFoot"))
+        tgt_fwd = _flat_fwd(tgt_arm, "Bip01 L Toe0", "Bip01 L Foot")
+        if src_fwd.length > 1e-8 and tgt_fwd.length > 1e-8:
+            _copy_mixamo_fingers(src_arm, tgt_arm, sn, src_fwd.rotation_difference(tgt_fwd).to_matrix())
         return tgt_arm.location.copy()
 
     span = f1 - f0

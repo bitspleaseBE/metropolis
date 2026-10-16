@@ -150,6 +150,26 @@
         background: #c23b2e;
         transform: scaleX(1);
       }
+      #gpu-lost {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: grid;
+        place-items: center;
+        background: rgba(8, 12, 18, 0.72);
+        color: #e8eef4;
+        text-align: center;
+        padding: 24px;
+      }
+      #gpu-lost[hidden] { display: none; }
+      #gpu-lost div {
+        max-width: 28rem;
+        padding: 22px 24px;
+        background: #141a22;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      #gpu-lost h2 { margin: 0 0 8px; font-size: 1.25rem; }
+      #gpu-lost p { margin: 0; line-height: 1.45; }
       @media (prefers-reduced-motion: reduce) {
         #loading,
         #loading .ld-fill {
@@ -1144,6 +1164,12 @@
         <p class="ld-sub"><span id="ld-stage">Fetching the streets</span><span id="ld-pct"></span></p>
       </div>
     </div>
+    <div id="gpu-lost" hidden>
+      <div>
+        <h2>Out of memory</h2>
+        <p>This device ran out of graphics memory, so the city stopped. Close other tabs and reload once.</p>
+      </div>
+    </div>
     <script src="./district-boot.js"></script>
     <script>
       // Loading screen + GLB download. Runs before the (CDN-hosted) three.js module so the
@@ -1321,7 +1347,7 @@
       import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
       import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
       import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-      import { createVisualQuality, resolveQuality, storeQuality } from "./visual-quality.js";
+      import { createVisualQuality, resolveQuality, storeQuality, isTightDevice } from "./visual-quality.js";
       import { aerialDensity, cameraFogScale, sampleAtmosphere, skySunElevation } from "./atmosphere.js";
 import { dressBareWalls } from "./wall-front.js";
       import { createTraffic } from "./traffic.js";
@@ -1337,6 +1363,8 @@ import { dressBareWalls } from "./wall-front.js";
       import { createInteriors } from "./interiors/interior-manager.js";
       import { createInteriorLoading } from "./interiors/interior-loading.js";
       import { createTerraces } from "./terraces.js";
+      import { createStreetLife } from "./street-life.js";
+      import { createAmbience } from "./ambience.js";
       import { createPropCollider } from "./props-collide.js";
       import { createPlayerMotion, JUMP as JUMP_CFG, makeJump, stepJump } from "./player-motion.js";
       import { createPlayerCrash } from "./crash.js";
@@ -1362,7 +1390,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       import { createDistrictBorder } from "./district-border.js";
       import { shadeHedges } from "./hedge-shade.js";
       import { shadeTrees } from "./tree-shade.js";
-      import { paintRoadMarkings } from "./road-paint.js";
+      import { paintRoadMarkings, paintSurveyMarkings } from "./road-paint.js";
       import { paintLawns } from "./lawn.js";
       import { shadeStreets } from "./street-grit.js";
       import { applySurfaceOrder, auditSurfaceFlicker, surfaceBias } from "./ground-order.js";
@@ -1432,16 +1460,27 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       );
       camera.position.set(-2.921, 3.2, 4.34);
 
+      const TIGHT = isTightDevice();
+      const QUALITY = resolveQuality();
+      const DO_MERGE = new URLSearchParams(location.search).get("merge") === "1" ||
+        (new URLSearchParams(location.search).get("merge") !== "0" && !TIGHT);
+
       // Opaque canvas with no stencil: cheaper framebuffer + no alpha compositing with the page.
       const renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: QUALITY === "high" && !TIGHT,
         alpha: false,
         stencil: false,
         powerPreference: "high-performance",
       });
+      renderer.domElement.addEventListener("webglcontextlost", (e) => {
+        e.preventDefault();
+        const card = document.getElementById("gpu-lost");
+        if (card) card.hidden = false;
+        console.warn("[metropolis] WebGL context lost");
+      });
       // Render-resolution cap (deliberately below devicePixelRatio ≤ 2): the adaptive scaler in
       // tick() trims it further only when frame time says the GPU can't keep up.
-      const PR_MAX = Math.min(window.devicePixelRatio || 1, 1.2);
+      const PR_MAX = Math.min(window.devicePixelRatio || 1, TIGHT ? 1 : 1.2);
       const PR_MIN = Math.min(0.75, PR_MAX);
       let pixelRatio = PR_MAX;
       renderer.setPixelRatio(pixelRatio);
@@ -1453,7 +1492,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       document.body.appendChild(renderer.domElement);
 
       // Quality tier: high unlocks shadows, composer, sky IBL, etc. Low = classic path.
-      const QUALITY = resolveQuality();
+      const ambience = createAmbience();
       // Cheap IBL so glass/metal catch sky instead of looking like flat stickers.
       // High tier swaps this for HDRI / physical-sky PMREM after init.
       const pmrem = new THREE.PMREMGenerator(renderer);
@@ -1970,6 +2009,31 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       let interiors = null;
       let indoorLit = false;
       let terraces = null;
+      let streetLife = null;
+      let livedIn = false;
+      function beginLivedIn() {
+        if (livedIn) return;
+        livedIn = true;
+        if (TIGHT) {
+          pedestrians?.streamVariety?.();
+          micromobility?.streamVariety?.();
+          // Boot skipped the Float32 merge so the tab could live. Fold tiles now,
+          // one bucket per frame, and drop each source before the next.
+          if (cityRoot && new URLSearchParams(location.search).get("merge") !== "0") {
+            void mergeStaticMeshesIdle(cityRoot).then((m) => {
+              if (!m.after) return;
+              cityRoot.updateMatrixWorld(true);
+              cityRoot.traverse((obj) => {
+                obj.matrixWorldAutoUpdate = false;
+              });
+              refreshGroundMeshes();
+              console.info(`[metropolis] idle-merged ${m.before} meshes into ${m.after} tile batches`);
+            });
+          }
+        }
+        streetLife?.start?.();
+        ambience.start();
+      }
       let props = null;
       let parkedCars = null;
       let outdoors = null;
@@ -3243,6 +3307,7 @@ let knifeLunge = null;
         },
         onPlay: () => {
           sessionStarted = true;
+          beginLivedIn();
           document.body.classList.add("locked");
           document.getElementById("hud")?.classList.add("gone");
           document.getElementById("click-cue")?.classList.add("gone");
@@ -3326,6 +3391,7 @@ let knifeLunge = null;
             !(transit.isRiding && transit.isRiding()),
           onStart: () => {
             sessionStarted = true;
+            beginLivedIn();
             if (!helpShown) {
               helpShown = true;
               hud.showHelp(8000);
@@ -3360,6 +3426,7 @@ let knifeLunge = null;
         if (TOUCH) {
           touch.startSession();
           sessionStarted = true;
+          beginLivedIn();
           return;
         }
         if (!sessionStarted) {
@@ -3684,11 +3751,12 @@ let knifeLunge = null;
         return g;
       }
 
-      function mergeStaticMeshes(root, tile = 128, { keepGround = false } = {}) {
+      function gatherMergeBuckets(root, tile = 128, { keepGround = false } = {}) {
         const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
         const rel = new THREE.Matrix4();
         const centre = new THREE.Vector3();
-        const buckets = new Map();
+        const buckets = [];
+        const byKey = new Map();
         root.traverse((obj) => {
           if (!obj.isMesh || obj.isSkinnedMesh || obj.isInstancedMesh || Array.isArray(obj.material)) return;
           // Hidden (removed buildings) must stay hidden.
@@ -3718,41 +3786,72 @@ let knifeLunge = null;
           const sig = Object.keys(g.attributes).sort().join(",") + (g.index ? "|i" : "|n");
           // renderOrder keeps lawn / courtyards behind the pond cutters (water.js RENDER_ORDER).
           const key = `${obj.material.uuid}|${sig}|${ground}|${obj.renderOrder}|${Math.floor(centre.x / tile)}|${Math.floor(centre.z / tile)}`;
-          let b = buckets.get(key);
-          if (!b) buckets.set(key, (b = { material: obj.material, meshes: [], mats: [] }));
+          let b = byKey.get(key);
+          if (!b) {
+            b = { material: obj.material, meshes: [], mats: [] };
+            byKey.set(key, b);
+            buckets.push(b);
+          }
           b.meshes.push(obj);
           b.mats.push(rel.clone());
         });
+        return buckets;
+      }
+
+      function commitMergeBucket(root, b) {
+        if (b.meshes.length < 2) return null;
+        const geoms = b.meshes.map((m, i) => {
+          const g = floatGeometry(m.geometry);
+          g.applyMatrix4(b.mats[i]);
+          return g;
+        });
+        const merged = mergeGeometries(geoms, false);
+        for (const g of geoms) g.dispose();
+        if (!merged) return null; // incompatible attributes: leave the originals alone
+        merged.computeBoundingSphere();
+        const mesh = new THREE.Mesh(merged, b.material);
+        mesh.name = `merged_${b.meshes[0].name || "mesh"}`;
+        mesh.renderOrder = b.meshes[0].renderOrder;
+        mesh.castShadow = false;
+        mesh.receiveShadow = false;
+        mesh.frustumCulled = true;
+        mesh.matrixAutoUpdate = false;
+        mesh.updateMatrix();
+        root.add(mesh);
+        for (const m of b.meshes) {
+          m.geometry.dispose();
+          m.removeFromParent();
+        }
+        return mesh;
+      }
+
+      function mergeStaticMeshes(root, tile = 128, opts = {}) {
         let before = 0;
         let after = 0;
         const meshes = [];
-        for (const b of buckets.values()) {
-          if (b.meshes.length < 2) continue;
-          const geoms = b.meshes.map((m, i) => {
-            const g = floatGeometry(m.geometry);
-            g.applyMatrix4(b.mats[i]);
-            return g;
-          });
-          const merged = mergeGeometries(geoms, false);
-          for (const g of geoms) g.dispose();
-          if (!merged) continue; // incompatible attributes: leave the originals alone
-          merged.computeBoundingSphere();
-          const mesh = new THREE.Mesh(merged, b.material);
-          mesh.name = `merged_${b.meshes[0].name || "mesh"}`;
-          mesh.renderOrder = b.meshes[0].renderOrder;
-          mesh.castShadow = false;
-          mesh.receiveShadow = false;
-          mesh.frustumCulled = true;
-          mesh.matrixAutoUpdate = false;
-          mesh.updateMatrix();
-          root.add(mesh);
+        for (const b of gatherMergeBuckets(root, tile, opts)) {
+          const mesh = commitMergeBucket(root, b);
+          if (!mesh) continue;
           meshes.push(mesh);
-          for (const m of b.meshes) {
-            m.geometry.dispose();
-            m.removeFromParent();
-          }
           before += b.meshes.length;
           after++;
+        }
+        return { before, after, meshes };
+      }
+
+      /** One bucket per frame so the Float32 expansion never sits next to the next tile. */
+      async function mergeStaticMeshesIdle(root, tile = 128, opts = {}) {
+        let before = 0;
+        let after = 0;
+        const meshes = [];
+        for (const b of gatherMergeBuckets(root, tile, opts)) {
+          const mesh = commitMergeBucket(root, b);
+          if (mesh) {
+            meshes.push(mesh);
+            before += b.meshes.length;
+            after++;
+          }
+          await nextFrame();
         }
         return { before, after, meshes };
       }
@@ -3760,6 +3859,10 @@ let knifeLunge = null;
       // Pre-compile every shader variant (day, and night with the pooled lamp lights) while
       // the loading screen is still up, then upload geometry with one throw-away frame.
       async function warmUpRenderer() {
+        if (TIGHT || QUALITY !== "high") {
+          renderer.render(scene, camera);
+          return;
+        }
         const wasLit = lampsLit;
         for (const l of lampLights) l.visible = true;
         try {
@@ -3934,7 +4037,7 @@ let knifeLunge = null;
           collectParkedCarSolids(cityRoot);
           setLoad(0.9, "Building the streets");
           await nextFrame();
-          if (new URLSearchParams(location.search).get("merge") !== "0") {
+          if (DO_MERGE) {
             const m = mergeStaticMeshes(cityRoot);
             console.info(`[metropolis] merged ${m.before} meshes into ${m.after} tile batches`);
           }
@@ -3970,15 +4073,18 @@ let knifeLunge = null;
           setLoad(0.94, "Starting traffic and trams");
           await nextFrame();
           traffic = await createTraffic(scene, THREE);
-          transit = await createTransit(scene, THREE, { tramCount: 6, busCount: 8 });
+          transit = await createTransit(scene, THREE, TIGHT
+            ? { tramCount: 2, busCount: 2 }
+            : { tramCount: 6, busCount: 8 });
           if (traffic.setOnHitPlayer) traffic.setOnHitPlayer((speed) => hitByVehicle(speed));
           if (transit.setOnHitPlayer) transit.setOnHitPlayer((speed) => hitByVehicle(speed));
           // A handful of people, then the other bodies and the rest of the crowd after the city is up.
           // Docks and sheds: a few dock workers, not a shopping-street crowd.
           const industrial = window.__DISTRICT?.stylePolicy === "industrial";
           pedestrians = await createPedestrians(scene, THREE, {
-            count: industrial ? 10 : 40,
-            firstCount: industrial ? 3 : 5,
+            count: industrial ? 10 : TIGHT ? 12 : 40,
+            firstCount: industrial ? 3 : TIGHT ? 2 : 5,
+            people: TIGHT ? { initial: 2, resident: 4 } : undefined,
             spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             playBounds: playBounds || { minX: -500, maxX: 200, minZ: -800, maxZ: 100 },
             groundAt,
@@ -4019,8 +4125,8 @@ let knifeLunge = null;
             });
           }
           micromobility = await createMicromobility(scene, THREE, {
-            count: 28,
-            firstCount: 6,
+            count: TIGHT ? 8 : 28,
+            firstCount: TIGHT ? 2 : 6,
             district: typeof window !== "undefined" ? window.__DISTRICT : null,
             hour: gameHour,
             day: gameDay,
@@ -4031,7 +4137,14 @@ let knifeLunge = null;
           scooters = await createScooters(scene, THREE, {
             spawnCenter: { x: spawnPos.x, z: spawnPos.z },
             groundAt,
+            count: TIGHT ? 6 : undefined,
           });
+          try {
+            const painted = await paintSurveyMarkings(scene, THREE);
+            if (painted) console.info(`[metropolis] survey paint: ${painted} markings`);
+          } catch (err) {
+            console.warn("[metropolis] survey paint skipped", err);
+          }
           // Hide any leftover cars sitting on a step that still spawned beside them.
           const stepCircles = (scooters?.fleet || []).map((s) => ({
             x: s.mesh.position.x,
@@ -4171,9 +4284,11 @@ let knifeLunge = null;
                 void Promise.allSettled(removalDocs).then(() => {
                   if (!chunkRoot.parent) return; // unloaded meanwhile
                   removedBuildings.apply(chunkRoot);
-                  for (const m of mergeStaticMeshes(chunkRoot, 128, { keepGround: true }).meshes) {
-                    m.updateMatrixWorld(true);
-                    m.matrixWorldAutoUpdate = false;
+                  if (DO_MERGE) {
+                    for (const m of mergeStaticMeshes(chunkRoot, 128, { keepGround: true }).meshes) {
+                      m.updateMatrixWorld(true);
+                      m.matrixWorldAutoUpdate = false;
+                    }
                   }
                   scheduleGroundRefresh();
                 });
@@ -4183,6 +4298,7 @@ let knifeLunge = null;
                 scene,
                 loader,
                 catalog,
+                maxResident: TIGHT ? 2 : Infinity,
                 onChunkLoaded: (chunkRoot) => {
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                   dressBareWalls(chunkRoot);
@@ -4223,7 +4339,7 @@ let knifeLunge = null;
                 });
               removalDocs.push(ownDoc);
               // Core is already on screen — stream nearby cells in the background.
-              void chunkStream.prime(spawnPos.x, spawnPos.z).then(() => {
+              void chunkStream.prime(spawnPos.x, spawnPos.z, TIGHT ? { limit: 1 } : {}).then(() => {
                 console.info(
                   `[metropolis] chunks: ${chunkStream.items.length} cells primed near spawn`,
                 );
@@ -4244,6 +4360,7 @@ let knifeLunge = null;
               loader,
               origin: _districtOrigin,
               project: projectGateLatLon,
+              maxResident: TIGHT ? 1 : Infinity,
               onChunkLoaded: (chunkRoot) => {
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                 dressBareWalls(chunkRoot);
@@ -4327,9 +4444,17 @@ let knifeLunge = null;
             const lmRes = await fetch(lmUrl);
             if (lmRes.ok) {
               const catalog = await lmRes.json();
-              landmarkStream = createLandmarkStream({ scene, loader, cityRoot, catalog });
+              landmarkStream = createLandmarkStream({
+                scene,
+                loader,
+                cityRoot,
+                catalog,
+                maxResident: TIGHT ? 2 : Infinity,
+                serial: TIGHT,
+              });
               const here = walkControls.getObject().position;
-              await landmarkStream.prime(here.x, here.z);
+              if (TIGHT) void landmarkStream.prime(here.x, here.z, { limit: 1 });
+              else await landmarkStream.prime(here.x, here.z);
               const near = landmarkStream.items.filter(
                 (item) => Math.hypot(item.x - here.x, item.z - here.z) <= LOAD_M,
               ).length;
@@ -4350,6 +4475,7 @@ let knifeLunge = null;
           publishStatus();
           if (arrivedByBorder && !TOUCH) {
             sessionStarted = true;
+            beginLivedIn();
             helpShown = true;
             const cue = document.getElementById("click-cue");
             if (cue) cue.textContent = `Click to keep walking · ${districtMeta.title || "Antwerp"}`;
@@ -4358,10 +4484,22 @@ let knifeLunge = null;
           }
           setTimeout(() => document.getElementById("hud")?.classList.add("gone"), 9000);
           requestAnimationFrame(() => {
-            pedestrians?.streamVariety?.();
-            micromobility?.streamVariety?.();
-            traffic?.loadRest?.();
+            if (!TIGHT) {
+              pedestrians?.streamVariety?.();
+              micromobility?.streamVariety?.();
+              traffic?.loadRest?.();
+            }
             minimap?.warmBase?.();
+            streetLife = createStreetLife({
+              THREE,
+              scene,
+              people: pedestrians?.people,
+              terraces: { seats: () => terraces?.seats?.() || [] },
+              groundAt,
+              inside: (x, z) => (outdoors?.ready ? outdoors.insideBuilding(x, z) : false),
+              tight: TIGHT,
+            });
+            if (livedIn) streetLife.start();
             void settleStreetLife();
           });
       }
@@ -4436,7 +4574,7 @@ let knifeLunge = null;
           await MeshoptDecoder.ready;
           // Decode EXT_meshopt_compression off the main thread. Without workers,
           // each chunk's WASM decode pins the walk loop (7 FPS until priming ends).
-          if (typeof MeshoptDecoder.useWorkers === "function") {
+          if (typeof MeshoptDecoder.useWorkers === "function" && !TIGHT) {
             MeshoptDecoder.useWorkers(2);
           }
           const gltf = await loader.parseAsync(buf, "./");
@@ -4896,6 +5034,7 @@ let knifeLunge = null;
             pedestrians.setClock?.(gameHour, gameDay);
             pedestrians.update(simDt);
           }
+          streetLife?.update(simDt, walker.position.x, walker.position.z);
           if (police) {
             const face = playerMotion.yaw();
             police.update(simDt, {

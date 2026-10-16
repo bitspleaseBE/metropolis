@@ -21,4 +21,14 @@ assert.equal(chunkWanted({ x: 900, z: 400, overview: true, loaded: false }, here
 assert.equal(overviewLatched("walk", 800, true), false);
 assert.equal(overviewLatched("free", 400, false), true);
 
+import { pickWithin } from "../viewer/chunk-stream.js";
+const spots = [
+  { id: "near", x: 10, z: 0 },
+  { id: "mid", x: 40, z: 0 },
+  { id: "far", x: 90, z: 0 },
+];
+const picked = pickWithin(spots, 0, 0, 2, () => true).map((s) => s.id);
+assert.deepEqual(picked, ["near", "mid"]);
+assert.equal(pickWithin(spots, 0, 0, Infinity, (s) => s.id !== "mid").length, 2);
+
 console.log("chunk stream hysteresis ok");
