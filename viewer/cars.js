@@ -3,12 +3,13 @@
  * blender/build_car_models.py). Each GLB has a plain `car_paint` material that is
  * recoloured per car, `car_headlight` / `car_taillight` lenses that are swapped for the
  * shared night-glow lamp materials, a driver in the left window, a plate on each
- * bumper, and four `wheel-*` nodes spun about their axles.
+ * bumper, a contact shadow on the road, and four `wheel-*` nodes spun about their axles.
  * Falls back to [] when GLTFLoader is unavailable (headless Node sims).
  */
 
 import { shadeDrivers } from "./car-driver.js";
 import { addPlates } from "./car-plate.js";
+import { addContactShadow } from "./car-shadow.js";
 
 const FLEET_URL = new URL("./cars/fleet.json", import.meta.url);
 
@@ -248,6 +249,7 @@ export function cloneCarMesh(THREE, parts, template, opts = {}) {
   body.updateMatrixWorld(true);
   const plateBox = new THREE.Box3().setFromObject(body);
   addPlates(THREE, group, plateBox, (Math.random() * 0x7fffffff) >>> 0);
+  addContactShadow(THREE, group, plateBox);
 
   if (!template.hasLamps) {
     const zNose = template.halfL - 0.06;
@@ -439,6 +441,7 @@ export function wireParkedCarLamps(root, THREE) {
     _inv.copy(g.matrixWorld).invert();
     _box.applyMatrix4(_inv);
     addPlates(THREE, g, _box, hashUnit(g.name) * 0x7fffffff);
+    addContactShadow(THREE, g, _box);
     if (hasLamps) continue;
 
     _box.setFromObject(mesh);
