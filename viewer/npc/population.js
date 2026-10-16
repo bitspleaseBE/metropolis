@@ -1,22 +1,105 @@
 /**
- * District population mix, hotspots, and hour-of-day rules for NPC spawning.
+ * District population mix and hour-of-day rules for NPC spawning.
  *
- * Looks: european, slavic, mediterranean, african, african_street, asian,
- * muslim, arab, arab_young, hasidic.
+ * Jewish characters (the hasidic look) exist only in 2018-harmonie.
+ * 2018 is half Jewish, a small Arab share, and the rest Flemish (european).
+ * Every other district is half Flemish and half Black or Arab.
+ * The Arab share uses the arab and muslim wardrobes — only a couple of
+ * models are tagged arab. Published district.json mixes are not applied:
+ * those files still name a Hasidic hotspot inside 2000.
  */
 
-const DEFAULT_MIX = {
-  european: 0.4,
-  slavic: 0.05,
-  mediterranean: 0.05,
-  african: 0.08,
-  african_street: 0.04,
-  asian: 0.05,
-  muslim: 0.1,
-  arab: 0.05,
-  arab_young: 0.05,
-  hasidic: 0.13,
+/** The only district that may spawn a Jewish character. */
+export const JEWISH_DISTRICT = "2018-harmonie";
+
+/** Flemish european, Black african, Arab arab+muslim. */
+export const OTHER_MIX = {
+  european: 0.5,
+  african: 0.25,
+  arab: 0.1,
+  muslim: 0.15,
 };
+
+/** 2018: 50% Jewish, 5% Arab, 45% Flemish. */
+export const HARMONIE_MIX = {
+  hasidic: 0.5,
+  arab: 0.03,
+  muslim: 0.02,
+  european: 0.45,
+};
+
+const DEFAULT_MIX = OTHER_MIX;
+
+const BUCKET = {
+  european: "flemish",
+  african: "black",
+  african_street: "black",
+  arab: "arab",
+  arab_young: "arab",
+  muslim: "arab",
+  hasidic: "jewish",
+};
+
+export function bucketOf(look) {
+  return BUCKET[look] || "";
+}
+
+export function mixForDistrict(id) {
+  const mix = id === JEWISH_DISTRICT ? { ...HARMONIE_MIX } : { ...OTHER_MIX };
+  if (id !== JEWISH_DISTRICT) mix.hasidic = 0;
+  return mix;
+}
+
+/**
+ * Ids for a resident roster whose prefix already matches the district mix.
+ * Jewish models are omitted everywhere except 2018. Staff are skipped.
+ * @param {Array<{id: string, look: string, role?: string}>} people
+ * @param {string} districtId
+ * @param {number} count
+ * @param {() => number} [rng]
+ */
+export function rosterIds(people, districtId, count, rng = Math.random) {
+  const shares =
+    districtId === JEWISH_DISTRICT
+      ? { jewish: 0.5, arab: 0.05, flemish: 0.45 }
+      : { black: 0.25, arab: 0.25, flemish: 0.5 };
+  const pools = { jewish: [], arab: [], black: [], flemish: [] };
+  for (const p of people) {
+    if (p.role === "staff" || /^(Staff_|Medical_|Chef_)/.test(p.id || "")) continue;
+    const b = bucketOf(p.look);
+    if (!pools[b]) continue;
+    if (b === "jewish" && districtId !== JEWISH_DISTRICT) continue;
+    pools[b].push(p.id);
+  }
+  for (const list of Object.values(pools)) {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = (rng() * (i + 1)) | 0;
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+  }
+  const keys = Object.keys(shares);
+  const parts = keys.map((k) => {
+    const exact = shares[k] * count;
+    return { k, exact, n: Math.floor(exact) };
+  });
+  let rem = count - parts.reduce((s, p) => s + p.n, 0);
+  parts.sort((a, b) => b.exact - b.n - (a.exact - a.n));
+  for (let i = 0; i < rem; i++) parts[i % parts.length].n++;
+  const left = Object.fromEntries(parts.map((p) => [p.k, p.n]));
+  const ids = [];
+  while (ids.length < count) {
+    let placed = false;
+    for (const k of keys) {
+      if (!left[k] || !pools[k].length) continue;
+      ids.push(pools[k].pop());
+      left[k]--;
+      placed = true;
+      if (ids.length >= count) break;
+    }
+    if (!placed) break;
+  }
+  return ids;
+}
 
 /** Cluster keys used by people.js households. Hasidic alone; eu/arab/african mix. */
 export const LOOK_CLUSTER = {
@@ -33,95 +116,9 @@ export const LOOK_CLUSTER = {
 };
 
 const DISTRICT_DEFAULTS = {
-  "2018-harmonie": {
-    looks: {
-      european: 0.3,
-      slavic: 0.03,
-      mediterranean: 0.04,
-      african: 0.06,
-      african_street: 0.04,
-      asian: 0.03,
-      muslim: 0.12,
-      arab: 0.04,
-      arab_young: 0.04,
-      hasidic: 0.28,
-      other: 0.02,
-    },
-    hotspots: [
-      // Centraal Station / Pelikaanstraat approach — more arab & african.
-      {
-        label: "centraal",
-        lat: 51.2172,
-        lon: 4.4211,
-        radiusM: 280,
-        looks: { arab: 1.8, arab_young: 2.2, african: 1.6, african_street: 1.8, hasidic: 0.7 },
-      },
-      // Diamond quarter / Hasidic belt.
-      {
-        label: "diamonds",
-        lat: 51.2125,
-        lon: 4.4185,
-        radiusM: 220,
-        looks: { hasidic: 2.4, muslim: 0.6, arab: 0.5, european: 0.7 },
-      },
-    ],
-  },
-  "2000-antwerpen": {
-    looks: {
-      european: 0.55,
-      slavic: 0.08,
-      mediterranean: 0.05,
-      african: 0.08,
-      african_street: 0.04,
-      asian: 0.07,
-      muslim: 0.06,
-      arab: 0.03,
-      arab_young: 0.03,
-      hasidic: 0.01,
-    },
-    hotspots: [
-      // Groenplaats — almost no Hasidic.
-      {
-        label: "groenplaats",
-        lat: 51.2188,
-        lon: 4.4019,
-        radiusM: 180,
-        looks: { hasidic: 0.05, european: 1.3, asian: 1.4, slavic: 1.3 },
-      },
-      // Near Centraal / Meir east — more diverse.
-      {
-        label: "meir-east",
-        lat: 51.2185,
-        lon: 4.415,
-        radiusM: 200,
-        looks: { arab: 1.5, african: 1.4, hasidic: 1.2 },
-      },
-    ],
-  },
+  "2018-harmonie": { looks: HARMONIE_MIX, hotspots: [] },
+  "2000-antwerpen": { looks: OTHER_MIX, hotspots: [] },
 };
-
-function haversineM(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const toR = Math.PI / 180;
-  const dLat = (lat2 - lat1) * toR;
-  const dLon = (lon2 - lon1) * toR;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * toR) * Math.cos(lat2 * toR) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-/** Approximate Blender XY → lat/lon using district origin. */
-function xzToLatLon(x, z, origin) {
-  // Blender: x = easting (m), y = northing (m); Three z = -y.
-  const lat0 = origin[0];
-  const lon0 = origin[1];
-  const mPerDegLat = 111320;
-  const mPerDegLon = 111320 * Math.cos((lat0 * Math.PI) / 180);
-  const north = -z;
-  const east = x;
-  return { lat: lat0 + north / mPerDegLat, lon: lon0 + east / mPerDegLon };
-}
 
 function pickWeighted(weights) {
   let total = 0;
@@ -139,35 +136,22 @@ function pickWeighted(weights) {
  * @param {object} district district.json (or { id, origin, population })
  */
 export function createPopulation(district = {}) {
-  const id = district.id || district.districtId || "2018-harmonie";
-  const preset = DISTRICT_DEFAULTS[id] || { looks: DEFAULT_MIX, hotspots: [] };
-  const pop = district.population || {};
-  const looks = { ...(preset.looks || DEFAULT_MIX), ...(pop.looks || {}) };
-  const hotspots = pop.hotspots || preset.hotspots || [];
-  const origin = district.origin || [51.2017, 4.4114];
+  const id = district.id || district.districtId || "";
+  // District-wide. A published hotspot must not put a Jewish character in 2000
+  // or pull the 2018 mix off 50 / 5 / 45.
+  const looks = mixForDistrict(id);
+  const hotspots = [];
 
-  function looksAt(x, z) {
+  function looksAt() {
     const weights = { ...looks };
-    delete weights.other;
-    if (hotspots.length && Number.isFinite(x) && Number.isFinite(z)) {
-      const { lat, lon } = xzToLatLon(x, z, origin);
-      for (const h of hotspots) {
-        const d = haversineM(lat, lon, h.lat, h.lon);
-        if (d > (h.radiusM || 200)) continue;
-        const t = 1 - d / (h.radiusM || 200);
-        for (const [k, m] of Object.entries(h.looks || {})) {
-          if (weights[k] == null) weights[k] = 0.02;
-          // Blend multiplier toward 1 at the edge.
-          const mult = 1 + (m - 1) * t;
-          weights[k] *= mult;
-        }
-      }
-    }
+    if (id !== JEWISH_DISTRICT) weights.hasidic = 0;
     return weights;
   }
 
-  function pickLook(x, z) {
-    return pickWeighted(looksAt(x, z));
+  function pickLook() {
+    const look = pickWeighted(looksAt());
+    if (look === "hasidic" && id !== JEWISH_DISTRICT) return "european";
+    return look;
   }
 
   /**

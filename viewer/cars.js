@@ -2,9 +2,14 @@
  * Belgian 2025-26 car fleet: procedural real-model GLBs from ./cars/ (built by
  * blender/build_car_models.py). Each GLB has a plain `car_paint` material that is
  * recoloured per car, `car_headlight` / `car_taillight` lenses that are swapped for the
- * shared night-glow lamp materials, and four `wheel-*` nodes spun about their axles.
+ * shared night-glow lamp materials, a driver in the left window, a plate on each
+ * bumper, a contact shadow on the road, and four `wheel-*` nodes spun about their axles.
  * Falls back to [] when GLTFLoader is unavailable (headless Node sims).
  */
+
+import { shadeDrivers } from "./car-driver.js";
+import { addPlates } from "./car-plate.js";
+import { addContactShadow } from "./car-shadow.js";
 
 const FLEET_URL = new URL("./cars/fleet.json", import.meta.url);
 
@@ -152,6 +157,7 @@ export async function loadCarTemplates(THREE, opts = {}) {
           const wb = new THREE.Box3().setFromObject(wheels[0]);
           wheelRadius = Math.max(0.2, (wb.max.y - wb.min.y) * 0.5);
         }
+        shadeDrivers(root);
 
         out.push({
           id: spec.id,
@@ -239,6 +245,11 @@ export function cloneCarMesh(THREE, parts, template, opts = {}) {
   group.userData.halfL = template.halfL;
   group.userData.halfW = template.halfW;
   group.userData.carId = template.id;
+
+  body.updateMatrixWorld(true);
+  const plateBox = new THREE.Box3().setFromObject(body);
+  addPlates(THREE, group, plateBox, (Math.random() * 0x7fffffff) >>> 0);
+  addContactShadow(THREE, group, plateBox);
 
   if (!template.hasLamps) {
     const zNose = template.halfL - 0.06;
@@ -426,6 +437,11 @@ export function wireParkedCarLamps(root, THREE) {
       }
       return null;
     });
+    _box.setFromObject(mesh);
+    _inv.copy(g.matrixWorld).invert();
+    _box.applyMatrix4(_inv);
+    addPlates(THREE, g, _box, hashUnit(g.name) * 0x7fffffff);
+    addContactShadow(THREE, g, _box);
     if (hasLamps) continue;
 
     _box.setFromObject(mesh);

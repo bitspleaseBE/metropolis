@@ -25,7 +25,8 @@ function skinnedBounds(THREE, root, out) {
 }
 
 /**
- * Scale `root` (unparented, rest pose) to `targetH` metres tall with its feet at y = 0.
+ * Scale `root` (unparented, rest pose) to `targetH` metres, sole to crown
+ * (viewer/person-scale.js), with its feet at y = 0.
  * Returns the hips height above the feet, or null when the rig has no Hips bone.
  */
 export function fitHumanoid(THREE, root, targetH) {

@@ -128,6 +128,86 @@ function floorTexture(THREE, kind) {
   return tex;
 }
 
+/** Lower-wall finishes. One canvas each, shared, repeated in metres. */
+function wallTexture(THREE, kind) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d");
+  const r = mulberry32(kind === "stone" ? 5 : kind === "block" ? 9 : kind === "tile" ? 4 : 6);
+  if (kind === "wood" || kind === "darkwood") {
+    const base = kind === "darkwood" ? [42, 32, 28] : [107, 68, 40];
+    g.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
+    g.fillRect(0, 0, 256, 256);
+    for (let x = 0; x < 256; x += 28) {
+      const l = 0.75 + r() * 0.4;
+      g.fillStyle = `rgb(${Math.round(base[0] * l)},${Math.round(base[1] * l)},${Math.round(base[2] * l)})`;
+      g.fillRect(x + 1, 0, 26, 256);
+      g.fillStyle = "rgba(20,12,8,0.45)";
+      g.fillRect(x, 0, 2, 256);
+    }
+  } else if (kind === "block") {
+    g.fillStyle = "#8a8e90";
+    g.fillRect(0, 0, 256, 256);
+    const bw = 64;
+    const bh = 32;
+    for (let row = 0; row < 8; row++) {
+      const off = row % 2 ? bw / 2 : 0;
+      for (let x = -bw; x < 256; x += bw) {
+        const l = 0.85 + r() * 0.25;
+        g.fillStyle = `rgb(${Math.round(150 * l)},${Math.round(152 * l)},${Math.round(148 * l)})`;
+        g.fillRect(x + off + 2, row * bh + 2, bw - 4, bh - 4);
+      }
+    }
+  } else if (kind === "stone") {
+    g.fillStyle = "#b7aa96";
+    g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 5; i++) {
+      const l = 0.8 + r() * 0.3;
+      g.fillStyle = `rgb(${Math.round(176 * l)},${Math.round(164 * l)},${Math.round(142 * l)})`;
+      g.fillRect(r() * 200, r() * 200, 40 + r() * 80, 28 + r() * 40);
+    }
+    g.strokeStyle = "#8d8272";
+    g.lineWidth = 3;
+    g.strokeRect(1, 1, 254, 126);
+    g.strokeRect(1, 128, 254, 126);
+  } else {
+    g.fillStyle = "#e4e0d8";
+    g.fillRect(0, 0, 256, 256);
+    g.strokeStyle = "#9a958c";
+    g.lineWidth = 6;
+    for (let k = 0; k <= 256; k += 64) {
+      g.beginPath();
+      g.moveTo(k, 0);
+      g.lineTo(k, 256);
+      g.moveTo(0, k);
+      g.lineTo(256, k);
+      g.stroke();
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 8;
+  return tex;
+}
+
+/** Stretch box UVs so a repeating texture is `tile` metres on a side. */
+function metreUVs(geo, tile) {
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox;
+  const sx = bb.max.x - bb.min.x;
+  const sz = bb.max.z - bb.min.z;
+  const pos = geo.attributes.position;
+  const uv = geo.attributes.uv;
+  const alongX = sx >= sz;
+  for (let i = 0; i < pos.count; i++) {
+    const u = (alongX ? pos.getX(i) - bb.min.x : pos.getZ(i) - bb.min.z) / tile;
+    const v = (pos.getY(i) - bb.min.y) / tile;
+    uv.setXY(i, u, v);
+  }
+  uv.needsUpdate = true;
+}
+
 export function createFurnitureKit(THREE) {
   const std = (color, rough = 0.6, metal = 0, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...extra });
@@ -553,6 +633,11 @@ export function createFurnitureKit(THREE) {
     if (!FLOORS[kind]) FLOORS[kind] = std(0xffffff, kind === "terrazzo" ? 0.25 : 0.7, 0, { map: floorTexture(THREE, kind) });
     return FLOORS[kind];
   };
+  const DADO = {};
+  const dadoMat = (kind) => {
+    if (!DADO[kind]) DADO[kind] = std(0xffffff, kind === "tile" ? 0.55 : 0.75, 0, { map: wallTexture(THREE, kind) });
+    return DADO[kind];
+  };
   const colourMats = new Map();
   /** Plain wall / ceiling paint, shared by colour so interiors never leak materials. */
   const paintMat = (hex, rough = 0.85) => {
@@ -664,11 +749,29 @@ export function createFurnitureKit(THREE) {
     const tile = layout.floor === "wood" ? 1.6 : layout.floor === "concrete" ? 3 : 1.2;
     for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * w) / tile, (uv.getY(i) * d) / tile);
     add(floor, floorMat(layout.floor || "tile"));
-    const wall = paintMat(layout.wall ?? 0xe9e6df);
+    const wall = paintMat(layout.wall ?? 0xc8b89a);
     const T = 0.2;
-    add(new THREE.BoxGeometry(w + 2 * T, h, T).translate(0, h / 2, -d - T / 2), wall);
-    add(new THREE.BoxGeometry(T, h, d).translate(-w / 2 - T / 2, h / 2, -d / 2), wall);
-    add(new THREE.BoxGeometry(T, h, d).translate(w / 2 + T / 2, h / 2, -d / 2), wall);
+    const dadoH = Math.min(Math.max(Number(layout.dadoH) || 0, 0), h);
+    const dado = layout.dado ? dadoMat(layout.dado) : null;
+    const rail = paintMat(0x3e2a1c, 0.55);
+    // Back and side walls: a finished lower band and a painted upper wall.
+    const placeWall = (sizeX, sizeZ, x, z) => {
+      const full = !dado || dadoH >= h - 0.08;
+      if (full) {
+        const geo = new THREE.BoxGeometry(sizeX, h, sizeZ).translate(x, h / 2, z);
+        if (dado) metreUVs(geo, layout.dado === "tile" ? 0.32 : layout.dado === "block" ? 0.64 : 0.45);
+        add(geo, dado || wall);
+        return;
+      }
+      const lower = new THREE.BoxGeometry(sizeX, dadoH, sizeZ).translate(x, dadoH / 2, z);
+      metreUVs(lower, layout.dado === "tile" ? 0.32 : 0.45);
+      add(lower, dado);
+      add(new THREE.BoxGeometry(sizeX, h - dadoH, sizeZ).translate(x, dadoH + (h - dadoH) / 2, z), wall);
+      add(new THREE.BoxGeometry(sizeX, 0.08, sizeZ + 0.04).translate(x, dadoH, z), rail);
+    };
+    placeWall(w + 2 * T, T, 0, -d - T / 2);
+    placeWall(T, d, -w / 2 - T / 2, -d / 2);
+    placeWall(T, d, w / 2 + T / 2, -d / 2);
     add(new THREE.PlaneGeometry(w, d).rotateX(Math.PI / 2).translate(0, h, -d / 2), paintMat(layout.ceiling ?? 0xf2f1ee, 0.95));
     // Street wall: solid piers, a glazed band (daylight / night sky) and the door opening.
     const d0 = door.x - door.w / 2;

@@ -235,6 +235,35 @@ function lineLabel(lines, mode) {
   return "tram";
 }
 
+/** How close you stand to read the stop's line plan (boarding a vehicle still wins). */
+export const LINE_PLAN_DIST = 8;
+
+/**
+ * The sheet posted at a halt: which lines call here.
+ * @param {{ name?: string, mode?: string, lines?: string[] }} stop
+ */
+export function formatLinePlan(stop) {
+  const title = haltDisplayName(stop && stop.name);
+  const mode = (stop && stop.mode) || "bus";
+  const kind = mode === "tram" || mode === "subway" ? "Tram" : mode === "train" ? "Train" : "Bus";
+  const lines = [];
+  const seen = new Set();
+  for (const line of (stop && stop.lines) || []) {
+    const label = String(line || "").trim();
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    lines.push(label);
+  }
+  const shown = lines.slice(0, 14);
+  const more = lines.length > shown.length ? " …" : "";
+  return {
+    title,
+    kind,
+    lines: shown,
+    text: shown.length ? `${kind} ${shown.join(" · ")}${more}` : "No lines posted",
+  };
+}
+
 // ---------------------------------------------------------------------------
 // De Lijn liveries.  White body, grey skirt, dark glazing band, yellow (#FFD800)
 // door / front stripes and the "lijn" mark — see De Lijn huisstijlgids 2022 and
@@ -269,6 +298,19 @@ const TRAM_LEN =
 BODY_LEN.tram = TRAM_LEN;
 const TRAM_DIM = { w: TRAM_WAGON.w, h: TRAM_WAGON.h, l: TRAM_LEN, lift: TRAM_WAGON.lift };
 const BUS_DIM = { w: 2.4, h: 2.7, l: 13.5, lift: 0.05 };
+/**
+ * Flat body, not a rounded box. The bevel used to drag the outer 12% of each
+ * elevation (white roof line, jpeg fringe) around every corner, which read as
+ * a white rim. One segment per face keeps the livery 1:1 on the panel.
+ * `colorLift` stays at 1 so the white paint does not cross the bloom threshold.
+ */
+export const BUS_BODY = {
+  widthSegments: 1,
+  heightSegments: 1,
+  depthSegments: 1,
+  uvInset: 0.02,
+  colorLift: 1,
+};
 // Scratch vectors for articulated tram placement (no per-frame alloc).
 const _tramPos = [];
 const _tramTan = [];
@@ -696,13 +738,26 @@ function makeSharedParts(THREE, liveryBase) {
     return t;
   };
   const litMats = [];
-  const wrap = (name, glow) => {
+  const wrap = (name, glow, { lift = 1.22, inset = 0 } = {}) => {
+    const map = load(name);
+    const glowMap = glow ? load(glow) : null;
+    if (inset > 0) {
+      for (const tex of [map, glowMap]) {
+        if (!tex) continue;
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.offset.set(inset, inset);
+        tex.repeat.set(1 - inset * 2, 1 - inset * 2);
+      }
+    }
     const m = new THREE.MeshLambertMaterial({
-      map: load(name),
+      map,
       emissive: 0x000000,
-      emissiveMap: glow ? load(glow) : null,
+      emissiveMap: glowMap,
     });
-    m.color.setScalar(1.22); // the flat wraps read grey under Lambert + ACES; lift them to paint-white
+    // Tram wraps read grey under Lambert + ACES. Buses stay at 1: a lift past 1
+    // clips the white body and bloom paints a rim on every edge.
+    m.color.setScalar(lift);
     if (glow) litMats.push(m);
     return m;
   };
@@ -734,16 +789,18 @@ function makeSharedParts(THREE, liveryBase) {
   const tramTailMats = [...tramSideMats, bellowsEnd, tramFront];
   const tramMidMats = [...tramSideMats, bellowsEnd, bellowsEnd];
   // Right-hand traffic: the door side of a bus faces -x (right of travel along +z).
+  // Grey roof panel so the top edge is a break in the white body, not a blown rim.
+  const busRoofMat = new THREE.MeshLambertMaterial({ color: 0xc5c9cc });
+  const busOpts = { lift: BUS_BODY.colorLift, inset: BUS_BODY.uvInset };
   const busMats = [
-    wrap("bus_side_l", "bus_side_l_glow"),
-    wrap("bus_side_r", "bus_side_r_glow"),
-    roofMat,
+    wrap("bus_side_l", "bus_side_l_glow", busOpts),
+    wrap("bus_side_r", "bus_side_r_glow", busOpts),
+    busRoofMat,
     underMat,
-    wrap("bus_front"),
-    wrap("bus_rear"),
+    wrap("bus_front", null, busOpts),
+    wrap("bus_rear", null, busOpts),
   ];
   const wagonR = 0.22; // rounded body corners (~modern Albatros look)
-  const busR = 0.28; // soften the sharp box corners of the bus body
   // Cab cars: longer body + windshield rake on the outer face only (bellows end stays square).
   const tramLeadBody = makeRoundedBox(THREE, TRAM_WAGON.w, TRAM_WAGON.h, TRAM_WAGON_END_L, wagonR, 4);
   slantCabFace(tramLeadBody, "front", 0.72);
@@ -755,10 +812,18 @@ function makeSharedParts(THREE, liveryBase) {
     tramTailBody,
     tramJoint: new THREE.BoxGeometry(TRAM_WAGON.w * 0.82, TRAM_WAGON.h * 0.86, TRAM_JOINT_GAP),
     busBody: (() => {
-      const g = makeRoundedBox(THREE, BUS_DIM.w, BUS_DIM.h, BUS_DIM.l, busR, 4);
-      // Mild cab rake front and rear so the bus doesn't read as a sharp brick.
-      slantCabFace(g, "front", 0.55);
-      slantCabFace(g, "rear", 0.45);
+      const g = new THREE.BoxGeometry(
+        BUS_DIM.w,
+        BUS_DIM.h,
+        BUS_DIM.l,
+        BUS_BODY.widthSegments,
+        BUS_BODY.heightSegments,
+        BUS_BODY.depthSegments,
+      );
+      // Mild cab rake. One segment, so the rake shears the panel instead of
+      // smearing the livery around a bevel.
+      slantCabFace(g, "front", 0.42);
+      slantCabFace(g, "rear", 0.28);
       return g;
     })(),
     tramPod: new THREE.BoxGeometry(1.35, 0.24, 1.8),
@@ -787,7 +852,7 @@ function makeSharedParts(THREE, liveryBase) {
     tramTailMats,
     tramMidMats,
     busMats,
-    allMats: [...new Set([...tramLeadMats, ...tramTailMats, ...tramMidMats, ...busMats, jointMat, bellowsEnd])],
+    allMats: [...new Set([...tramLeadMats, ...tramTailMats, ...tramMidMats, ...busMats, busRoofMat, jointMat, bellowsEnd])],
     jointMat,
     metalMat: new THREE.MeshLambertMaterial({ color: 0x2f3336 }),
     podMat: new THREE.MeshLambertMaterial({ color: 0x8d9296 }),
@@ -1828,7 +1893,11 @@ export async function createTransit(scene, THREE, opts = {}) {
       return { action: "alight", drop };
     }
     const v = findBoardable(player);
-    if (!v) return { action: "none" };
+    if (!v) {
+      const plan = linePlanNear(player.x, player.z);
+      if (plan) return { action: "plan", ...plan };
+      return { action: "none" };
+    }
     ride = { vehicle: v, wantAlight: false };
     return {
       action: "board",
@@ -1916,6 +1985,10 @@ export async function createTransit(scene, THREE, opts = {}) {
             halt ? ` · ${haltDisplayName(halt.name)}` : ""
           }`,
         };
+      }
+      const plan = linePlanNear(playerPos.x, playerPos.z);
+      if (plan) {
+        return { riding: false, prompt: `E · line plan · ${plan.title}`, plan };
       }
       const near = nearestTramHalt(playerPos.x, playerPos.z);
       if (near && near.dist < 220) {
@@ -2010,6 +2083,21 @@ export async function createTransit(scene, THREE, opts = {}) {
   }
   const HALT_REACH2 = 20 * 20; // platform edge at Gounod is ~18 m from the OSM stop node
   let haltCurrent = null;
+
+  function linePlanNear(x, z) {
+    let best = null;
+    let bestD = Infinity;
+    for (const st of haltPois) {
+      if (st.mode !== "bus" && st.mode !== "tram") continue;
+      const d = Math.hypot(x - st.x, z - st.z);
+      if (d <= LINE_PLAN_DIST && d < bestD) {
+        bestD = d;
+        best = st;
+      }
+    }
+    if (!best) return null;
+    return formatLinePlan(best);
+  }
 
   /** Nearest real De Lijn halt for GTA-style captions; `{ stop, changed }`. */
   function locateStop(x, z) {

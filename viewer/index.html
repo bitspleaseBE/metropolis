@@ -311,6 +311,31 @@
         border-color: #ff2bd6;
         color: #120018;
       }
+      #line-plan {
+        position: fixed;
+        top: 18px;
+        left: 22px;
+        min-width: 14rem;
+        max-width: 22rem;
+        padding: 12px 16px;
+        background: rgba(10, 12, 16, 0.86);
+        color: #f2f2f2;
+        border-radius: 4px;
+        text-align: left;
+        display: none;
+        pointer-events: none;
+        z-index: 4;
+      }
+      #line-plan .line {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      #line-plan .next {
+        font-size: 0.9rem;
+        line-height: 1.45;
+        margin: 0;
+      }
       #ride {
         top: 18px;
         background: rgba(10, 12, 16, 0.78);
@@ -847,6 +872,8 @@
         background: #0006;
       }
       #city-menu .cm-map-unlock {
+        max-width: 16rem;
+        text-align: center;
         font: 13px/1.3 system-ui, sans-serif;
         color: #e8eef4;
         text-shadow: 0 1px 4px #000;
@@ -1072,8 +1099,9 @@
       body.menu-open #status,
       body.menu-open #hud,
       body.menu-open #click-cue,
-      body.menu-open #prompt,
-      body.menu-open #ride {
+        body.menu-open #prompt,
+        body.menu-open #ride,
+        body.menu-open #line-plan {
         visibility: hidden !important;
       }
       @media (max-width: 700px) {
@@ -1276,6 +1304,10 @@
       <p class="line" id="ride-line">Tram</p>
       <p class="next" id="ride-next">Next: —</p>
     </div>
+    <div id="line-plan">
+      <p class="line" id="line-plan-title">Stop</p>
+      <p class="next" id="line-plan-lines"></p>
+    </div>
     <div id="prompt"></div>
     <div id="hud">
       <h1>Klein Antwerpen</h1>
@@ -1290,14 +1322,17 @@
       import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
       import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
       import { createVisualQuality, resolveQuality, storeQuality } from "./visual-quality.js";
+import { dressBareWalls } from "./wall-front.js";
       import { createTraffic } from "./traffic.js";
       import { createTransit } from "./transit.js";
       import { createPedestrians } from "./pedestrians.js";
       import { createMicromobility } from "./micromobility.js";
       import { preloadStarter } from "./characters.js";
-      import { createVelo } from "./velo.js";
+      import { createVelo, hideBakedVeloRacks } from "./velo.js";
+      import { applyVeloSeats } from "./velo-seat.js";
       import { createScooters } from "./scooters.js";
       import { createShops } from "./shops.js";
+      import { bikeOffer, careOffer, mealOffer } from "./street-buy.js";
       import { createInteriors } from "./interiors/interior-manager.js";
       import { createInteriorLoading } from "./interiors/interior-loading.js";
       import { createTerraces } from "./terraces.js";
@@ -1305,6 +1340,7 @@
       import { createPlayerMotion, JUMP as JUMP_CFG, makeJump, stepJump } from "./player-motion.js";
       import { createPlayerCrash } from "./crash.js";
       import { createPlayerAvatar, preloadPlayer } from "./players.js";
+      import { EYE_M } from "./person-scale.js";
       import { createThirdPersonCamera } from "./third-person.js";
       import { createMenu } from "./menu.js";
       import { createHud } from "./hud.js";
@@ -1312,7 +1348,7 @@
       import { createWanted } from "./wanted.js";
       import { createCombatPlayer } from "./combat-player.js";
 import { absorb, ARMOR_MAX, createLoot } from "./loot.js";
-import { SLOTS } from "./weapons.js";
+import { SLOTS, canFireWhileRiding } from "./weapons.js";
       import { createPolice } from "./police.js";
       import { createMinimap } from "./minimap.js";
       import { createNeighbourDistricts } from "./neighbour-districts.js";
@@ -1323,6 +1359,13 @@ import { SLOTS } from "./weapons.js";
       import { createTouchControls, wantsTouchControls } from "./touch-controls.js";
       import { createGamepad, interactLabel } from "./gamepad.js";
       import { createDistrictBorder } from "./district-border.js";
+      import { shadeHedges } from "./hedge-shade.js";
+      import { shadeTrees } from "./tree-shade.js";
+      import { paintRoadMarkings } from "./road-paint.js";
+      import { paintLawns } from "./lawn.js";
+      import { shadeStreets } from "./street-grit.js";
+      import { applySurfaceOrder, auditSurfaceFlicker, surfaceBias } from "./ground-order.js";
+      import { createPlayClock } from "./district-progress.js";
       import { createChunkStream } from "./chunk-stream.js";
       import { createFarField } from "./far-field.js";
       import { createRemovedBuildings } from "./removed-buildings.js";
@@ -1330,6 +1373,7 @@ import { SLOTS } from "./weapons.js";
       import { applyPavementFrontage, raiseStreetBuildings } from "./pavement-frontage.js";
       import { applyStreetSurfaces } from "./street-surfaces.js";
       import { wallLightAnchors } from "./wall-lights.js";
+      import { lampSites, attachStreetLamps } from "./street-lamps.js";
       import { fetchJsonCached } from "./json-cache.js";
 
       if (window.__DISTRICT && window.__DISTRICT.ready) await window.__DISTRICT.ready;
@@ -1350,6 +1394,9 @@ import { SLOTS } from "./weapons.js";
       const btnFree = document.getElementById("btn-free");
       const btnNight = document.getElementById("btn-night");
       const rideEl = document.getElementById("ride");
+      const linePlanEl = document.getElementById("line-plan");
+      const linePlanTitle = document.getElementById("line-plan-title");
+      const linePlanLines = document.getElementById("line-plan-lines");
       const rideLine = document.getElementById("ride-line");
       const rideNext = document.getElementById("ride-next");
       const promptEl = document.getElementById("prompt");
@@ -1360,7 +1407,8 @@ import { SLOTS } from "./weapons.js";
       const SKY = 0x6eb6ff;
       // Horizon haze: soft blue-grey so FogExp2 fades to sky, never black.
       const FOG_COLOR = 0xb8d4ea;
-      const GROUND_SKIRT = 0xc4b59a;
+      // Gaps in the district mesh used to read as a tan lot. Keep them with the parks.
+      const GROUND_SKIRT = 0x4d5a46;
       const scene = new THREE.Scene();
       // Soft zenith→horizon gradient so pedestrian POV feels like a real clear day.
       const skyCanvas = document.createElement("canvas");
@@ -1600,6 +1648,8 @@ import { SLOTS } from "./weapons.js";
         get combat() { return combatPlayer; },
         get loot() { return loot; },
         get pedestrians() { return pedestrians; },
+        get crash() { return playerCrash; },
+        get hud() { return hud; },
         get police() { return police; },
         get pixelRatio() { return pixelRatio; },
         get neighbours() { return neighbours; },
@@ -1692,7 +1742,7 @@ import { SLOTS } from "./weapons.js";
 
         starMat.opacity = smooth(0.55, 1.0, t) * 0.9;
         stars.visible = starMat.opacity > 0.01;
-        skirtMat && skirtMat.color.set(GROUND_SKIRT).lerp(_tmpCol.set(0x6e685e), night);
+        skirtMat && skirtMat.color.set(GROUND_SKIRT).lerp(_tmpCol.set(0x2a3228), night);
 
         // High-tier bloom / grade / wetness / sky — player-follow shadows continue in tick().
         visuals.update({
@@ -1841,7 +1891,7 @@ import { SLOTS } from "./weapons.js";
       }
 
       let mode = "walk"; // walk | free
-      const eyeHeight = 1.7;
+      const eyeHeight = EYE_M;
       const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
       const kb = { w: false, a: false, s: false, d: false, shift: false, space: false };
       let padDrive = false;
@@ -1868,6 +1918,7 @@ import { SLOTS } from "./weapons.js";
       let pedestrians = null;
       let micromobility = null;
       let velo = null;
+      let ownsBicycle = false;
       let scooters = null;
       let shops = null;
       let interiors = null;
@@ -2049,7 +2100,16 @@ let knifeLunge = null;
           const res = await fetch(distUrl("velo.json"));
           if (res.ok) {
             const doc = await res.json();
-            for (const st of doc.stations || []) {
+            let roadsDoc = null;
+            try {
+              const roadsRes = await fetch(distUrl("roads.json"));
+              if (roadsRes.ok) roadsDoc = await roadsRes.json();
+            } catch (err) {
+              console.warn("[metropolis] parked-car velo roads skipped", err);
+            }
+            const stations = (doc.stations || []).map((st) => ({ ...st }));
+            if (roadsDoc) applyVeloSeats(stations, roadsDoc);
+            for (const st of stations) {
               const yaw = st.yaw || 0;
               const half = (st.railLength || 8) * 0.5 + 0.4;
               const ax = Math.cos(yaw);
@@ -2390,9 +2450,9 @@ let knifeLunge = null;
         freeCam.minH = 35;
       }
 
-      // Player root stores eye height (~1.7); avatar feet sit at eye−1.7. Boom camera lags behind.
+      // Player root stores eye height (EYE_M); avatar feet sit at eye − EYE_M. Boom camera lags behind.
       const playerRoot = new THREE.Object3D();
-      playerRoot.position.set(-2.921, 1.7, -0.261);
+      playerRoot.position.set(-2.921, eyeHeight, -0.261);
       scene.add(playerRoot);
       const thirdPerson = createThirdPersonCamera(THREE, camera, () => (interiors?.active ? interiors.cameraBlocker : outdoors));
       const playerMotion = createPlayerMotion(
@@ -2403,6 +2463,11 @@ let knifeLunge = null;
       );
       const playerAvatar = createPlayerAvatar(THREE, scene);
       let sessionStarted = false;
+      const playClock = createPlayClock();
+      let playSavedForMenu = false;
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) playClock.flush();
+      });
       /** Walked in across a postcode border: resume walking instead of opening the poster. */
       let arrivedByBorder = false;
       let pointerLocked = false;
@@ -2438,15 +2503,16 @@ let knifeLunge = null;
         if (peopleHit.length || ridersHit.length) harmedPulse = true;
         return peopleHit.length + ridersHit.length + copsHit;
       }
-      const onFootBusy = () =>
+      const ridingWheels = () => !!velo?.isRiding?.() || !!scooters?.isRiding?.();
+      // A tram cabin locks your hands. A bike or scooter does not: a gun still fires.
+      const handsBusy = () =>
         menu.open ||
         mode !== "walk" ||
         playerCrash.active ||
         playerCrash.dead ||
         caught ||
-        !!(transit.isRiding && transit.isRiding()) ||
-        !!velo?.isRiding?.() ||
-        !!scooters?.isRiding?.();
+        !!(transit.isRiding && transit.isRiding());
+      const onFootBusy = () => handsBusy() || ridingWheels();
       const _shootTargets = [];
       const _pedTargets = [];
       const _copTargets = [];
@@ -2466,7 +2532,11 @@ let knifeLunge = null;
         // Footprints only: anything below a typical eave inside one is wall.
         solidAt: (x, y, z) => y < 22 && !!outdoors?.ready && outdoors.insideBuilding(x, z),
         groundY: (x, z) => Math.max(0, groundAt(x, z)),
-        blocked: onFootBusy,
+        blocked() {
+          if (handsBusy()) return true;
+          if (!ridingWheels()) return false;
+          return !canFireWhileRiding(combatPlayer.combat.weapon);
+        },
         onMelee(m) {
           const knife = m.kind === "knife";
           if (knife && m.target) knifeLunge = { x: m.target.x, z: m.target.z, t: 0.22 };
@@ -2871,8 +2941,47 @@ let knifeLunge = null;
         return true;
       }
 
+      function showLinePlan(plan) {
+        if (!linePlanEl || !plan) return;
+        linePlanTitle.textContent = plan.title || "Stop";
+        linePlanLines.textContent = plan.text || "";
+        linePlanEl.style.display = "block";
+      }
+      function hideLinePlan() {
+        if (linePlanEl) linePlanEl.style.display = "none";
+      }
+      function counterAt(p) {
+        if (!shops?.facing || playerCrash.dead) return null;
+        const shop = shops.facing({ x: p.x, z: p.z, yaw: playerMotion.yaw() });
+        const state = { health: playerCrash.health, money: hud.money, ownsBike: ownsBicycle };
+        return careOffer(shop, state) || mealOffer(shop, state) || bikeOffer(shop, state);
+      }
+      function useCounter(p) {
+        const offer = counterAt(p);
+        if (!offer || offer.action === "full" || offer.action === "closed" || offer.action === "owned") return false;
+        if (offer.action === "broke") {
+          hud.notify(offer.label, 1600);
+          return true;
+        }
+        if (offer.action === "bike") {
+          const placed = velo?.giveOwned?.({ x: p.x, z: p.z, yaw: playerMotion.yaw() });
+          if (!placed) return false;
+          hud.spend(offer.price, "Bicycle");
+          ownsBicycle = true;
+          return true;
+        }
+        const gained = playerCrash.heal(offer.action === "treat" ? 100 : offer.heal);
+        if (gained <= 0) return false;
+        if (offer.price) hud.spend(offer.price, "Meal");
+        else hud.notify("Treated", 1600);
+        return true;
+      }
       function handleInteractE() {
         if (mode !== "walk") return;
+        if (linePlanEl && linePlanEl.style.display === "block") {
+          hideLinePlan();
+          return;
+        }
         const p = walkControls.getObject().position;
         if (interiors && (interiors.active || interiors.busy)) {
           handleInteriorE(p);
@@ -2891,12 +3000,13 @@ let knifeLunge = null;
           if (result.action === "take") {
             avatar.visible = false;
             rideEl.style.display = "block";
-            rideLine.textContent = "Velo";
             rideNext.textContent = result.name;
             promptEl.style.display = "none";
             hint.textContent = hintFor("cycle");
-            status.textContent =
-              result.capacity === "—"
+            rideLine.textContent = result.owned ? "Bicycle" : "Velo";
+            status.textContent = result.owned
+              ? "On your bicycle"
+              : result.capacity === "—"
                 ? `On a Velo · ${result.name}`
                 : `On a Velo · ${result.bikes}/${result.capacity} left at ${result.name}`;
             return;
@@ -2925,8 +3035,14 @@ let knifeLunge = null;
         }
         if (onVelo) return;
         if (handleScooterE(p)) return;
+        if (useCounter(p)) return;
         if (!onTram && !scooters?.isRiding() && interiors?.findEnterable(p, playerMotion.yaw()) && handleInteriorE(p)) return;
         const result = transit.tryInteract({ x: p.x, z: p.z });
+        if (result.action === "plan") {
+          showLinePlan(result);
+          promptEl.style.display = "none";
+          return;
+        }
         if (result.action === "board") {
           // Stay pointer-locked: unlock() fires pointerlockchange → pause menu.
           // Mouse look is already gated off while transit.isRiding().
@@ -2998,6 +3114,7 @@ let knifeLunge = null;
           return;
         }
         if (hud.riding) {
+          hideLinePlan();
           rideEl.style.display = "block";
           rideLine.textContent = `${hud.mode === "bus" ? "Bus" : "Tram"} ${hud.line}`;
           if (hud.wantAlight) {
@@ -3012,17 +3129,28 @@ let knifeLunge = null;
           promptEl.style.display = "none";
         } else {
           const veloPrompt = velo && velo.getPrompt ? velo.getPrompt({ x: p.x, z: p.z }) : null;
-          const doorPrompt = !veloPrompt && interiors && mode === "walk" ? interiors.prompt(p, playerMotion.yaw()) : null;
+          const counter = !veloPrompt && mode === "walk" ? counterAt(p) : null;
+          const counterLine =
+            counter && (counter.action === "treat" || counter.action === "meal" || counter.action === "broke" || counter.action === "bike")
+              ? counter.label
+              : "";
+          const doorPrompt = !veloPrompt && !counterLine && interiors && mode === "walk" ? interiors.prompt(p, playerMotion.yaw()) : null;
           if (veloPrompt) {
             rideEl.style.display = "none";
             showPrompt(veloPrompt);
+          } else if (counterLine) {
+            rideEl.style.display = "none";
+            const shopPrompt = shops.getPrompt({ x: p.x, z: p.z, yaw: playerMotion.yaw() }, gameHour, gameDay);
+            showPrompt(shopPrompt ? `${shopPrompt}\n${counterLine}` : counterLine);
           } else if (doorPrompt) {
             rideEl.style.display = "none";
             showPrompt(doorPrompt);
           } else if (hud.prompt) {
             rideEl.style.display = "none";
-            showPrompt(hud.prompt);
+            if (!(linePlanEl && linePlanEl.style.display === "block")) showPrompt(hud.prompt);
+            else promptEl.style.display = "none";
           } else {
+            hideLinePlan();
             if (!transit.isRiding || !transit.isRiding()) rideEl.style.display = "none";
             const shopPrompt =
               shops && mode === "walk" ? shops.getPrompt({ x: p.x, z: p.z, yaw: playerMotion.yaw() }, gameHour, gameDay) : null;
@@ -3158,11 +3286,12 @@ let knifeLunge = null;
 
       // GTA mouse: left fires (or punches / stabs), right aims a gun or kicks bare-handed.
       window.addEventListener("mousedown", (e) => {
-        if (!pointerLocked || onFootBusy()) return;
+        if (!pointerLocked || handsBusy()) return;
+        if (ridingWheels() && e.button === 0 && !canFireWhileRiding(combat.weapon)) return;
         if (e.button === 0) combat.setTrigger(true);
         if (e.button === 2) {
           if (combat.armed) combat.setAim(true);
-          else combat.kick();
+          else if (!ridingWheels()) combat.kick();
         }
       });
       window.addEventListener("mouseup", (e) => {
@@ -3221,18 +3350,18 @@ let knifeLunge = null;
         if (menu.open) return;
         if (e.code === "Tab") {
           e.preventDefault();
-          if (!e.repeat && !onFootBusy()) {
+          if (!e.repeat && !handsBusy()) {
             combatPlayer.hud.resetCursor();
             combat.setWheel(true);
           }
           return;
         }
-        if (e.code === "KeyR" && !e.repeat && !onFootBusy()) {
+        if (e.code === "KeyR" && !e.repeat && !handsBusy()) {
           combat.reload();
           return;
         }
         const slot = /^Digit([1-6])$/.exec(e.code);
-        if (slot && !onFootBusy()) {
+        if (slot && !handsBusy()) {
           const id = SLOTS[Number(slot[1]) - 1];
           if (combat.has(id)) combat.equip(id);
           return;
@@ -3465,6 +3594,11 @@ let knifeLunge = null;
           if (changed) obj.material = Array.isArray(obj.material) ? next : next[0];
         });
         for (const m of retired) m.dispose();
+        shadeHedges(root);
+        shadeTrees(root);
+        paintRoadMarkings(root);
+        paintLawns(root);
+        shadeStreets(root);
         return { lambert: retired.length, pbr };
       }
 
@@ -3596,7 +3730,9 @@ let knifeLunge = null;
             console.warn("[metropolis] pavement frontage skipped", err);
           }
           const shading = downgradeCityMaterials(cityRoot);
-          console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
+          const bareWalls = dressBareWalls(cityRoot);
+          hideBakedVeloRacks(cityRoot);
+          console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr, ${bareWalls} bare walls`);
           const liquid = applyLiquidMaterials(THREE, cityRoot);
           if (liquid.upgraded || liquid.ponds) {
             console.info(`[metropolis] water: ${liquid.upgraded} liquid materials, ${liquid.ponds} ponds sunk`);
@@ -3615,28 +3751,9 @@ let knifeLunge = null;
             console.warn("[metropolis] street surfaces skipped", err);
           }
           // Cheap: disable expensive features for FPS; freeze static transforms.
-          // Coplanar street layers: bias is monotone with the Blender height stack
-          // (Z_GROUND < Z_PARK < Z_ROAD < markings < sidewalk < curb < tram bed < rails
-          // < zebra-on-rails), so the offset can never invert the stack at distance.
-          const layerBias = (name) => {
-            const n = (name || "").toLowerCase();
-            // Photo façades sit on the extruded wall; pull them forward so grazing
-            // night views don't z-fight into a checkerboard (also rebuilt prouder).
-            if (n.includes("facade") || n.includes("_landmark")) return { factor: -3, units: -3 };
-            if (n.startsWith("zebra_rail")) return { factor: -5, units: -5 };
-            if (n.startsWith("rail_")) return { factor: -4, units: -4 };
-            if (n.startsWith("tram_")) return { factor: -3, units: -3 };
-            if (n.startsWith("curb")) return { factor: -2, units: -2 };
-            if (n.startsWith("sidewalk")) return { factor: -1, units: -1 };
-            if (n.startsWith("zebra") || n.startsWith("dash")) return { factor: 0, units: 0 };
-            if (n.startsWith("road_") || n.startsWith("park_path")) return { factor: 1, units: 1 };
-            if (n.startsWith("park_")) return { factor: 2, units: 2 };
-            // Water fills a hole cut from park grass; bed is below the gravel yard.
-            if (n.startsWith("water_bed")) return { factor: 5, units: 5 };
-            if (n.startsWith("water")) return { factor: 3, units: 3 };
-            if (n === "ground") return { factor: 4, units: 4 };
-            return null;
-          };
+          // Coplanar street layers: constant bias (no slope factor) so a look
+          // along the road cannot swap the stack. See ground-order.js.
+          const layerBias = surfaceBias;
           await visualsReady;
           // One biased clone per source material and mesh-name class (the tuning below reads
           // the mesh name), not one per mesh: per-mesh clones left thousands of unique
@@ -3717,6 +3834,14 @@ let knifeLunge = null;
           visuals.applyAnisotropy(cityRoot);
           scene.add(cityRoot);
           cityRoot.updateMatrixWorld(true);
+          // Overlapping cobbles take different 0.25 mm steps. A shared slot is
+          // the patch that flickers between the cathedral and the Grote Markt.
+          applySurfaceOrder(cityRoot);
+          const flicker = auditSurfaceFlicker(cityRoot);
+          window.__metropolis.groundFlicker = flicker;
+          console.info(
+            `[metropolis] ground flicker check: ${flicker.pairs} overlapping strips still share a depth (${flicker.checked} checked)`,
+          );
           cityRoot.traverse((obj) => {
             obj.matrixAutoUpdate = false;
             if (obj.isMesh && /^lamp_h_/i.test(obj.name || "")) {
@@ -3731,13 +3856,20 @@ let knifeLunge = null;
             const roadsDoc = roadsRes.ok ? await roadsRes.json() : null;
             const bldDoc = bldRes.ok ? await bldRes.json() : null;
             const poles = lampHeads.length;
+            if (poles === 0 && roadsDoc && roadsDoc.roads) {
+              const sites = lampSites(roadsDoc.roads, { spawn: roadsDoc.spawn });
+              const placed = attachStreetLamps(THREE, cityRoot, sites);
+              for (const h of placed.heads) lampHeads.push(new THREE.Vector3(h.x, h.y, h.z));
+              if (placed.material) glowMats.push({ mat: placed.material, scale: 2.6 });
+            }
+            const posts = lampHeads.length;
             const extra = wallLightAnchors({
               lamps: lampHeads,
               roads: (roadsDoc && roadsDoc.roads) || [],
               buildings: (bldDoc && bldDoc.buildings) || [],
             });
             for (const p of extra) lampHeads.push(new THREE.Vector3(p.x, p.y, p.z));
-            console.info(`[metropolis] lights: ${poles} street lamps, ${extra.length} second-floor fills`);
+            console.info(`[metropolis] lights: ${posts} street lamps, ${extra.length} second-floor fills`);
           } catch (err) {
             console.warn("[metropolis] wall lights skipped", err);
           }
@@ -3935,6 +4067,11 @@ let knifeLunge = null;
             },
           });
           pedestrians?.setOnKilled?.((d) => loot.drop("pedestrian", d.x, Math.max(0, groundAt(d.x, d.z)), d.z));
+          pedestrians?.setPlayer?.(() => walkControls.getObject().position);
+          pedestrians?.setOnAssault?.((hit) => {
+            hurtPlayer(hit.damage);
+            hud.notify("Knifed", 900);
+          });
           // Cars give way to trams/buses instead of driving through them.
           if (traffic.setObstacles) traffic.setObstacles(() => transit.vehicles || []);
           const nCars = traffic.count ?? 0;
@@ -3997,6 +4134,14 @@ let knifeLunge = null;
                 catalog,
                 onChunkLoaded: (chunkRoot) => {
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                  dressBareWalls(chunkRoot);
+                  hideBakedVeloRacks(chunkRoot);
+                  applySurfaceOrder(chunkRoot);
+                  shadeHedges(chunkRoot);
+                  shadeTrees(chunkRoot);
+                  paintRoadMarkings(chunkRoot);
+                  paintLawns(chunkRoot);
+                  shadeStreets(chunkRoot);
                   removedBuildings.apply(chunkRoot);
                   applyLiquidMaterials(THREE, chunkRoot);
                   scheduleGroundRefresh();
@@ -4049,6 +4194,14 @@ let knifeLunge = null;
               project: projectGateLatLon,
               onChunkLoaded: (chunkRoot) => {
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                dressBareWalls(chunkRoot);
+                hideBakedVeloRacks(chunkRoot);
+                applySurfaceOrder(chunkRoot);
+                shadeHedges(chunkRoot);
+                shadeTrees(chunkRoot);
+                paintRoadMarkings(chunkRoot);
+                paintLawns(chunkRoot);
+                shadeStreets(chunkRoot);
                 removedBuildings?.apply(chunkRoot);
                 applyLiquidMaterials(THREE, chunkRoot);
                 mergeChunk?.(chunkRoot);
@@ -4376,14 +4529,8 @@ let knifeLunge = null;
           return;
         }
         if (g.pressed.square) tap("KeyE");
-        if (
-          mode === "walk" &&
-          !(transit.isRiding && transit.isRiding()) &&
-          !(velo && velo.isRiding && velo.isRiding()) &&
-          !(scooters && scooters.isRiding())
-        ) {
-          padCombat(g);
-        } else padCombat(null);
+        if (mode === "walk" && !handsBusy()) padCombat(g);
+        else padCombat(null);
         if (g.pressed.triangle) tap("KeyN");
         if (g.pressed.r1) tap("KeyH");
         if (g.pressed.up) tap("KeyV");
@@ -4417,6 +4564,15 @@ let knifeLunge = null;
           // Loading screen is up: don't burn GPU/CPU on an empty scene.
           requestAnimationFrame(tick);
           return;
+        }
+        if (sessionStarted && menu && !menu.open && document.visibilityState !== "hidden") {
+          playSavedForMenu = false;
+          const opened = playClock.tick(districtMeta.id, realDt);
+          if (opened === "belt") status.textContent = "Kiel, Noord and Borgerhout are on the map.";
+          else if (opened === "city") status.textContent = "Linkeroever and the port are on the map.";
+        } else if (sessionStarted && menu && menu.open && !playSavedForMenu) {
+          playClock.flush();
+          playSavedForMenu = true;
         }
         adaptResolution(rawDt);
         applyGamepad(dt);
@@ -4584,7 +4740,8 @@ let knifeLunge = null;
                 pedal: playerAvatar.pedalPhase ? playerAvatar.pedalPhase() : 0,
               });
             }
-            if ((onScooter || ridingVelo) && !playerCrash.active && Math.abs(playerMotion.speed) > 0.15) {
+            const driveBy = combat.armed && (combat.aiming || combat.sinceShot < 0.6);
+            if ((onScooter || ridingVelo) && !playerCrash.active && Math.abs(playerMotion.speed) > 0.15 && !driveBy) {
               thirdPerson.easeYawToward(playerMotion.travelYaw(), dt, 3);
             }
           } else {
@@ -4629,7 +4786,8 @@ let knifeLunge = null;
           onWheels || (spd > 0.12 && mode === "walk") ? playerMotion.travelYaw() : thirdPerson.yaw();
         const crashing = playerCrash.active;
         const armedOnFoot = mode === "walk" && moveKind === "walk" && !ridingTram && !crashing;
-        _feet.set(wPos.x, wPos.y - 1.7, wPos.z);
+        const driveByPose = onWheels && combat.armed && !crashing;
+        _feet.set(wPos.x, wPos.y - eyeHeight, wPos.z);
         combatPlayer.update(menuOpen ? 0 : realDt, _feet, {
           moving: Math.min(1, spd / 3.5),
           moveYaw: onWheels || spd > 0.12 ? playerMotion.travelYaw() : thirdPerson.yaw(),
@@ -4649,7 +4807,7 @@ let knifeLunge = null;
               bodyYaw,
               moveKind,
               scooterDeck,
-              armedOnFoot ? combatPlayer.fight : null,
+              armedOnFoot || driveByPose ? combatPlayer.fight : null,
             );
             playerAvatar.setVisible(!crashing);
           }
@@ -4660,8 +4818,8 @@ let knifeLunge = null;
           camera.position.copy(wPos);
         } else if (mode === "walk" && !riding) {
           thirdPerson.update(menuOpen ? 1 / 60 : realDt, wPos, {
-            armed: armedOnFoot && combat.armed,
-            aim: armedOnFoot && combat.aiming ? 1 : 0,
+            armed: (armedOnFoot || driveByPose) && combat.armed,
+            aim: (armedOnFoot || driveByPose) && combat.aiming ? 1 : 0,
           });
         }
 

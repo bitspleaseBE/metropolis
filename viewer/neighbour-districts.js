@@ -10,6 +10,7 @@
 
 import { createChunkStream } from "./chunk-stream.js";
 import { fetchJsonCached } from "./json-cache.js";
+import { isUnlocked, loadPlay } from "./district-progress.js";
 
 const METERS_PER_DEG_LAT = 110540;
 const METERS_PER_DEG_LON = 111320;
@@ -50,9 +51,11 @@ async function json(url) {
 export async function createNeighbourDistricts(o) {
   const d = window.__DISTRICT || {};
   const districts = (d.index && d.index.districts) || [];
+  const play = loadPlay();
   const ids = [...new Set((d.edges || []).map((e) => e.to))].filter((id) => {
     const meta = districts.find((x) => x.id === id);
-    return !meta || !meta.standalone;
+    if (meta && meta.standalone) return false;
+    return isUnlocked(play, id);
   });
   const cosLat0 = Math.cos((o.origin.lat * Math.PI) / 180);
   const out = [];

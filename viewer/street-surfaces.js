@@ -117,6 +117,10 @@ export function applyStreetSurfaces(root, THREE, surfaces) {
   cobbleMat.name = "cobble";
   cobbleMat.map = cobbleTexture(THREE);
   cobbleMat.color.set(0xffffff);
+  // The clone copies the asphalt grit hook. Stone streets keep their own tile.
+  if (cobbleMat.userData) delete cobbleMat.userData._streetGrit;
+  delete cobbleMat.onBeforeCompile;
+  delete cobbleMat.customProgramCacheKey;
   cobbleMat.needsUpdate = true;
   let cobble = 0;
   root.traverse((obj) => {

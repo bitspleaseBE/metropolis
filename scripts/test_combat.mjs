@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { createCombat } from "../viewer/combat.js";
 import { createHitscan } from "../viewer/hitscan.js";
 import { absorb, DROPS } from "../viewer/loot.js";
-import { damageAt, SLOTS, WEAPONS } from "../viewer/weapons.js";
+import { canFireWhileRiding, damageAt, SLOTS, WEAPONS } from "../viewer/weapons.js";
 import { Vector3 as ShimVector3 } from "./_three_shim.mjs";
 
 class Vector3 extends ShimVector3 {
@@ -19,6 +19,14 @@ class Vector3 extends ShimVector3 {
   divideScalar(k) { return this.multiplyScalar(1 / k); }
 }
 const THREE = { Vector3, Raycaster: class {} };
+
+assert.equal(canFireWhileRiding("pistol"), true);
+assert.equal(canFireWhileRiding("rifle") || canFireWhileRiding("smg") || canFireWhileRiding("shotgun"), true);
+for (const id of Object.keys(WEAPONS)) {
+  assert.equal(canFireWhileRiding(id), !WEAPONS[id].melee, id);
+}
+assert.equal(canFireWhileRiding("unarmed"), false);
+assert.equal(canFireWhileRiding("knife"), false);
 
 const step = (c, s, dt = 1 / 60) => {
   for (let t = 0; t < s; t += dt) c.update(dt);

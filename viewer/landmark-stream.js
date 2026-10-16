@@ -13,7 +13,11 @@
  * Until a GLB arrives the city keeps the ordinary building (`lmbase_<id>`)
  * or, on older city files, the knee-high plinth (`lmhold_<id>`). The stand-in
  * hides once the detailed mesh is in the scene and comes back when it unloads.
+ *
+ * The GLB's limestone is a buff photo. landmark-dress repaints it after load.
  */
+
+import { dressLandmarkObject, isChurchLandmark } from "./landmark-dress.js";
 
 export const LOAD_M = 300;
 export const UNLOAD_M = 420;
@@ -42,11 +46,14 @@ export function landmarkWanted(ctx, item) {
 }
 
 function disposeObject(root) {
+  const dropped = new Set();
   root.traverse((obj) => {
     if (obj.geometry) obj.geometry.dispose();
     const mats = obj.material == null ? [] : Array.isArray(obj.material) ? obj.material : [obj.material];
     for (const mat of mats) {
       if (!mat) continue;
+      const held = mat.userData && mat.userData._droppedMaps;
+      if (held) for (const tex of held) if (tex) dropped.add(tex);
       for (const key of Object.keys(mat)) {
         const value = mat[key];
         if (value && value.isTexture) value.dispose();
@@ -54,6 +61,7 @@ function disposeObject(root) {
       mat.dispose();
     }
   });
+  for (const tex of dropped) tex.dispose();
   root.removeFromParent();
 }
 
@@ -65,6 +73,7 @@ export function createLandmarkStream({ scene, loader, cityRoot, catalog }) {
       file: String(p.file),
       x: Number(p.x),
       z: -Number(p.y),
+      church: isChurchLandmark(p),
     }));
   const holds = new Map();
   if (cityRoot) {
@@ -124,6 +133,7 @@ export function createLandmarkStream({ scene, loader, cityRoot, catalog }) {
           obj.castShadow = false;
           obj.receiveShadow = false;
           obj.frustumCulled = true;
+          dressLandmarkObject(obj, { church: item.church });
         }
       });
       scene.add(group);

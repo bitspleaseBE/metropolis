@@ -10,9 +10,11 @@
  * Speed and gait changes also update viewer/movement.html.
  * See .cursor/rules/movement-gallery.mdc.
  */
+import { EYE_M } from "./person-scale.js";
+
 export const MOVE = {
   // Shift multiplies walk to a clear jog (~7.4 m/s); rides keep a milder boost.
-  walk: { speed: 3.6, boost: 2.05, accel: 16, brake: 20, eye: 1.7 },
+  walk: { speed: 3.6, boost: 2.05, accel: 16, brake: 20, eye: EYE_M },
   velo: { speed: 8.6, boost: 1.3, accel: 3.8, brake: 7, eye: 1.62, turn: 1.5, reverse: 1.2 },
   scooter: { speed: 7.6, boost: 1.0, accel: 4.2, brake: 7.5, eye: 1.62, turn: 1.8, reverse: 1.0 },
 };

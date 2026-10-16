@@ -3,6 +3,8 @@
  * aim ray (crosshair stays screen-center), pulls in when a building blocks the boom.
  */
 
+import { EYE_M } from "./person-scale.js";
+
 export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null) {
   const lookYaw = { value: 0 };
   const lookPitch = { value: 0.14 };
@@ -139,8 +141,8 @@ export function createThirdPersonCamera(THREE, camera, getOutdoors = () => null)
     const tight = !!opts.tight;
     armedK += ((opts.armed ? 1 : 0) - armedK) * (1 - Math.exp(-6 * dt));
     aimK += (Math.max(0, Math.min(1, opts.aim ?? 0)) - aimK) * (1 - Math.exp(-14 * dt));
-    // Player root stores eye height (~1.7 on ground). Lift the boom with jumps.
-    const eye = 1.7;
+    // Player root stores eye height (EYE_M on the ground). Lift the boom with jumps.
+    const eye = EYE_M;
     const lift = Number.isFinite(playerPos.y) ? Math.max(0, playerPos.y - eye) : 0;
     chest.set(playerPos.x, CHEST_Y + lift, playerPos.z);
     // Boom height is Züri's 1.65 m, not the 1.45 m chest probe — using chest for both

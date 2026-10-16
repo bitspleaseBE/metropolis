@@ -10,7 +10,8 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { VELO_FWD, VELO_RIDE } from "./velo.js";
 import { leanToBars } from "./ride-lean.js";
 import { createArmedRig } from "./player-armed.js";
-import { captureSoles, createFootPlant, soleLevelers } from "./foot-plant.js";
+import { captureSoles, createFootPlant, skinnedHeight, soleLevelers } from "./foot-plant.js";
+import { ADULT_M, EYE_M } from "./person-scale.js";
 
 export const PLAYERS = [
   {
@@ -1231,15 +1232,12 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
     normalizeImportScale(visual);
     visual.updateMatrixWorld(true);
 
-    const targetH = 1.72;
-    const head = findNamed(
-      visual,
-      "Bip01_Head",
-      "Bip01 Head",
-      "Head",
-      "mixamorigHead",
-      "mixamorig:Head"
-    );
+    // Sole to crown, the same ruler as everyone else (viewer/person-scale.js).
+    // Measuring ankle-to-skull and calling that the body left the hair and the
+    // shoes on top, so the player stood a head above the staff.
+    const span = skinnedHeight(THREE, visual);
+    const s = span > 0.01 ? ADULT_M / span : 1;
+    visual.scale.setScalar(s);
     const foot = findNamed(
       visual,
       "Bip01_L_Foot",
@@ -1249,19 +1247,6 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       "mixamorigLeftFoot",
       "mixamorig:LeftFoot"
     );
-    let measureY = 0;
-    if (head && foot) {
-      head.updateWorldMatrix(true, false);
-      foot.updateWorldMatrix(true, false);
-      measureY = Math.abs(head.matrixWorld.elements[13] - foot.matrixWorld.elements[13]);
-    }
-    if (measureY < 0.2) {
-      const box = new THREE.Box3().setFromObject(visual);
-      measureY = box.max.y - box.min.y;
-    }
-    // Pedestrian loader uses >0.01; the old >0.3 gate left Mixamo James at 1.8 cm.
-    const s = measureY > 0.01 ? targetH / measureY : 1;
-    visual.scale.setScalar(s);
     // Player motion with yaw=0 walks toward −Z. Both binds need the half-turn;
     // a thigh cross-product here faced Pieter at the camera.
     visual.rotation.y = Math.PI;
@@ -1549,11 +1534,11 @@ export function createPlayerAvatar(THREE, scene, { remember = true } = {}) {
       if (!visual) return;
       root.position.x = pos.x;
       root.position.z = pos.z;
-      // Walker stores eye height; feet sit eye−1.7 (jump lifts both).
+      // Walker stores eye height; feet sit eye−EYE_M (jump lifts both).
       // On a scooter the eye is already deck + ride height, so the soles use the grip.
       // On foot the soles may go below 0 (pond bed). Wheels keep the floor: their eye is
-      // under 1.7, so eye−1.7 would sink the bike.
-      const eye = kind === "scooter" && deck ? 1.58 : 1.7;
+      // under EYE_M, so eye−EYE_M would sink the bike.
+      const eye = kind === "scooter" && deck ? 1.58 : EYE_M;
       const feet = Number.isFinite(pos.y) ? pos.y - eye : 0;
       root.position.y = kind === "walk" ? feet : Math.max(0, feet);
 

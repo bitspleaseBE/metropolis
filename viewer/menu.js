@@ -5,6 +5,7 @@
  */
 import { PLAYERS, getStoredPlayerId, setStoredPlayerId, playerById } from "./players.js";
 import { buttonName, controlRows } from "./gamepad.js";
+import { isUnlocked, loadPlay, lockReason } from "./district-progress.js";
 
 const ATLAS_URL = "./menu/antwerp_postcodes.json";
 const DISTRICT_ID = /^[0-9a-z][0-9a-z-]{0,40}$/;
@@ -66,7 +67,7 @@ export function createMenu(hooks) {
             <canvas class="cm-map-roads" id="cm-map-roads" width="640" height="640" aria-hidden="true"></canvas>
             <div class="cm-map-placeholder" id="cm-map-placeholder" hidden>
               <span class="cm-map-lock">Locked</span>
-              <span class="cm-map-unlock">Keep playing to unlock</span>
+              <span class="cm-map-unlock" id="cm-map-unlock">Keep playing to unlock</span>
             </div>
             <div class="cm-map-caption">
               <strong id="cm-map-title">Antwerp</strong>
@@ -150,6 +151,7 @@ export function createMenu(hooks) {
   const mapPlaceholder = root.querySelector("#cm-map-placeholder");
   const mapTitle = root.querySelector("#cm-map-title");
   const mapBlurb = root.querySelector("#cm-map-blurb");
+  const mapUnlock = root.querySelector("#cm-map-unlock");
   const mapPlay = root.querySelector("#cm-map-play");
   const mapDetailBack = root.querySelector("#cm-map-detail-back");
   const mapsNarrow = window.matchMedia("(max-width: 720px)");
@@ -205,10 +207,11 @@ export function createMenu(hooks) {
         const meta = live.get(a.district) || {};
         const area = {
           ...a,
-          unlocked: meta.unlocked != null ? !!meta.unlocked : !!a.unlocked,
+          packageOpen: meta.unlocked != null ? !!meta.unlocked : !!a.unlocked,
           summary: meta.summary || a.summary || "",
           el: path,
         };
+        area.unlocked = area.packageOpen && isUnlocked(loadPlay(), a.district);
         path.dataset.pc = a.postcode;
         path.setAttribute("role", "option");
         path.classList.toggle("locked", !area.unlocked);
@@ -315,8 +318,19 @@ export function createMenu(hooks) {
     ctx.restore();
   }
 
+  function applyPlayLocks() {
+    const play = loadPlay();
+    for (const area of areas) {
+      area.unlocked = area.packageOpen && isUnlocked(play, area.district);
+      area.lockCopy = area.unlocked ? "" : lockReason(play, area.district);
+      area.el.classList.toggle("locked", !area.unlocked);
+      if (area.labelEl) area.labelEl.classList.toggle("locked", !area.unlocked);
+    }
+  }
+
   function setMapSelected(i, { openDetail = false } = {}) {
     if (!areas.length) return;
+    applyPlayLocks();
     mapIndex = (i + areas.length) % areas.length;
     const a = areas[mapIndex];
     for (const other of areas) {
@@ -328,7 +342,8 @@ export function createMenu(hooks) {
     a.el.parentNode.append(a.el);
     if (waterEl) waterEl.parentNode.append(waterEl);
     mapTitle.textContent = `${a.name} · ${a.postcode}`;
-    mapBlurb.textContent = a.unlocked ? a.summary : a.summary || "Not reachable yet";
+    mapBlurb.textContent = a.unlocked ? a.summary : a.lockCopy || "Not reachable yet";
+    if (mapUnlock) mapUnlock.textContent = a.lockCopy || "Keep playing to unlock";
     mapPlaceholder.hidden = a.unlocked;
     mapPlay.disabled = !a.unlocked;
     mapPlay.textContent = a.district === currentDistrict && hooks.hasStarted() ? "Resume" : "Play";
