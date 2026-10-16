@@ -1372,6 +1372,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       import { applyPavementFrontage, raiseStreetBuildings } from "./pavement-frontage.js";
       import { applyStreetSurfaces } from "./street-surfaces.js";
       import { wallLightAnchors } from "./wall-lights.js";
+      import { lampSites, attachStreetLamps } from "./street-lamps.js";
       import { fetchJsonCached } from "./json-cache.js";
 
       if (window.__DISTRICT && window.__DISTRICT.ready) await window.__DISTRICT.ready;
@@ -3853,13 +3854,20 @@ let knifeLunge = null;
             const roadsDoc = roadsRes.ok ? await roadsRes.json() : null;
             const bldDoc = bldRes.ok ? await bldRes.json() : null;
             const poles = lampHeads.length;
+            if (poles === 0 && roadsDoc && roadsDoc.roads) {
+              const sites = lampSites(roadsDoc.roads, { spawn: roadsDoc.spawn });
+              const placed = attachStreetLamps(THREE, cityRoot, sites);
+              for (const h of placed.heads) lampHeads.push(new THREE.Vector3(h.x, h.y, h.z));
+              if (placed.material) glowMats.push({ mat: placed.material, scale: 2.6 });
+            }
+            const posts = lampHeads.length;
             const extra = wallLightAnchors({
               lamps: lampHeads,
               roads: (roadsDoc && roadsDoc.roads) || [],
               buildings: (bldDoc && bldDoc.buildings) || [],
             });
             for (const p of extra) lampHeads.push(new THREE.Vector3(p.x, p.y, p.z));
-            console.info(`[metropolis] lights: ${poles} street lamps, ${extra.length} second-floor fills`);
+            console.info(`[metropolis] lights: ${posts} street lamps, ${extra.length} second-floor fills`);
           } catch (err) {
             console.warn("[metropolis] wall lights skipped", err);
           }
