@@ -1533,8 +1533,28 @@ import { SLOTS } from "./weapons.js";
       const vegMats = []; // { mat, day: Color, owner?: streamed chunk root }
       const VEG_NIGHT = new THREE.Color(0x2a4a32);
       const TRUNK_NIGHT = new THREE.Color(0x4a382c);
+      /**
+       * Two-sided leaf cards: three.js flips the normal on back faces, which would light the
+       * far side of each card as if it faced into the crown. Flip it back after the chunk.
+       */
+      function keepCrownNormals(m) {
+        if (m.userData.crownNormals) return;
+        m.userData.crownNormals = true;
+        const prev = m.onBeforeCompile;
+        m.onBeforeCompile = (shader, r) => {
+          prev.call(m, shader, r);
+          shader.fragmentShader = shader.fragmentShader.replace(
+            "#include <normal_fragment_begin>",
+            "#include <normal_fragment_begin>\n#ifdef DOUBLE_SIDED\nnormal *= faceDirection;\nnonPerturbedNormal = normal;\n#endif",
+          );
+        };
+        const key = m.customProgramCacheKey.bind(m);
+        m.customProgramCacheKey = () => "crownNormals|" + key();
+        m.needsUpdate = true;
+      }
       function trackVegetation(m, owner = null) {
         if (!m?.color || !m.name || !/^(canopy_|trunk$|shrub)/i.test(m.name)) return;
+        if (m.name === "canopy_tree") keepCrownNormals(m);
         if (vegMats.some((v) => v.mat === m)) return;
         vegMats.push({
           mat: m,

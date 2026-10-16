@@ -104,7 +104,6 @@ LEAF_TILE_WEIGHTS = (0.4, 0.35, 0.25)
 NEEDLE_TILE = (0.5, 0.25, 1.0, 0.5)
 BARK_U = (0.51, 0.92)
 BARK_V = (0.02, 0.23)
-SOLID_UV = (0.97, 0.125)
 
 # Reference (height, crown radius) each (kind, form) mesh is modelled at; every tree is
 # an instance scaled by (r / r0, r / r0, h / h0), so the clear-trunk *fraction* is baked
@@ -137,16 +136,19 @@ CANOPY_RGB = {
     "conifer": (0.10, 0.30, 0.15),
 }
 TRUNK_RGB = (0.40, 0.29, 0.19)
-# Leaf-cluster cards per (mature, young) crown; each card is 4 tris (front + back).
-CARDS = {
-    "broad": (44, 22),
-    "round": (40, 22),
-    "irregular": (44, 22),
-    "open": (34, 18),
-    "columnar": (36, 18),
-    "ornamental": (36, 20),
-    "conifer": (56, 28),
+# Leaf clusters per (mature, young) crown. Most outer clusters are a crossed pair of
+# two-sided quads (4 tris) so the crown has volume instead of a flat stamp.
+CLUSTERS = {
+    "broad": (78, 38),
+    "round": (74, 38),
+    "irregular": (78, 38),
+    "open": (60, 30),
+    "columnar": (70, 34),
+    "ornamental": (70, 36),
+    "conifer": (86, 42),
 }
+INNER_SHARE = 0.36
+CROSS_SHARE = 0.82
 TRI_BUDGET = {"mature": 360, "young": 180}
 
 
@@ -178,9 +180,9 @@ def _tree_material():
     clip.operation = "ROUND"
     nt.links.new(tex.outputs["Alpha"], clip.inputs[0])
     nt.links.new(clip.outputs[0], bsdf.inputs["Alpha"])
-    # Single-sided: cards carry an explicit back face so three.js never flips the
-    # outward crown normals the way DoubleSide does.
-    mat.use_backface_culling = True
+    # Two-sided cards; the viewer undoes three.js's back-face normal flip so both sides
+    # keep the outward crown normal (keepCrownNormals in viewer/index.html).
+    mat.use_backface_culling = False
     return mat
 
 
@@ -255,65 +257,36 @@ def _tube(m: _TreeMesh, rings, sides: int, rgb) -> None:
             )
 
 
-_ICO_BASE = (
-    [(-1, 1.618, 0), (1, 1.618, 0), (-1, -1.618, 0), (1, -1.618, 0), (0, -1, 1.618), (0, 1, 1.618),
-     (0, -1, -1.618), (0, 1, -1.618), (1.618, 0, -1), (1.618, 0, 1), (-1.618, 0, -1), (-1.618, 0, 1)],
-    [(0, 11, 5), (0, 5, 1), (0, 1, 7), (0, 7, 10), (0, 10, 11), (1, 5, 9), (5, 11, 4), (11, 10, 2),
-     (10, 7, 6), (7, 1, 8), (3, 9, 4), (3, 4, 2), (3, 2, 6), (3, 6, 8), (3, 8, 9), (4, 9, 5),
-     (2, 4, 11), (6, 2, 10), (8, 6, 7), (9, 8, 1)],
-)
-
-
-def _icosphere(subdiv: int):
-    verts = [Vector(v).normalized() for v in _ICO_BASE[0]]
-    faces = list(_ICO_BASE[1])
-    for _ in range(subdiv):
-        cache: dict[tuple[int, int], int] = {}
-
-        def mid(a: int, b: int) -> int:
-            key = (min(a, b), max(a, b))
-            if key not in cache:
-                verts.append(((verts[a] + verts[b]) * 0.5).normalized())
-                cache[key] = len(verts) - 1
-            return cache[key]
-
-        nxt = []
-        for a, b, c in faces:
-            ab, bc, ca = mid(a, b), mid(b, c), mid(c, a)
-            nxt += [(a, ab, ca), (b, bc, ab), (c, ca, bc), (ab, bc, ca)]
-        faces = nxt
-    out = []
-    for a, b, c in faces:
-        if (verts[b] - verts[a]).cross(verts[c] - verts[a]).dot(verts[a]) < 0:
-            b, c = c, b
-        out.append((a, b, c))
-    return verts, out
-
-
-def _core(m: _TreeMesh, centre: Vector, radii: Vector, subdiv: int, rgb) -> None:
-    """Dark inner blob: fills gaps between cards up close and holds the far silhouette."""
-    verts, faces = _icosphere(subdiv)
-    for f in faces:
-        vs = [verts[i] for i in f]
-        cos = [centre + Vector((v.x * radii.x, v.y * radii.y, v.z * radii.z)) for v in vs]
-        nors = [Vector((v.x / radii.x, v.y / radii.y, v.z / radii.z)) for v in vs]
-        cols = [_scale(rgb, 0.55 * (0.7 + 0.35 * (v.z + 1.0) * 0.5)) for v in vs]
-        m.add(cos, [SOLID_UV] * 3, cols, nors)
+def _tint(rgb, hue: float) -> tuple:
+    """Shift a leaf colour toward yellow-green (hue > 0) or blue-green (hue < 0)."""
+    return (rgb[0] * (1.0 + 0.22 * hue), rgb[1] * (1.0 + 0.05 * hue), rgb[2] * (1.0 - 0.2 * hue))
 
 
 def _card(m: _TreeMesh, centre: Vector, face: Vector, along: Vector, w: float, h: float, tile, cols, nor_of) -> None:
-    """One leaf-cluster quad plus its mirrored back face (same outward normals)."""
-    side = face.cross(along).normalized()
+    """One two-sided leaf-cluster quad facing ``face``, normals from the crown volume."""
+    side = face.cross(along)
+    if side.length < 1e-5:
+        return
+    side.normalize()
     up = along.normalized()
     hw, hh = w * 0.5, h * 0.5
     cos = [centre - side * hw - up * hh, centre + side * hw - up * hh, centre + side * hw + up * hh, centre - side * hw + up * hh]
-    if (cos[1] - cos[0]).cross(cos[3] - cos[0]).dot(face) < 0:
-        cos = [cos[1], cos[0], cos[3], cos[2]]
     u0, v0, u1, v1 = tile
-    uvs = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
-    nors = [nor_of(c) for c in cos]
-    m.add(cos, uvs, cols, nors)
-    m.add(cos[::-1], uvs[::-1], cols[::-1], nors[::-1])
+    m.add(cos, [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], cols, [nor_of(c) for c in cos])
+
+
+def _cluster(m: _TreeMesh, centre: Vector, face: Vector, along: Vector, w: float, h: float, tile, cols, nor_of, cross: bool) -> None:
+    """One leaf clump: a single card, or two cards crossed so it reads as volume."""
+    _card(m, centre, face, along, w, h, tile, cols, nor_of)
+    if not cross:
+        return
+    side = face.cross(along)
+    if side.length < 1e-5:
+        return
+    side.normalize()
+    ang = math.radians(80)
+    face2 = (face * math.cos(ang) + side * math.sin(ang)).normalized()
+    _card(m, centre, face2, along, w * 0.88, h * 0.92, tile, cols, nor_of)
 
 
 def _lobes(kind: str, form: str, r: float, clear: float, ch: float):
@@ -382,68 +355,71 @@ def _broadleaf(m: _TreeMesh, kind: str, form: str, h: float, r: float, clear: fl
         lr = rb * (0.5 if mature else 0.4)
         _tube(m, [(start, lr), (end, lr * 0.25)], 5 if mature else 4, TRUNK_RGB)
 
-    # Core blobs: one smooth ball for a single-lobe crown, else a coarse one per lobe.
-    if len(lobes) == 1:
-        _core(m, lobes[0][0], lobes[0][1] * 0.62, 1 if mature else 0, leaf)
-    else:
-        for c, rad in lobes[:4]:
-            _core(m, c, rad * 0.6, 0, leaf)
-
-    n_cards = min(CARDS[kind][0 if mature else 1], (TRI_BUDGET[form] - m.tris) // 4)
+    # Leaf clusters: dark inner fillers, then a crossed outer shell that pokes past the
+    # ellipsoid so the silhouette is a clump, not a smooth blob.
+    n_want = CLUSTERS[kind][0 if mature else 1]
+    n_inner = round(n_want * INNER_SHARE)
     z_lo = min(c.z - rad.z for c, rad in lobes)
     z_hi = max(c.z + rad.z for c, rad in lobes)
     weights = [rad.x * rad.z for _, rad in lobes]
     total = sum(weights)
-    for i in range(n_cards):
+    for i in range(n_want):
+        inner = i < n_inner
+        n_outer = max(1, n_want - n_inner)
+        cross = (not inner) and ((i - n_inner) / n_outer < CROSS_SHARE)
+        need = 4 if cross else 2
+        room = TRI_BUDGET[form] - m.tris
+        if room < 2:
+            break
+        if room < need:
+            cross = False
         pick = rng.uniform(0.0, total)
         li = 0
         while li < len(lobes) - 1 and pick > weights[li]:
             pick -= weights[li]
             li += 1
         c, rad = lobes[li]
-        share = 4.0 * math.pi * ((rad.x + rad.z) * 0.5) ** 2 / max(1.0, n_cards * weights[li] / total)
-        size = min(1.3 * math.sqrt(share), 1.45 * min(rad.x, rad.z))
         while True:
             d = Vector((rng.gauss(0, 1), rng.gauss(0, 1), rng.gauss(0, 1))).normalized()
             if d.z > -0.55 or rng.random() < 0.4:
                 break
-        f = 0.62 + 0.38 * rng.random() ** 0.6
+        f = rng.uniform(0.22, 0.58) if inner else 0.72 + 0.26 * rng.random() ** 0.7
         p = c + Vector((d.x * rad.x, d.y * rad.y, d.z * rad.z)) * f
-        p.z = max(p.z, clear + size * 0.32)
-        face = (d + Vector((rng.gauss(0, 0.7), rng.gauss(0, 0.7), rng.gauss(0, 0.7)))).normalized()
+        span = (rad.x + rad.z) * 0.5
+        size = min(
+            1.05 * math.sqrt(4.0 * math.pi * span * span / n_outer),
+            0.95 * min(rad.x * 1.7, rad.z * 1.15),
+        )
+        size *= (1.35 if inner else 1.0) * rng.uniform(0.85, 1.12)
+        size = min(size, 2.6 if mature else 1.25)
+        p.z = max(p.z, clear + size * 0.28)
+        if not inner and rng.random() < 0.22:
+            face = (
+                Vector((0.0, 0.0, 1.0))
+                + d * 0.45
+                + Vector((rng.gauss(0, 0.4), rng.gauss(0, 0.4), rng.gauss(0, 0.15)))
+            ).normalized()
+        else:
+            spread = 1.1 if inner else 0.65
+            face = (d + Vector((rng.gauss(0, spread), rng.gauss(0, spread), rng.gauss(0, spread)))).normalized()
         e1, e2 = _frame(face)
         roll = rng.uniform(0.0, math.tau)
         along = e1 * math.cos(roll) + e2 * math.sin(roll)
         tile = rng.choices(LEAF_TILES, LEAF_TILE_WEIGHTS)[0]
-        jitter = rng.uniform(0.9, 1.1)
+        base = _tint(leaf, rng.uniform(-1.0, 1.0)) if not inner else leaf
+        depth = 0.52 + 0.12 * rng.random() if inner else 0.80 + 0.26 * min(1.0, max(0.0, f - 0.72) / 0.26)
+        jitter = rng.uniform(0.88, 1.12)
+        aspect = rng.uniform(0.78, 1.18)
 
-        def shade(q: Vector) -> tuple:
+        def shade(q: Vector, base=base, k=depth * jitter) -> tuple:
             hf = min(1.0, max(0.0, (q.z - z_lo) / max(1e-3, z_hi - z_lo)))
-            return _scale(leaf, jitter * (0.6 + 0.5 * hf) * (0.78 + 0.22 * (f - 0.62) / 0.38))
+            return _scale(base, k * (0.58 + 0.58 * hf))
 
         def nor_of(q: Vector, c=c, rad=rad) -> Vector:
             g = q - c
             return Vector((g.x / rad.x**2, g.y / rad.y**2, g.z / rad.z**2)).normalized() + Vector((0, 0, 0.25))
 
-        corners_probe = [p + along * size * 0.5 * s for s in (-1, -1, 1, 1)]
-        _card(m, p, face, along, size, size, tile, [shade(q) for q in corners_probe], nor_of)
-
-
-def _cone(m: _TreeMesh, z0: float, r0: float, apex: float, sides: int, rgb) -> None:
-    """Dark conifer core: a cone fan plus its bottom cap (solid atlas patch)."""
-    slope = r0 / max(1e-3, apex - z0)
-    for i in range(sides):
-        a0, a1 = math.tau * i / sides, math.tau * (i + 1) / sides
-        d0 = Vector((math.cos(a0), math.sin(a0), 0.0))
-        d1 = Vector((math.cos(a1), math.sin(a1), 0.0))
-        p0 = Vector((0.0, 0.0, z0)) + d0 * r0
-        p1 = Vector((0.0, 0.0, z0)) + d1 * r0
-        tip = Vector((0.0, 0.0, apex))
-        n0, n1 = d0 + Vector((0, 0, slope)), d1 + Vector((0, 0, slope))
-        dark, lit = _scale(rgb, 0.32), _scale(rgb, 0.5)
-        m.add((p0, p1, tip), [SOLID_UV] * 3, (dark, dark, lit), (n0, n1, (d0 + d1) * 0.5 + Vector((0, 0, 1.0))))
-        down = Vector((0.0, 0.0, -1.0))
-        m.add((p1, p0, Vector((0.0, 0.0, z0))), [SOLID_UV] * 3, (dark, dark, dark), (d1 * 0.4 + down, d0 * 0.4 + down, down))
+        _cluster(m, p, face, along, size * aspect, size / aspect, tile, [shade(p)] * 4, nor_of, cross)
 
 
 def _conifer(m: _TreeMesh, form: str, h: float, r: float, clear: float, rb: float, rng) -> None:
@@ -451,26 +427,39 @@ def _conifer(m: _TreeMesh, form: str, h: float, r: float, clear: float, rb: floa
     ch = h - clear
     leaf = CANOPY_RGB["conifer"]
     _tube(m, [(Vector((0.0, 0.0, z)), rr) for z, rr in ((0.0, rb * 1.2), (clear, rb * 0.8), (h * 0.9, rb * 0.15))], 7, TRUNK_RGB)
-    _cone(m, clear + 0.02 * ch, r * 0.78, clear + 0.8 * ch, 8, leaf)
-    _cone(m, clear + 0.38 * ch, r * 0.55, h, 8, leaf)
-    n_cards = min(CARDS["conifer"][0 if mature else 1], (TRI_BUDGET[form] - m.tris) // 4)
+    n_want = CLUSTERS["conifer"][0 if mature else 1]
+    n_inner = round(n_want * INNER_SHARE)
     up = Vector((0.0, 0.0, 1.0))
-    for i in range(n_cards):
-        t = (i + rng.random()) / n_cards
+    # Sprays tier up the cone: dark ones close to the stem, lit crossed ones at the tips.
+    for i in range(n_want):
+        inner = i < n_inner
+        n_outer = max(1, n_want - n_inner)
+        cross = (not inner) and ((i - n_inner) / n_outer < CROSS_SHARE)
+        need = 4 if cross else 2
+        room = TRI_BUDGET[form] - m.tris
+        if room < 2:
+            break
+        if room < need:
+            cross = False
+        t = (i + rng.random()) / n_want
         z = clear + ch * (0.03 + 0.9 * t)
         rz = r * (1.0 - (z - clear) / ch) * 0.95 + 0.08 * r
         ang = rng.uniform(0.0, math.tau)
         out = Vector((math.cos(ang), math.sin(ang), 0.0))
-        length = 0.9 * rz + 0.25 * r
-        p = Vector((0.0, 0.0, z)) + out * (rz * rng.uniform(0.45, 0.85))
-        face = (up * 0.75 + out * 0.6 + Vector((rng.gauss(0, 0.3), rng.gauss(0, 0.3), rng.gauss(0, 0.2)))).normalized()
+        length = (0.62 * rz + 0.16 * r) * rng.uniform(0.85, 1.12)
+        p = Vector((0.0, 0.0, z)) + out * (rz * (rng.uniform(0.15, 0.4) if inner else rng.uniform(0.48, 0.92)))
+        tilt = 0.6 if inner else 0.35
+        face = (up * 0.75 + out * 0.6 + Vector((rng.gauss(0, tilt), rng.gauss(0, tilt), rng.gauss(0, 0.2)))).normalized()
         along = (out - face * out.dot(face)).normalized()
         jitter = rng.uniform(0.9, 1.1)
-        k = jitter * (0.62 + 0.45 * t)
-        col = _scale(leaf, k)
-        _card(
-            m, p, face, along.cross(face), length, length * 0.5, NEEDLE_TILE, [col, col, col, col],
+        if inner:
+            col = _scale(leaf, jitter * (0.4 + 0.2 * t))
+        else:
+            col = _scale(_tint(leaf, rng.uniform(-1.0, 1.0)), jitter * (0.7 + 0.45 * t))
+        _cluster(
+            m, p, face, along.cross(face), length, length * 0.48, NEEDLE_TILE, [col, col, col, col],
             lambda q: Vector((q.x, q.y, 0.0)).normalized() * 0.8 + up * 0.55,
+            cross,
         )
 
 

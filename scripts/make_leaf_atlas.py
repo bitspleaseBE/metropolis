@@ -7,11 +7,11 @@ One 512x512 RGBA texture is shared by every tree mesh (``blender/trees_blender.p
     u 0.0-0.5, v 0.0-0.5   broadleaf cluster C        (bottom-left, sunnier)
     u 0.5-1.0, v 0.25-0.5  needle cluster             (conifers)
     u 0.5-1.0, v 0.0-0.25  bark strip, fully opaque   (trunks and limbs)
-    u 0.9375-1.0 of it     flat solid patch           (inner crown core)
 
 Colours are near-neutral light greens / greys: the mesh's vertex colour multiplies them,
-so each crown archetype keeps its own hue. Colour is bled into the transparent pixels so
-the viewer's mipmaps never fringe the leaf edges dark.
+so each crown archetype keeps its own hue. Each tile is a few overlapping bunches with
+gaps, not a packed disc, so a card does not read as a green pancake. Colour is bled
+into the transparent pixels so the viewer's mipmaps never fringe the leaf edges dark.
 
   .venv-img/bin/python scripts/make_leaf_atlas.py   # needs the ``textures`` extra
 """
@@ -31,8 +31,6 @@ SIZE = 512
 SS = 2  # supersampling factor
 TILE = 256
 GUTTER = 6  # px kept transparent around every leaf tile (mip bleed between tiles)
-SOLID_W = 32  # px at the right end of the bark strip: flat colour for the crown core
-SOLID_RGB = (0.84, 0.84, 0.84)
 
 
 def _leaf_polygon(cx: float, cy: float, length: float, width: float, ang: float, n: int = 9):
@@ -50,46 +48,53 @@ def _leaf_polygon(cx: float, cy: float, length: float, width: float, ang: float,
 
 
 def _broadleaf_tile(seed: int, warmth: float) -> Image.Image:
-    """A leafy twig cluster that fills a circle, drawn at SS x resolution."""
+    """A few overlapping leaf bunches with gaps, drawn at SS x resolution."""
     rnd = random.Random(seed)
     s = TILE * SS
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     c = s * 0.5
-    rad = s * 0.5 - GUTTER * SS - s * 0.05
-    twigs = []
-    for k in range(7):
-        a = k / 7 * math.tau + rnd.uniform(-0.3, 0.3)
-        base = (c + math.cos(a) * rad * 0.15, c + math.sin(a) * rad * 0.15)
-        tip = (c + math.cos(a) * rad * rnd.uniform(0.78, 0.95), c + math.sin(a) * rad * rnd.uniform(0.78, 0.95))
-        twigs.append((base, tip, a))
-        d.line([base, tip], fill=(92, 78, 60, 255), width=max(2, int(SS * 2.2)))
+    pad = GUTTER * SS + s * 0.02
+    n_clumps = 3
+    clumps = []
+    for k in range(n_clumps):
+        a = k / n_clumps * math.tau + rnd.uniform(-0.35, 0.35)
+        dist = s * rnd.uniform(0.03, 0.13)
+        clumps.append((c + math.cos(a) * dist, c + math.sin(a) * dist, s * rnd.uniform(0.20, 0.30)))
     leaves = []
-    for base, tip, a in twigs:
-        for i in range(16):
-            t = 0.15 + 0.85 * i / 15
-            px = base[0] + (tip[0] - base[0]) * t
-            py = base[1] + (tip[1] - base[1]) * t
-            for side in (1, -1):
-                ang = a + side * rnd.uniform(0.5, 1.1) + rnd.uniform(-0.25, 0.25)
-                length = s * rnd.uniform(0.075, 0.115) * (1.0 - 0.25 * t)
-                leaves.append((px, py, length, length * rnd.uniform(0.45, 0.6), ang))
-    # Fill the gaps between twigs so the cluster reads as foliage, not a starfish.
-    for _ in range(120):
-        r = rad * rnd.random() ** 0.8 * 0.8
-        a = rnd.uniform(0, math.tau)
-        px, py = c + math.cos(a) * r, c + math.sin(a) * r
-        length = s * rnd.uniform(0.07, 0.11)
-        leaves.append((px, py, length, length * rnd.uniform(0.45, 0.6), rnd.uniform(0, math.tau)))
-    rnd.shuffle(leaves)
-    for px, py, length, width, ang in leaves:
-        # Keep every leaf inside the tile's circle (with the gutter).
+    for cx, cy, cr in clumps:
+        n_twig = rnd.randint(5, 6)
+        for k in range(n_twig):
+            a = k / n_twig * math.tau + rnd.uniform(-0.4, 0.4)
+            base = (cx + math.cos(a) * cr * 0.1, cy + math.sin(a) * cr * 0.1)
+            tip = (cx + math.cos(a) * cr * rnd.uniform(0.72, 1.02), cy + math.sin(a) * cr * rnd.uniform(0.72, 1.02))
+            d.line([base, tip], fill=(92, 78, 60, 255), width=max(2, int(SS * 2.1)))
+            for i in range(13):
+                t = 0.12 + 0.88 * i / 12
+                px = base[0] + (tip[0] - base[0]) * t
+                py = base[1] + (tip[1] - base[1]) * t
+                for side in (1, -1):
+                    ang = a + side * rnd.uniform(0.45, 1.15) + rnd.uniform(-0.25, 0.25)
+                    length = s * rnd.uniform(0.06, 0.105) * (1.0 - 0.2 * t)
+                    leaves.append((px, py, length, length * rnd.uniform(0.4, 0.58), ang, cx, cy, cr))
+        for _ in range(70):
+            rr = cr * rnd.random() ** 0.65
+            a = rnd.uniform(0, math.tau)
+            px, py = cx + math.cos(a) * rr, cy + math.sin(a) * rr
+            length = s * rnd.uniform(0.055, 0.10)
+            leaves.append((px, py, length, length * rnd.uniform(0.4, 0.58), rnd.uniform(0, math.tau), cx, cy, cr))
+    placed = []
+    for px, py, length, width, ang, cx, cy, cr in leaves:
+        mid = math.hypot(px + math.cos(ang) * length * 0.5 - cx, py + math.sin(ang) * length * 0.5 - cy)
+        placed.append((min(1.0, mid / max(cr, 1e-3)), rnd.uniform(-0.2, 0.2), (px, py, length, width, ang)))
+    placed.sort(key=lambda p: p[1] - p[0])
+    for rim, _, (px, py, length, width, ang) in placed:
         tx = px + math.cos(ang) * length
         ty = py + math.sin(ang) * length
-        if math.hypot(tx - c, ty - c) > rad + s * 0.06:
+        if not (pad < tx < s - pad and pad < ty < s - pad):
             continue
-        v = rnd.uniform(0.72, 1.0)
-        hue = rnd.uniform(-0.06, 0.06) + warmth
+        v = rnd.uniform(0.72, 1.0) * (1.0 - 0.46 * rim**1.4)
+        hue = rnd.uniform(-0.07, 0.07) + warmth
         col = (
             int(255 * min(1.0, v * (0.80 + hue))),
             int(255 * min(1.0, v * 0.97)),
@@ -98,8 +103,11 @@ def _broadleaf_tile(seed: int, warmth: float) -> Image.Image:
         )
         d.polygon(_leaf_polygon(px, py, length, width, ang), fill=col)
         vein = tuple(int(ch * 0.78) for ch in col[:3]) + (255,)
-        d.line([(px, py), (px + math.cos(ang) * length * 0.9, py + math.sin(ang) * length * 0.9)],
-               fill=vein, width=max(1, SS))
+        d.line(
+            [(px, py), (px + math.cos(ang) * length * 0.9, py + math.sin(ang) * length * 0.9)],
+            fill=vein,
+            width=max(1, SS),
+        )
     return img
 
 
@@ -151,7 +159,6 @@ def _bark_strip(seed: int) -> Image.Image:
     v = 0.78 + 0.22 * noise - 0.38 * fissure[None, :] * (0.6 + 0.4 * noise)
     v = np.clip(v, 0.25, 1.0)
     rgb = np.stack([v * 0.98, v * 0.94, v * 0.88], axis=-1)
-    rgb[:, -SOLID_W * SS :] = SOLID_RGB
     a = np.ones((h, w, 1), dtype=np.float32)
     return Image.fromarray((np.concatenate([rgb, a], axis=-1) * 255).astype(np.uint8), "RGBA")
 
