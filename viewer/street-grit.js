@@ -16,26 +16,22 @@ export function streetKind(name) {
 /** Pull blown-out pavement slabs down so the joints can read. */
 export const SIDEWALK_SEAT = 0.86;
 
+// Fine aggregate only. A 2.6 m "repair" tile (warm rgb 0.58) turned streets and
+// pavements into a brown patchwork, so it is gone.
 const GRIT = /* glsl */ `
 {
   vec2 hp = vStreetWorld.xz;
   vec2 gcell = floor(hp * 18.0);
-  vec2 pcell = floor(hp * 0.38);
   vec2 hg = fract(gcell * vec2(0.1031, 0.1030));
   hg += dot(hg, hg.yx + 33.33);
   float grain = fract((hg.x + hg.y) * hg.x);
-  vec2 hpch = fract(pcell * vec2(0.1031, 0.1030));
-  hpch += dot(hpch, hpch.yx + 33.33);
-  float patch = fract((hpch.x + hpch.y) * hpch.x);
-  diffuseColor.rgb *= mix(0.78, 1.08, grain);
-  float repair = step(0.75, patch);
-  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.58, 0.57, 0.55), repair);
+  diffuseColor.rgb *= mix(0.94, 1.04, grain);
 `;
 
 const JOINT = /* glsl */ `
   vec2 g = fract(hp / 0.30);
   float seam = min(min(g.x, 1.0 - g.x), min(g.y, 1.0 - g.y));
-  diffuseColor.rgb *= mix(0.48, 1.0, smoothstep(0.0, 0.10, seam));
+  diffuseColor.rgb *= mix(0.82, 1.0, smoothstep(0.0, 0.04, seam));
 `;
 
 function applyBody(kind) {
@@ -74,7 +70,7 @@ export function shadeStreet(mat) {
   const prevKey = mat.customProgramCacheKey;
   mat.customProgramCacheKey = () => {
     const base = typeof prevKey === "function" ? prevKey.call(mat) : "";
-    return `${base}|street-grit-v2|${kind}`;
+    return `${base}|street-grit-v3|${kind}`;
   };
   if (typeof mat.needsUpdate === "boolean" || mat.needsUpdate === undefined) mat.needsUpdate = true;
   return true;

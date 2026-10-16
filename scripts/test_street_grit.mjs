@@ -36,11 +36,12 @@ function compile(mat) {
   assert.match(shader.vertexShader, /vStreetWorld/);
   assert.match(shader.fragmentShader, /diffuseColor/);
   assert.doesNotMatch(shader.fragmentShader, /0\.30/, "carriageway has no slab grid");
-  assert.match(shader.fragmentShader, /step\(0\.75/, "repairs are a hard darker patch");
+  assert.doesNotMatch(shader.fragmentShader, /step\(0\.75/, "no brown repair tiles");
+  assert.doesNotMatch(shader.fragmentShader, /0\.58,\s*0\.57,\s*0\.55/, "no warm patch tint");
   assert.match(shader.fragmentShader, /0\.1031/, "hash stays stable far from the origin");
   assert.doesNotMatch(shader.fragmentShader, /sin\(/, "sin of world metres collapses");
   assert.doesNotMatch(shader.fragmentShader, /texture2D|texture\(/, "no extra texture samples");
-  assert.equal(mat.customProgramCacheKey(), "|street-grit-v2|grit");
+  assert.equal(mat.customProgramCacheKey(), "|street-grit-v3|grit");
 }
 
 {
@@ -66,7 +67,8 @@ function compile(mat) {
   assert.ok(mat.color.r < 0.92 && mat.color.r > 0.7);
   const shader = compile(mat);
   assert.match(shader.fragmentShader, /0\.30/);
-  assert.equal(mat.customProgramCacheKey(), "|street-grit-v2|slab");
+  assert.equal(mat.customProgramCacheKey(), "|street-grit-v3|slab");
+  assert.match(shader.fragmentShader, /mix\(0\.82/, "joints stay a line, not a dark slab");
   assert.equal(shadeStreet(mat), false, "seating does not run twice");
 }
 

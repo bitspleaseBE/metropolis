@@ -1400,7 +1400,8 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       const SKY = 0x6eb6ff;
       // Horizon haze: soft blue-grey so FogExp2 fades to sky, never black.
       const FOG_COLOR = 0xb8d4ea;
-      const GROUND_SKIRT = 0xc4b59a;
+      // Gaps in the district mesh used to read as a tan lot. Keep them with the parks.
+      const GROUND_SKIRT = 0x4d5a46;
       const scene = new THREE.Scene();
       // Soft zenith→horizon gradient so pedestrian POV feels like a real clear day.
       const skyCanvas = document.createElement("canvas");
@@ -1734,7 +1735,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
 
         starMat.opacity = smooth(0.55, 1.0, t) * 0.9;
         stars.visible = starMat.opacity > 0.01;
-        skirtMat && skirtMat.color.set(GROUND_SKIRT).lerp(_tmpCol.set(0x6e685e), night);
+        skirtMat && skirtMat.color.set(GROUND_SKIRT).lerp(_tmpCol.set(0x2a3228), night);
 
         // High-tier bloom / grade / wetness / sky — player-follow shadows continue in tick().
         visuals.update({
