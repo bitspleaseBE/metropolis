@@ -13,6 +13,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { fitHumanoid } from "./humanoid-fit.js";
 import { HEIGHT_JITTER, heightFor } from "./person-scale.js";
+import { JEWISH_DISTRICT, rosterIds } from "./npc/population.js";
 
 const DIR = new URL("./characters/people/", import.meta.url);
 const loader = new GLTFLoader();
@@ -54,15 +55,9 @@ function sharesHousehold(personOrCluster, withPersonOrCluster) {
   return a === b;
 }
 
-// Always in the first batch, so the opening streets already show these households.
 const SERVICE = new Set(["Police_Male_03", "Police_Male_04"]);
 /** Police and shop staff (manifest role "staff") are only ever requested by id. */
 const reserved = (p) => SERVICE.has(p.id) || p.role === "staff";
-
-const FIRST = [
-  "Hasidic_Father", "Hasidic_Mother", "Hasidic_Boy", "Hasidic_Girl",
-  "Male_Adult_15", "Female_Adult_06", "Female_Child_02", "Male_Child_02_grey",
-];
 
 const HOUSEHOLDS = [
   { kind: "single", w: 30 },
@@ -76,13 +71,6 @@ const HOUSEHOLDS = [
   { kind: "muslimFamily", w: 6 },
 ];
 
-const shuffle = (a) => {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = (Math.random() * (i + 1)) | 0;
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-};
 const pick = (a) => a[(Math.random() * a.length) | 0];
 const cluster = (p) => CLUSTER[p.look] || p.look;
 
@@ -91,7 +79,7 @@ const cluster = (p) => CLUSTER[p.look] || p.look;
  * @param opts.initial people loaded before the first spawn
  * @param opts.resident cap on loaded people (GPU memory); unused ones are evicted to make room
  */
-export async function createPeoplePool(THREE, { initial = 8, resident = 14, rotate = false } = {}) {
+export async function createPeoplePool(THREE, { initial = 8, resident = 14, rotate = false, districtId = "" } = {}) {
   const res = await fetch(new URL("manifest.json", DIR));
   if (!res.ok) throw new Error(`people manifest: HTTP ${res.status}`);
   const people = (await res.json()).people;
@@ -103,6 +91,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     if (loaded.has(id)) return loaded.get(id);
     if (loading.has(id)) return loading.get(id);
     const person = byId.get(id);
+    // Jewish models stay out of every district except 2018, even if a caller asks by id.
+    if (person?.look === "hasidic" && districtId !== JEWISH_DISTRICT) return null;
     // Optional clips: get-up (scripts/bake_rocketbox_getup.py), ride/step
     // (scripts/bake_rocketbox_riders.py). Missing files leave stiff tip-up / Mixamo fallback.
     const getUpGltf = loader.loadAsync(new URL(`getup/${id}.glb`, DIR).href).catch(() => null);
@@ -161,32 +151,20 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     return victim.person.id;
   }
 
-  // First batch: the fixed households, then a spread over ages and looks.
-  const first = new Set(FIRST.filter((id) => byId.has(id) && !reserved(byId.get(id))));
-  const rest = shuffle(people.filter((p) => !first.has(p.id) && !reserved(p)));
-  const need = { child: 4, senior: 2 };
-  for (const p of rest) {
-    if (first.size >= initial) break;
-    if (need[p.age] > 0) {
-      need[p.age]--;
-      first.add(p.id);
-    }
-  }
-  const seenLook = new Set([...first].map((id) => byId.get(id).look));
-  for (const p of rest) {
-    if (first.size >= initial) break;
-    if (!seenLook.has(p.look) || Math.random() < 0.5) {
-      seenLook.add(p.look);
-      first.add(p.id);
-    }
-  }
-  for (const p of rest) if (first.size < initial) first.add(p.id);
+  // Opening streets and the resident cap follow the district mix. Jewish models
+  // are in that plan only for 2018, so a snack shop cannot clone one elsewhere.
+  const plan = rosterIds(
+    people.filter((p) => !reserved(p)),
+    districtId,
+    Math.max(initial, resident),
+  );
+  const first = new Set(plan.slice(0, initial));
   await Promise.all([...first].map(load));
   if (!loaded.size) throw new Error("no people loaded");
 
   // Optional stream-in: fill up to `resident`, then stop. Continuous rotate/evict was uploading
   // ~10 MB textures every few seconds for the whole session and made the tab unplayable.
-  const queue = shuffle(people.filter((p) => !loaded.has(p.id) && !reserved(p)).map((p) => p.id));
+  const queue = plan.slice(initial).filter((id) => !loaded.has(id));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let retiring = null;
   (async () => {

@@ -142,8 +142,8 @@ class Layout {
   }
 
   /** Customer spot: stand at (x, z) facing `face`; kind is browse / sit / queue / counter. */
-  spot(x, z, face, kind = "browse") {
-    this.spots.push({ x, z, face, kind });
+  spot(x, z, face, kind = "browse", extra) {
+    this.spots.push({ x, z, face, kind, ...extra });
   }
 
   staff(role, x, z, face) {
@@ -225,7 +225,8 @@ class Layout {
           if (kind === "tableRound" && this.rec.variant === "cocktail") this.put("stool", cx, cz, 0, { overlap: true });
           else this.put("chair", cx, cz, face, { overlap: true });
           this.solids.push([cx - 0.2, cz - 0.2, cx + 0.2, cz + 0.2]);
-          this.spot(x + sx * 0.95, z + sz * 0.95, face, "sit");
+          // The stand point stays in the aisle (pathfinding). seatX/seatZ is the chair.
+          this.spot(x + sx * 0.95, z + sz * 0.95, face, "sit", { seatX: cx, seatZ: cz });
         }
         if (!chairs) this.spot(x, z + 0.75, PI, "sit");
       }

@@ -160,7 +160,10 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   }
   let pool = null;
   try {
-    pool = await createPeoplePool(THREE, opts.people);
+    pool = await createPeoplePool(THREE, {
+      ...(opts.people || {}),
+      districtId: opts.district?.id || opts.people?.districtId || "",
+    });
   } catch (err) {
     console.warn("[cityview] people unavailable, using stand-ins", err);
   }

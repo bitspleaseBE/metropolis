@@ -1,6 +1,8 @@
 /**
  * People inside a shop: the cashier behind the till, other staff at their posts, and customers
  * who walk between the layout's spots (interior-gen.js) and stand browsing at each one.
+ * A restaurant (frituur, snack bar, dining room) seats them instead: they stay on the
+ * chair, a plate sits on the table, and they either eat or talk.
  *
  * Staff wear the brand: Staff_Male_01 / Staff_Female_01 have a separate `<id>_uniform`
  * material (scripts/build_rocketbox_characters.py) tinted to the shop's fascia, and every staff
@@ -16,6 +18,7 @@ import { ADULT_M } from "../person-scale.js";
 import { mulberry32 } from "./rng.js";
 import { findPath } from "./interior-gen.js";
 import { wordmarkTexture } from "./furniture.js";
+import { dinerMode, foodOnTable, hipDrop } from "./table-seat.js";
 
 const STAFF = ["Staff_Female_01", "Staff_Male_01"];
 const MEDICAL = ["Medical_Female_01", "Medical_Male_02"];
@@ -25,6 +28,61 @@ const TURN_RATE = 5; // rad/s
 const PERSONAL_SPACE = 0.55;
 
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+const _pose = {};
+
+function bone(root, name) {
+  return root.getObjectByName(name) || root.getObjectByName(name.replaceAll(" ", "_"));
+}
+
+/**
+ * Fold the legs into a chair sit and play an eat or talk gesture on the idle.
+ * Crowd bones run along local +X, so a local +Z turn swings the limb. Called
+ * after the mixer step so the idle does not stand them back up.
+ */
+export function poseDiner(THREE, root, mode, t) {
+  if (!_pose.e) {
+    _pose.e = new THREE.Euler(0, 0, 0, "XYZ");
+    _pose.q = new THREE.Quaternion();
+  }
+  const { e, q } = _pose;
+  const bend = (name, angle) => {
+    const b = bone(root, name);
+    if (!b) return;
+    e.set(0, 0, angle);
+    q.setFromEuler(e);
+    b.quaternion.multiply(q);
+  };
+  // Thigh forward, shin down. Measured on Male_Adult_01: knee to +Z, foot under it.
+  bend("Bip01 L Thigh", 1.25);
+  bend("Bip01 R Thigh", 1.25);
+  bend("Bip01 L Calf", -1.15);
+  bend("Bip01 R Calf", -1.15);
+  bend("Bip01 Spine", 0.18);
+  if (mode === "eat") {
+    const bite = 0.4 * (0.5 + 0.5 * Math.sin(t * 2.4));
+    bend("Bip01 R UpperArm", -0.9);
+    bend("Bip01 R Forearm", -0.7 - bite);
+  } else {
+    // Local +X on the head is world up: a turn toward the table, plus a small hand.
+    const yaw = Math.sin(t * 1.4) * 0.35;
+    const b = bone(root, "Bip01 Head");
+    if (b) {
+      e.set(yaw, 0, 0);
+      q.setFromEuler(e);
+      b.quaternion.multiply(q);
+    }
+    bend("Bip01 L Forearm", -0.45 - 0.2 * Math.sin(t * 1.8));
+  }
+}
+
+/** Drop a standing Rocketbox so the pelvis lands on a chair. */
+export function seatRootY(THREE, root) {
+  const pelvis = bone(root, "Bip01 Pelvis");
+  if (!pelvis) return hipDrop(null);
+  root.updateMatrixWorld(true);
+  const y = pelvis.getWorldPosition(new THREE.Vector3()).y - root.position.y;
+  return hipDrop(y);
+}
 
 function findBone(root, names) {
   for (const n of names) {
@@ -40,6 +98,37 @@ function findBone(root, names) {
 
 export function createInteriorNpcs({ THREE, people }) {
   const badgeGeo = new THREE.PlaneGeometry(0.15, 0.0375);
+  const plateGeo = new THREE.CylinderGeometry(0.11, 0.1, 0.012, 10);
+  const fryGeo = new THREE.BoxGeometry(0.09, 0.045, 0.07);
+  const bunGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.03, 8);
+  const cupGeo = new THREE.CylinderGeometry(0.028, 0.022, 0.09, 8);
+  const plateMat = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.6 });
+  const fryMat = new THREE.MeshStandardMaterial({ color: 0xe2b23a, roughness: 0.7 });
+  const bunMat = new THREE.MeshStandardMaterial({ color: 0xc48a3a, roughness: 0.75 });
+  const cupMat = new THREE.MeshStandardMaterial({ color: 0xc43b2c, roughness: 0.45 });
+
+  /** A plate of fries or a burger, plus a drink, on the table in front of a sitter. */
+  function placeMeal(seat, fries) {
+    const at = foodOnTable(seat.seatX, seat.seatZ, seat.face);
+    const meal = new THREE.Group();
+    const plate = new THREE.Mesh(plateGeo, plateMat);
+    plate.position.y = 0.006;
+    meal.add(plate);
+    if (fries) {
+      const box = new THREE.Mesh(fryGeo, fryMat);
+      box.position.y = 0.03;
+      meal.add(box);
+    } else {
+      const bun = new THREE.Mesh(bunGeo, bunMat);
+      bun.position.y = 0.028;
+      meal.add(bun);
+    }
+    const cup = new THREE.Mesh(cupGeo, cupMat);
+    cup.position.set(0.14, 0.05, 0.02);
+    meal.add(cup);
+    meal.position.set(at.x, at.y, at.z);
+    return meal;
+  }
   const _v = new THREE.Vector3();
   const _f = new THREE.Vector3();
   const _l = new THREE.Vector3();
@@ -111,7 +200,9 @@ export function createInteriorNpcs({ THREE, people }) {
     });
 
     const used = new Set();
-    const freeSpots = layout.spots.filter((s) => s.kind !== "queue" || R() < 0.5);
+    const dining = layout.template === "restaurant";
+    const seatSpots = dining ? layout.spots.filter((s) => s.kind === "sit" && Number.isFinite(s.seatX)) : [];
+    const freeSpots = dining && seatSpots.length ? seatSpots : layout.spots.filter((s) => s.kind !== "queue" || R() < 0.5);
     const nCust = people ? Math.min(Number(rec.customers) || 0, MAX_CUSTOMERS, freeSpots.length) : 0;
     const custJobs = [];
     for (let i = 0; i < nCust; i++) {
@@ -141,10 +232,31 @@ export function createInteriorNpcs({ THREE, people }) {
       used.add(k);
       const s = freeSpots[k];
       people.setIdle(inst, true, 0);
-      inst.root.position.set(s.x, 0, s.z);
-      inst.root.rotation.y = s.face;
+      const seated = dining && Number.isFinite(s.seatX);
+      if (seated) {
+        inst.root.position.set(s.seatX, seatRootY(THREE, inst.root), s.seatZ);
+        inst.root.rotation.y = s.face;
+        const meal = placeMeal(s, R() < 0.5);
+        group.add(meal);
+        poseDiner(THREE, inst.root, dinerMode(k), R() * 4);
+      } else {
+        inst.root.position.set(s.x, 0, s.z);
+        inst.root.rotation.y = s.face;
+      }
       group.add(inst.root);
-      members.push({ inst, role: "customer", staff: false, spot: k, yaw: s.face, wait: 2 + R() * 8, path: null, leg: 0 });
+      members.push({
+        inst,
+        role: "customer",
+        staff: false,
+        spot: k,
+        yaw: s.face,
+        wait: 2 + R() * 8,
+        path: null,
+        leg: 0,
+        seated,
+        mode: dinerMode(k),
+        t: R() * 4,
+      });
     }
     const cashier = members.find((m) => m.role === "cashier") || null;
 
@@ -191,6 +303,12 @@ export function createInteriorNpcs({ THREE, people }) {
     function update(dt, player) {
       for (const m of members) {
         const root = m.inst.root;
+        if (m.seated) {
+          m.t += dt;
+          m.inst.mixer.update(dt);
+          poseDiner(THREE, root, m.mode, m.t);
+          continue;
+        }
         if (m.staff) {
           // Staff keep their post; whoever is behind the till turns to a nearby player.
           let want = m.home.face;
