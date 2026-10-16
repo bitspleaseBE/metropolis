@@ -1,8 +1,8 @@
 {
- "build_seconds": 3883.0,
- "built_at": "2026-10-16T19:21:43Z",
+ "build_seconds": 4903.5,
+ "built_at": "2026-10-16T22:28:03Z",
  "district": "2140-borgerhout",
- "git_head": "05f867e180f78c7386e46f86a7eb3a2368e6b75f",
+ "git_head": "efb826428249c865b946bff30b37cba770eb5d75",
  "inputs": {
   "assets/benches/harmonie.json": "d45340e962805118",
   "assets/boundaries/antwerp_postcodes.geojson": "82e3354926decdee",
@@ -104,7 +104,7 @@
   "assets/textures/wall_stone_buff.jpg": "ef7c6c25f73bd14f",
   "assets/textures/wall_stucco_cream.jpg": "5f3e59f228fbd62c",
   "assets/trees/harmonie.json": "1883a14eddeec68d",
-  "assets/trees/leaf_atlas.png": "c1ae89e0f5851e74",
+  "assets/trees/leaf_atlas.png": "8224657c2c68a101",
   "assets/velo/harmonie.json": "f726d4c398445d8c",
   "blender/barriers_blender.py": "1262ea762afc0118",
   "blender/benches_blender.py": "6779b3617a8b504a",
@@ -116,7 +116,7 @@
   "blender/courtyards_blender.py": "cd2538a53c1aea41",
   "blender/port_blender.py": "e78aff629776ba2c",
   "blender/roadware_blender.py": "446e9d70ebc8f60d",
-  "blender/trees_blender.py": "34030ce92d9cc788",
+  "blender/trees_blender.py": "009de2f6d2a6f644",
   "blender/velo_blender.py": "3a4567a699465f2d",
   "cityview/__init__.py": "578c132971f30ed1",
   "cityview/barriers.py": "1d83b72668e7c050",
@@ -254,6 +254,6 @@
   "viewer/cars/transit_custom.glb": "de4bb72063bc0c0a",
   "viewer/cars/vw_tiguan.glb": "fb436d6ed521be40"
  },
- "inputs_sha256": "a71b63bfc67bb3250f8c13045143664458263cb9b410d70684b01628eb716f50",
+ "inputs_sha256": "8c070499b2e647992b2a2b39879b0f589a3eb019426fd2474751943a212fe32f",
  "version": 1
 }
