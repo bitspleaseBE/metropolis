@@ -1330,7 +1330,7 @@
       import { createVelo } from "./velo.js";
       import { createScooters } from "./scooters.js";
       import { createShops } from "./shops.js";
-      import { mealOffer } from "./street-buy.js";
+      import { careOffer, mealOffer } from "./street-buy.js";
       import { createInteriors } from "./interiors/interior-manager.js";
       import { createInteriorLoading } from "./interiors/interior-loading.js";
       import { createTerraces } from "./terraces.js";
@@ -2926,23 +2926,23 @@ let knifeLunge = null;
       function hideLinePlan() {
         if (linePlanEl) linePlanEl.style.display = "none";
       }
-      function mealAt(p) {
+      function counterAt(p) {
         if (!shops?.facing || playerCrash.dead) return null;
-        return mealOffer(shops.facing({ x: p.x, z: p.z, yaw: playerMotion.yaw() }), {
-          health: playerCrash.health,
-          money: hud.money,
-        });
+        const shop = shops.facing({ x: p.x, z: p.z, yaw: playerMotion.yaw() });
+        const state = { health: playerCrash.health, money: hud.money };
+        return careOffer(shop, state) || mealOffer(shop, state);
       }
-      function buyMealAt(p) {
-        const offer = mealAt(p);
+      function useCounter(p) {
+        const offer = counterAt(p);
         if (!offer || offer.action === "full" || offer.action === "closed") return false;
         if (offer.action === "broke") {
           hud.notify(offer.label, 1600);
           return true;
         }
-        const gained = playerCrash.heal(offer.heal);
+        const gained = playerCrash.heal(offer.action === "treat" ? 100 : offer.heal);
         if (gained <= 0) return false;
-        hud.spend(offer.price, "Meal");
+        if (offer.price) hud.spend(offer.price, "Meal");
+        else hud.notify("Treated", 1600);
         return true;
       }
       function handleInteractE() {
@@ -3003,7 +3003,7 @@ let knifeLunge = null;
         }
         if (onVelo) return;
         if (handleScooterE(p)) return;
-        if (buyMealAt(p)) return;
+        if (useCounter(p)) return;
         if (!onTram && !scooters?.isRiding() && interiors?.findEnterable(p, playerMotion.yaw()) && handleInteriorE(p)) return;
         const result = transit.tryInteract({ x: p.x, z: p.z });
         if (result.action === "plan") {
@@ -3097,16 +3097,19 @@ let knifeLunge = null;
           promptEl.style.display = "none";
         } else {
           const veloPrompt = velo && velo.getPrompt ? velo.getPrompt({ x: p.x, z: p.z }) : null;
-          const meal = !veloPrompt && mode === "walk" ? mealAt(p) : null;
-          const mealLine = meal && (meal.action === "meal" || meal.action === "broke") ? meal.label : "";
-          const doorPrompt = !veloPrompt && !mealLine && interiors && mode === "walk" ? interiors.prompt(p, playerMotion.yaw()) : null;
+          const counter = !veloPrompt && mode === "walk" ? counterAt(p) : null;
+          const counterLine =
+            counter && (counter.action === "treat" || counter.action === "meal" || counter.action === "broke")
+              ? counter.label
+              : "";
+          const doorPrompt = !veloPrompt && !counterLine && interiors && mode === "walk" ? interiors.prompt(p, playerMotion.yaw()) : null;
           if (veloPrompt) {
             rideEl.style.display = "none";
             showPrompt(veloPrompt);
-          } else if (mealLine) {
+          } else if (counterLine) {
             rideEl.style.display = "none";
             const shopPrompt = shops.getPrompt({ x: p.x, z: p.z, yaw: playerMotion.yaw() }, gameHour, gameDay);
-            showPrompt(shopPrompt ? `${shopPrompt}\n${mealLine}` : mealLine);
+            showPrompt(shopPrompt ? `${shopPrompt}\n${counterLine}` : counterLine);
           } else if (doorPrompt) {
             rideEl.style.display = "none";
             showPrompt(doorPrompt);

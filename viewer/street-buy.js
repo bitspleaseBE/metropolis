@@ -1,5 +1,6 @@
 /**
- * Food counters on the street. A meal is a flat price and a fixed heal.
+ * Street counters. A meal is a flat price and a fixed heal.
+ * A hospital, doctor, or clinic fills the bar and does not charge.
  */
 
 export const MEAL_PRICE = 8;
@@ -20,8 +21,14 @@ const FOOD = new Set([
   "kiosk",
 ]);
 
+const CARE = new Set(["hospital", "doctors", "clinic"]);
+
 export function isFoodKind(kind) {
   return FOOD.has(kind);
+}
+
+export function isCareKind(kind) {
+  return CARE.has(kind);
 }
 
 /**
@@ -45,6 +52,18 @@ export function mealOffer(shop, state) {
     heal: MEAL_HEAL,
     label: `E · meal · €${MEAL_PRICE}`,
   };
+}
+
+/**
+ * What E does at a hospital, doctor, or clinic.
+ * @returns {{ action: "treat" | "closed" | "full", price: number, heal: number, label: string } | null}
+ */
+export function careOffer(shop, state) {
+  if (!shop || !isCareKind(shop.kind)) return null;
+  if (shop.open !== true) return { action: "closed", price: 0, heal: 0, label: "Closed" };
+  const health = state?.health ?? 100;
+  if (health >= 100) return { action: "full", price: 0, heal: 0, label: "" };
+  return { action: "treat", price: 0, heal: 100 - health, label: "E · treated · full health" };
 }
 
 /** Apply a meal. Returns the next health and cash, or null when the offer is not a sale. */

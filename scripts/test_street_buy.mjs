@@ -3,7 +3,7 @@
  *   node scripts/test_street_buy.mjs
  */
 import assert from "node:assert/strict";
-import { MEAL_HEAL, MEAL_PRICE, buyMeal, isFoodKind, mealOffer } from "../viewer/street-buy.js";
+import { MEAL_HEAL, MEAL_PRICE, buyMeal, careOffer, isCareKind, isFoodKind, mealOffer } from "../viewer/street-buy.js";
 
 assert.equal(isFoodKind("bakery"), true);
 assert.equal(isFoodKind("pharmacy"), false);
@@ -22,5 +22,18 @@ assert.equal(next.money, 25 - MEAL_PRICE);
 assert.equal(next.health, 50 + MEAL_HEAL);
 assert.equal(buyMeal(deal, { health: 90, money: 25 }).health, 100);
 assert.equal(buyMeal(deal, { health: 50, money: 0 }), null);
+
+assert.equal(isCareKind("hospital"), true);
+assert.equal(isCareKind("doctors"), true);
+assert.equal(isCareKind("clinic"), true);
+assert.equal(isCareKind("pharmacy"), false);
+assert.equal(careOffer({ kind: "bakery", open: true }, { health: 40 }), null);
+assert.equal(careOffer({ kind: "hospital", open: false }, { health: 40 })?.action, "closed");
+assert.equal(careOffer({ kind: "doctors", open: true }, { health: 100 })?.action, "full");
+const ward = careOffer({ kind: "clinic", open: true }, { health: 12 });
+assert.equal(ward.action, "treat");
+assert.equal(ward.price, 0);
+assert.equal(ward.heal, 88);
+assert.equal(ward.label.includes("full health"), true);
 
 console.log("street-buy ok");
