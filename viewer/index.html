@@ -1330,6 +1330,7 @@
       import { createVelo } from "./velo.js";
       import { createScooters } from "./scooters.js";
       import { createShops } from "./shops.js";
+      import { mealOffer } from "./street-buy.js";
       import { createInteriors } from "./interiors/interior-manager.js";
       import { createInteriorLoading } from "./interiors/interior-loading.js";
       import { createTerraces } from "./terraces.js";
@@ -1639,6 +1640,7 @@ import { SLOTS } from "./weapons.js";
         get combat() { return combatPlayer; },
         get loot() { return loot; },
         get pedestrians() { return pedestrians; },
+        get crash() { return playerCrash; },
         get police() { return police; },
         get pixelRatio() { return pixelRatio; },
         get neighbours() { return neighbours; },
@@ -2924,6 +2926,25 @@ let knifeLunge = null;
       function hideLinePlan() {
         if (linePlanEl) linePlanEl.style.display = "none";
       }
+      function mealAt(p) {
+        if (!shops?.facing || playerCrash.dead) return null;
+        return mealOffer(shops.facing({ x: p.x, z: p.z, yaw: playerMotion.yaw() }), {
+          health: playerCrash.health,
+          money: hud.money,
+        });
+      }
+      function buyMealAt(p) {
+        const offer = mealAt(p);
+        if (!offer || offer.action === "full" || offer.action === "closed") return false;
+        if (offer.action === "broke") {
+          hud.notify(offer.label, 1600);
+          return true;
+        }
+        const gained = playerCrash.heal(offer.heal);
+        if (gained <= 0) return false;
+        hud.spend(offer.price, "Meal");
+        return true;
+      }
       function handleInteractE() {
         if (mode !== "walk") return;
         if (linePlanEl && linePlanEl.style.display === "block") {
@@ -2982,6 +3003,7 @@ let knifeLunge = null;
         }
         if (onVelo) return;
         if (handleScooterE(p)) return;
+        if (buyMealAt(p)) return;
         if (!onTram && !scooters?.isRiding() && interiors?.findEnterable(p, playerMotion.yaw()) && handleInteriorE(p)) return;
         const result = transit.tryInteract({ x: p.x, z: p.z });
         if (result.action === "plan") {
@@ -3075,10 +3097,16 @@ let knifeLunge = null;
           promptEl.style.display = "none";
         } else {
           const veloPrompt = velo && velo.getPrompt ? velo.getPrompt({ x: p.x, z: p.z }) : null;
-          const doorPrompt = !veloPrompt && interiors && mode === "walk" ? interiors.prompt(p, playerMotion.yaw()) : null;
+          const meal = !veloPrompt && mode === "walk" ? mealAt(p) : null;
+          const mealLine = meal && (meal.action === "meal" || meal.action === "broke") ? meal.label : "";
+          const doorPrompt = !veloPrompt && !mealLine && interiors && mode === "walk" ? interiors.prompt(p, playerMotion.yaw()) : null;
           if (veloPrompt) {
             rideEl.style.display = "none";
             showPrompt(veloPrompt);
+          } else if (mealLine) {
+            rideEl.style.display = "none";
+            const shopPrompt = shops.getPrompt({ x: p.x, z: p.z, yaw: playerMotion.yaw() }, gameHour, gameDay);
+            showPrompt(shopPrompt ? `${shopPrompt}\n${mealLine}` : mealLine);
           } else if (doorPrompt) {
             rideEl.style.display = "none";
             showPrompt(doorPrompt);

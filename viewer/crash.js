@@ -249,6 +249,15 @@ export function createPlayerCrash(THREE, camera, opts = {}) {
   return {
     start,
     hurt,
+    heal(amount) {
+      if (dead || c) return 0;
+      const add = Math.max(0, Number(amount) || 0);
+      if (add <= 0 || health >= 100) return 0;
+      const before = health;
+      health = Math.min(100, health + add);
+      if (health >= 100) sinceHit = Infinity;
+      return health - before;
+    },
     update,
     stopHorizontal,
     respawn,
