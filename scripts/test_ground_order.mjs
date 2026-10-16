@@ -8,6 +8,7 @@ import {
   LIFT_MAX,
   LIFT_STEP,
   applySurfaceOrder,
+  assignCoplanarLifts,
   auditSurfaceFlicker,
   coplanarLift,
   surfaceBias,
@@ -115,6 +116,66 @@ assert.ok(surfaceBias("park_path_3").units < surfaceBias("park_12").units);
   const report = auditSurfaceFlicker(root);
   assert.equal(report.checked, 2);
   assert.equal(report.pairs >= 1, true, "a duplicated strip is reported");
+}
+
+{
+  // The cathedral–Grote Markt case: two cobble strips, one shared hash slot.
+  const overlap = [
+    { name: "road_535539372", y: 0.04, minX: -39, maxX: 8, minZ: -113, maxZ: -101 },
+    { name: "road_1358635380", y: 0.04, minX: 7, maxX: 15, minZ: -114, maxZ: -105 },
+  ];
+  const lifts = assignCoplanarLifts(overlap);
+  assert.ok(Math.abs(lifts[0] - lifts[1]) >= LIFT_STEP * 0.5, "crossing cobbles take different steps");
+  assert.ok(lifts.every((lift) => lift > 0 && lift <= LIFT_MAX));
+  assert.equal(
+    wouldFlicker({ ...overlap[0], lift: lifts[0] }, { ...overlap[1], lift: lifts[1] }),
+    false,
+  );
+}
+
+{
+  const pile = [0, 1, 2, 3].map(() => ({
+    name: "road_same",
+    y: 0.04,
+    minX: 0,
+    maxX: 8,
+    minZ: 0,
+    maxZ: 4,
+  }));
+  const lifts = assignCoplanarLifts(pile);
+  assert.equal(new Set(lifts.map((lift) => lift.toFixed(6))).size, 4, "a stack of cobble patches all separate");
+  assert.ok(lifts.every((lift) => lift <= LIFT_MAX));
+}
+
+{
+  function strip(name, x0, x1) {
+    return {
+      name,
+      isMesh: true,
+      position: { y: 0 },
+      userData: {},
+      material: { userData: {}, polygonOffset: false, polygonOffsetFactor: 4, polygonOffsetUnits: 4 },
+      geometry: { boundingBox: { min: { x: x0, y: 0.04, z: 0 }, max: { x: x1, y: 0.04, z: 4 } } },
+      matrixWorld: { elements: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
+      updateMatrix() {
+        this.matrixWorld.elements[13] = this.position.y;
+      },
+    };
+  }
+  const strips = [strip("road_a", 0, 10), strip("road_a", 6, 14)];
+  const root = {
+    traverse(fn) {
+      for (const mesh of strips) fn(mesh);
+    },
+    updateMatrixWorld() {
+      for (const mesh of strips) mesh.updateMatrix();
+    },
+  };
+  applySurfaceOrder(root);
+  assert.ok(Math.abs(strips[0].position.y - strips[1].position.y) >= LIFT_STEP * 0.5);
+  const report = auditSurfaceFlicker(root);
+  assert.equal(report.pairs, 0, "applied lifts leave no shared depth");
+  assert.equal(strips[0].material.polygonOffsetFactor, 0);
 }
 
 console.log("ground-order ok");

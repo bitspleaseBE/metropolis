@@ -1359,7 +1359,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       import { createDistrictBorder } from "./district-border.js";
       import { shadeHedges } from "./hedge-shade.js";
       import { shadeStreets } from "./street-grit.js";
-      import { applySurfaceOrder, auditSurfaceFlicker, coplanarLift, surfaceBias } from "./ground-order.js";
+      import { applySurfaceOrder, auditSurfaceFlicker, surfaceBias } from "./ground-order.js";
       import { createPlayClock } from "./district-progress.js";
       import { createChunkStream } from "./chunk-stream.js";
       import { createFarField } from "./far-field.js";
@@ -3804,12 +3804,6 @@ let knifeLunge = null;
                     m.polygonOffsetFactor = bias.factor;
                     m.polygonOffsetUnits = bias.units;
                   }
-                  const lift = coplanarLift(obj.name);
-                  if (lift && !obj.userData._surfaceLift) {
-                    obj.position.y += lift;
-                    obj.userData._surfaceLift = lift;
-                    obj.updateMatrix();
-                  }
                   m.needsUpdate = true;
                 }
               }
@@ -3820,6 +3814,9 @@ let knifeLunge = null;
           visuals.applyAnisotropy(cityRoot);
           scene.add(cityRoot);
           cityRoot.updateMatrixWorld(true);
+          // Overlapping cobbles take different 0.25 mm steps. A shared slot is
+          // the patch that flickers between the cathedral and the Grote Markt.
+          applySurfaceOrder(cityRoot);
           const flicker = auditSurfaceFlicker(cityRoot);
           window.__metropolis.groundFlicker = flicker;
           console.info(

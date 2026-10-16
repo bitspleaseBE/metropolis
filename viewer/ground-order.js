@@ -4,9 +4,11 @@
  * the bias grows with the depth slope and the pieces swap every frame.
  *
  * Offset units stay constant (no slope factor). Strips that share a height
- * (crossing roads, sidewalk ribbons, park paths) each take a stable 0.25 mm
- * step so they no longer share a depth. The whole range stays under 6 mm,
- * inside the 1 cm gap between a road and the path above it.
+ * (crossing roads, sidewalk ribbons, park paths) take a 0.25 mm step, and
+ * strips whose footprints overlap are given different steps. A name hash
+ * still collides, and those collisions are the patches that flicker. The
+ * whole range stays under 6 mm, inside the 1 cm gap between a road and the
+ * path above it.
  */
 
 const STEP_M = 0.00025;
@@ -55,15 +57,91 @@ function slotOf(name) {
   return (h >>> 0) % SLOTS;
 }
 
-/** Metres to lift a coplanar strip. 0 for layers that do not tile over each other. */
+/** Carriageway, pavement, or park ribbon. These are the strips that tile over each other. */
+export function stackClass(name) {
+  const n = surfaceKey(name);
+  if (n.startsWith("road_") || n.startsWith("park_path")) return "carriage";
+  if (n.startsWith("sidewalk")) return "walk";
+  if (n.startsWith("park_")) return "park";
+  return "";
+}
+
+/**
+ * One lift per strip. Overlapping strips in the same layer get different
+ * steps, so a crossing never shares a depth. Isolated strips still move one
+ * step off the baked height. Lifts stay inside LIFT_MAX.
+ * @param {{ name: string, y: number, minX: number, maxX: number, minZ: number, maxZ: number }[]} entries
+ * @returns {number[]}
+ */
+export function assignCoplanarLifts(entries) {
+  const lifts = entries.map(() => 0);
+  const groups = new Map();
+  entries.forEach((entry, index) => {
+    const cls = stackClass(entry && entry.name);
+    if (!cls) return;
+    const band = Math.round((entry.y || 0) / 0.005);
+    const key = `${cls}:${band}`;
+    let group = groups.get(key);
+    if (!group) groups.set(key, (group = []));
+    group.push(index);
+  });
+  for (const idxs of groups.values()) {
+    const neighbors = idxs.map(() => new Set());
+    const local = new Map(idxs.map((index, k) => [index, k]));
+    const cell = 48;
+    const bins = new Map();
+    for (const index of idxs) {
+      const entry = entries[index];
+      const x0 = Math.floor(entry.minX / cell);
+      const x1 = Math.floor(entry.maxX / cell);
+      const z0 = Math.floor(entry.minZ / cell);
+      const z1 = Math.floor(entry.maxZ / cell);
+      for (let x = x0; x <= x1; x++) {
+        for (let z = z0; z <= z1; z++) {
+          const key = `${x}|${z}`;
+          let bin = bins.get(key);
+          if (!bin) bins.set(key, (bin = []));
+          bin.push(index);
+        }
+      }
+    }
+    for (const bin of bins.values()) {
+      for (let a = 0; a < bin.length; a++) {
+        for (let b = a + 1; b < bin.length; b++) {
+          const i = bin[a];
+          const j = bin[b];
+          if (!xzOverlap(entries[i], entries[j])) continue;
+          neighbors[local.get(i)].add(local.get(j));
+          neighbors[local.get(j)].add(local.get(i));
+        }
+      }
+    }
+    const order = idxs.map((_, k) => k).sort((a, b) => {
+      const degree = neighbors[b].size - neighbors[a].size;
+      if (degree) return degree;
+      return String(entries[idxs[a]].name).localeCompare(String(entries[idxs[b]].name));
+    });
+    const color = new Array(idxs.length).fill(-1);
+    let maxColor = 0;
+    for (const k of order) {
+      const used = new Set();
+      for (const n of neighbors[k]) if (color[n] >= 0) used.add(color[n]);
+      let c = 0;
+      while (used.has(c)) c += 1;
+      color[k] = c;
+      if (c > maxColor) maxColor = c;
+    }
+    const span = maxColor + 1;
+    const step = span * STEP_M <= LIFT_MAX ? STEP_M : LIFT_MAX / span;
+    for (let k = 0; k < idxs.length; k++) lifts[idxs[k]] = (color[k] + 1) * step;
+  }
+  return lifts;
+}
+
+/** Metres to lift a coplanar strip when it is the only one in view. */
 export function coplanarLift(name) {
   const n = surfaceKey(name);
-  const stacked =
-    n.startsWith("road_") ||
-    n.startsWith("park_path") ||
-    n.startsWith("sidewalk") ||
-    n.startsWith("park_");
-  if (!stacked) return 0;
+  if (!stackClass(name)) return 0;
   // Slot 0 still leaves the strip on the baked height, so every name moves
   // at least one step. 6 mm stays inside the 1 cm road-to-path gap.
   return (slotOf(name) + 1) * STEP_M;
@@ -81,9 +159,10 @@ export function xzOverlap(a, b) {
 export function wouldFlicker(a, b) {
   if (!a || !b || a === b) return false;
   if (!xzOverlap(a, b)) return false;
-  const ya = a.y + coplanarLift(a.name);
-  const yb = b.y + coplanarLift(b.name);
-  return Math.abs(ya - yb) < STEP_M;
+  const la = Number.isFinite(a.lift) ? a.lift : coplanarLift(a.name);
+  const lb = Number.isFinite(b.lift) ? b.lift : coplanarLift(b.name);
+  // Half a step: float error must not call an exact step a collision.
+  return Math.abs(a.y + la - (b.y + lb)) < STEP_M * 0.5;
 }
 
 /**
@@ -91,10 +170,19 @@ export function wouldFlicker(a, b) {
  * lift is baked into the tile.
  * @returns {{ biased: number, lifted: number }}
  */
+function raiseStrip(obj, lift) {
+  if (!lift || obj.userData?._surfaceLift) return false;
+  obj.userData = obj.userData || {};
+  obj.position.y += lift;
+  obj.userData._surfaceLift = lift;
+  if (typeof obj.updateMatrix === "function") obj.updateMatrix();
+  return true;
+}
+
 export function applySurfaceOrder(root) {
   if (!root || typeof root.traverse !== "function") return { biased: 0, lifted: 0 };
   let biased = 0;
-  let lifted = 0;
+  const pending = [];
   root.traverse((obj) => {
     if (!obj.isMesh) return;
     const bias = surfaceBias(obj.name);
@@ -108,15 +196,25 @@ export function applySurfaceOrder(root) {
         biased += 1;
       }
     }
-    const lift = coplanarLift(obj.name);
-    if (lift && !obj.userData?._surfaceLift) {
-      obj.userData = obj.userData || {};
-      obj.position.y += lift;
-      obj.userData._surfaceLift = lift;
-      if (typeof obj.updateMatrix === "function") obj.updateMatrix();
-      lifted += 1;
-    }
+    if (!stackClass(obj.name) || obj.userData?._surfaceLift) return;
+    pending.push(obj);
   });
+  if (typeof root.updateMatrixWorld === "function") root.updateMatrixWorld(true);
+  const placed = [];
+  const loose = [];
+  for (const obj of pending) {
+    const foot = worldFootprint(obj);
+    if (foot) placed.push({ obj, foot });
+    else loose.push(obj);
+  }
+  const assigned = assignCoplanarLifts(placed.map((item) => item.foot));
+  let lifted = 0;
+  for (let i = 0; i < placed.length; i++) {
+    if (raiseStrip(placed[i].obj, assigned[i])) lifted += 1;
+  }
+  for (const obj of loose) {
+    if (raiseStrip(obj, coplanarLift(obj.name))) lifted += 1;
+  }
   if (typeof root.updateMatrixWorld === "function") root.updateMatrixWorld(true);
   return { biased, lifted };
 }
@@ -148,7 +246,7 @@ function worldFootprint(obj) {
     }
   }
   const lifted = obj.userData?._surfaceLift || 0;
-  return { name: obj.name || "", y: minY - lifted, minX, maxX, minZ, maxZ };
+  return { name: obj.name || "", y: minY - lifted, lift: lifted, minX, maxX, minZ, maxZ };
 }
 
 /**
