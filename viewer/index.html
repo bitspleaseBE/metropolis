@@ -1322,6 +1322,7 @@
       import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
       import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
       import { createVisualQuality, resolveQuality, storeQuality } from "./visual-quality.js";
+import { dressBareWalls } from "./wall-front.js";
       import { createTraffic } from "./traffic.js";
       import { createTransit } from "./transit.js";
       import { createPedestrians } from "./pedestrians.js";
@@ -3712,7 +3713,8 @@ let knifeLunge = null;
             console.warn("[metropolis] pavement frontage skipped", err);
           }
           const shading = downgradeCityMaterials(cityRoot);
-          console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr`);
+          const bareWalls = dressBareWalls(cityRoot);
+          console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr, ${bareWalls} bare walls`);
           const liquid = applyLiquidMaterials(THREE, cityRoot);
           if (liquid.upgraded || liquid.ponds) {
             console.info(`[metropolis] water: ${liquid.upgraded} liquid materials, ${liquid.ponds} ponds sunk`);
@@ -4107,6 +4109,7 @@ let knifeLunge = null;
                 catalog,
                 onChunkLoaded: (chunkRoot) => {
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                  dressBareWalls(chunkRoot);
                   applySurfaceOrder(chunkRoot);
                   shadeHedges(chunkRoot);
                   shadeStreets(chunkRoot);
@@ -4162,6 +4165,7 @@ let knifeLunge = null;
               project: projectGateLatLon,
               onChunkLoaded: (chunkRoot) => {
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
+                dressBareWalls(chunkRoot);
                 applySurfaceOrder(chunkRoot);
                 shadeHedges(chunkRoot);
                 shadeStreets(chunkRoot);
