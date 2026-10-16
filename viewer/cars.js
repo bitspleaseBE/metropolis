@@ -2,9 +2,11 @@
  * Belgian 2025-26 car fleet: procedural real-model GLBs from ./cars/ (built by
  * blender/build_car_models.py). Each GLB has a plain `car_paint` material that is
  * recoloured per car, `car_headlight` / `car_taillight` lenses that are swapped for the
- * shared night-glow lamp materials, and four `wheel-*` nodes spun about their axles.
+ * shared night-glow lamp materials, a driver in the left window, and four `wheel-*` nodes spun about their axles.
  * Falls back to [] when GLTFLoader is unavailable (headless Node sims).
  */
+
+import { shadeDrivers } from "./car-driver.js";
 
 const FLEET_URL = new URL("./cars/fleet.json", import.meta.url);
 
@@ -152,6 +154,7 @@ export async function loadCarTemplates(THREE, opts = {}) {
           const wb = new THREE.Box3().setFromObject(wheels[0]);
           wheelRadius = Math.max(0.2, (wb.max.y - wb.min.y) * 0.5);
         }
+        shadeDrivers(root);
 
         out.push({
           id: spec.id,
