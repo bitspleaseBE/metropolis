@@ -51,23 +51,25 @@ const SIZE = {
   doorMat: null,
 };
 
+// `dado` is the lower wall finish (wood panel, tile, stone, block). A tall dado
+// covers the whole wall. Colours stay well under white so the room reads as a place.
 const STYLE = {
-  supermarket: { h: 4.2, floor: "tile", wall: 0xeeeeea, front: 0x2f3134 },
-  grocery: { h: 3.2, floor: "tile", wall: 0xf1ede4, front: 0x3a3c40 },
-  restaurant: { h: 3.3, floor: "wood", wall: 0xe8dccb, front: 0x3b2f27 },
-  bar_coffee: { h: 3.3, floor: "wood", wall: 0xe9dfcf, front: 0x3b2f27 },
-  bank: { h: 3.6, floor: "terrazzo", wall: 0xf3f2ef, front: 0x2c3036 },
-  care: { h: 3.2, floor: "vinyl", wall: 0xf4f7f6, front: 0x40464c },
-  garage: { h: 5.0, floor: "concrete", wall: 0xd9dcdf, front: 0x34383c },
+  supermarket: { h: 4.2, floor: "tile", wall: 0xb7bbb4, front: 0x2f3134, dado: "tile", dadoH: 1.4 },
+  grocery: { h: 3.2, floor: "tile", wall: 0xd2be9a, front: 0x3a3c40, dado: "tile", dadoH: 1.15 },
+  restaurant: { h: 3.3, floor: "wood", wall: 0xc47a4a, front: 0x3b2f27, dado: "wood", dadoH: 1.15, ceiling: 0xe7d7c4 },
+  bar_coffee: { h: 3.3, floor: "wood", wall: 0xc4b196, front: 0x3b2f27, dado: "wood", dadoH: 1.2 },
+  bank: { h: 3.6, floor: "terrazzo", wall: 0xc8c0b0, front: 0x2c3036, dado: "stone", dadoH: 1.25 },
+  care: { h: 3.2, floor: "vinyl", wall: 0x7f9e96, front: 0x40464c, dado: "tile", dadoH: 1.2 },
+  garage: { h: 5.0, floor: "concrete", wall: 0x8d9194, front: 0x34383c, dado: "block", dadoH: 5 },
 };
 const VARIANT_STYLE = {
-  fastfood: { floor: "tile", wall: 0xf4efe6 },
-  frituur: { floor: "checker", wall: 0xf6f1e3 },
-  brown: { floor: "wood", wall: 0x6b4a33, ceiling: 0x4a3324 },
-  cocktail: { floor: "terrazzo", wall: 0x2a2433, ceiling: 0x1f1b26 },
-  coffee: { floor: "checker", wall: 0xefe8dc },
-  showroom: { floor: "terrazzo", h: 4.2, wall: 0xf2f2f0 },
-  pharmacy: { floor: "tile" },
+  fastfood: { floor: "tile", wall: 0xd6453d, dado: "tile", dadoH: 1.35 },
+  frituur: { floor: "checker", wall: 0xe0b23a, dado: "tile", dadoH: 1.35 },
+  brown: { floor: "wood", wall: 0x5c3d28, ceiling: 0x3a2a1c, dado: "wood", dadoH: 4 },
+  cocktail: { floor: "terrazzo", wall: 0x2a2433, ceiling: 0x1f1b26, dado: "darkwood", dadoH: 4 },
+  coffee: { floor: "checker", wall: 0xc4b196, dado: "wood", dadoH: 1.05 },
+  showroom: { floor: "terrazzo", h: 4.2, wall: 0xb9b6b0, dado: "stone", dadoH: 1.0 },
+  pharmacy: { floor: "tile", wall: 0x8fb8a8, dado: "tile", dadoH: 1.35 },
 };
 
 const DOOR_W = 1.0;
@@ -305,6 +307,8 @@ class Layout {
       wall: this.style.wall,
       front: this.style.front,
       ceiling: this.style.ceiling,
+      dado: this.style.dado || "",
+      dadoH: this.style.dadoH || 0,
       door: { x: doorX, w: DOOR_W },
       sign: { x: this.signX ?? 0 },
       placements: this.placements,

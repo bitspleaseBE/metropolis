@@ -19,6 +19,7 @@ import { mulberry32 } from "./rng.js";
 import { findPath } from "./interior-gen.js";
 import { wordmarkTexture } from "./furniture.js";
 import { dinerMode, foodOnTable, hipDrop } from "./table-seat.js";
+import { isUniform, staffToSpawn } from "./crew-plan.js";
 
 const STAFF = ["Staff_Female_01", "Staff_Male_01"];
 const MEDICAL = ["Medical_Female_01", "Medical_Male_02"];
@@ -187,10 +188,9 @@ export function createInteriorNpcs({ THREE, people }) {
     const members = [];
 
     const care = layout.template === "care";
-    const spots = [...layout.staffSpots].sort((a, b) => (a.role === "cashier" ? -1 : b.role === "cashier" ? 1 : 0));
-    const nStaff = Math.max(1, Math.min(Number(rec.staff) || 1, spots.length));
+    const spots = staffToSpawn(layout.staffSpots, layout.template, Number(rec.staff) || 1);
     let alt = Math.floor(R() * 2);
-    const staffJobs = spots.slice(0, nStaff).map((s) => {
+    const staffJobs = spots.map((s) => {
       const id = s.role === "chef" ? CHEF : care ? MEDICAL[alt++ % 2] : STAFF[alt++ % 2];
       if (!people) return Promise.resolve({ inst: null, spot: s });
       return people
@@ -205,9 +205,17 @@ export function createInteriorNpcs({ THREE, people }) {
     const freeSpots = dining && seatSpots.length ? seatSpots : layout.spots.filter((s) => s.kind !== "queue" || R() < 0.5);
     const nCust = people ? Math.min(Number(rec.customers) || 0, MAX_CUSTOMERS, freeSpots.length) : 0;
     const custJobs = [];
+    const seen = new Map();
+    let want = R() < 0.5 ? "f" : "m";
+    const civilian = (p) => !isUniform(p) && (p.age !== "child" || R() < 0.25);
     for (let i = 0; i < nCust; i++) {
-      const t = people.pickTemplate((p) => p.age !== "child" || R() < 0.25);
+      const t =
+        people.pickTemplate((p) => civilian(p) && p.sex === want && (seen.get(p.id) || 0) < 2) ||
+        people.pickTemplate((p) => civilian(p) && (seen.get(p.id) || 0) < 2) ||
+        people.pickTemplate(civilian);
       if (!t) break;
+      seen.set(t.person.id, (seen.get(t.person.id) || 0) + 1);
+      want = want === "f" ? "m" : "f";
       const inst = people.instance(t);
       if (!inst) break;
       custJobs.push(people.loadIdle(t).then(() => inst, () => inst));

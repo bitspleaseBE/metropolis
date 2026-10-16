@@ -56,8 +56,8 @@ function sharesHousehold(personOrCluster, withPersonOrCluster) {
 }
 
 const SERVICE = new Set(["Police_Male_03", "Police_Male_04"]);
-/** Police and shop staff (manifest role "staff") are only ever requested by id. */
-const reserved = (p) => SERVICE.has(p.id) || p.role === "staff";
+/** Police, counter staff, cooks, and nurses are only ever requested by id. */
+const reserved = (p) => SERVICE.has(p.id) || p.role === "staff" || /^(Staff_|Medical_|Chef_)/.test(p.id || "");
 
 const HOUSEHOLDS = [
   { kind: "single", w: 30 },

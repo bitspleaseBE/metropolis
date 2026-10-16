@@ -65,7 +65,7 @@ export function rosterIds(people, districtId, count, rng = Math.random) {
       : { black: 0.25, arab: 0.25, flemish: 0.5 };
   const pools = { jewish: [], arab: [], black: [], flemish: [] };
   for (const p of people) {
-    if (p.role === "staff") continue;
+    if (p.role === "staff" || /^(Staff_|Medical_|Chef_)/.test(p.id || "")) continue;
     const b = bucketOf(p.look);
     if (!pools[b]) continue;
     if (b === "jewish" && districtId !== JEWISH_DISTRICT) continue;
