@@ -14,7 +14,8 @@
  * under that limit (per-driver variance) and brake kinematically for leaders,
  * red lights, crossing traffic, trams/buses, the player and pedestrians. Waiting at a
  * red is never treated as "stuck". A jam gets a horn, and a car that is stopped or
- * shedding speed lights its own tail lamps. Restless drivers drop a blocked
+ * shedding speed lights its own tail lamps. Approaching a turn, the lamp on
+ * that side blinks amber. Restless drivers drop a blocked
  * exit and take another street; the rest wait. Cars NEVER pass through each other: a car that is
  * genuinely blocked for too long (gridlock, bad geometry) is despawned and respawned on
  * a free road instead of sliding through its blocker and leaving a ghost behind. Cars
@@ -27,6 +28,7 @@ import { STARTER_CARS, cloneCarMesh, loadCarTemplates, makeLampParts, pickCarTem
 import { fetchJsonCached } from "./json-cache.js";
 import { isRestless, jamReaction } from "./traffic-jam.js";
 import { isBraking, tailRGB } from "./brake-lights.js";
+import { AMBER, indicatorLit, indicatorSide, indicatorUniform, shadeIndicator } from "./indicators.js";
 
 const KMH = 1 / 3.6;
 const DEFAULT_SPEED_KMH = {
@@ -626,20 +628,41 @@ const HEAD_NIGHT = [1.0, 0.94, 0.72];
 const TAIL_DAY = [0.12, 0.02, 0.02];
 const TAIL_NIGHT = [1.0, 0.1, 0.08];
 
+function swapTail(mesh, from, to) {
+  const list = [].concat(mesh.material);
+  let hit = false;
+  const next = list.map((m) => {
+    if (m !== from) return m;
+    hit = true;
+    return to;
+  });
+  if (hit) mesh.material = Array.isArray(mesh.material) ? next : next[0];
+}
+
 function ownTailLamp(THREE, mesh, parts) {
-  const mat = parts.tailMat.clone();
+  const tails = [];
   mesh.traverse((o) => {
     if (!o.isMesh || !o.material) return;
-    const list = [].concat(o.material);
-    let hit = false;
-    const next = list.map((m) => {
-      if (m !== parts.tailMat) return m;
-      hit = true;
-      return mat;
-    });
-    if (hit) o.material = Array.isArray(o.material) ? next : next[0];
+    if ([].concat(o.material).some((m) => m === parts.tailMat)) tails.push(o);
   });
-  mesh.userData.tailMat = mat;
+  if (!tails.length) return;
+  // One body mesh holds both lenses: the shader picks the side from vertex X.
+  // Separate lamp boxes (the headless fallback) get a material each.
+  if (tails.length === 1) {
+    const mat = parts.tailMat.clone();
+    shadeIndicator(mat);
+    swapTail(tails[0], parts.tailMat, mat);
+    tails[0].onBeforeRender = () => {
+      indicatorUniform.value = mesh.userData.indSide || 0;
+    };
+    mesh.userData.tailMat = mat;
+    return;
+  }
+  const left = parts.tailMat.clone();
+  const right = parts.tailMat.clone();
+  for (const o of tails) swapTail(o, parts.tailMat, o.position.x >= 0 ? left : right);
+  mesh.userData.tailMat = left;
+  mesh.userData.tailRight = right;
 }
 
 function makeBoxCarMesh(THREE, parts, colorIndex) {
@@ -1792,8 +1815,33 @@ export async function createTraffic(scene, THREE, opts = {}) {
     return { moving, total: cars.length, avgKmh: (sum / Math.max(1, cars.length)) * 3.6, waits, respawns: { ...respawnCounts } };
   }
 
+  function plannedIndicator(car) {
+    const nx = car.next;
+    if (!nx || nx.recycle) return "";
+    const other = paths[nx.index];
+    if (!other) return "";
+    const pts = other.points;
+    const nReverse = nx.flip ? !car.reverse : nx.reverse;
+    const a = nReverse ? pts[pts.length - 2] : pts[0];
+    const b = nReverse ? pts[pts.length - 1] : pts[1];
+    if (!a || !b) return "";
+    const ix = nReverse ? a.x - b.x : b.x - a.x;
+    const iz = nReverse ? a.z - b.z : b.z - a.z;
+    const len = Math.hypot(ix, iz) || 1;
+    return indicatorSide(car.tan.x, car.tan.z, ix / len, iz / len);
+  }
+
+  function paintOneTail(mat, rgb, amber) {
+    if (!mat) return;
+    if (amber) mat.color.setRGB(AMBER[0], AMBER[1], AMBER[2]);
+    else mat.color.setRGB(rgb[0], rgb[1], rgb[2]);
+  }
+
   function dispose() {
-    for (const car of cars) car.mesh.userData.tailMat?.dispose();
+    for (const car of cars) {
+      car.mesh.userData.tailMat?.dispose();
+      car.mesh.userData.tailRight?.dispose();
+    }
     scene.remove(root);
     parts.bodyGeo.dispose();
     parts.cabinGeo.dispose();
@@ -1816,8 +1864,15 @@ export async function createTraffic(scene, THREE, opts = {}) {
       const car = cars[i];
       const mat = car.mesh.userData.tailMat;
       if (!mat || !car.mesh.visible) continue;
-      const [r, g, b] = tailRGB(nightT, isBraking(car.velocity, car.desire ?? car.velocity, car.wait));
-      mat.color.setRGB(r, g, b);
+      const rgb = tailRGB(nightT, isBraking(car.velocity, car.desire ?? car.velocity, car.wait));
+      const lit = indicatorLit(simTime, plannedIndicator(car));
+      if (mat.userData.uInd) {
+        mat.color.setRGB(rgb[0], rgb[1], rgb[2]);
+        car.mesh.userData.indSide = lit === "left" ? 1 : lit === "right" ? -1 : 0;
+      } else {
+        paintOneTail(mat, rgb, lit === "left");
+        paintOneTail(car.mesh.userData.tailRight, rgb, lit === "right");
+      }
     }
   }
 
