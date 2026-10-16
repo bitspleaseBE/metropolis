@@ -43,7 +43,6 @@ TOOLING_MODULES = frozenset({
     "district_review",
     "facade_windows",
     "menu_map",
-    "pad_bridge",
     "plaza_aerial",
     "special_buildings",
     "surface_textures",

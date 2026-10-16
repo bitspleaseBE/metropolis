@@ -21,7 +21,6 @@ const DEAD = 0.18;
 const HOLD_MS = 160;
 const DROP_MS = 1200;
 const HID_FRESH_MS = 1200;
-const BRIDGE_FRESH_MS = 1500;
 
 /** Sony pads Chrome's Gamepad API misses, read through WebHID instead. */
 const SONY_FILTERS = [
@@ -337,10 +336,6 @@ export function createGamepad() {
   let hidDevice = null;
   let hidPad = null;
   let hidAt = 0;
-  let bridgePad = null;
-  let bridgeAt = 0;
-  let bridgeBusy = false;
-  let bridgeWait = 0;
 
   function emit(info) {
     for (const fn of listeners) fn(info);
@@ -453,18 +448,12 @@ export function createGamepad() {
   }
 
   function poll() {
-    pullBridge();
     const list = typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : [];
     const now = performance.now();
     const api = choosePad(list);
-    const bridgeFresh = bridgePad && now - bridgeAt < BRIDGE_FRESH_MS;
     const hidFresh = hidPad && now - hidAt < HID_FRESH_MS;
-    // Use whichever source is actually moving. A browser gamepad can sit
-    // "connected" at rest while the bridge has the sticks, and the reverse
-    // happens when the OS reader is frozen.
-    const bridge = bridgeFresh ? bridgePad : null;
     const hid = hidFresh ? hidPad : null;
-    const raw = [bridge, api, hid].find((pad) => pad && padEnergy(pad) > 0.08) || bridge || api || hid;
+    const raw = [api, hid].find((pad) => pad && padEnergy(pad) > 0.08) || api || hid;
     if (raw && padEnergy(raw) > 0.08) receiving = true;
     const presenceChanged = markSeen(raw);
     const pad = enabled ? raw : null;
@@ -489,33 +478,6 @@ export function createGamepad() {
       id = pad.id;
     }
     return publish(read(pad));
-  }
-
-  function pullBridge() {
-    if (bridgeBusy || performance.now() < bridgeWait) return;
-    if (typeof location === "undefined") return;
-    if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
-    bridgeBusy = true;
-    fetch("/pad-state", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!data) {
-          bridgePad = null;
-          bridgeWait = performance.now() + 1000;
-          return;
-        }
-        const pad = padFromBridge(data);
-        bridgePad = pad;
-        if (pad) bridgeAt = performance.now();
-        else bridgeWait = performance.now() + 400;
-      })
-      .catch(() => {
-        bridgePad = null;
-        bridgeWait = performance.now() + 1000;
-      })
-      .finally(() => {
-        bridgeBusy = false;
-      });
   }
 
   function onHidReport(event) {
