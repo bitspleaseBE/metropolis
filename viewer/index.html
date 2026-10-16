@@ -1328,7 +1328,8 @@ import { dressBareWalls } from "./wall-front.js";
       import { createPedestrians } from "./pedestrians.js";
       import { createMicromobility } from "./micromobility.js";
       import { preloadStarter } from "./characters.js";
-      import { createVelo } from "./velo.js";
+      import { createVelo, hideBakedVeloRacks } from "./velo.js";
+      import { applyVeloSeats } from "./velo-seat.js";
       import { createScooters } from "./scooters.js";
       import { createShops } from "./shops.js";
       import { bikeOffer, careOffer, mealOffer } from "./street-buy.js";
@@ -2095,7 +2096,16 @@ let knifeLunge = null;
           const res = await fetch(distUrl("velo.json"));
           if (res.ok) {
             const doc = await res.json();
-            for (const st of doc.stations || []) {
+            let roadsDoc = null;
+            try {
+              const roadsRes = await fetch(distUrl("roads.json"));
+              if (roadsRes.ok) roadsDoc = await roadsRes.json();
+            } catch (err) {
+              console.warn("[metropolis] parked-car velo roads skipped", err);
+            }
+            const stations = (doc.stations || []).map((st) => ({ ...st }));
+            if (roadsDoc) applyVeloSeats(stations, roadsDoc);
+            for (const st of stations) {
               const yaw = st.yaw || 0;
               const half = (st.railLength || 8) * 0.5 + 0.4;
               const ax = Math.cos(yaw);
@@ -3714,6 +3724,7 @@ let knifeLunge = null;
           }
           const shading = downgradeCityMaterials(cityRoot);
           const bareWalls = dressBareWalls(cityRoot);
+          hideBakedVeloRacks(cityRoot);
           console.info(`[metropolis] shading: ${shading.lambert} lambert, ${shading.pbr} pbr, ${bareWalls} bare walls`);
           const liquid = applyLiquidMaterials(THREE, cityRoot);
           if (liquid.upgraded || liquid.ponds) {
@@ -4110,6 +4121,7 @@ let knifeLunge = null;
                 onChunkLoaded: (chunkRoot) => {
                   if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                   dressBareWalls(chunkRoot);
+                  hideBakedVeloRacks(chunkRoot);
                   applySurfaceOrder(chunkRoot);
                   shadeHedges(chunkRoot);
                   shadeStreets(chunkRoot);
@@ -4166,6 +4178,7 @@ let knifeLunge = null;
               onChunkLoaded: (chunkRoot) => {
                 if (window.__buildingLift) raiseStreetBuildings(chunkRoot, window.__buildingLift);
                 dressBareWalls(chunkRoot);
+                hideBakedVeloRacks(chunkRoot);
                 applySurfaceOrder(chunkRoot);
                 shadeHedges(chunkRoot);
                 shadeStreets(chunkRoot);

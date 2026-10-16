@@ -1,15 +1,24 @@
 /**
  * Velo Antwerpen: take/return city bikes at GBFS stations (E).
  *
- * Dock rails stay in the district GLB. Docked bikes are `velo.glb` instances
- * so a take can hide that slot and a return can put the same model back.
+ * The district GLB bakes a near-black rail that a rider cannot see, and the
+ * published yaw can lay that rail across the carriageway. Docks are seated
+ * onto the pavement at runtime and the rack is drawn here, so the stop is
+ * the thing in front of the bike. Docked bikes are `velo.glb` instances.
  */
+import { applyVeloSeats, BIKE_REACH, dockSolid, rackPieces } from "./velo-seat.js";
 
 /** Resolve at fetch time — import runs before district-boot's ready() may upgrade base. */
 function veloUrl() {
   return (
     (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("velo.json")) ||
     "./velo.json"
+  );
+}
+function roadsUrl() {
+  return (
+    (typeof window !== "undefined" && typeof window.districtUrl === "function" && window.districtUrl("roads.json")) ||
+    "./roads.json"
   );
 }
 const BOARD_DIST = 4.0; // m to the rail (not only the centre point)
@@ -21,12 +30,11 @@ const MAX_DOCK_BIKES = 20;
 // The ride model is ~23k triangles; a docked bike is ~10 px tall at 150 m, so farther ones are not drawn.
 const DOCK_DRAW_M = 150;
 const DOCK_REFRESH_M = 15;
-// Front axle is 0.72 m ahead of the bottom bracket (scripts/build_velo_glb.py).
-// The dock wheel guide sits 0.42 m street-side of the rail.
-const DOCK_GUIDE = 0.42;
-const FRONT_WHEEL = 0.72;
-const DOCK_PAD = DOCK_GUIDE + FRONT_WHEEL;
+// Front axle is 0.72 m ahead of the bottom bracket, and the wheel guide sits
+// 0.42 m street-side of the rail (scripts/build_velo_glb.py). BIKE_REACH is that sum.
+const DOCK_PAD = BIKE_REACH;
 const BAKED_DOCK_BIKE = /(?:^|_)velo_(?:frame_red|silver|mudguard|tire|bike(?:_\d+)?)$/;
+const BAKED_DOCK_RACK = /(?:^|_)velo_(?:dock_metal|dock_screen|dock_panel|accent_red)$/;
 
 /**
  * Ride points in the bike's own frame: metres, front −Z, origin on the ground
@@ -174,6 +182,18 @@ function hideBakedDockBikes(root) {
   if (n) console.info(`[metropolis] velo: hid ${n} baked stand-in dock bikes`);
 }
 
+/** Hide the baked dock rail. The runtime rack replaces it, on the pavement. */
+export function hideBakedVeloRacks(root) {
+  if (!root?.traverse) return 0;
+  let n = 0;
+  root.traverse((o) => {
+    if (!BAKED_DOCK_RACK.test(o.name || "")) return;
+    o.visible = false;
+    n += 1;
+  });
+  return n;
+}
+
 /** Rail axes in Three XZ: tan = local +X, street = local +Y after z = −y. */
 function railFrame(st) {
   const cos = Math.cos(st.yaw);
@@ -271,6 +291,94 @@ function createDockRack(THREE, scene, capacity) {
   };
 }
 
+/**
+ * The rack a rider can see: a silver beam at the front wheel, posts, and a red
+ * terminal at the head of the row. Shared boxes, a handful of draw calls.
+ */
+function createDockHardware(THREE, scene, stationCount) {
+  const metal = new THREE.MeshStandardMaterial({ color: 0xc5ced6, metalness: 0.62, roughness: 0.32 });
+  const red = new THREE.MeshStandardMaterial({ color: 0xd01218, metalness: 0.18, roughness: 0.46 });
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  const n = Math.max(1, stationCount);
+  const make = (mat, cap, name) => {
+    const mesh = new THREE.InstancedMesh(box, mat, cap);
+    mesh.name = name;
+    mesh.count = 0;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    mesh.matrixAutoUpdate = false;
+    mesh.frustumCulled = false;
+    scene.add(mesh);
+    return mesh;
+  };
+  const beam = make(metal, n, "velo_rack_beam");
+  const bar = make(metal, n, "velo_rack_bar");
+  const posts = make(metal, n * 14, "velo_rack_post");
+  const totem = make(red, n, "velo_rack_totem");
+  const meshes = [beam, bar, posts, totem];
+  const q = new THREE.Quaternion();
+  const p = new THREE.Vector3();
+  const s = new THREE.Vector3();
+  const m = new THREE.Matrix4();
+  const up = new THREE.Vector3(0, 1, 0);
+  let dirty = true;
+  let cx = Infinity;
+  let cz = Infinity;
+
+  function put(mesh, i, x, y, z, yaw, sx, sy, sz) {
+    q.setFromAxisAngle(up, yaw);
+    mesh.setMatrixAt(i, m.compose(p.set(x, y, z), q, s.set(sx, sy, sz)));
+  }
+
+  function rebuild(stations, x, z) {
+    let beams = 0;
+    let bars = 0;
+    let nPosts = 0;
+    let totems = 0;
+    for (const st of stations) {
+      if (Math.hypot(st.x - x, st.z - z) > DOCK_DRAW_M + (st.railLength || 8)) continue;
+      const rack = rackPieces(st);
+      const yaw = rack.yaw;
+      put(beam, beams++, rack.beam.x, rack.beam.y, rack.beam.z, yaw, rack.beam.sx, rack.beam.sy, rack.beam.sz);
+      put(bar, bars++, rack.bar.x, rack.bar.y, rack.bar.z, yaw, rack.bar.sx, rack.bar.sy, rack.bar.sz);
+      put(totem, totems++, rack.totem.x, rack.totem.y, rack.totem.z, yaw, rack.totem.sx, rack.totem.sy, rack.totem.sz);
+      for (const post of rack.posts) {
+        if (nPosts >= n * 14) break;
+        put(posts, nPosts++, post.x, post.y, post.z, yaw, post.sx, post.sy, post.sz);
+      }
+    }
+    beam.count = beams;
+    bar.count = bars;
+    posts.count = nPosts;
+    totem.count = totems;
+    for (const mesh of meshes) {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.count > 0) mesh.computeBoundingSphere();
+    }
+  }
+
+  return {
+    markDirty() {
+      dirty = true;
+    },
+    update(stations, x, z) {
+      if (!dirty && Math.hypot(x - cx, z - cz) < DOCK_REFRESH_M) return;
+      dirty = false;
+      cx = x;
+      cz = z;
+      rebuild(stations, x, z);
+    },
+    dispose() {
+      for (const mesh of meshes) {
+        mesh.removeFromParent();
+      }
+      box.dispose();
+      metal.dispose();
+      red.dispose();
+    },
+  };
+}
+
 function nearestDock(docks, player, present) {
   let best = null;
   for (const d of docks || []) {
@@ -312,6 +420,7 @@ export async function createVelo(scene, THREE) {
   }
   await model;
   if (_model) hideBakedDockBikes(scene);
+  hideBakedVeloRacks(scene);
 
   const stations = (doc.stations || []).map((raw) => ({
     id: String(raw.id),
@@ -325,6 +434,16 @@ export async function createVelo(scene, THREE) {
     slotSpacing: Number(raw.slotSpacing) || 0.95,
     docks: [],
   }));
+
+  try {
+    const roadsRes = await fetch(roadsUrl());
+    if (roadsRes.ok) {
+      const seated = applyVeloSeats(stations, await roadsRes.json());
+      if (seated) console.info(`[metropolis] velo: seated ${seated} docks on the pavement`);
+    }
+  } catch (e) {
+    console.warn("[metropolis] velo: pavement seat skipped", e);
+  }
 
   function fillDocks(st) {
     const n = Math.min(MAX_DOCK_BIKES, st.bikesAvailable, st.capacity);
@@ -344,6 +463,7 @@ export async function createVelo(scene, THREE) {
       stations.reduce((n, st) => n + Math.min(MAX_DOCK_BIKES, st.capacity), 0),
     );
   }
+  const hardware = stations.length ? createDockHardware(THREE, scene, stations.length) : null;
 
   // Street-parked bikes after a mid-ride hop-off (remount with E).
   const parked = [];
@@ -594,12 +714,14 @@ export async function createVelo(scene, THREE) {
     for (const st of stations) st.docks.length = 0;
     rack?.dispose();
     rack = null;
+    hardware?.dispose();
     ride = null;
   }
 
   /** Redraw the docked bikes around the camera (cheap unless it moved or a dock changed). */
   function setCamera(x, z) {
     rack?.update(stations, x, z);
+    hardware?.update(stations, x, z);
   }
 
   console.info(
@@ -608,13 +730,8 @@ export async function createVelo(scene, THREE) {
       ` ${stations.reduce((n, s) => n + s.docks.length, 0)} docked`
   );
 
-  // Rails with their docked bikes as solid boxes, same shape as the vehicle solids.
-  const solids = stations.map((st) => ({
-    pos: { x: st.x, z: st.z },
-    tan: { x: Math.cos(st.yaw), z: -Math.sin(st.yaw) },
-    hl: (st.railLength || 8) * 0.5 + 0.3,
-    hw: 0.45,
-  }));
+  // The stop covers the rail and the bikes in front of it, not a thin invisible bar.
+  const solids = stations.map((st) => dockSolid(st));
 
   function setNight(glow) {
     if (!_lampMat || !_tailMat) return;
