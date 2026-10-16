@@ -3,7 +3,20 @@
  *   node scripts/test_street_buy.mjs
  */
 import assert from "node:assert/strict";
-import { MEAL_HEAL, MEAL_PRICE, buyMeal, careOffer, isCareKind, isFoodKind, mealOffer } from "../viewer/street-buy.js";
+import {
+  BIKE_MAX,
+  BIKE_MIN,
+  MEAL_HEAL,
+  MEAL_PRICE,
+  bikeOffer,
+  bikePrice,
+  buyBike,
+  buyMeal,
+  careOffer,
+  isCareKind,
+  isFoodKind,
+  mealOffer,
+} from "../viewer/street-buy.js";
 
 assert.equal(isFoodKind("bakery"), true);
 assert.equal(isFoodKind("pharmacy"), false);
@@ -35,5 +48,24 @@ assert.equal(ward.action, "treat");
 assert.equal(ward.price, 0);
 assert.equal(ward.heal, 88);
 assert.equal(ward.label.includes("full health"), true);
+
+const priced = bikePrice({ name: "ECOMOBIEL" });
+assert.equal(priced, bikePrice({ name: "ECOMOBIEL" }));
+assert.equal(priced >= BIKE_MIN && priced <= BIKE_MAX, true);
+assert.equal(priced % 100, 0);
+assert.notEqual(bikePrice({ name: "ECOMOBIEL" }), bikePrice({ name: "Lucien" }));
+assert.equal(bikeOffer({ kind: "bakery", open: true, name: "ECOMOBIEL" }, { money: 9000 }), null);
+assert.equal(bikeOffer({ kind: "bicycle", open: false, name: "ECOMOBIEL" }, { money: 9000 })?.action, "closed");
+assert.equal(bikeOffer({ kind: "bicycle", open: true, name: "ECOMOBIEL" }, { money: 25 })?.action, "broke");
+assert.equal(bikeOffer({ kind: "bicycle", open: true, name: "ECOMOBIEL" }, { money: 9000, ownsBike: true })?.action, "owned");
+const sale = bikeOffer({ kind: "bicycle", open: true, name: "ECOMOBIEL" }, { money: 9000 });
+assert.equal(sale.action, "bike");
+assert.equal(sale.price, priced);
+assert.equal(sale.label, `E · bicycle · €${priced}`);
+const bought = buyBike(sale, { money: 9000 });
+assert.equal(bought.spent, priced);
+assert.equal(bought.money, 9000 - priced);
+assert.equal(bought.ownsBike, true);
+assert.equal(buyBike(sale, { money: 9000, ownsBike: true }), null);
 
 console.log("street-buy ok");

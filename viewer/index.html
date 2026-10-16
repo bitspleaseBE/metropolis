@@ -1330,7 +1330,7 @@
       import { createVelo } from "./velo.js";
       import { createScooters } from "./scooters.js";
       import { createShops } from "./shops.js";
-      import { careOffer, mealOffer } from "./street-buy.js";
+      import { bikeOffer, careOffer, mealOffer } from "./street-buy.js";
       import { createInteriors } from "./interiors/interior-manager.js";
       import { createInteriorLoading } from "./interiors/interior-loading.js";
       import { createTerraces } from "./terraces.js";
@@ -1641,6 +1641,7 @@ import { SLOTS } from "./weapons.js";
         get loot() { return loot; },
         get pedestrians() { return pedestrians; },
         get crash() { return playerCrash; },
+        get hud() { return hud; },
         get police() { return police; },
         get pixelRatio() { return pixelRatio; },
         get neighbours() { return neighbours; },
@@ -1909,6 +1910,7 @@ import { SLOTS } from "./weapons.js";
       let pedestrians = null;
       let micromobility = null;
       let velo = null;
+      let ownsBicycle = false;
       let scooters = null;
       let shops = null;
       let interiors = null;
@@ -2929,14 +2931,21 @@ let knifeLunge = null;
       function counterAt(p) {
         if (!shops?.facing || playerCrash.dead) return null;
         const shop = shops.facing({ x: p.x, z: p.z, yaw: playerMotion.yaw() });
-        const state = { health: playerCrash.health, money: hud.money };
-        return careOffer(shop, state) || mealOffer(shop, state);
+        const state = { health: playerCrash.health, money: hud.money, ownsBike: ownsBicycle };
+        return careOffer(shop, state) || mealOffer(shop, state) || bikeOffer(shop, state);
       }
       function useCounter(p) {
         const offer = counterAt(p);
-        if (!offer || offer.action === "full" || offer.action === "closed") return false;
+        if (!offer || offer.action === "full" || offer.action === "closed" || offer.action === "owned") return false;
         if (offer.action === "broke") {
           hud.notify(offer.label, 1600);
+          return true;
+        }
+        if (offer.action === "bike") {
+          const placed = velo?.giveOwned?.({ x: p.x, z: p.z, yaw: playerMotion.yaw() });
+          if (!placed) return false;
+          hud.spend(offer.price, "Bicycle");
+          ownsBicycle = true;
           return true;
         }
         const gained = playerCrash.heal(offer.action === "treat" ? 100 : offer.heal);
@@ -2969,12 +2978,13 @@ let knifeLunge = null;
           if (result.action === "take") {
             avatar.visible = false;
             rideEl.style.display = "block";
-            rideLine.textContent = "Velo";
             rideNext.textContent = result.name;
             promptEl.style.display = "none";
             hint.textContent = hintFor("cycle");
-            status.textContent =
-              result.capacity === "—"
+            rideLine.textContent = result.owned ? "Bicycle" : "Velo";
+            status.textContent = result.owned
+              ? "On your bicycle"
+              : result.capacity === "—"
                 ? `On a Velo · ${result.name}`
                 : `On a Velo · ${result.bikes}/${result.capacity} left at ${result.name}`;
             return;
@@ -3099,7 +3109,7 @@ let knifeLunge = null;
           const veloPrompt = velo && velo.getPrompt ? velo.getPrompt({ x: p.x, z: p.z }) : null;
           const counter = !veloPrompt && mode === "walk" ? counterAt(p) : null;
           const counterLine =
-            counter && (counter.action === "treat" || counter.action === "meal" || counter.action === "broke")
+            counter && (counter.action === "treat" || counter.action === "meal" || counter.action === "broke" || counter.action === "bike")
               ? counter.label
               : "";
           const doorPrompt = !veloPrompt && !counterLine && interiors && mode === "walk" ? interiors.prompt(p, playerMotion.yaw()) : null;

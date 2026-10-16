@@ -432,8 +432,31 @@ export async function createVelo(scene, THREE) {
 
   function mountParked(entry, index) {
     parked.splice(index, 1);
-    ride = { stationId: entry.stationId, mesh: entry.mesh, name: entry.name || "Velo" };
+    ride = {
+      stationId: entry.stationId,
+      mesh: entry.mesh,
+      name: entry.name || "Velo",
+      owned: !!entry.owned,
+    };
     return true;
+  }
+
+  /** Leave a purchased bicycle on the pavement. One per player; the mesh is the ride model. */
+  function giveOwned(player) {
+    if (!_model) return false;
+    if (hasOwned()) return false;
+    const mesh = makeVeloBike(THREE);
+    const yaw = player.yaw != null ? player.yaw : 0;
+    const side = 0.85;
+    mesh.position.set(player.x + Math.cos(yaw) * side, 0, player.z - Math.sin(yaw) * side);
+    mesh.rotation.y = yaw;
+    scene.add(mesh);
+    parked.push({ mesh, stationId: null, name: "Bicycle", owned: true });
+    return true;
+  }
+
+  function hasOwned() {
+    return !!(ride && ride.owned) || parked.some((b) => b.owned);
   }
 
   function returnToStation(st, player) {
@@ -462,6 +485,7 @@ export async function createVelo(scene, THREE) {
       mesh: ride.mesh,
       stationId: ride.stationId,
       name: ride.name,
+      owned: !!ride.owned,
     });
     ride = null;
     return true;
@@ -478,8 +502,8 @@ export async function createVelo(scene, THREE) {
   function tryInteract(player) {
     const near = nearestStation(player.x, player.z);
     if (ride) {
-      // Prefer docking when at a station with a free slot.
-      if (near && freeSlots(near.st) > 0 && returnToStation(near.st, player)) {
+      // A purchased bicycle stays yours. Public Velos still dock when a slot is free.
+      if (!ride.owned && near && freeSlots(near.st) > 0 && returnToStation(near.st, player)) {
         return {
           action: "return",
           name: near.st.name,
@@ -488,8 +512,9 @@ export async function createVelo(scene, THREE) {
         };
       }
       // Otherwise always allow a sidewalk hop-off.
+      const owned = !!ride.owned;
       if (dismount(player)) {
-        return { action: "dismount" };
+        return { action: "dismount", owned };
       }
       return { action: "none" };
     }
@@ -497,7 +522,13 @@ export async function createVelo(scene, THREE) {
     // Remount a street-parked bike first if close.
     const pk = nearestParked(player.x, player.z);
     if (pk && mountParked(pk.bike, pk.index)) {
-      return { action: "take", name: pk.bike.name || "Velo", bikes: "—", capacity: "—" };
+      return {
+        action: "take",
+        name: pk.bike.name || "Velo",
+        owned: !!pk.bike.owned,
+        bikes: "—",
+        capacity: "—",
+      };
     }
 
     if (!near) return { action: "none" };
@@ -526,6 +557,7 @@ export async function createVelo(scene, THREE) {
 
   function getPrompt(player) {
     if (ride) {
+      if (ride.owned) return "Press E to hop off";
       const near = nearestStation(player.x, player.z);
       if (near && freeSlots(near.st) > 0) {
         return `Press E to return Velo · ${near.st.name}`;
@@ -536,7 +568,7 @@ export async function createVelo(scene, THREE) {
       return "Press E to hop off";
     }
     const pk = nearestParked(player.x, player.z);
-    if (pk) return "Press E to take parked Velo";
+    if (pk) return pk.bike.owned ? "Press E to take your bicycle" : "Press E to take parked Velo";
     const near = nearestStation(player.x, player.z);
     if (!near) return null;
     if (near.st.bikesAvailable <= 0) return `No bikes · ${near.st.name}`;
@@ -595,6 +627,8 @@ export async function createVelo(scene, THREE) {
     solids,
     isRiding,
     bikeSpeed,
+    giveOwned,
+    hasOwned,
     tryInteract,
     getRideHud,
     getPrompt,
