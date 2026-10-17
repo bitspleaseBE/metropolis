@@ -1,8 +1,8 @@
 {
- "build_seconds": 5252.8,
- "built_at": "2026-10-17T01:14:17Z",
+ "build_seconds": 5288.5,
+ "built_at": "2026-10-17T11:16:27Z",
  "district": "2000-antwerpen",
- "git_head": "673ea1c5d18584eb02b030363674379698bc45cd",
+ "git_head": "d4b6e9c319330fa3e304401a621f2c5f0528ad1c",
  "inputs": {
   "assets/benches/harmonie.json": "d45340e962805118",
   "assets/boundaries/antwerp_postcodes.geojson": "82e3354926decdee",
@@ -104,6 +104,7 @@
   "assets/textures/wall_stone_buff.jpg": "ef7c6c25f73bd14f",
   "assets/textures/wall_stucco_cream.jpg": "5f3e59f228fbd62c",
   "assets/trees/harmonie.json": "1883a14eddeec68d",
+  "assets/trees/leaf_atlas.png": "8224657c2c68a101",
   "assets/velo/harmonie.json": "f726d4c398445d8c",
   "blender/barriers_blender.py": "1262ea762afc0118",
   "blender/benches_blender.py": "6779b3617a8b504a",
@@ -115,7 +116,7 @@
   "blender/courtyards_blender.py": "cd2538a53c1aea41",
   "blender/port_blender.py": "e78aff629776ba2c",
   "blender/roadware_blender.py": "446e9d70ebc8f60d",
-  "blender/trees_blender.py": "92115e49b88ea10d",
+  "blender/trees_blender.py": "009de2f6d2a6f644",
   "blender/velo_blender.py": "3a4567a699465f2d",
   "cityview/__init__.py": "578c132971f30ed1",
   "cityview/barriers.py": "1d83b72668e7c050",
@@ -137,6 +138,7 @@
   "cityview/facade_kit.py": "3a1c6f2342ca9283",
   "cityview/facade_textures.py": "c1a7955146e34ac6",
   "cityview/geo.py": "942b4ec0e7237d08",
+  "cityview/gis.py": "800a9cd0d146199f",
   "cityview/glb_compress.py": "d1d332422a3c7433",
   "cityview/gtfs_delijn.py": "79edb1893904e1f1",
   "cityview/gtfs_nmbs.py": "83f2c09bc8bd9abe",
@@ -171,7 +173,8 @@
   "cityview/signals.py": "a395acb6cd401a80",
   "cityview/streetscape.py": "bb446cd2452d86fc",
   "cityview/surface_kit.py": "30266bf63c95fb74",
-  "cityview/trees.py": "ee376af31769cd38",
+  "cityview/survey.py": "27d5eb87b1f43cce",
+  "cityview/trees.py": "fbccc1241772b37b",
   "cityview/velo.py": "dc95cc3d948ff723",
   "cityview/viewer_map.py": "846c8bba54b95ddf",
   "cityview/walkability.py": "2455fb0dbc6e37f4",
@@ -181,6 +184,7 @@
   "districts/2000-antwerpen/cache/commons_imageinfo.json": "33b8906c9dc5ac52",
   "districts/2000-antwerpen/cache/osm.json": "169d740a2e6bc622",
   "districts/2000-antwerpen/cache/places.json": "26b7e821a02d5313",
+  "districts/2000-antwerpen/cache/survey.json": "fbc039bb27327ac1",
   "districts/2000-antwerpen/cache/trees.json": "1af207a87b25ac92",
   "districts/2000-antwerpen/cache/velo.json": "1f6a4004c158fae8",
   "districts/2000-antwerpen/cache/wikidata.json": "7ba79aaf0a8b21c4",
@@ -261,6 +265,6 @@
   "viewer/cars/transit_custom.glb": "de4bb72063bc0c0a",
   "viewer/cars/vw_tiguan.glb": "fb436d6ed521be40"
  },
- "inputs_sha256": "1dfbe733d945c453d1f154f851402593b2d83dd69f4213184a3d10c4ff49d6c7",
+ "inputs_sha256": "33158bbf52feb00911f0783c374a4c15715e1cdc288e41893abf43096060297c",
  "version": 1
 }

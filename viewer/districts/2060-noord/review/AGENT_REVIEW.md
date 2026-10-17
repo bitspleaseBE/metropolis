@@ -1,7 +1,7 @@
 # Agent review — Antwerpen Noord · 2060
 
 - **District**: `2060-noord`
-- **Run**: `20261017T024841Z`
+- **Run**: `20261017T121535Z`
 - **Spawn**: Sint-Jansplein (51.2282, 4.4176)
 - **Instructions**: see [docs/district-agent.md](../../../docs/district-agent.md)
 - **Dossier**: `districts/2060-noord/special_buildings.json`

@@ -1,8 +1,8 @@
 {
- "build_seconds": 1920.5,
- "built_at": "2026-10-17T01:46:18Z",
+ "build_seconds": 2134.7,
+ "built_at": "2026-10-17T10:23:53Z",
  "district": "2020-kiel",
- "git_head": "673ea1c5d18584eb02b030363674379698bc45cd",
+ "git_head": "d4b6e9c319330fa3e304401a621f2c5f0528ad1c",
  "inputs": {
   "assets/benches/harmonie.json": "d45340e962805118",
   "assets/boundaries/antwerp_postcodes.geojson": "82e3354926decdee",
@@ -104,6 +104,7 @@
   "assets/textures/wall_stone_buff.jpg": "ef7c6c25f73bd14f",
   "assets/textures/wall_stucco_cream.jpg": "5f3e59f228fbd62c",
   "assets/trees/harmonie.json": "1883a14eddeec68d",
+  "assets/trees/leaf_atlas.png": "8224657c2c68a101",
   "assets/velo/harmonie.json": "f726d4c398445d8c",
   "blender/barriers_blender.py": "1262ea762afc0118",
   "blender/benches_blender.py": "6779b3617a8b504a",
@@ -115,7 +116,7 @@
   "blender/courtyards_blender.py": "cd2538a53c1aea41",
   "blender/port_blender.py": "e78aff629776ba2c",
   "blender/roadware_blender.py": "446e9d70ebc8f60d",
-  "blender/trees_blender.py": "92115e49b88ea10d",
+  "blender/trees_blender.py": "009de2f6d2a6f644",
   "blender/velo_blender.py": "3a4567a699465f2d",
   "cityview/__init__.py": "578c132971f30ed1",
   "cityview/barriers.py": "1d83b72668e7c050",
@@ -137,6 +138,7 @@
   "cityview/facade_kit.py": "3a1c6f2342ca9283",
   "cityview/facade_textures.py": "c1a7955146e34ac6",
   "cityview/geo.py": "942b4ec0e7237d08",
+  "cityview/gis.py": "800a9cd0d146199f",
   "cityview/glb_compress.py": "d1d332422a3c7433",
   "cityview/gtfs_delijn.py": "79edb1893904e1f1",
   "cityview/gtfs_nmbs.py": "83f2c09bc8bd9abe",
@@ -171,7 +173,8 @@
   "cityview/signals.py": "a395acb6cd401a80",
   "cityview/streetscape.py": "bb446cd2452d86fc",
   "cityview/surface_kit.py": "30266bf63c95fb74",
-  "cityview/trees.py": "ee376af31769cd38",
+  "cityview/survey.py": "27d5eb87b1f43cce",
+  "cityview/trees.py": "fbccc1241772b37b",
   "cityview/velo.py": "dc95cc3d948ff723",
   "cityview/viewer_map.py": "846c8bba54b95ddf",
   "cityview/walkability.py": "2455fb0dbc6e37f4",
@@ -179,6 +182,7 @@
   "districts/2020-kiel/cache/benches.json": "a9f6bc9a7544551b",
   "districts/2020-kiel/cache/osm.json": "52340792d0dd7689",
   "districts/2020-kiel/cache/places.json": "86351a7a3e858f76",
+  "districts/2020-kiel/cache/survey.json": "cdf5d35c68cec307",
   "districts/2020-kiel/cache/trees.json": "3e6f0500997b2e08",
   "districts/2020-kiel/cache/velo.json": "3a7d3800a5e967f6",
   "districts/2020-kiel/cache/wikidata.json": "3350b44d020bd380",
@@ -253,6 +257,6 @@
   "viewer/cars/transit_custom.glb": "de4bb72063bc0c0a",
   "viewer/cars/vw_tiguan.glb": "fb436d6ed521be40"
  },
- "inputs_sha256": "4ef46dcae0df5570954b9c4feee09af48599d2fa626025b5f6111ad3835b3d9b",
+ "inputs_sha256": "e3d11a6afcd15e2560a4e234e1baa647b5907a5816bd4e0761aeb5cfdcee717e",
  "version": 1
 }
