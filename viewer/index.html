@@ -1712,9 +1712,47 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       let skirtMat = null;
       const glowMats = []; // { mat, scale }: emissive intensity = scale * glow(t)
       /** Tree / shrub leaves + bark: lerp base colour toward night green/brown. */
-      const vegMats = []; // { mat, day: Color }
+      const vegMats = []; // { mat, day: Color, owner?: streamed chunk root }
       const VEG_NIGHT = new THREE.Color(0x2a4a32);
       const TRUNK_NIGHT = new THREE.Color(0x4a382c);
+      /**
+       * Two-sided leaf cards: three.js flips the normal on back faces, which would light the
+       * far side of each card as if it faced into the crown. Flip it back after the chunk.
+       */
+      function keepCrownNormals(m) {
+        if (m.userData.crownNormals) return;
+        m.userData.crownNormals = true;
+        const prev = m.onBeforeCompile;
+        m.onBeforeCompile = (shader, r) => {
+          prev.call(m, shader, r);
+          shader.fragmentShader = shader.fragmentShader.replace(
+            "#include <normal_fragment_begin>",
+            "#include <normal_fragment_begin>\n#ifdef DOUBLE_SIDED\nnormal *= faceDirection;\nnonPerturbedNormal = normal;\n#endif",
+          );
+        };
+        const key = m.customProgramCacheKey.bind(m);
+        m.customProgramCacheKey = () => "crownNormals|" + key();
+        m.needsUpdate = true;
+      }
+      function trackVegetation(m, owner = null) {
+        if (!m?.color || !m.name || !/^(canopy_|trunk$|shrub)/i.test(m.name)) return;
+        if (m.name === "canopy_tree") keepCrownNormals(m);
+        if (vegMats.some((v) => v.mat === m)) return;
+        vegMats.push({
+          mat: m,
+          owner,
+          day: m.color.clone(),
+          night: /^trunk$/i.test(m.name) ? TRUNK_NIGHT : VEG_NIGHT,
+          dayEnv: m.envMapIntensity ?? 1,
+        });
+      }
+      /** Streamed chunks (own and neighbour) bring their own tree materials. */
+      function trackChunkVegetation(chunkRoot) {
+        chunkRoot.traverse((obj) => {
+          if (!obj.isMesh || !obj.material) return;
+          for (const m of Array.isArray(obj.material) ? obj.material : [obj.material]) trackVegetation(m, chunkRoot);
+        });
+      }
       const lampHeads = []; // world positions of street-lamp heads and second-floor fills
       const LAMP_LIGHTS = 8;
       const LAMP_INTENSITY = 46;
@@ -1929,7 +1967,12 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
         transit.setNight && transit.setNight(glow);
 
         // Crowns stay vivid green under moonlight unless we pull them down with the sky.
-        for (const v of vegMats) {
+        for (let i = vegMats.length - 1; i >= 0; i--) {
+          const v = vegMats[i];
+          if (v.owner && !v.owner.parent) {
+            vegMats.splice(i, 1); // chunk unloaded, material disposed
+            continue;
+          }
           v.mat.color.copy(v.day).lerp(v.night, night * 0.45);
           if (v.mat.envMapIntensity != null && !visuals.high()) {
             v.mat.envMapIntensity = v.dayEnv * (1 - 0.75 * night);
@@ -4219,7 +4262,8 @@ let knifeLunge = null;
                 for (const m of mats) {
                   if (!m) continue;
                   // Smooth shading: facets were a strong "GTA 3" tell. Low keeps the old look.
-                  m.flatShading = visuals.high() ? false : !isFacade;
+                  // Tree crowns carry baked outward normals; facets would undo them.
+                  m.flatShading = visuals.high() || m.name === "canopy_tree" ? false : !isFacade;
                   if (m.name && /glass/i.test(m.name)) {
                     m.metalness = Math.max(m.metalness ?? 0, 0.45);
                     m.roughness = Math.min(m.roughness ?? 1, 0.18);
@@ -4236,19 +4280,7 @@ let knifeLunge = null;
                   } else if (m.name === "lamp_head") {
                     glowMats.push({ mat: m, scale: 2.6 }); // street lamps
                   }
-                  if (
-                    m.color &&
-                    m.name &&
-                    /^(canopy_|trunk$|shrub)/i.test(m.name) &&
-                    !vegMats.some((v) => v.mat === m)
-                  ) {
-                    vegMats.push({
-                      mat: m,
-                      day: m.color.clone(),
-                      night: /^trunk$/i.test(m.name) ? TRUNK_NIGHT : VEG_NIGHT,
-                      dayEnv: m.envMapIntensity ?? 1,
-                    });
-                  }
+                  trackVegetation(m);
                   // Sunk ponds sit 0.38 m under the lawn; a slope-scaled push-back would sink
                   // them behind the -0.8 m far-field ground at grazing angles.
                   if (bias && !m.userData.cityviewPond) {
@@ -4603,6 +4635,7 @@ let knifeLunge = null;
                   shadeStreets(chunkRoot);
                   removedBuildings.apply(chunkRoot);
                   applyLiquidMaterials(THREE, chunkRoot);
+                  trackChunkVegetation(chunkRoot);
                   scheduleGroundRefresh();
                   mergeChunk(chunkRoot);
                   if (parkedFleet) parkedFleet.addRoot(chunkRoot);
@@ -4672,6 +4705,7 @@ let knifeLunge = null;
                 shadeStreets(chunkRoot);
                 removedBuildings?.apply(chunkRoot);
                 applyLiquidMaterials(THREE, chunkRoot);
+                trackChunkVegetation(chunkRoot);
                 mergeChunk?.(chunkRoot);
                 if (parkedFleet) parkedFleet.addRoot(chunkRoot);
                 else collectParkedCarSolids(chunkRoot);

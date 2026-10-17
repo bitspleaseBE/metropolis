@@ -417,6 +417,11 @@ export async function createScooters(scene, THREE, opts = {}) {
       const pz = player.z - Math.sin(yaw) * 0.6;
       s.mesh.position.set(px, groundAt(px, pz), pz);
       s.mesh.rotation.set(0, yaw, 0.11);
+      if (zoneHit(px, pz, shareZones, new Set(["nogo", "nopark"]))) {
+        toast = "No parking in this zone";
+        toastT = 2.4;
+        return { action: "refused", reason: "nopark" };
+      }
       s.mesh.userData.kickstand.visible = true;
       s.parked = true;
       const cost = ride.cost;
@@ -485,7 +490,12 @@ export async function createScooters(scene, THREE, opts = {}) {
   }
 
   function getPrompt(player) {
-    if (ride) return "E · park scooter here";
+    if (ride) {
+      if (zoneHit(player.x, player.z, shareZones, new Set(["nogo", "nopark"]))) {
+        return "Can't park in this zone";
+      }
+      return "E · park scooter here";
+    }
     const n = nearest(player.x, player.z);
     if (!n) return null;
     if (n.s.battery < 8) return `${n.s.brand} battery empty`;

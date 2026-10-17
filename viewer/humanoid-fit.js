@@ -24,6 +24,12 @@ function skinnedBounds(THREE, root, out) {
   return out;
 }
 
+/** Soles-to-crown height of `root` in its current pose, in world units. */
+export function humanoidHeight(THREE, root) {
+  const box = skinnedBounds(THREE, root, new THREE.Box3());
+  return box.isEmpty() ? 0 : box.max.y - box.min.y;
+}
+
 /**
  * Scale `root` (unparented, rest pose) to `targetH` metres, sole to crown
  * (viewer/person-scale.js), with its feet at y = 0.
