@@ -36,6 +36,36 @@ export function carPoint(car, side, along) {
   };
 }
 
+/**
+ * Height to stand a runtime fleet car on. Those meshes have their wheels on local
+ * y=0. A baked kerb node does not: glTF keeps the pivot at the mesh centre and the
+ * size in the node scale, so the node origin is about half a car up in the air.
+ * The tyres touch `bottomY` (world min of the baked mesh).
+ */
+export function parkedStandY(bottomY, originY) {
+  if (Number.isFinite(bottomY)) return bottomY;
+  return Number.isFinite(originY) ? originY : 0;
+}
+
+/** World height of the lowest body vertex. Plates and the contact blob are not the tyres. */
+function bakedBottomY(THREE, obj) {
+  if (!THREE?.Box3 || !obj) return null;
+  const box = new THREE.Box3();
+  const part = new THREE.Box3();
+  let hit = false;
+  obj.traverse((node) => {
+    if (!node.isMesh) return;
+    const n = node.name || "";
+    if (n === "contact_shadow" || n.startsWith("plate_")) return;
+    part.setFromObject(node);
+    if (part.isEmpty()) return;
+    if (!hit) box.copy(part);
+    else box.union(part);
+    hit = true;
+  });
+  return hit ? box.min.y : null;
+}
+
 /** Pavement just outside the driver's door. */
 export function doorOf(car) {
   return carPoint(car, (car.hw || 0.9) + 0.55, 0.25);
@@ -105,7 +135,8 @@ function hashUnit(str) {
 
 /**
  * World poses of baked kerb cars, then hide those nodes so the runtime fleet
- * is the only copy. Skips cars already hidden (Velo rails, bike racks).
+ * is the only copy. `y` is the tyre contact, not the node pivot. Skips cars
+ * already hidden (Velo rails, bike racks).
  * @returns {{ name: string, model: string, x: number, y: number, z: number, yaw: number }[]}
  */
 export function readBakedParkedPoses(THREE, root) {
@@ -133,7 +164,7 @@ export function readBakedParkedPoses(THREE, root) {
       name,
       model: name.replace(/^car_\d+_/, ""),
       x: pos.x,
-      y: pos.y,
+      y: parkedStandY(bakedBottomY(THREE, obj), pos.y),
       z: pos.z,
       yaw: yawFromBakedNose(nose.x / flat, nose.z / flat),
     });
