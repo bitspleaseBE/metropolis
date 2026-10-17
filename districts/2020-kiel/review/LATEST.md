@@ -1,7 +1,7 @@
 # Agent review — 't Kiel · 2020
 
 - **District**: `2020-kiel`
-- **Run**: `20261015T140148Z`
+- **Run**: `20261016T215917Z`
 - **Spawn**: Kielpark (51.1918, 4.3925)
 - **Instructions**: see [docs/district-agent.md](../../../docs/district-agent.md)
 - **Dossier**: `districts/2020-kiel/special_buildings.json`
