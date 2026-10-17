@@ -21,6 +21,7 @@ const PACKAGE_FILES = new Set([
   "district.json",
   "water.json",
   "props.json",
+  "pitches.json",
 ]);
 const DISTRICT_DIR = /^\.\/districts\/[0-9a-z][0-9a-z-]{0,40}\/$/;
 

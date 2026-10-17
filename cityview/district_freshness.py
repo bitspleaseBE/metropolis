@@ -39,6 +39,7 @@ TOOLING_MODULES = frozenset({
     "aerial",
     "budgets",
     "cli",
+    "courts",
     "district_freshness",
     "district_review",
     "facade_windows",

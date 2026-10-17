@@ -126,6 +126,11 @@ export function createMenu(hooks) {
           — Team Data &amp; Digitaal Vlaanderen, gratis open-data licentie.
         </li>
         <li>
+          Ball courts and playgrounds (football pitches, trapveld, public basketball, speelterreinen): ©
+          <a href="https://www.antwerpen.be/info/gratis-open-data-licentie" target="_blank" rel="noopener noreferrer">Stad Antwerpen</a>
+          — Stedelijke Sportdienst and Cultuur, Sport en Jeugd.
+        </li>
+        <li>
           Map data ©
           <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
           contributors (ODbL).

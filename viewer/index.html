@@ -1497,6 +1497,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       import { shadeHedges } from "./hedge-shade.js";
       import { shadeTrees } from "./tree-shade.js";
       import { paintRoadMarkings, paintSurveyMarkings } from "./road-paint.js";
+      import { paintCourts } from "./courts.js";
       import { paintLawns } from "./lawn.js";
       import { shadeStreets } from "./street-grit.js";
       import { applySurfaceOrder, auditSurfaceFlicker, surfaceBias } from "./ground-order.js";
@@ -4460,6 +4461,12 @@ let knifeLunge = null;
             if (painted) console.info(`[metropolis] survey paint: ${painted} markings`);
           } catch (err) {
             console.warn("[metropolis] survey paint skipped", err);
+          }
+          try {
+            const courts = await paintCourts(scene, THREE);
+            if (courts) console.info(`[metropolis] courts: ${courts}`);
+          } catch (err) {
+            console.warn("[metropolis] courts skipped", err);
           }
           // Hide any leftover cars sitting on a step that still spawned beside them.
           const stepCircles = (scooters?.fleet || []).map((s) => ({

@@ -29,6 +29,7 @@ assets/osm/*
 assets/gtfs/
 # District packages: commit 2018 OSM + facades; ignore bulky regenerated caches.
 districts/*/cache/gtfs*.json
+districts/*/cache/courts.json
 districts/*/cache/aerial/
 # Picture references: index.json is committed; thumbnails re-download via `district refs`.
 districts/*/references/*/

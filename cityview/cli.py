@@ -502,6 +502,22 @@ def district_command(args: argparse.Namespace) -> int:
 
         district_republish_survey(args.id, refresh=bool(args.refresh))
         return 0
+    if action == "courts":
+        from cityview.courts import publish_courts
+        from cityview.districts import district_paths
+
+        doc = load_district(args.id)
+        paths = district_paths(args.id)
+        origin = tuple(doc["origin"])
+        publish_courts(
+            args.id,
+            tuple(doc["bbox"]),
+            (float(origin[0]), float(origin[1])),
+            paths.cache / "courts.json",
+            paths.viewer / "pitches.json",
+            refresh=bool(getattr(args, "refresh", False)),
+        )
+        return 0
     if action == "map":
         from cityview.district_pipeline import district_republish_map
 
@@ -651,6 +667,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     d_roads.add_argument("id", help="District id")
     d_roads.set_defaults(func=district_command)
+
+    d_courts = dsub.add_parser(
+        "courts",
+        help="Pull basketball, football and playground polygons into viewer/districts/<id>/pitches.json, no Blender",
+    )
+    d_courts.add_argument("id", help="District id")
+    d_courts.add_argument("--refresh", action="store_true", help="Re-query MapServer even when the cache covers the bbox")
+    d_courts.set_defaults(func=district_command)
 
     d_survey = dsub.add_parser(
         "survey",

@@ -74,6 +74,7 @@ GitHub does not follow `click` links inside Mermaid, so the same sources are lis
 | Benches | [MapServer 282 zitmeubilair](https://geodata.antwerpen.be/arcgissql/rest/services/P_Portal/portal_publiek4/MapServer/282), [Groeninventaris layer 1](https://geodata.antwerpen.be/arcgissql/rest/services/P_Groeninventaris/Groeninventaris_extern/MapServer/1) + OSM `amenity=bench` | `cityview/benches.py` | `districts/<id>/cache/benches.json` |
 | Velo stations | [Velo GBFS](https://gbfs.smartbike.com/antwerp/1.0/gbfs.json), [MapServer 57](https://geodata.antwerpen.be/arcgissql/rest/services/P_Portal/portal_publiek1/MapServer/57) | `cityview/velo.py` | `districts/<id>/cache/velo.json` |
 | Clutter, barriers, courtyards | OpenStreetMap (same extract) | `clutter.py`, `barriers.py`, `courtyards.py` | — |
+| Ball courts, playgrounds | [Sport polygons](https://geodata.antwerpen.be/arcgissql/rest/services/P_Publiek/Astad_20160208/MapServer/4) (`voetbalveld`, `trapveld`, `basketbalveld`) and [Speelterreinen](https://geodata.antwerpen.be/arcgissql/rest/services/P_Publiek/Astad_20160208/MapServer/68) | `cityview/courts.py`, `viewer/courts.js` | `districts/<id>/cache/courts.json` (gitignored); published `viewer/districts/<id>/pitches.json` |
 | Facade elevations | Generated per district (no download) | `cityview/district_facades.py` | `districts/<id>/facades/` |
 | Landmark references | [Wikidata](https://www.wikidata.org/), [Wikimedia Commons](https://commons.wikimedia.org/) | `place_refs.py` | `districts/<id>/references/` |
 | Menu water | OpenStreetMap via Overpass | `cityview/menu_map.py` | `assets/boundaries/antwerp_water.json` |
@@ -89,6 +90,7 @@ python3 -m cityview district build 2000-antwerpen --skip-blender   # JSON only, 
 python3 -m cityview district check 2018-harmonie --no-sims
 python3 -m cityview district review 2000-antwerpen
 python3 -m cityview district interiors 2000-antwerpen  # interiors.json on the published shops.json, no Blender
+python3 -m cityview district courts 2000-antwerpen    # pitches.json: lines, goals, playground pads, no Blender
 ```
 
 `district interiors` keeps every published sign where the full build put it (`district shops` re-plans from OSM alone and moves signs off the baked façades), only appending far enterable places that are missing and sizing rooms from the published `buildings.json`.
