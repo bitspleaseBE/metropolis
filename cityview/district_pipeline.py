@@ -55,11 +55,13 @@ from cityview.places import fetch_places
 from cityview.interiors import district_interior_overrides, export_interiors_for_viewer
 from cityview.shops import FAR_ENTERABLE_KINDS, district_shop_inputs, export_shops_for_viewer, plan_shops
 from cityview.streetscape import (
+    export_boards,
     export_walker_buildings,
     export_roads_near_spawn,
     export_transit_near_spawn,
     spawn_from_place,
 )
+from cityview.survey import attach_survey, summarize as summarize_survey
 from cityview.trees import attach_trees, summarize as summarize_trees
 from cityview.velo import attach_velo, export_velo_for_viewer, summarize as summarize_velo
 from cityview.walkability import check_viewer_walkability, osm_passages
@@ -386,6 +388,8 @@ def _publish_package(
         if mirror_root:
             (VIEWER / "spawn.json").write_text(json.dumps(spawn, indent=2) + "\n")
 
+    if origin and not layout.get("origin"):
+        layout["origin"] = [origin[0], origin[1]]
     roads = export_roads_near_spawn(layout, spawn)
     road_surfaces = surfaces_from_layout(layout)
     buildings = export_walker_buildings(layout, spawn)
@@ -519,6 +523,12 @@ def district_build(
     if stages.get("velo", True):
         velo_plan = attach_velo(layout, bbox, origin, paths.velo_cache, refresh=refresh)
         print("velo: " + summarize_velo(velo_plan))
+
+    try:
+        survey = attach_survey(layout, bbox, origin, paths.survey_cache, refresh=refresh)
+        print("survey: " + summarize_survey(survey))
+    except Exception as exc:  # noqa: BLE001 — OSM furniture still builds without the city cache
+        print(f"WARNING: survey unavailable ({exc})")
 
     # Refresh profile with real velo count.
     velo_n = len(layout.get("velo_stations") or [])
@@ -694,6 +704,11 @@ def district_republish_roads(district_id: str) -> Path:
     spawn = json.loads(spawn_path.read_text()) if spawn_path.exists() else layout.get("spawn")
     if spawn:
         layout["spawn"] = spawn
+    if paths.survey_cache.exists():
+        try:
+            attach_survey(layout, district_bbox_from_doc(doc), origin, paths.survey_cache, refresh=False)
+        except Exception as exc:  # noqa: BLE001
+            print(f"WARNING: survey skipped ({exc})")
     roads = export_roads_near_spawn(layout, spawn)
     dest = paths.viewer / "roads.json"
     dest.write_text(json.dumps(roads) + "\n")
@@ -706,6 +721,52 @@ def district_republish_roads(district_id: str) -> Path:
     surf_dest = paths.viewer / "road-surfaces.json"
     surf_dest.write_text(json.dumps(surfaces) + "\n")
     print(f"Wrote {surf_dest}")
+    return dest
+
+
+def district_republish_survey(district_id: str, *, refresh: bool = False) -> Path:
+    """Fetch the city survey cache and rewrite roads.json + water.json (no Blender).
+
+    Poles, speeds, markings, bays, markets and share-zones fold into roads.json;
+    quay / jetties / berths fold into water.json. Furniture meshes still need a
+    full district build.
+    """
+    paths = district_paths(district_id)
+    doc = load_district(district_id)
+    origin = tuple(doc["origin"])
+    bbox = district_bbox_from_doc(doc)
+    osm = json.loads(paths.osm_cache.read_text())
+    layout = layout_from_osm(
+        osm,
+        origin,
+        style_policy=doc.get("style_policy") or "historic",
+        ring=doc.get("boundary"),
+    )
+    spawn_path = paths.viewer / "spawn.json"
+    spawn = json.loads(spawn_path.read_text()) if spawn_path.exists() else layout.get("spawn")
+    if spawn:
+        layout["spawn"] = spawn
+    survey = attach_survey(layout, bbox, origin, paths.survey_cache, refresh=refresh)
+    print("survey: " + summarize_survey(survey))
+    spawn_xy = (float(spawn["x"]), float(spawn["y"])) if spawn else None
+    clutter = attach_clutter(layout, osm, bbox, origin, spawn_xy)
+    print("clutter: " + summarize_clutter(clutter))
+    dest = district_republish_roads(district_id)
+    water = export_water_for_viewer(layout)
+    water_dest = paths.viewer / "water.json"
+    water_dest.write_text(json.dumps(water) + "\n")
+    quay = water.get("quay") or {}
+    print(
+        f"Wrote {water_dest} ({len(water.get('bodies') or [])} bodies, "
+        f"{sum(len(v) for v in quay.values() if isinstance(v, list))} quay records)"
+    )
+    boards = export_boards(layout, spawn, origin=origin)
+    transit_dest = paths.viewer / "transit.json"
+    if transit_dest.exists():
+        transit = json.loads(transit_dest.read_text())
+        transit["boards"] = boards
+        transit_dest.write_text(json.dumps(transit) + "\n")
+        print(f"Wrote {transit_dest} ({len(boards)} boards)")
     return dest
 
 

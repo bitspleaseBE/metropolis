@@ -35,6 +35,49 @@ const DOCK_REFRESH_M = 15;
 const DOCK_PAD = BIKE_REACH;
 const BAKED_DOCK_BIKE = /(?:^|_)velo_(?:frame_red|silver|mudguard|tire|bike(?:_\d+)?)$/;
 const BAKED_DOCK_RACK = /(?:^|_)velo_(?:dock_metal|dock_screen|dock_panel|accent_red)$/;
+const LIVE_STATUS_URLS = [
+  "https://www.velo-antwerpen.be/availability_map/getJsonObject",
+  "https://gbfs.smartbike.com/antwerp/1.0/nl/station_status.json",
+];
+const LIVE_NEAR_M = 40;
+
+/** GBFS `station_status` or Velo `getJsonObject` row → bike count. */
+export function bikesFromStatusRow(row) {
+  if (!row || typeof row !== "object") return null;
+  const n = Number(
+    row.num_bikes_available ?? row.bikes ?? row.available ?? row.bikesAvailable,
+  );
+  return Number.isFinite(n) ? Math.max(0, n) : null;
+}
+
+export function statusRowId(row) {
+  if (!row || typeof row !== "object") return "";
+  return String(row.station_id ?? row.idStation ?? row.id ?? "");
+}
+
+export function normalizeStatusRows(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && payload.data && Array.isArray(payload.data.stations)) return payload.data.stations;
+  if (payload && Array.isArray(payload.stations)) return payload.stations;
+  return [];
+}
+
+/** Apply live occupancy to one nearby station. Other docks keep their seed. */
+export function applyNearbyOccupancy(stations, stationId, rows, ridingId) {
+  const want = String(stationId || "");
+  if (!want) return false;
+  const byId = new Map();
+  for (const row of rows || []) {
+    const id = statusRowId(row);
+    if (id) byId.set(id, row);
+  }
+  const st = (stations || []).find((s) => String(s.id) === want);
+  if (!st || (ridingId && String(st.id) === String(ridingId))) return false;
+  const n = bikesFromStatusRow(byId.get(want));
+  if (n == null || n === st.bikesAvailable) return false;
+  st.bikesAvailable = Math.min(st.capacity, n);
+  return true;
+}
 
 /**
  * Ride points in the bike's own frame: metres, front −Z, origin on the ground
@@ -446,6 +489,7 @@ export async function createVelo(scene, THREE) {
   }
 
   function fillDocks(st) {
+    st.docks.length = 0;
     const n = Math.min(MAX_DOCK_BIKES, st.bikesAvailable, st.capacity);
     for (let i = 0; i < n; i++) {
       // Spread along the rail (same rule as the old Blender bake).
@@ -453,6 +497,46 @@ export async function createVelo(scene, THREE) {
         n > 1 ? Math.round((i * (st.capacity - 1)) / (n - 1)) : Math.floor(st.capacity / 2);
       st.docks.push({ ...dockSlotPose(st, slot), slot, present: true });
     }
+  }
+
+  const liveSeen = new Set();
+  let liveInflight = null;
+  let liveBlocked = false;
+
+  async function fetchLiveRows() {
+    for (const url of LIVE_STATUS_URLS) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const rows = normalizeStatusRows(await res.json());
+        if (rows.length) return rows;
+      } catch {
+        // CORS / offline: try the next host, then keep the seed.
+      }
+    }
+    return null;
+  }
+
+  function refreshNearby(px, pz) {
+    if (liveBlocked || liveInflight) return;
+    const near = nearestStation(px, pz, LIVE_NEAR_M);
+    if (!near || liveSeen.has(near.st.id)) return;
+    liveSeen.add(near.st.id);
+    const ridingId = ride && ride.stationId;
+    liveInflight = fetchLiveRows()
+      .then((rows) => {
+        if (!rows) {
+          liveBlocked = true;
+          return;
+        }
+        if (applyNearbyOccupancy(stations, near.st.id, rows, ridingId)) {
+          if (_model) fillDocks(near.st);
+          console.info(`[metropolis] velo: live occupancy at ${near.st.name} (${near.st.bikesAvailable})`);
+        }
+      })
+      .finally(() => {
+        liveInflight = null;
+      });
   }
   let rack = null;
   if (_model) {
@@ -483,6 +567,7 @@ export async function createVelo(scene, THREE) {
   let captionId = null;
   /** Nearest dock for area captions; `{ station, changed }`. */
   function locateStation(px, pz) {
+    refreshNearby(px, pz);
     const hit = nearestStation(px, pz, CAPTION_DIST);
     const st = hit?.st ?? null;
     const id = st ? st.id : null;
@@ -676,6 +761,7 @@ export async function createVelo(scene, THREE) {
   }
 
   function getPrompt(player) {
+    if (player) refreshNearby(player.x, player.z);
     if (ride) {
       if (ride.owned) return "Press E to hop off";
       const near = nearestStation(player.x, player.z);
@@ -697,6 +783,7 @@ export async function createVelo(scene, THREE) {
 
   function update(dt, player) {
     if (toastT > 0) toastT -= dt;
+    if (player) refreshNearby(player.x, player.z);
     if (!ride || !player) return;
     placeRideVelo(ride.mesh, dt, { ...player, speed: player.speed ?? BIKE_SPEED });
   }

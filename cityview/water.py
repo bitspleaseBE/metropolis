@@ -285,7 +285,20 @@ def export_water_for_viewer(layout: dict[str, Any]) -> dict[str, Any]:
                 "ring": [[round(float(p[0]), 2), round(float(p[1]), 2)] for p in ring],
             }
         )
-    return {
+    payload = {
         "attribution": "Water: (c) OpenStreetMap contributors (ODbL)",
         "bodies": bodies,
     }
+    survey = layout.get("survey")
+    origin = layout.get("origin") or layout.get("survey_origin")
+    if survey and origin:
+        from cityview.survey import export_quay
+
+        quay = export_quay(survey.get("layers") or {}, (float(origin[0]), float(origin[1])))
+        if any(quay.values()):
+            payload["quay"] = quay
+            payload["attribution"] = (
+                "Water: (c) OpenStreetMap contributors (ODbL); "
+                "quay / jetties / waterbus (c) Stad Antwerpen open data."
+            )
+    return payload

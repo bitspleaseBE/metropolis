@@ -116,6 +116,26 @@ class ExportWaterTests(unittest.TestCase):
         self.assertEqual(by_id[1]["depth"], "deep")
         self.assertEqual(by_id[1]["bed_y"], 0.0)
 
+    def test_survey_quay_is_folded_onto_water_json(self):
+        pond = annotate_water_entry(
+            {"id": 2, "ring": [[0, 0], [10, 0], [10, 10], [0, 10]]},
+            {"natural": "water", "water": "pond", "name": "Dok"},
+        )
+        doc = export_water_for_viewer(
+            {
+                "water": [pond],
+                "origin": [51.2, 4.4],
+                "survey": {
+                    "layers": {
+                        "quay_numbers": [{"id": 1, "lat": 51.2, "lon": 4.4, "kaainummer": "12"}],
+                    }
+                },
+            }
+        )
+        self.assertEqual(doc["quay"]["numbers"][0]["n"], "12")
+        self.assertIn("Stad Antwerpen", doc["attribution"])
+
 
 if __name__ == "__main__":
+
     unittest.main()

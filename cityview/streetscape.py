@@ -1582,7 +1582,7 @@ def export_roads_near_spawn(
     # Ped walks use their own district-wide radius — car roads stay spawn-clipped.
     walks = export_walks_near_spawn(layout, spawn)
     cycleways = export_cycleways_near_spawn(layout, spawn, radius=radius)
-    return {
+    payload = {
         "spawn": {"x": sx, "y": sy},
         "radius": radius,
         "roads": chosen_roads,
@@ -1591,6 +1591,15 @@ def export_roads_near_spawn(
         "signals": signals,
         "cycleSeconds": 30,
     }
+    origin = layout.get("origin") or layout.get("survey_origin")
+    if origin:
+        payload["origin"] = [float(origin[0]), float(origin[1])]
+    if layout.get("survey") and origin:
+        from cityview.survey import enrich_roads_payload
+
+        payload["_usedPoles"] = list(layout.get("_usedPoles") or [])
+        enrich_roads_payload(payload, layout, (float(origin[0]), float(origin[1])))
+    return payload
 
 
 def export_buildings_near_spawn(
@@ -1764,6 +1773,11 @@ def _export_signal_stop_lines(
     ]
     out: list[dict[str, Any]] = []
     used: list[tuple[float, float]] = []
+    from cityview.survey import city_poles_xy, geometric_pole, pick_city_pole
+
+    origin = layout.get("origin") or layout.get("survey_origin")
+    poles = city_poles_xy(layout.get("survey") or {}, tuple(origin)) if origin else []
+    used_poles: set[int] = set(layout.get("_usedPoles") or [])
     for cluster in clusters[:max_clusters]:
         jx = sum(p[0] for p in cluster) / len(cluster)
         jy = sum(p[1] for p in cluster) / len(cluster)
@@ -1789,19 +1803,20 @@ def _export_signal_stop_lines(
             used.append((stop_x, stop_y))
             tx, ty = float(ap["tx"]), float(ap["ty"])
             width = float(ap["width"])
-            half = width * 0.5
             rx, ry = ty, -tx
-            # Right-hand curb first (Belgian RHT); flip if that lands in a carriageway.
             pole_x = pole_y = None
             side = 1.0
-            for sign in (1.0, -1.0):
-                px = stop_x + rx * sign * (half + 0.85)
-                py = stop_y + ry * sign * (half + 0.85)
-                if in_carriageway(px, py, roads):
+            hit = pick_city_pole(stop_x, stop_y, rx, ry, width * 0.5, poles, roads, used_poles)
+            if hit is not None:
+                pole_x, pole_y, idx = hit
+                used_poles.add(idx)
+                side = 1.0 if (pole_x - stop_x) * rx + (pole_y - stop_y) * ry >= 0 else -1.0
+            else:
+                geo = geometric_pole(stop_x, stop_y, tx, ty, width, roads)
+                if geo is None:
                     continue
-                pole_x, pole_y, side = px, py, sign
-                break
-            if pole_x is None:
+                pole_x, pole_y, side = geo
+            if in_carriageway(pole_x, pole_y, roads):
                 continue
             yaw = vehicle_signal_yaw(tx, ty)
             ped_yaw = pedestrian_signal_yaw(rx, ry, side)
@@ -1818,8 +1833,10 @@ def _export_signal_stop_lines(
                     "pedYaw": ped_yaw,
                     "width": width,
                     "kind": "traffic_signals",
+                    "survey": hit is not None,
                 }
             )
+    layout["_usedPoles"] = sorted(used_poles)
     return out[:36]
 
 
@@ -1935,12 +1952,168 @@ def export_transit_near_spawn(
             )
         )
     stop_scored.sort(key=lambda item: item[0])
+    origin = layout.get("origin")
+    origin_t = (float(origin[0]), float(origin[1])) if origin and len(origin) >= 2 else None
     return {
         "spawn": {"x": sx, "y": sy},
         "radius": radius,
         "paths": chosen_paths,
         "stops": [item[1] for item in stop_scored[:max_stops]],
+        "boards": export_boards(layout, spawn, origin=origin_t, radius=max(radius, 320.0)),
     }
+
+
+# City wachthuisje / OSM shelter is the bus stop. Do not invent a pole+roof
+# at every GTFS/OSM bus node. Tram still gets a slim pole+sign (no roof).
+BOARD_NEAR_STOP_M = 14.0
+CITY_MARKET_M = 420.0
+DEFAULT_CITY_FACTS = (
+    {"k": "Zone 30", "v": "Most streets in the centre"},
+    {"k": "Velo", "v": "City bikes at the yellow racks"},
+    {"k": "De Lijn", "v": "Tram and bus times at the shelters"},
+)
+
+
+def invent_stop_furniture(stop: dict[str, Any]) -> str | None:
+    """What Blender may invent at an OSM/GTFS halt. ``None`` = surveyed furniture only."""
+    mode = str(stop.get("mode") or "bus").lower()
+    if mode in {"tram", "subway"}:
+        return "sign"
+    return None
+
+
+def _nearest_stop(
+    x: float, y: float, stops: list[dict[str, Any]], max_d: float
+) -> tuple[dict[str, Any] | None, float]:
+    best: dict[str, Any] | None = None
+    best_d = max_d
+    for st in stops:
+        d = _dist(x, y, float(st.get("x") or 0.0), float(st.get("y") or 0.0))
+        if d < best_d:
+            best_d = d
+            best = st
+    return best, best_d
+
+
+def _city_board_info(
+    x: float,
+    y: float,
+    layout: dict[str, Any],
+    origin: tuple[float, float] | None,
+) -> dict[str, Any]:
+    facts: list[dict[str, str]] = []
+    survey = layout.get("survey") or {}
+    layers = survey.get("layers") or {}
+    if origin and layers.get("markets"):
+        from cityview.survey import export_markets
+
+        for market in export_markets(layers, origin):
+            mx, my = float(market.get("x") or 0.0), float(market.get("y") or 0.0)
+            if _dist(x, y, mx, my) > CITY_MARKET_M:
+                continue
+            days = " · ".join(str(d) for d in (market.get("days") or []) if d)
+            hours = " ".join(p for p in (market.get("from") or "", market.get("until") or "") if p)
+            when = " · ".join(p for p in (days, hours) if p)
+            name = str(market.get("name") or "Markt")
+            facts.append({"k": "Markt", "v": f"{name}{(' · ' + when) if when else ''}"})
+            if len(facts) >= 2:
+                break
+    if not facts:
+        facts = [dict(row) for row in DEFAULT_CITY_FACTS]
+    return {"title": "Leven in de stad", "facts": facts}
+
+
+def export_boards(
+    layout: dict[str, Any],
+    spawn: dict[str, Any] | None,
+    *,
+    origin: tuple[float, float] | None = None,
+    radius: float = 320.0,
+    max_boards: int = 96,
+) -> list[dict[str, Any]]:
+    """Real boards you can walk up to: city info plates, shelters, posters, tram signs."""
+    sx = float(spawn["x"]) if spawn else 0.0
+    sy = float(spawn["y"]) if spawn else 0.0
+    stops = list(layout.get("transit_stops") or [])
+    boards: list[dict[str, Any]] = []
+    used: set[tuple[int, int]] = set()
+
+    def _take(x: float, y: float) -> bool:
+        key = (round(x * 4), round(y * 4))
+        if key in used:
+            return False
+        used.add(key)
+        return True
+
+    def _with_stop(rec: dict[str, Any], stop: dict[str, Any] | None) -> dict[str, Any]:
+        if not stop:
+            return rec
+        rec["stopId"] = stop.get("id")
+        rec["stopName"] = stop.get("name") or ""
+        rec["mode"] = stop.get("mode") or rec.get("mode") or "bus"
+        rec["lines"] = list(stop.get("lines") or stop.get("refs") or [])
+        return rec
+
+    for rec in layout.get("clutter") or []:
+        kind = rec.get("kind")
+        if kind not in {"city_board", "poster", "shelter"}:
+            continue
+        x = float(rec.get("x") or 0.0)
+        y = float(rec.get("y") or 0.0)
+        if spawn and _dist(sx, sy, x, y) > radius:
+            continue
+        if not _take(x, y):
+            continue
+        stop, _d = _nearest_stop(x, y, stops, BOARD_NEAR_STOP_M)
+        if kind == "poster" and stop is None:
+            continue
+        board: dict[str, Any] = {
+            "kind": kind,
+            "x": round(x, 2),
+            "y": round(y, 2),
+            "yaw": float(rec.get("yaw") or 0.0),
+        }
+        if kind == "city_board":
+            board["info"] = _city_board_info(x, y, layout, origin)
+        else:
+            _with_stop(board, stop)
+        boards.append(board)
+
+    for stop in stops:
+        if invent_stop_furniture(stop) != "sign":
+            continue
+        x = float(stop.get("x") or 0.0)
+        y = float(stop.get("y") or 0.0)
+        if spawn and _dist(sx, sy, x, y) > radius:
+            continue
+        shelter_near, _d = _nearest_stop(
+            x,
+            y,
+            [
+                {"x": b["x"], "y": b["y"]}
+                for b in boards
+                if b.get("kind") in {"shelter", "poster"}
+            ],
+            8.0,
+        )
+        if shelter_near is not None:
+            continue
+        if not _take(x, y):
+            continue
+        boards.append(
+            _with_stop(
+                {
+                    "kind": "tram_sign",
+                    "x": round(x, 2),
+                    "y": round(y, 2),
+                    "yaw": 0.0,
+                },
+                stop,
+            )
+        )
+
+    boards.sort(key=lambda b: _dist(sx, sy, float(b["x"]), float(b["y"])))
+    return boards[:max_boards]
 
 
 def spawn_from_place(

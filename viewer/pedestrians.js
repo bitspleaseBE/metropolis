@@ -14,10 +14,20 @@
  * See .cursor/rules/movement-gallery.mdc.
  */
 import { createPeoplePool } from "./people.js";
+import { createIphone, disposeIphone, gripIphone } from "./iphone.js";
 import { ADULT_M } from "./person-scale.js";
 import { fetchJsonCached } from "./json-cache.js";
 import { walksToRoutes, buildPedGraph } from "./npc/ped-graph.js";
 import { collectPois, planTrip } from "./npc/trips.js";
+import {
+  STREET_MPS,
+  STROLL_MPS,
+  buildMarkets,
+  claimStall,
+  marketAt,
+  releasePerson,
+  stepVisitor,
+} from "./npc/market.js";
 import { assignTrip, advanceTrip } from "./npc/ped-trip.js";
 import { createPopulation } from "./npc/population.js";
 import {
@@ -108,7 +118,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   const SPAWN_CENTER = opts.spawnCenter || { x: -218.5, z: -432.1 };
   // Hoisted: crowdFocus / spawnGroup run before the redress block further down.
   const camera = opts.camera || null;
-  const WALK_SPEED = 1.25; // m/s
+  const WALK_SPEED = STREET_MPS; // purposeful street pace; markets stroll slower
   const BOBBLE_AMP = 0.02;
   const BOBBLE_FREQ = 9.0;
   const population = createPopulation(opts.district || (typeof window !== "undefined" && window.__DISTRICT) || {});
@@ -132,6 +142,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
   let _lodParity = 0;
 
   const walks = opts.walks || (await loadWalks());
+  const markets = buildMarkets(opts.markets || (await loadMarkets()));
   const walkRoutes = buildWalkRoutes(walks, SPAWN_CENTER);
   const graph = buildGraph(walkRoutes);
   // A* trip graph (npc/ped-graph) — same walks, richer routing + POI goals.
@@ -548,6 +559,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
       side: Math.max(-0.55, Math.min(0.55, side)),
       phase: Math.random() * Math.PI * 2,
       speed,
+      streetSpeed: speed,
       animRate: speed / WALK_SPEED,
       prof,
       recent: new Set(),
@@ -580,6 +592,19 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         const m = member(mesh, startS - row * 0.95 * dir, side0 + lateral, speed, { scale: p.height / ADULT_M });
         m.animRate = speed / p.naturalSpeed;
         p.action?.setEffectiveTimeScale(m.animRate);
+        // Some of the phone-capable residents are on a handset: texting, a call,
+        // or Mixamo's plain walk (they still text when they stop).
+        const person = p.template?.person;
+        if (
+          person &&
+          pool.hasPhone(person.id) &&
+          person.age !== "child" &&
+          Math.random() < 0.72
+        ) {
+          const roll = Math.random();
+          m.phone = roll < 0.4 ? "textWalk" : roll < 0.75 ? "call" : "walk";
+          pool.loadPhone(p.template);
+        }
         members.push(m);
       });
     } else {
@@ -617,6 +642,8 @@ export async function createPedestrians(scene, THREE, opts = {}) {
 
   function releaseGroup(g) {
     for (const m of g.members) {
+      disposeIphone(m.iphone);
+      m.iphone = null;
       root.remove(m.mesh);
       if (m.mesh.userData.person) pool.release(m.mesh.userData.person);
     }
@@ -1251,7 +1278,71 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     if (!m.recover) getUp.stop();
   }
 
+  function playBody(m, action, fade) {
+    const prev = m.mesh.userData.action;
+    if (!action || prev === action) return;
+    action.enabled = true;
+    action.setEffectiveWeight(1);
+    if (!action.isRunning()) action.play();
+    if (prev && fade > 0) action.crossFadeFrom(prev, fade, false);
+    else if (prev) prev.stop();
+    m.mesh.userData.action = action;
+    const person = m.mesh.userData.person;
+    if (person) person.action = action;
+  }
+
+  const PHONE_SPEED = { walk: "walkMps", textWalk: "textWalkMps", callWalk: "callMps" };
+  const PHONE_GRIP = { text: "text", textWalk: "textWalk", call: "call", callWalk: "call" };
+
+  function phoneClipKey(m, moving) {
+    if (m.phone === "call") return moving ? "callWalk" : "call";
+    if (!moving) return "text";
+    return m.phone === "walk" ? "walk" : "textWalk";
+  }
+
+  function holdHandset(m, key) {
+    const grip = PHONE_GRIP[key] || null;
+    if (!grip) {
+      if (m.iphone) gripIphone(m.iphone, null);
+      return;
+    }
+    if (!m.iphone) {
+      const hand = m.mesh.getObjectByName("Bip01 R Hand");
+      if (!hand) return;
+      const id = m.mesh.userData.person?.template?.person?.id || "";
+      m.iphone = createIphone(id);
+      hand.add(m.iphone);
+    }
+    gripIphone(m.iphone, grip);
+  }
+
   function setWalkAnim(m, moving) {
+    const person = m.mesh.userData.person;
+    const clips = person?.template?.phone;
+    const onPhone = m.phone && clips && !m.panic && !(m.dealLeft > 0);
+    if (onPhone) {
+      const key = phoneClipKey(m, moving);
+      const clip = clips[key];
+      if (clip) {
+        if (!m.phoneActions) m.phoneActions = {};
+        if (!m.phoneActions[key]) {
+          const action = person.mixer.clipAction(clip);
+          action.setLoop(THREE.LoopRepeat, Infinity);
+          action.time = Math.random() * clip.duration;
+          m.phoneActions[key] = action;
+        }
+        playBody(m, m.phoneActions[key], 0.28);
+        holdHandset(m, key);
+        const authored = clips[PHONE_SPEED[key]] || 0;
+        const height = person.template.person.height || person.height;
+        const mps = authored > 0 ? authored * (person.height / height) : 0;
+        const rate = !moving ? 1 : mps > 0.2 ? m.speed / mps : m.animRate;
+        m.mesh.userData.action.setEffectiveTimeScale(Math.min(1.75, Math.max(0.55, rate)));
+        return;
+      }
+    }
+    holdHandset(m, null);
+    if (person?.walk && m.mesh.userData.action !== person.walk) playBody(m, person.walk, 0.2);
     const action = m.mesh.userData.action;
     if (action) action.setEffectiveTimeScale(moving ? m.animRate : 0);
   }
@@ -1278,6 +1369,87 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         m.mesh.rotation.y = yaw;
       }
     }
+  }
+
+  function paceMember(m, mps, moving) {
+    m.speed = mps;
+    const natural = m.mesh.userData.person?.naturalSpeed || WALK_SPEED;
+    m.animRate = mps / natural;
+    const action = m.mesh.userData.person?.action || m.mesh.userData.action;
+    if (action) action.setEffectiveTimeScale(moving ? m.animRate : 0);
+  }
+
+  /** Stroll inside an open market. Shoppers hold the trip at a stall. */
+  function holdForMarket(g, dt) {
+    const lead = g.members[0];
+    if (!lead || !markets.length) return false;
+    const market = marketAt(
+      markets,
+      lead.routeX || lead.mesh.position.x,
+      lead.routeZ || lead.mesh.position.z,
+      gameHour,
+      gameDay,
+    );
+    if (!market) {
+      if (g.wasMarket && g.marketRef) {
+        for (const m of g.members) {
+          releasePerson(g.marketRef, m.reactId);
+          m.marketStall = null;
+          m.dealLeft = null;
+          m.marketDone = false;
+          m.strolling = false;
+        }
+      }
+      g.wasMarket = false;
+      g.marketVisit = null;
+      g.marketSkip = null;
+      g.marketRef = null;
+      return false;
+    }
+    g.wasMarket = true;
+    g.marketRef = market;
+    if (g.marketSkip === market.name) {
+      for (const m of g.members) paceMember(m, STROLL_MPS, true);
+      return false;
+    }
+    if (g.marketVisit == null) g.marketVisit = Math.random() < 0.72;
+    if (!g.marketVisit) {
+      for (const m of g.members) paceMember(m, STROLL_MPS, true);
+      return false;
+    }
+    let hold = false;
+    for (const m of g.members) {
+      if (m.down || m.marketDone) {
+        m.strolling = false;
+        continue;
+      }
+      if (!m.marketStall) m.marketStall = claimStall(market, m.reactId);
+      if (!m.marketStall) {
+        paceMember(m, STROLL_MPS, true);
+        m.strolling = true;
+        continue;
+      }
+      const visitor = { id: m.reactId, x: m.routeX || 0, z: m.routeZ || 0, dealLeft: m.dealLeft };
+      const step = stepVisitor(visitor, m.marketStall, dt);
+      m.routeX = visitor.x;
+      m.routeZ = visitor.z;
+      m.dealLeft = visitor.dealLeft;
+      if (visitor.hx != null) {
+        m.headingX = visitor.hx;
+        m.headingZ = visitor.hz;
+      }
+      m.strolling = step.moving;
+      paceMember(m, STROLL_MPS, step.moving);
+      if (step.done) {
+        m.marketStall = null;
+        m.marketDone = true;
+        m.dealLeft = null;
+      } else {
+        hold = true;
+      }
+    }
+    if (!hold) g.marketSkip = market.name;
+    return hold;
   }
 
   function replanGroup(g) {
@@ -1377,15 +1549,16 @@ export async function createPedestrians(scene, THREE, opts = {}) {
       const onTrip = !!(g.trip?.path && g.tripGraph);
       if (onTrip) {
         const lead = g.members[0];
-        const speed = lead?.speed || WALK_SPEED;
-        const result = advanceTrip(g, dt, { crossingOk, speed });
+        const held = holdForMarket(g, dt);
+        const speed = held ? STROLL_MPS : g.wasMarket ? STROLL_MPS : lead?.streetSpeed || lead?.speed || WALK_SPEED;
+        const result = held ? "wait" : advanceTrip(g, dt, { crossingOk, speed });
         if (result === "done") replanGroup(g);
         for (const m of g.members) {
           calm(m, dt);
           if (m.down && updateDown(m, dt)) continue;
           if (m.recover > 0) recoverStep(m, dt);
           applyReaction(m, dt);
-          setWalkAnim(m, !m.waiting && result !== "wait");
+          setWalkAnim(m, held ? !!m.strolling : !m.waiting && result !== "wait");
           updateMemberLod(m, dt, cx, cz, hot2, warm2, cold2, true);
         }
         continue;
@@ -1400,8 +1573,17 @@ export async function createPedestrians(scene, THREE, opts = {}) {
         const rLen = routeLength(route);
         // Advance along the path even when far (cheap); only near people get skinned anim + raycasts.
         if (!waitingAtCrossing(m, route, rLen)) {
+          const inside = marketAt(
+            markets,
+            m.routeX || m.mesh.position.x,
+            m.routeZ || m.mesh.position.z,
+            gameHour,
+            gameDay,
+          );
+          const pace = inside ? STROLL_MPS : m.streetSpeed || m.speed;
+          m.speed = pace;
           setWalkAnim(m, true);
-          m.s += m.speed * m.dir * dt;
+          m.s += pace * m.dir * dt;
           if (m.s >= rLen || m.s < 0) advanceEnd(m);
         } else {
           setWalkAnim(m, false);
@@ -1456,6 +1638,7 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     groups,
     mixamo: !!pool,
     people: pool,
+    markets,
     routes: walkRoutes,
     hitTest,
     strike,
@@ -1494,6 +1677,17 @@ export async function createPedestrians(scene, THREE, opts = {}) {
     },
     streamVariety,
   };
+}
+
+async function loadMarkets() {
+  try {
+    const res = await fetchJsonCached(roadsUrl());
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.markets || [];
+  } catch {
+    return [];
+  }
 }
 
 async function loadWalks() {
