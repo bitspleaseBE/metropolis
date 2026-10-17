@@ -11,6 +11,8 @@ import {
   nearestParkedDoor,
   parkedInteract,
   parkedPrompt,
+  parkedStandY,
+  readBakedParkedPoses,
   seatOf,
   yawFromBakedNose,
 } from "../viewer/parked-cars.js";
@@ -64,6 +66,95 @@ assert.equal(nearestParkedDoor([car], doorOf(car).x, doorOf(car).z), car);
   const far = parkedInteract([car], { x: car.x + 8, z: car.z }, null);
   assert.equal(far.action, "none");
   assert.equal(car.occupied, false);
+}
+
+{
+  // Baked pivot is the mesh centre (~0.8 m up). Wheels of the runtime car are on y=0,
+  // so the stand height is the tyre contact, not that pivot.
+  assert.equal(parkedStandY(0, 0.811), 0);
+  assert.equal(parkedStandY(0.12, 0.931), 0.12);
+  assert.equal(parkedStandY(Number.NaN, 0.12), 0.12);
+}
+
+{
+  class Vector3 {
+    constructor(x = 0, y = 0, z = 0) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+    }
+    set(x, y, z) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+      return this;
+    }
+    applyQuaternion() {
+      return this;
+    }
+  }
+  class Box3 {
+    constructor() {
+      this.min = { y: Infinity };
+      this._empty = true;
+    }
+    setFromObject(node) {
+      this.min = { y: node.bottomY };
+      this._empty = !Number.isFinite(node.bottomY);
+      return this;
+    }
+    isEmpty() {
+      return this._empty;
+    }
+    copy(other) {
+      this.min = { y: other.min.y };
+      this._empty = other._empty;
+      return this;
+    }
+    union(other) {
+      this.min.y = Math.min(this.min.y, other.min.y);
+      return this;
+    }
+  }
+  const make = (name, { mesh = false, x = 0, y = 0, z = 0, bottomY = 0, visible = true } = {}) => {
+    const n = {
+      name,
+      visible,
+      isMesh: mesh,
+      parent: null,
+      bottomY,
+      children: [],
+      updateWorldMatrix() {},
+      getWorldPosition(out) {
+        out.x = x;
+        out.y = y;
+        out.z = z;
+      },
+      getWorldQuaternion() {},
+      traverse(fn) {
+        fn(n);
+        for (const c of n.children) c.traverse(fn);
+      },
+    };
+    n.add = (c) => {
+      c.parent = n;
+      n.children.push(c);
+    };
+    return n;
+  };
+  const body = make("car_4_model_y_body", { mesh: true, bottomY: 0 });
+  const blob = make("contact_shadow", { mesh: true, bottomY: -0.4 });
+  const car = make("car_4_model_y", { x: 12, y: 0.811, z: -6 });
+  car.add(body);
+  car.add(blob);
+  const root = make("city");
+  root.add(car);
+  root.updateMatrixWorld = () => {};
+  const poses = readBakedParkedPoses({ Vector3, Quaternion: class {}, Box3 }, root);
+  assert.equal(poses.length, 1);
+  assert.equal(poses[0].y, 0, "tyres stay on the road, not at the pivot");
+  assert.equal(poses[0].x, 12);
+  assert.equal(car.visible, false);
 }
 
 console.log("parked-cars ok");
