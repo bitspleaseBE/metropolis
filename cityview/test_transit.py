@@ -8,7 +8,7 @@ import zipfile
 
 from cityview.gtfs_delijn import build_gtfs_subset, enrich_layout_transit
 from cityview.osm import layout_from_osm, overpass_query
-from cityview.streetscape import export_transit_near_spawn
+from cityview.streetscape import export_boards, export_transit_near_spawn, invent_stop_furniture
 
 
 def _mini_osm() -> dict:
@@ -190,6 +190,50 @@ class ExportTransitTests(unittest.TestCase):
         }
         payload = export_transit_near_spawn(layout, {"x": 0.0, "y": 0.0}, radius=280.0, fallback_paths=1)
         self.assertEqual([p["id"] for p in payload["paths"]], [1, 2])
+
+
+class BoardExportTests(unittest.TestCase):
+    def test_invent_stop_furniture_skips_bus(self):
+        self.assertIsNone(invent_stop_furniture({"mode": "bus"}))
+        self.assertIsNone(invent_stop_furniture({}))
+        self.assertEqual(invent_stop_furniture({"mode": "tram"}), "sign")
+        self.assertEqual(invent_stop_furniture({"mode": "subway"}), "sign")
+
+    def test_export_boards_shelter_and_city_not_invented_bus(self):
+        layout = {
+            "transit_stops": [
+                {"id": 10, "mode": "bus", "name": "Meir", "lines": ["21"], "x": 4.0, "y": 0.0},
+                {"id": 11, "mode": "tram", "name": "Opera", "lines": ["8"], "x": 80.0, "y": 0.0},
+            ],
+            "clutter": [
+                {"kind": "shelter", "x": 5.0, "y": 1.0, "yaw": 0.2},
+                {"kind": "city_board", "x": 2.0, "y": 2.0, "yaw": 1.0},
+                {"kind": "poster", "x": 200.0, "y": 0.0, "yaw": 0.0},
+            ],
+        }
+        boards = export_boards(layout, {"x": 0.0, "y": 0.0}, radius=100.0)
+        kinds = [b["kind"] for b in boards]
+        self.assertIn("shelter", kinds)
+        self.assertIn("city_board", kinds)
+        self.assertIn("tram_sign", kinds)
+        self.assertNotIn("poster", kinds)
+        shelter = next(b for b in boards if b["kind"] == "shelter")
+        self.assertEqual(shelter["stopName"], "Meir")
+        self.assertEqual(shelter["lines"], ["21"])
+        city = next(b for b in boards if b["kind"] == "city_board")
+        self.assertTrue(city["info"]["facts"])
+        self.assertTrue(any(b["kind"] == "tram_sign" and b["stopName"] == "Opera" for b in boards))
+
+    def test_tram_sign_omitted_when_shelter_already_there(self):
+        layout = {
+            "transit_stops": [
+                {"id": 11, "mode": "tram", "name": "Opera", "lines": ["8"], "x": 0.0, "y": 0.0},
+            ],
+            "clutter": [{"kind": "shelter", "x": 1.0, "y": 0.0, "yaw": 0.0}],
+        }
+        boards = export_boards(layout, {"x": 0.0, "y": 0.0})
+        self.assertEqual([b["kind"] for b in boards], ["shelter"])
+        self.assertEqual(boards[0]["stopName"], "Opera")
 
 
 if __name__ == "__main__":

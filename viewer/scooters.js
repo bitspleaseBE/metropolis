@@ -192,11 +192,9 @@ function zoneHit(x, z, zones, kinds) {
   return null;
 }
 
-function allowedShareSpot(p, zones) {
-  if (zoneHit(p.x, p.z, zones, new Set(["nogo", "nopark"]))) return false;
-  const drops = zones.filter((z) => z.k === "drop");
-  if (!drops.length) return true;
-  return Boolean(zoneHit(p.x, p.z, drops, new Set(["drop"])));
+/** Street riders ignore municipal drop / no-park polygons: pick up on the kerb, leave it where you stop. */
+function allowedShareSpot() {
+  return true;
 }
 
 function projectLatLon(lat, lon, origin) {
@@ -229,7 +227,31 @@ function inventDropSpots(zones, rand, n) {
   return out;
 }
 
-async function tryDottBikes(origin, zones, count) {
+function roadBox(roads) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const road of roads || []) {
+    for (const p of road.points || []) {
+      const x = p[0];
+      const z = -p[1];
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
+    }
+  }
+  if (!Number.isFinite(minX)) return null;
+  return { minX, maxX, minZ, maxZ };
+}
+
+function inRoadBox(p, box, pad = 40) {
+  if (!box) return true;
+  return p.x >= box.minX - pad && p.x <= box.maxX + pad && p.z >= box.minZ - pad && p.z <= box.maxZ + pad;
+}
+
+async function tryDottBikes(origin, count, inside) {
   if (!origin) return [];
   for (const gbfs of DOTT_FEEDS) {
     try {
@@ -247,7 +269,7 @@ async function tryDottBikes(origin, zones, count) {
       for (const bike of bikes) {
         if (bike.is_disabled || bike.is_reserved) continue;
         const p = projectLatLon(Number(bike.lat), Number(bike.lon), origin);
-        if (!Number.isFinite(p.x) || !allowedShareSpot(p, zones)) continue;
+        if (!Number.isFinite(p.x) || (inside && !inside(p))) continue;
         p.yaw = Number(bike.heading) ? (Number(bike.heading) * Math.PI) / 180 : 0;
         out.push(p);
         if (out.length >= count) return out;
@@ -335,7 +357,7 @@ export async function createScooters(scene, THREE, opts = {}) {
   const isFree = opts.isFree || (() => true);
   const groundAt = opts.groundAt || (() => 0);
   const count = opts.count ?? COUNT;
-  const live = await tryDottBikes(origin, shareZones, count);
+  const live = await tryDottBikes(origin, count, (p) => inRoadBox(p, roadBox(roads)));
   const kerb = buildKerbSpots(roads, rand).filter(
     (p) => isFree(p.x, p.z) && allowedShareSpot(p, shareZones),
   );
@@ -395,11 +417,6 @@ export async function createScooters(scene, THREE, opts = {}) {
       const pz = player.z - Math.sin(yaw) * 0.6;
       s.mesh.position.set(px, groundAt(px, pz), pz);
       s.mesh.rotation.set(0, yaw, 0.11);
-      if (zoneHit(px, pz, shareZones, new Set(["nogo", "nopark"]))) {
-        toast = "No parking in this zone";
-        toastT = 2.4;
-        return { action: "refused", reason: "nopark" };
-      }
       s.mesh.userData.kickstand.visible = true;
       s.parked = true;
       const cost = ride.cost;
@@ -468,12 +485,7 @@ export async function createScooters(scene, THREE, opts = {}) {
   }
 
   function getPrompt(player) {
-    if (ride) {
-      if (zoneHit(player.x, player.z, shareZones, new Set(["nogo", "nopark"]))) {
-        return "Can't park in this zone";
-      }
-      return "E · park scooter here";
-    }
+    if (ride) return "E · park scooter here";
     const n = nearest(player.x, player.z);
     if (!n) return null;
     if (n.s.battery < 8) return `${n.s.brand} battery empty`;

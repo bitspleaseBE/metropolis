@@ -3628,28 +3628,24 @@ def add_transit_stop(
     mode: str,
     lines: list,
     pole_mat,
-    shelter_mat,
     sign_mat,
 ) -> None:
-    """Simple pole + shelter plate; line numbers baked into object names."""
+    """Slim tram pole + line sign. Bus furniture is surveyed (city wachthuisje)."""
     line_tag = "-".join(str(v) for v in (lines or [])[:4]) or "na"
     pole = add_box(f"{name}_pole_{line_tag}", (0.1, 0.1, 2.6), (x, y, 1.3), 0.0)
     assign(pole, pole_mat)
-    # Colour cue: tram yellow-ish sign, bus cream.
-    roof = add_box(f"{name}_roof", (1.4, 0.7, 0.06), (x, y + 0.15, 2.55), 0.0)
-    assign(roof, shelter_mat)
     panel = add_box(f"{name}_sign_{mode}_{line_tag}", (0.55, 0.05, 0.4), (x, y + 0.28, 2.15), 0.0)
     assign(panel, sign_mat)
 
 
 def add_transit_layer(layout: dict, spawn_xy: tuple[float, float] | None) -> tuple[int, int]:
-    """Draw tram/premetro ribbons and stop shelters. Returns (tracks, stops)."""
+    """Draw tram/premetro ribbons and slim tram signs. Returns (tracks, stops)."""
+    from cityview.streetscape import invent_stop_furniture
+
     track_mat = principled("tram_track", (0.12, 0.12, 0.13, 1.0), 0.55, metallic=0.35)
     bed_mat = principled("tram_bed", (0.22, 0.22, 0.2, 1.0), 0.9)
     pole_mat = principled("transit_pole", (0.2, 0.2, 0.22, 1.0), 0.45, metallic=0.4)
-    shelter_mat = principled("transit_shelter", (0.55, 0.55, 0.52, 1.0), 0.55, metallic=0.25)
     tram_sign = principled("tram_sign", (0.85, 0.55, 0.12, 1.0), 0.4)
-    bus_sign = principled("bus_sign", (0.15, 0.45, 0.7, 1.0), 0.4)
     tracks = 0
     for i, line in enumerate(layout.get("transit_lines") or []):
         mode = line.get("mode") or "bus"
@@ -3675,13 +3671,14 @@ def add_transit_layer(layout: dict, spawn_xy: tuple[float, float] | None) -> tup
 
     stops_n = 0
     for i, stop in enumerate(layout.get("transit_stops") or []):
+        if invent_stop_furniture(stop) != "sign":
+            continue
         x = float(stop.get("x") or 0.0)
         y = float(stop.get("y") or 0.0)
         if spawn_xy is not None and math.hypot(x - spawn_xy[0], y - spawn_xy[1]) > 320.0:
             continue
-        mode = stop.get("mode") or "bus"
+        mode = stop.get("mode") or "tram"
         lines = stop.get("lines") or stop.get("refs") or []
-        sign_mat = tram_sign if mode in {"tram", "subway"} else bus_sign
         add_transit_stop(
             f"stop_{stop.get('id', i)}",
             x,
@@ -3689,8 +3686,7 @@ def add_transit_layer(layout: dict, spawn_xy: tuple[float, float] | None) -> tup
             mode,
             lines,
             pole_mat,
-            shelter_mat,
-            sign_mat,
+            tram_sign,
         )
         stops_n += 1
     return tracks, stops_n

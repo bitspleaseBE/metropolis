@@ -7,6 +7,7 @@
  * together from the manifest's `look` tags so families, couples and friends look plausible.
  *
  * Walk-clip changes also update viewer/movement.html.
+ * Phone clips (texting, Mixamo walk, walking while texting) load on first use.
  * See .cursor/rules/movement-gallery.mdc.
  */
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -24,6 +25,29 @@ function dropScaleTracks(THREE, clip) {
   const tracks = clip.tracks.filter((t) => !t.name.endsWith(".scale"));
   if (tracks.length === clip.tracks.length) return clip;
   return new THREE.AnimationClip(clip.name, clip.duration, tracks);
+}
+
+/**
+ * Mixamo walks carry the hips forward. The crowd sim already moves the body,
+ * so subtract that drift and report how far the clip travelled (metres at the
+ * authored scale) for foot-speed matching.
+ */
+function inplaceRoot(clip) {
+  const track = clip?.tracks?.find((t) => t.name === "Bip01.position");
+  if (!track || track.values.length < 6) return 0;
+  const v = track.values;
+  const n = v.length / 3;
+  const x0 = v[0];
+  const z0 = v[2];
+  const x1 = v[(n - 1) * 3];
+  const z1 = v[(n - 1) * 3 + 2];
+  const travel = Math.hypot(x1 - x0, z1 - z0);
+  for (let i = 0; i < n; i++) {
+    const u = i / (n - 1);
+    v[i * 3] -= x0 + (x1 - x0) * u;
+    v[i * 3 + 2] -= z0 + (z1 - z0) * u;
+  }
+  return travel;
 }
 
 // Look → household bucket. Hasidic only walks with Hasidic; Flemish/european,
@@ -80,9 +104,14 @@ const cluster = (p) => CLUSTER[p.look] || p.look;
  * @param opts.resident cap on loaded people (GPU memory); unused ones are evicted to make room
  */
 export async function createPeoplePool(THREE, { initial = 8, resident = 14, rotate = false, districtId = "" } = {}) {
-  const res = await fetch(new URL("manifest.json", DIR));
+  const [res, phoneRes] = await Promise.all([
+    fetch(new URL("manifest.json", DIR)),
+    fetch(new URL("phone.json", DIR)).catch(() => null),
+  ]);
   if (!res.ok) throw new Error(`people manifest: HTTP ${res.status}`);
   const people = (await res.json()).people;
+  const phoneIds = phoneRes?.ok ? (await phoneRes.json()).people || [] : [];
+  const phoneSet = new Set(phoneIds);
   const byId = new Map(people.map((p) => [p.id, p]));
   const loaded = new Map(); // id → { person, scene, clip, users, lastUsed }
   const loading = new Map();
@@ -158,6 +187,29 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     districtId,
     Math.max(initial, resident),
   );
+  // A few phone-capable people stay in the resident set, so the lazy clips
+  // show up on the street instead of only on whoever the shuffle happened to draw.
+  const phoneEligible = phoneIds.filter((id) => {
+    const p = byId.get(id);
+    if (!p || reserved(p)) return false;
+    if (p.look === "hasidic" && districtId !== JEWISH_DISTRICT) return false;
+    return true;
+  });
+  for (let i = phoneEligible.length - 1; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0;
+    [phoneEligible[i], phoneEligible[j]] = [phoneEligible[j], phoneEligible[i]];
+  }
+  let phoneHave = plan.filter((id) => phoneSet.has(id)).length;
+  let phoneSlot = 0;
+  for (const id of phoneEligible) {
+    if (phoneHave >= 4 || phoneSlot >= plan.length) break;
+    if (plan.includes(id)) continue;
+    while (phoneSlot < plan.length && phoneSet.has(plan[phoneSlot])) phoneSlot++;
+    if (phoneSlot >= plan.length) break;
+    plan[phoneSlot] = id;
+    phoneSlot++;
+    phoneHave++;
+  }
   const first = new Set(plan.slice(0, initial));
   await Promise.all([...first].map(load));
   if (!loaded.size) throw new Error("no people loaded");
@@ -434,6 +486,58 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     return idleLoads.get(id);
   }
 
+  // Phone clips (scripts/bake_rocketbox_phone.py). Fetched the first time a
+  // pedestrian of this id is on their phone; missing files leave the Rocketbox walk.
+  const phoneLoads = new Map();
+  function loadPhoneClip(id, dir) {
+    return loader
+      .loadAsync(new URL(`${dir}/${id}.glb`, DIR).href)
+      .then((g) => {
+        const clip = dropScaleTracks(THREE, g.animations[0]);
+        const travel = inplaceRoot(clip);
+        const mps = clip && clip.duration > 0.2 && travel > 0.4 ? travel / clip.duration : 0;
+        return { clip, mps };
+      }, () => null);
+  }
+  function loadPhone(t) {
+    if (t.phone !== undefined) return Promise.resolve(t.phone);
+    const id = t.person.id;
+    if (!phoneSet.has(id)) {
+      t.phone = null;
+      return Promise.resolve(null);
+    }
+    if (!phoneLoads.has(id)) {
+      phoneLoads.set(
+        id,
+        Promise.all([
+          loadPhoneClip(id, "texting"),
+          loadPhoneClip(id, "phone-walk"),
+          loadPhoneClip(id, "text-walk"),
+          loadPhoneClip(id, "phone-call"),
+          loadPhoneClip(id, "phone-pace"),
+        ]).then(([text, walk, textWalk, call, callWalk]) => {
+          const phone =
+            text?.clip || walk?.clip || textWalk?.clip || call?.clip || callWalk?.clip
+              ? {
+                  text: text?.clip || null,
+                  walk: walk?.clip || null,
+                  textWalk: textWalk?.clip || null,
+                  call: call?.clip || null,
+                  callWalk: callWalk?.clip || null,
+                  walkMps: walk?.mps || 0,
+                  textWalkMps: textWalk?.mps || 0,
+                  callMps: callWalk?.mps || 0,
+                }
+              : null;
+          t.phone = phone;
+          phoneLoads.delete(id);
+          return phone;
+        }),
+      );
+    }
+    return phoneLoads.get(id);
+  }
+
   /**
    * Cross-fade an instance between its walk and the standing idle. Returns false when the
    * person has no idle clip loaded (call loadIdle first); `fade` 0 snaps.
@@ -486,6 +590,8 @@ export async function createPeoplePool(THREE, { initial = 8, resident = 14, rota
     acquireMatching,
     acquireStanding,
     loadIdle,
+    loadPhone,
+    hasPhone: (id) => phoneSet.has(id),
     setIdle,
     release,
     /** Manifest entries (read-only), e.g. to pick staff by role or customers by age. */

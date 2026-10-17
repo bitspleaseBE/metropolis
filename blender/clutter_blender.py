@@ -172,6 +172,15 @@ def _poster(p: Parts, b: Matrix) -> None:
     p.box("board", b, (1.1, 0.04, 1.7), (0, 0.16, 1.2))
 
 
+def _city_board(p: Parts, b: Matrix) -> None:
+    # Civic information panel: two posts, city-red header, white face.
+    for sx in (-0.42, 0.42):
+        p.cyl("metal", b, 0.035, 2.35, (sx, 0, 1.2), segs=6)
+    p.box("board", b, (1.05, 0.05, 1.55), (0, 0.04, 1.45))
+    p.box("signal_white", b, (0.92, 0.01, 1.15), (0, 0.07, 1.32))
+    p.box("signal_red", b, (0.92, 0.01, 0.22), (0, 0.07, 2.05))
+
+
 def add_clutter(layout: dict, rails, mats: dict) -> dict:
     """Create merged clutter meshes. ``mats`` maps part keys to materials."""
     parts = Parts()
@@ -202,6 +211,7 @@ def add_clutter(layout: dict, rails, mats: dict) -> dict:
             "shelter": lambda: _shelter(parts, b),
             "fountain": lambda: _fountain(parts, b),
             "poster": lambda: _poster(parts, b),
+            "city_board": lambda: _city_board(parts, b),
         }
         build = builders.get(kind)
         if build is None:

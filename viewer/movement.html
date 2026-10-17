@@ -48,7 +48,7 @@
   <body>
     <aside>
       <h1>Movement</h1>
-      <p class="note">Click a person. Drag the view to turn around them, and scroll to zoom. Pick a gait, an action, and a mode — punch on idle stands still; walk + punch mixes like the game. The cast uses the game avatar and plays the Mixamo walk as baked: the viewer does not widen the stance or hold one foot low. Crowd riders use the bicycle, bakfiets, and step. A gunshot still uses this walk: most of the crowd runs away, and a few close in with a knife. The same gun fires from a bicycle or a scooter.</p>
+      <p class="note">Click a person. Drag the view to turn around them, and scroll to zoom. Pick a gait, an action, and a mode — punch on idle stands still; walk + punch mixes like the game. The cast uses the game avatar and plays the Mixamo walk as baked: the viewer does not widen the stance or hold one foot low. On the street the crowd walks fast, with somewhere to be. On an open market they use the same walk, slowed to a stroll, and a few stand at a stall: one buyer, two or three waiting. A few pedestrians carry an iPhone: Mixamo Texting, Walking While Texting, or Talking On Phone, standing and pacing. Those clips load the first time that person is on the street. Crowd riders use the bicycle, bakfiets, and step. A gunshot still uses this walk: most of the crowd runs away, and a few close in with a knife. The same gun fires from a bicycle or a scooter.</p>
       <button id="check" type="button">Check cast and crowd</button>
       <h2>Cast</h2>
       <ul id="cast"></ul>
@@ -77,6 +77,7 @@
       import { skinnedFloor, skinnedHeight } from "./foot-plant.js";
       import { ADULT_M } from "./person-scale.js";
       import { makeShareScooter, placeRideScooter, scooterDeck } from "./scooters.js";
+      import { createIphone, gripIphone } from "./iphone.js";
       import { JUMP, MOVE, makeJump, stepJump } from "./player-motion.js";
 
       const CAST = ["pieter", "mo", "jacob"];
@@ -109,7 +110,8 @@
       const GAIT_OPTS = Object.keys(GAIT);
       const ACTION_OPTS = Object.keys(ACTION);
       const CAST_MODE_OPTS = ["On foot", "Velo", "Step", "Bicycle"];
-      const NPC_GAIT_OPTS = ["Idle", "Walk"];
+      const NPC_GAIT_OPTS = ["Idle", "Walk", "Texting", "Text walk", "Phone walk", "Call", "Call walk"];
+      const phonePeople = new Set();
       const NPC_ACTION_OPTS = ["Idle"];
       const NPC_MODE_OPTS = ["On foot", "Bicycle", "Bakfiets", "Step"];
       const combo = { gait: "Idle", action: "Idle", mode: "On foot" };
@@ -407,6 +409,24 @@
         if (!clip?.tracks?.length) return clip || null;
         const tracks = clip.tracks.filter((t) => !t.name.endsWith(".scale"));
         return tracks.length === clip.tracks.length ? clip : new THREE.AnimationClip(clip.name, clip.duration, tracks);
+      }
+
+      /** Drop the Mixamo hip drift so a phone walk stays on the gallery mark. */
+      function inplaceRoot(clip) {
+        const track = clip?.tracks?.find((t) => t.name === "Bip01.position");
+        if (!track || track.values.length < 6) return clip;
+        const v = track.values;
+        const n = v.length / 3;
+        const x0 = v[0];
+        const z0 = v[2];
+        const x1 = v[(n - 1) * 3];
+        const z1 = v[(n - 1) * 3 + 2];
+        for (let i = 0; i < n; i++) {
+          const u = i / (n - 1);
+          v[i * 3] -= x0 + (x1 - x0) * u;
+          v[i * 3 + 2] -= z0 + (z1 - z0) * u;
+        }
+        return clip;
       }
 
       function normBone(name) {
@@ -882,11 +902,17 @@
 
       async function loadCrowd(file, id) {
         const personId = id || file.replace(/\.glb$/i, "");
-        const [gltf, ride, step, idle] = await Promise.all([
+        const onPhone = phonePeople.has(personId);
+        const [gltf, ride, step, idle, texting, phoneWalk, textWalk, call, callWalk] = await Promise.all([
           loader.loadAsync(`characters/people/${file}`),
           loadClip(`characters/people/ride/${personId}.glb`),
           loadClip(`characters/people/step/${personId}.glb`),
           loadClip(`characters/people/idle/${personId}.glb`),
+          onPhone ? loadClip(`characters/people/texting/${personId}.glb`) : null,
+          onPhone ? loadClip(`characters/people/phone-walk/${personId}.glb`) : null,
+          onPhone ? loadClip(`characters/people/text-walk/${personId}.glb`) : null,
+          onPhone ? loadClip(`characters/people/phone-call/${personId}.glb`) : null,
+          onPhone ? loadClip(`characters/people/phone-pace/${personId}.glb`) : null,
         ]);
         const root = cloneSkeleton(gltf.scene);
         fit(root);
@@ -895,12 +921,17 @@
         const clips = new Map(clip ? [["Walk", clip]] : []);
         // Shop staff and customers standing still (scripts/bake_rocketbox_idle.py, people.setIdle).
         if (idle) clips.set("Idle", idle);
+        if (texting) clips.set("Texting", inplaceRoot(texting));
+        if (phoneWalk) clips.set("Phone walk", inplaceRoot(phoneWalk));
+        if (textWalk) clips.set("Text walk", inplaceRoot(textWalk));
+        if (call) clips.set("Call", inplaceRoot(call));
+        if (callWalk) clips.set("Call walk", inplaceRoot(callWalk));
         if (ride) {
           clips.set("Bicycle", ride);
           clips.set("Bakfiets", ride);
         }
         if (step) clips.set("Step", step);
-        return { root, mixer, clips, kind: "crowd" };
+        return { root, mixer, clips, kind: "crowd", personId };
       }
 
       /** Map NPC combo rows onto a clip name the rider/crowd loaders already know. */
@@ -910,6 +941,7 @@
         if (combo.mode === "Step" && model.clips.has("Step")) return "Step";
         if (combo.mode === "On foot") {
           if (combo.gait === "Idle" && model.clips.has("Idle")) return "Idle";
+          if (model.clips.has(combo.gait)) return combo.gait;
           if (model.clips.has("Walk")) return "Walk";
         }
         const order = ["Walk", "Bicycle", "Bakfiets", "Step"];
@@ -918,7 +950,11 @@
 
       function playLoaded(model) {
         if (model.kind === "cast") return playCast(model);
-        const gaitOpts = NPC_GAIT_OPTS.filter((n) => n === "Idle" || model.clips.has("Walk") || model.clips.has(n));
+        const PHONE_GAITS = new Set(["Texting", "Text walk", "Phone walk", "Call", "Call walk"]);
+        const gaitOpts = NPC_GAIT_OPTS.filter((n) => {
+          if (PHONE_GAITS.has(n)) return model.clips.has(n);
+          return n === "Idle" || model.clips.has("Walk") || model.clips.has(n);
+        });
         const modeOpts = NPC_MODE_OPTS.filter((n) => {
           if (n === "On foot") return model.clips.has("Walk") || model.clips.has("Idle") || model.kind === "rider";
           return model.clips.has(n);
@@ -952,6 +988,7 @@
         // Idle on foot without a baked idle: freeze the walk at the bind-ish first frame.
         const idleFeet = combo.mode === "On foot" && combo.gait === "Idle" && clipName !== "Idle";
         show(model.root, model.mixer, action);
+        holdGalleryPhone(model, clipName);
         if (idleFeet) {
           action.paused = true;
           action.time = 0;
@@ -973,6 +1010,23 @@
           model.mixer.update(0);
           ridePose(model.root, clipName, 0);
         }
+      }
+
+      const GALLERY_GRIP = {
+        Texting: "text",
+        "Text walk": "textWalk",
+        Call: "call",
+        "Call walk": "call",
+      };
+      function holdGalleryPhone(model, name) {
+        if (model.kind !== "crowd") return;
+        const hand = model.root.getObjectByName("Bip01 R Hand");
+        if (!hand) return;
+        if (!model.iphone) {
+          model.iphone = createIphone(model.personId || "");
+          hand.add(model.iphone);
+        }
+        gripIphone(model.iphone, GALLERY_GRIP[name] || null);
       }
 
       const castList = document.getElementById("cast");
@@ -1022,6 +1076,10 @@
       }
 
       const manifest = await fetch("characters/people/manifest.json").then((r) => r.json());
+      const phoneDoc = await fetch("characters/people/phone.json")
+        .then((r) => (r.ok ? r.json() : { people: [] }))
+        .catch(() => ({ people: [] }));
+      for (const id of phoneDoc.people || []) phonePeople.add(id);
       for (const person of manifest.people) {
         const li = document.createElement("li");
         const b = document.createElement("button");

@@ -25,7 +25,11 @@ kind                   OSM tags                                     facing
 ``shelter``            ``amenity=shelter`` (public transport)       open side to the street
 ``fountain``           ``amenity=fountain``                         (round)
 ``poster``             ``advertising=poster_box``                   face toward the street
+``city_board``         Stad Antwerpen stadsbord / sociocultureel    face toward the street
 =====================  ===========================================  ==================
+
+City survey points (chargers, bike racks, shelters, posters, city boards) are
+planned first; OSM fills gaps. Duplicates of the same kind collapse.
 
 Placement reuses the bench rules: duplicates within ``DEDUPE_M`` of the same kind collapse,
 anything inside a building footprint, deep in a carriageway or on a tram bed is dropped, and
@@ -65,6 +69,7 @@ KINDS = (
     "shelter",
     "fountain",
     "poster",
+    "city_board",
 )
 
 DEDUPE_M = {
@@ -86,6 +91,7 @@ DEDUPE_M = {
     "shelter": 8.0,
     "fountain": 4.0,
     "poster": 2.0,
+    "city_board": 2.0,
 }
 BUILDING_MARGIN = 0.15
 ROAD_NUDGE_M = 1.6  # survey points up to this deep in a carriageway slide to the kerb
@@ -246,7 +252,7 @@ def plan_clutter(
     boundary = layout.get("boundary_local") or None
     grids = {k: _PointGrid(cell=4.0) for k in KINDS}
     out: list[dict[str, Any]] = []
-    for item in sorted(items, key=lambda i: (i["kind"], i["id"])):
+    for item in sorted(items, key=lambda i: (0 if i.get("source") == "city" else 1, i["kind"], str(i["id"]))):
         kind = item["kind"]
         x, y = project(item["lat"], item["lon"], origin[0], origin[1])
         if not (x_lo <= x <= x_hi and y_lo <= y <= y_hi) or (
@@ -285,7 +291,11 @@ def plan_clutter(
             # Bike hoops are laid out along local X, so they end up running along the kerb.
             fx, fy, rule = -near[1], -near[2], "face_street"
         else:
-            seed = (item["id"] * 2654435761) % 360
+            try:
+                nid = int(item["id"])
+            except (TypeError, ValueError):
+                nid = int.from_bytes(str(item["id"]).encode("utf-8")[:8].ljust(8, b"\0"), "little")
+            seed = (nid * 2654435761) % 360
             fx, fy, rule = math.cos(math.radians(seed)), math.sin(math.radians(seed)), "seeded"
         grids[kind].add(x, y)
         out.append(_record(item, x, y, _yaw_from_facing(fx, fy), rule))
@@ -300,8 +310,11 @@ def attach_clutter(
     origin: tuple[float, float],
     spawn_xy: tuple[float, float] | None = None,
 ) -> dict[str, Any]:
-    """Plan OSM street clutter and store it on ``layout`` (no network: OSM is already loaded)."""
-    plan = plan_clutter(layout, osm_clutter(osm), origin, bbox, spawn_xy)
+    """Plan street clutter (city survey first, OSM fill) and store it on ``layout``."""
+    from cityview.survey import city_clutter_items
+
+    items = city_clutter_items(layout.get("survey") or {}) + osm_clutter(osm)
+    plan = plan_clutter(layout, items, origin, bbox, spawn_xy)
     layout["clutter"] = plan["clutter"]
     layout["clutter_stats"] = plan["stats"]
     return plan

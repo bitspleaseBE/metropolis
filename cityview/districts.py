@@ -186,6 +186,10 @@ class DistrictPaths:
         return self.cache / "velo.json"
 
     @property
+    def survey_cache(self) -> Path:
+        return self.cache / "survey.json"
+
+    @property
     def aerial_dir(self) -> Path:
         return self.cache / "aerial"
 

@@ -497,6 +497,11 @@ def district_command(args: argparse.Namespace) -> int:
 
         district_republish_roads(args.id)
         return 0
+    if action == "survey":
+        from cityview.district_pipeline import district_republish_survey
+
+        district_republish_survey(args.id, refresh=bool(args.refresh))
+        return 0
     if action == "map":
         from cityview.district_pipeline import district_republish_map
 
@@ -646,6 +651,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     d_roads.add_argument("id", help="District id")
     d_roads.set_defaults(func=district_command)
+
+    d_survey = dsub.add_parser(
+        "survey",
+        help="Pull Stad Antwerpen street survey into cache/survey.json and fold it into roads.json + water.json, no Blender",
+    )
+    d_survey.add_argument("id", help="District id")
+    d_survey.add_argument("--refresh", action="store_true", help="Re-query MapServer even when the cache covers the bbox")
+    d_survey.set_defaults(func=district_command)
 
     d_map = dsub.add_parser(
         "map",

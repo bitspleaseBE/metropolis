@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import unittest
 
-from cityview.clutter import classify, hoop_count, osm_clutter, plan_clutter
+from cityview.clutter import attach_clutter, classify, hoop_count, osm_clutter, plan_clutter
 from cityview.geo import METERS_PER_DEG_LAT, meters_per_deg_lon
 
 ORIGIN = (51.2, 4.4)
@@ -126,7 +126,25 @@ class PlanTests(unittest.TestCase):
         # Local X (hoop row) is perpendicular to the front, which faces the street (-y): row runs along x.
         self.assertAlmostEqual(abs(math.cos(rack["yaw"])), 1.0, places=2)
 
+    def test_city_survey_wins_the_same_kind_and_adds_city_boards(self):
+        node = _node(5.0, 6.0, 1, amenity="charging_station")
+        lat, lon = node["lat"], node["lon"]
+        layout = _layout(
+            survey={
+                "layers": {
+                    "chargers": [{"id": 9, "lat": lat, "lon": lon, "Publiek": "ja"}],
+                    "city_boards": [{"id": 10, "lat": node["lat"] + 0.00004, "lon": lon}],
+                }
+            }
+        )
+        plan = attach_clutter(layout, {"elements": [node]}, None, ORIGIN, None)
+        kinds = [c["kind"] for c in plan["clutter"]]
+        self.assertIn("charging", kinds)
+        self.assertIn("city_board", kinds)
+        self.assertEqual(sum(1 for k in kinds if k == "charging"), 1)
+
     def test_way_centroids_work_for_areas(self):
+
         elements = [
             {"id": 1, "type": "node", "lat": 51.2, "lon": 4.4, "tags": {}},
             {"id": 2, "type": "node", "lat": 51.2, "lon": 4.4004, "tags": {}},

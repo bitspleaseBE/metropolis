@@ -1457,6 +1457,7 @@ import { dressBareWalls } from "./wall-front.js";
       import { createTraffic } from "./traffic.js";
       import { createTransit, hideInventedBusStops } from "./transit.js";
       import { createPedestrians } from "./pedestrians.js";
+      import { createMarketFair } from "./market-fair.js";
       import { createMicromobility } from "./micromobility.js";
       import { preloadStarter } from "./characters.js";
       import { createVelo, hideBakedVeloRacks } from "./velo.js";
@@ -2111,6 +2112,7 @@ import { SLOTS, canFireWhileRiding } from "./weapons.js";
       let harmedPulse = false;
       let transit = { update() {}, dispose() {} };
       let pedestrians = null;
+      let marketFair = null;
       let micromobility = null;
       let velo = null;
       let ownsBicycle = false;
@@ -4370,6 +4372,11 @@ let knifeLunge = null;
             hour: gameHour,
             day: gameDay,
           });
+          marketFair = createMarketFair(scene, THREE, {
+            markets: pedestrians.markets,
+            people: pedestrians.people,
+            sellerMax: TIGHT ? 3 : 6,
+          });
           if (pedestrians.setCrossingGate && traffic.pedMayCross) {
             pedestrians.setCrossingGate((id) => traffic.pedMayCross(id));
           }
@@ -5337,6 +5344,7 @@ let knifeLunge = null;
           if (pedestrians) {
             pedestrians.setClock?.(gameHour, gameDay);
             pedestrians.update(simDt);
+            marketFair?.update(simDt, walker.position.x, walker.position.z, gameHour, gameDay);
           }
           streetLife?.update(simDt, walker.position.x, walker.position.z);
           if (police) {
